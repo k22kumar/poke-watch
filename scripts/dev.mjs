@@ -17,7 +17,7 @@ const writeHtml = {
   },
 };
 
-const ctx = await esbuild.context({ entryPoints: ['src/main.ts'], bundle: true, format: 'iife', target: 'es2022', write: false, sourcemap: 'inline', plugins: [writeHtml] });
+const ctx = await esbuild.context({ entryPoints: ['src/main.ts'], outdir: 'dist', bundle: true, format: 'iife', target: 'es2022', write: false, sourcemap: 'inline', plugins: [writeHtml] });
 await ctx.watch();
 const { port } = await ctx.serve({ servedir: 'dist', port: 5173 });
 console.log(`Poke-Watch dev server: http://localhost:${port}  (edit src/** and reload)`);
