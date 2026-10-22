@@ -135,9 +135,6 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   ctx.tick++;
 
   switch (ctx.state) {
-    case 'levelup':
-      handleCardInput(ctx);
-      return ctx.events;
     case 'evolving':
       ctx.stateTimer -= dt;
       if (ctx.stateTimer <= 0) finishEvolution(ctx);
@@ -199,5 +196,5 @@ function nextStage(ctx: SimContext) {
 }
 
 function isModal(ctx: SimContext) {
-  return ctx.state === 'levelup' || ctx.state === 'evolving';
+  return ctx.state === 'evolving';
 }

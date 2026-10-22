@@ -34,7 +34,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Guard (tap: deflect or parry; hold: brace) | E · RB / LB |
 | Dash (brief invulnerability) | Shift / B |
 | Jump (onto rocks, logs, bushes; flyers glide while holding) | Space / A |
-| Level-up cards (they wait in a tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll |
+| Level-up cards (they wait in a tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
 | Menus | Arrows / Tab to move, Enter / Space to choose, Esc / Backspace to go back; gamepad d-pad, A, B, Start |
 | Pause | Esc / P |
 | Tuning panel | ` (backtick) |
@@ -71,7 +71,7 @@ npm run build
 
 The design is in the *Poke-Watch Unified Squad Blueprint* doc; `docs/SQUAD.md` lists what is built, the numbers and what was measured.
 
-- **Banked picks.** Level-ups no longer pause the run: the cards wait in a tray above the move slots until you pick (1, 2, 3 or the d-pad). `cards.tray: false` brings back the pausing modal.
+- **Banked picks.** Upgrade offers remain available while the run continues. Choose with 1–3 (4 when swapping a technique), D-pad left/up/right, or click when the cursor is free; `C` toggles cursor/camera control. Multiple level-ups queue one offer at a time.
 - **Squad of three.** You start with your partner. After an elite falls (from 2:00 for the first recruit, 5:00 for the second) two wild Pokémon from the region offer to join; pick one or let it go. One squad level and XP bar; every Pokémon evolves at its own level, benched ones on the bench.
 - **Tag (Q / Y).** A tap swaps to the last Pokémon; hold Tag and press Move A or Move B to pick the first or second reserve. The incoming Pokémon arrives where the other stood, invulnerable for 0.15 s, and 0.2 s later fires its **Tag Action** (`rules/tags.ts`: Aqua Tail, Flame Wheel, Vine Whip, Thunder Shock, Rock Throw that leaves a rock…) toward your aim. 4 s squad-wide cooldown; Reflex charges belong to the trainer. At its first evolution (level 18 for Pokémon that do not evolve) each Pokémon can switch to a variant Tag Action.
 - **Resting.** Benched Pokémon keep their cooldowns ticking, refill grey health (40% of each hit, which drains away if you stay on the field) and shed coats and paralysis twice as fast. They give no passive bonuses. A fainted Pokémon is replaced after 1 s with a free Tag Action; the run ends when all three faint; the next region's portal revives them at 30%.

@@ -8,7 +8,7 @@ export const DEFAULT_BINDINGS: Record<string, string[]> = {
   // aimed combat: Move A / Move B are the mouse buttons (J / K on the keyboard), Q the Signature, E Guard
   moveA: ['KeyJ'], moveB: ['KeyK'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
   pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
-  pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], tuning: ['Backquote'], mute: ['KeyM'],
+  pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
 };
 
 export class Input {
@@ -39,17 +39,20 @@ export class Input {
   constructor(private el: HTMLElement) {
     window.addEventListener('keydown', (e) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      const focusedTrayControl = (e.target as HTMLElement)?.closest('#tray-cards');
+      if (focusedTrayControl && ['Enter', 'Space', 'Tab'].includes(e.code)) return;
       if (this.context === 'menu') {
         // menus: never block Tab/arrows/Space; only global toggles pass through
         for (const a of ['mute', 'tuning']) if (this.is(a, e.code)) this.onAction?.(a);
         return;
       }
-      if (!this.keys.has(e.code)) this.pressed.add(e.code);
+      const firstPress = !this.keys.has(e.code);
+      if (firstPress) this.pressed.add(e.code);
       this.keys.add(e.code);
       if (this.is('dash', e.code)) this.dashLatch = true;
-      for (const [a, codes] of Object.entries(this.bindings)) if (codes.includes(e.code)) this.onAction?.(a);
+      if (firstPress) for (const [a, codes] of Object.entries(this.bindings)) if (codes.includes(e.code)) this.onAction?.(a);
       // during play, keep movement keys from scrolling or moving focus to hidden menu buttons
-      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+      if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());

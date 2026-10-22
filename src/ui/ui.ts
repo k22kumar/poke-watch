@@ -93,7 +93,7 @@ function lookIcon(L: ItemLook, scale = 2): HTMLElement {
 }
 
 /** screens that take the keyboard, topmost first */
-const MENU_ORDER = ['screen-settings', 'screen-help', 'screen-credits', 'screen-pause', 'screen-end', 'modal-cards', 'screen-select', 'screen-title'];
+const MENU_ORDER = ['screen-settings', 'screen-help', 'screen-credits', 'screen-pause', 'screen-end', 'screen-select', 'screen-title'];
 
 export class UI {
   root: HTMLElement;
@@ -104,6 +104,7 @@ export class UI {
   private mode: Mode = MODES[0];
   private species = 'charmander';
   private banishing = false;
+  private cardPending = false;
   private cardsShown: Card[] = [];
   private bannerT = 0;
   private hpLagTimer = 0;
@@ -115,7 +116,9 @@ export class UI {
   private padRepeat = 0;
   fx2d: CanvasRenderingContext2D;
   tray!: HTMLElement;
-  private trayMode = false;
+  private upgradeStatus!: HTMLElement;
+  private upgradeFeedback!: HTMLElement;
+  private upgradeFeedbackTimer = 0;
 
   constructor(private hooks: UIHooks) {
     this.root = document.getElementById('ui')!;
@@ -205,16 +208,24 @@ export class UI {
 
   private handleKey(e: KeyboardEvent) {
     const name = this.activeMenu();
-    if (!name) return;
     const t = e.target as HTMLElement;
+    if (!name && this.tray.contains(t)) {
+      const dir: Record<string, number> = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
+      if (dir[e.key]) {
+        const cards = [...this.tray.querySelectorAll<HTMLButtonElement>('.card')];
+        const i = cards.indexOf(t.closest<HTMLButtonElement>('.card')!);
+        const next = cards[i + dir[e.key]];
+        e.preventDefault();
+        e.stopPropagation();
+        next?.focus();
+        return;
+      }
+      if ((e.key === 'Enter' || e.key === ' ') && t.closest('.card')) e.stopPropagation();
+      return;
+    }
+    if (!name) return;
     const typing = t?.tagName === 'INPUT' && (t as HTMLInputElement).type === 'text';
     const k = e.key;
-    if (name === 'modal-cards') {
-      if (['1', '2', '3', '4'].includes(k)) { this.cardClick(Number(k) - 1); e.preventDefault(); return; }
-      if (k === 'f' || k === 'F') { this.cardAction('reroll'); e.preventDefault(); return; }
-      if (k === 'x' || k === 'X') { this.cardAction('skip'); e.preventDefault(); return; }
-      if (k === 'z' || k === 'Z') { this.toggleBanish(); e.preventDefault(); return; }
-    }
     if (typing && !['Escape', 'Enter', 'Tab'].includes(k)) return;
     const dir: Record<string, [number, number]> = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
     if (dir[k] && !(t?.tagName === 'INPUT' && (t as HTMLInputElement).type === 'range' && (k === 'ArrowLeft' || k === 'ArrowRight'))) { e.preventDefault(); e.stopPropagation(); this.moveFocus(...dir[k]); return; }
@@ -279,9 +290,12 @@ export class UI {
     );
     this.add('hud', hud);
     this.root.append(h('div', { id: 'banner', role: 'status', 'aria-live': 'polite' }), h('div', { id: 'plaque' }));
-    this.add('modal-cards', h('div', { class: 'screen dim' }));
-    this.tray = h('div', { id: 'tray-cards', class: 'hidden', role: 'region', 'aria-label': 'Level-up cards' });
+    this.tray = h('div', { id: 'tray-cards', class: 'hidden', role: 'region', 'aria-label': 'Upgrade choices' });
     this.root.append(this.tray);
+    this.upgradeStatus = h('div', { id: 'upgrade-status', class: 'sr-only', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
+    this.root.append(this.upgradeStatus);
+    this.upgradeFeedback = h('div', { id: 'upgrade-feedback', class: 'hidden', role: 'status' });
+    this.root.append(this.upgradeFeedback);
     this.add('overlay-evolve', h('div', { class: 'screen' }, h('div', { class: 'rays' }), h('div', { class: 'box txt', id: 'evotxt' })));
     for (const n of ['screen-pause', 'screen-end', 'screen-settings', 'screen-help', 'screen-credits']) this.add(n, h('div', { class: 'screen dim' }));
     this.add('tuning', h('div', { class: 'box' }));
@@ -582,10 +596,8 @@ export class UI {
   showCards(ctx: SimContext, cards: Card[], chest: boolean) {
     this.cardsShown = cards;
     this.banishing = false;
-    // banked picks: the offer sits in a tray above the move slots and the run keeps going
-    const tray = ctx.rules.cards.tray;
-    this.trayMode = tray;
-    const scr = tray ? this.tray : this.screens['modal-cards'];
+    this.cardPending = false;
+    const scr = this.tray;
     scr.innerHTML = '';
     const row = h('div', { class: 'cards' });
     cards.forEach((c, i) => {
@@ -605,10 +617,12 @@ export class UI {
     const act = (label: string, count: number, k: string, fn: () => void) => btn([`${label} (${count}) `, h('kbd', {}, k)], fn, 'btn small', { disabled: count <= 0, 'aria-disabled': String(count <= 0) });
     const more = ctx.player.pendingLevels - (chest ? 0 : 1);
     const src = ctx.cards.source;
-    const head = src === 'swap' ? `You can hold ${ctx.rules.build.maxTechniques} techniques: discard one for ${TECHNIQUE_BY_ID[ctx.build.swap?.tech ?? '']?.title ?? 'the new one'}, or keep yours (X)` : src === 'recruit' ? 'A wild Pokémon wants to join! Pick 1, 2 or 3' : src === 'tag' ? `${ctx.player.squad[cards[0]?.member ?? 0]?.species.name ?? ''} can learn a new Tag Action: 1 or 2` : chest ? 'You found an item ball!' : tray ? `Lv ${ctx.player.level - Math.max(0, more)}! Pick a card: 1, 2 or 3${more > 0 ? ` (${more} more banked)` : ''}` : `${ctx.player.species.name} grew to Lv ${ctx.player.level}!`;
+    const head = src === 'swap' ? `You can hold ${ctx.rules.build.maxTechniques} techniques: discard one for ${TECHNIQUE_BY_ID[ctx.build.swap?.tech ?? '']?.title ?? 'the new one'}, or keep yours (X)` : src === 'recruit' ? 'A wild Pokémon wants to join! Pick 1, 2 or 3' : src === 'tag' ? `${ctx.player.squad[cards[0]?.member ?? 0]?.species.name ?? ''} can learn a new Tag Action: 1 or 2` : chest ? 'You found an item ball!' : `Lv ${ctx.player.level - Math.max(0, more)}! Choose 1, 2 or 3 · D-pad ← ↑ →${more > 0 ? ` (${more} more banked)` : ''}`;
+    this.upgradeStatus.textContent = head;
     scr.append(
       h('h2', { class: 'box heading' }, head),
       row,
+      h('div', { class: 'sub upgrade-controls' }, '1–3 (4 when swapping) or D-pad ← ↑ → to pick · C toggles cursor/camera control'),
       // recruit and Tag-variant offers have no reroll, skip or banish: the last card is the free 'no'
       ...(src === 'recruit' || src === 'tag' || src === 'swap' ? [] : [h('div', { class: 'card-actions' },
         act('Reroll', C.rerolls, 'F', () => this.cardAction('reroll')),
@@ -616,12 +630,9 @@ export class UI {
         act('Banish', C.banishes, 'Z', () => this.toggleBanish()))]),
       h('div', { class: 'sub banish-hint hidden' }, 'Banish: choose a card to remove it from this run'),
     );
-    if (tray) { this.tray.classList.remove('hidden'); return; }
-    this.backs['modal-cards'] = () => { if (this.banishing) this.toggleBanish(); else this.hooks.sound('denied'); };
-    this.show('modal-cards');
-    this.focusDefault('modal-cards');
+    this.tray.classList.remove('hidden');
   }
-  /** the banked-pick tray is showing (card keys go to it during play) */
+  /** A nonmodal offer is showing; card keys remain routed alongside gameplay input. */
   trayOpen() { return !this.tray.classList.contains('hidden') && !this.tray.classList.contains('suspended'); }
 
   /** a card's practical effect on the current build, in concrete numbers */
@@ -737,30 +748,47 @@ export class UI {
 
   cardKey(a: 'reroll' | 'skip') { this.cardAction(a); }
   private cardAction(a: 'reroll' | 'skip') {
+    if (this.cardPending) return;
     const C = this.hooks.tuning().ctx?.cards;
     if (C && !(a === 'skip' && C.source === 'swap') && (a === 'reroll' ? C.rerolls : C.skips) <= 0) { this.hooks.sound('denied'); return; }
+    this.cardPending = true;
     this.hooks.sound('pick');
     this.hooks.card(a, 0);
   }
 
   toggleBanish() {
+    if (this.cardPending) return;
     const C = this.hooks.tuning().ctx?.cards;
     if (!this.banishing && C && C.banishes <= 0) { this.hooks.sound('denied'); return; }
     this.banishing = !this.banishing;
     this.hooks.sound(this.banishing ? 'ui' : 'back');
-    const scr = this.trayMode ? this.tray : this.screens['modal-cards'];
-    scr.querySelectorAll('.card').forEach((c) => c.classList.toggle('banishing', this.banishing));
-    scr.querySelector('.banish-hint')?.classList.toggle('hidden', !this.banishing);
+    this.tray.querySelectorAll('.card').forEach((c) => c.classList.toggle('banishing', this.banishing));
+    this.tray.querySelector('.banish-hint')?.classList.toggle('hidden', !this.banishing);
   }
 
   cardClick(i: number) {
-    if (!this.cardsShown[i]) return;
+    if (this.cardPending || !this.cardsShown[i]) return;
+    this.cardPending = true;
     if (this.banishing) { this.banishing = false; this.hooks.card('banish', i); return; }
     this.hooks.card('pick', i);
   }
 
-  hideCards() { this.show('modal-cards', false); this.tray.classList.add('hidden'); this.tray.classList.remove('suspended'); }
-  cardsOpen() { return this.visible('modal-cards'); }
+  hideCards(card?: Card | null) {
+    this.tray.classList.add('hidden');
+    this.tray.classList.remove('suspended');
+    this.cardPending = false;
+    if (card !== undefined) {
+      const message = card ? `Selected ${card.title}.` : 'Upgrade skipped.';
+      this.upgradeStatus.textContent = message;
+      this.upgradeFeedback.textContent = message;
+      this.upgradeFeedback.classList.remove('hidden');
+      clearTimeout(this.upgradeFeedbackTimer);
+      this.upgradeFeedbackTimer = window.setTimeout(() => this.upgradeFeedback.classList.add('hidden'), 1600);
+    } else {
+      clearTimeout(this.upgradeFeedbackTimer);
+      this.upgradeFeedback.classList.add('hidden');
+    }
+  }
 
   // ------------------------------------------------------------ evolution
   evolve(from: string, to: string) {
@@ -900,7 +928,7 @@ export class UI {
       h('div', { class: 'controls', html: `
         <p><b>Move</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows / left stick · <b>Jump</b> <kbd>Space</kbd> / A (onto rocks and logs; flying partners glide) · <b>Dash</b> <kbd>Shift</kbd> / B</p>
         <p>Your Pokémon attacks on its own: it turns to the nearest wild Pokémon, winds up and strikes. Collect EXP Shards, level up, choose an upgrade.</p>
-        <p>Level-up cards: <kbd>1</kbd>–<kbd>3</kbd> or arrows + <kbd>Enter</kbd> · <kbd>F</kbd> reroll · <kbd>X</kbd> skip · <kbd>Z</kbd> banish (2 rerolls and 1 banish per region). Each pick shows a <b>Kit</b> card (a move to learn, or a <b>transform</b> that changes what a move does; each move has two and you keep one), a <b>Technique</b> (a rule for your whole squad, with a cost; you hold three) and a <b>Wildcard</b> (a benched Pokémon's transform, a Tag Action, an early evolution, a berry). Moves grow stronger with your level on their own.</p>
+        <p>Upgrades stay available while combat continues. Choose directly with <kbd>1</kbd>–<kbd>3</kbd> or the D-pad left/up/right; with a card focused, arrows move focus and <kbd>Enter</kbd> confirms. <kbd>C</kbd> toggles cursor/camera control for mouse selection without pausing. <kbd>F</kbd> rerolls, <kbd>X</kbd> skips, and <kbd>Z</kbd> starts a banish (2 rerolls and 1 banish per region). Each pick shows a <b>Kit</b> card (a move to learn, or a <b>transform</b> that changes what a move does; each move has two and you keep one), a <b>Technique</b> (a rule for your whole squad, with a cost; you hold three) and a <b>Wildcard</b> (a benched Pokémon's transform, a Tag Action, an early evolution, a berry). Moves grow stronger with your level on their own.</p>
         <p>Trees, water and cliffs block the way; climb bluffs by their stairs, hop up ledges, and use groves to split a swarm. Item balls in the field hold a rare upgrade; Oran Berries heal.</p>
         <p>A boss arrives at 5:00 in each region. Defeat it and step into the portal. Partners evolve at their real levels; types and abilities follow the main games where the survival format allows.</p>
         <p>Menus: arrows / D-pad move, <kbd>Enter</kbd> / A confirm, <kbd>Esc</kbd> / B back, <kbd>Tab</kbd> also works. <kbd>Esc</kbd> / Start pauses · <kbd>M</kbd> mutes · <kbd>\`</kbd> tuning panel.</p>` }),

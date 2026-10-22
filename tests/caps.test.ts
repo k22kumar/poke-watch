@@ -448,7 +448,7 @@ test('the log is passive: with the capability layer off nothing is recorded and 
 /** scripted inputs that exercise aim, Move A/B holds, Guard taps and dashes */
 function scripted(ctx: SimContext, t: number): InputFrame {
   const P = ctx.player, a = t * 0.013;
-  return { mx: Math.sin(a * 0.7), mz: Math.cos(a * 0.5), jump: t % 400 === 0, dash: t % 170 === 0, aimX: P.x + Math.sin(a) * 8, aimZ: P.z + Math.cos(a) * 8, btn: (t % 90 < 50 ? BTN.a : 0) | (t % 130 < 40 ? BTN.b : 0) | (t % 75 < 6 ? BTN.guard : 0), card: ctx.cards.offer || ctx.state === 'levelup' ? { action: 'pick', index: 0 } : undefined };
+  return { mx: Math.sin(a * 0.7), mz: Math.cos(a * 0.5), jump: t % 400 === 0, dash: t % 170 === 0, aimX: P.x + Math.sin(a) * 8, aimZ: P.z + Math.cos(a) * 8, btn: (t % 90 < 50 ? BTN.a : 0) | (t % 130 < 40 ? BTN.b : 0) | (t % 75 < 6 ? BTN.guard : 0), card: ctx.cards.offer ? { action: 'pick', index: 0 } : undefined };
 }
 
 test('determinism: the same seed and inputs give the same state hash with every Phase 8a feature on', () => {

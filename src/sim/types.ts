@@ -8,7 +8,7 @@ import type { World } from './world';
 import type { Cap } from '../rules/capabilities';
 import type { MoveFlags } from '../rules/build';
 
-export type RunState = 'play' | 'levelup' | 'evolving' | 'dead' | 'over' | 'victory' | 'transition';
+export type RunState = 'play' | 'evolving' | 'dead' | 'over' | 'victory' | 'transition';
 
 export interface InputFrame {
   mx: number; // desired world-space move direction (unnormalised ok, length <= 1)

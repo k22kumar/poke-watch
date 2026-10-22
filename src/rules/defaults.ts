@@ -164,8 +164,6 @@ export const defaultRules = {
   },
   cards: {
     choices: 3, rerolls: 2, skips: 2, banishes: 2, // [C] reroll(F) skip(X) banish(Z); counts [B]
-    /** [B] banked picks: offers wait in a tray while the world keeps running (false = PokéBonk's pausing modal) */
-    tray: true,
     weights: { learn: 3, upgrade: 4, vitamin: 2.2, heal: 0.6 },
     rarity: { common: 1, rare: 0.28, epic: 0.07 },
     rarityMult: { common: 1, rare: 1.6, epic: 2.4 },

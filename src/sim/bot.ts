@@ -5,7 +5,7 @@ import { BTN, type InputFrame, type SimContext } from './types';
 
 export function botInput(ctx: SimContext): InputFrame {
   const P = ctx.player;
-  if (ctx.state === 'levelup') return { mx: 0, mz: 0, jump: false, dash: false, card: cardAction(ctx) };  const E = ctx.enemies;
+  const E = ctx.enemies;
   let ax = 0, az = 0;
   for (let i = 0; i < E.hi; i++) {
     if (!E.alive[i]) continue;

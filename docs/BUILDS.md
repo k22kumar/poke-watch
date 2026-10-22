@@ -210,8 +210,8 @@ technique at most 0.035 (Second Wind). Far below the blueprint's 0.2. The bot pl
 - **Slipstream's copied coat** goes on creatures the Move hits, not on the ground.
 - **Burrow's Grass patch** is not barred near objective pads (blueprint section 9's 3 m rule belongs with Phase 8c's
   cover and Create limits).
-- **Tray keys.** In the banked tray, keys 1–3 pick; the swap offer's fourth card (Keep) is X or a click. The modal
-  (`cards.tray: false`) also takes 4.
+- **Tray keys.** Offers stay nonmodal while the sim runs. Keys 1–3 pick; key 4 selects the fourth swap choice (Keep),
+  which is also available with X or a click. D-pad left/up/right picks the first three; C toggles cursor/camera control.
 - **Typecheck dependency.** `npm run typecheck` needs `@types/node`, which is not in `devDependencies` (true before
   this phase too).
 - **One player**, as in 8a: techniques live on `ctx.player`.

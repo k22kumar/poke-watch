@@ -287,7 +287,6 @@ function closeOffer(ctx: SimContext, picked: Card | null = null, shown: Card[] |
   ctx.cards.chest = false;
   ctx.cards.source = 'level';
   if (source === 'level') ctx.player.pendingLevels--;
-  if (ctx.state === 'levelup') ctx.state = 'play';
   maybeOpenCards(ctx);
 }
 
@@ -300,18 +299,15 @@ export function openOffer(ctx: SimContext, chest: boolean) {
   ctx.cards.offer = cards;
   ctx.cards.chest = chest;
   ctx.cards.source = chest ? 'chest' : 'level';
-  // banked picks: the offer waits in a tray and the world keeps running; otherwise it pauses the sim
-  if (!ctx.rules.cards.tray) ctx.state = 'levelup';
   ctx.events.push({ t: 'cards', cards, chest });
 }
 
-/** open a squad offer (recruit or Tag variant) in the tray or the modal */
+/** Open a nonblocking squad offer (recruit or Tag variant). */
 function openSpecial(ctx: SimContext, source: 'recruit' | 'tag', cards: Card[]) {
   if (!cards.length) return false;
   ctx.cards.offer = cards;
   ctx.cards.chest = false;
   ctx.cards.source = source;
-  if (!ctx.rules.cards.tray) ctx.state = 'levelup';
   ctx.events.push({ t: 'cards', cards, chest: false });
   return true;
 }
@@ -351,8 +347,7 @@ export function maybeOpenCards(ctx: SimContext) {
     }
     if (ctx.recruit.pending && openSpecial(ctx, 'recruit', recruitCards(ctx))) return;
   }
-  if (ctx.rules.cards.tray) { if (P.pendingLevels > 0 && !ctx.cards.offer) openOffer(ctx, false); return; }
-  while (P.pendingLevels > 0 && ctx.state === 'play') openOffer(ctx, false);
+  if (P.pendingLevels > 0 && !ctx.cards.offer) openOffer(ctx, false);
 }
 
 export function finishEvolution(ctx: SimContext) {

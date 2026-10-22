@@ -110,13 +110,14 @@ input.onAction = (a) => {
   if (a === 'pause' && ctx.state !== 'over' && ctx.state !== 'victory') setPaused(!paused);
   if (a === 'tuning') ui.toggleTuning();
   if (a === 'mute') { settings.muted = !settings.muted; applyMix(); }
-  // banked picks: card keys act on the tray while the run keeps going
+  // Upgrade shortcuts are edge-triggered and only act while an offer is pending.
   if (ui.trayOpen() && !paused) {
-    if (a === 'pick1' || a === 'pick2' || a === 'pick3') ui.cardClick(Number(a.slice(4)) - 1);
+    if (a === 'pick1' || a === 'pick2' || a === 'pick3' || a === 'pick4') ui.cardClick(Number(a.slice(4)) - 1);
     else if (a === 'reroll' || a === 'skip') ui.cardKey(a);
     else if (a === 'banish') ui.toggleBanish();
+    else if (a === 'cardPointer') { if (input.locked) input.releaseLock(); else input.capture(); }
   }
-  // level-up card keys, menu navigation and Esc-to-go-back are handled by the UI while a menu is open
+  // Menus own their controls; upgrade hotkeys are routed above while gameplay stays active.
 };
 window.addEventListener('pointerdown', () => audio.unlock());
 
@@ -178,8 +179,8 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         ui.hurt(); audio.hurt();
         if (god) c.player.hp = Math.max(c.player.hp, c.player.maxHp * 0.5);
         break;
-      case 'cards': ui.showCards(c, e.cards, e.chest); input.releaseLock(); break;
-      case 'cardPicked': ui.hideCards(); if (e.card) audio.pick(); break;
+      case 'cards': ui.showCards(c, e.cards, e.chest); break;
+      case 'cardPicked': ui.hideCards(e.card); if (e.card) audio.pick(); break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
       // boss cries play at their recorded pitch (as in HGSS encounters); see docs/AUDIO.md
@@ -300,7 +301,7 @@ function frame(now: number) {
     let scale = speed;
     if (hitstop > 0) { hitstop -= real; scale *= c.rules.sim.hitstopScale; }
     if (c.state === 'dead') scale *= c.rules.sim.deathTimeScale;
-    if ((c.state === 'levelup' || c.cards.offer) && (autoplay || params.has('autopick'))) pendingCard = { action: 'pick', index: 0 };
+    if (c.cards.offer && (autoplay || params.has('autopick'))) pendingCard = { action: 'pick', index: 0 };
     acc += real * scale;
     simDt = real * scale;
     let steps = 0;
@@ -308,12 +309,10 @@ function frame(now: number) {
     while (acc >= c.dt && steps < maxSteps) {
       const inp = autoplay ? botInput(c) : sampleInput(c);
       if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
-      const before = c.state;
       const ev = step(c, inp);
       onEvents(c, ev);
       acc -= c.dt;
       steps++;
-      if (c.state === 'levelup' && before === 'levelup') { acc = 0; break; } // waiting for a pick
       if ((c.state as string) === 'over' || (c.state as string) === 'victory') { onEnd(c); break; }
     }
     if (steps >= maxSteps) acc = 0;
@@ -351,7 +350,7 @@ function audioTick(dt: number) {
       for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const dx = E.x[i] - P.x, dz = E.z[i] - P.z; if (dx * dx + dz * dz < 144) n++; }
       enemiesNear = n;
     }
-    audio.tick(dt, { inRun: c.state === 'play' || c.state === 'levelup', enemiesNear, enemies: c.enemies.count, boss: c.director.bossIndex >= 0 && c.enemies.alive[c.director.bossIndex] === 1 });
+    audio.tick(dt, { inRun: c.state === 'play', enemiesNear, enemies: c.enemies.count, boss: c.director.bossIndex >= 0 && c.enemies.alive[c.director.bossIndex] === 1 });
   } else audio.tick(dt);
 }
 
@@ -383,7 +382,7 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
     if (ctx) {
       while (n-- > 0 && c.state !== 'over' && c.state !== 'victory') {
         const inp: InputFrame = opts.bot ? botInput(c) : { ...sampleInput(c), ...(opts.input ?? {}) } as InputFrame;
-        if ((c.state === 'levelup' || c.cards.offer) && (opts.bot || params.has('autopick'))) inp.card = { action: 'pick', index: 0 };
+        if (c.cards.offer && (opts.bot || params.has('autopick'))) inp.card = { action: 'pick', index: 0 };
         if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
         onEvents(c, step(c, inp));
       }
