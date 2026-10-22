@@ -40,7 +40,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Tuning panel | ` (backtick) |
 | Mute | M |
 
-The camera is fixed, like a DS route: up is always north. Settings offers three camera presets (Wide, the default; Classic; Overhead) and reduced or no screen shake (`docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees, water and cliffs block the way; bluffs have stairs, ledges can be hopped. A boss arrives at 5:00 in each region; defeat it and step into the portal.
+Runs default to a generated Sunpetal Meadow (seeded, so the same seed produces the same map) and a third-person camera. Settings can switch to the handcrafted Meadow or choose the Classic, Overhead or Wide camera presets; reduced or no screen shake is also available (`docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees, water and cliffs block the way; bluffs have stairs, ledges can be hopped. A boss arrives at 5:00 in each region; defeat it and step into the portal.
 
 ### Changing the roster
 

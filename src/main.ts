@@ -25,7 +25,7 @@ import { artMetrics } from './render/metrics';
 const TRANSFORM_MOVE = (id: string) => TRANSFORM_BY_ID[id]?.move;
 import type { InputFrame, SimContext, SimEvent } from './sim/types';
 import { UI } from './ui/ui';
-import { cameraPreset } from './render/camera';
+import { CAMERA_DEFAULT, cameraPreset } from './render/camera';
 import { cries } from './assets/cries';
 import { MOVE_SFX } from './audio/sfx';
 import { TRACKS } from './audio/music';
@@ -38,9 +38,14 @@ const canvas = document.getElementById('game') as HTMLCanvasElement;
 const audio = new Audio();
 const input = new Input(canvas);
 
-const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: 'chase', shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'authored' as 'authored' | 'generated' };
+const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: CAMERA_DEFAULT, shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'generated' as 'authored' | 'generated', worldV: 1 };
 const settings = { ...SETTINGS_DEFAULT };
-try { Object.assign(settings, JSON.parse(localStorage.getItem('poke-watch.settings') ?? localStorage.getItem('bonklab.settings') ?? '{}')); } catch { /* storage unavailable */ }
+try {
+  const saved = JSON.parse(localStorage.getItem('poke-watch.settings') ?? localStorage.getItem('bonklab.settings') ?? '{}');
+  Object.assign(settings, saved);
+  if (saved.worldV !== 1) settings.world = 'generated';
+} catch { /* storage unavailable */ }
+settings.worldV = 1;
 // settings saved before the third-person camera existed keep their other choices but move to the new default view once
 if (settings.camV !== 2) { settings.camera = 'chase'; settings.camV = 2; }
 
