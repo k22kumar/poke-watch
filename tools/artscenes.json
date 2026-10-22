@@ -1,0 +1,237 @@
+[
+ {
+  "name": "explore-meadow",
+  "query": "go=1&species=totodile&seed=3&calm=1&stage=0",
+  "steps": [
+   {
+    "advance": 1.5,
+    "frames": 4
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "explore-badlands",
+  "query": "go=1&species=totodile&seed=3&calm=1&stage=1",
+  "steps": [
+   {
+    "advance": 1.5,
+    "frames": 4
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "explore-frost",
+  "query": "go=1&species=totodile&seed=3&calm=1&stage=2",
+  "steps": [
+   {
+    "advance": 1.5,
+    "frames": 4
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "explore-dusk",
+  "query": "go=1&species=totodile&seed=3&calm=1&stage=3",
+  "steps": [
+   {
+    "advance": 1.5,
+    "frames": 4
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "swarm-meadow",
+  "query": "go=1&species=squirtle&seed=5&autopick=1&stageTime=200",
+  "steps": [
+   {
+    "advance": 30,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;let n=0;const E=c.enemies,W=r.width,H=r.height;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return {enemiesOnScreen:n,live:E.count,stage:c.stage,t:Math.round(c.stageTime)}})()"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "dense-meadow",
+  "query": "go=1&species=cyndaquil&seed=7&autopick=1&stageTime=440&level=14",
+  "steps": [
+   {
+    "advance": 45,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;let n=0;const E=c.enemies,W=r.width,H=r.height;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return {enemiesOnScreen:n,live:E.count,stage:c.stage,t:Math.round(c.stageTime)}})()"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "swarm-dusk",
+  "query": "go=1&species=totodile&seed=4&autopick=1&stage=3&stageTime=200&level=20",
+  "steps": [
+   {
+    "advance": 25,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;let n=0;const E=c.enemies,W=r.width,H=r.height;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return {enemiesOnScreen:n,live:E.count,stage:c.stage,t:Math.round(c.stageTime)}})()"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "boss-meadow",
+  "query": "go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12",
+  "steps": [
+   {
+    "advance": 3,
+    "bot": true,
+    "frames": 6
+   },
+   {
+    "eval": "(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-3;}return i})()"
+   },
+   {
+    "advance": 2.5,
+    "bot": true,
+    "frames": 6
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "squad-frost",
+  "query": "go=1&species=bulbasaur&seed=6&autopick=1&stage=2&stageTime=150&level=16&squad=mareep,geodude",
+  "steps": [
+   {
+    "advance": 12,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;let n=0;const E=c.enemies,W=r.width,H=r.height;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return {enemiesOnScreen:n,live:E.count,stage:c.stage,t:Math.round(c.stageTime)}})()"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ },
+ {
+  "name": "forest-edge",
+  "query": "go=1&species=charmander&seed=3&calm=1&tp=20,56",
+  "steps": [
+   {
+    "advance": 1,
+    "frames": 4
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "raw": "raw"
+   },
+   {
+    "metrics": true
+   }
+  ]
+ }
+]

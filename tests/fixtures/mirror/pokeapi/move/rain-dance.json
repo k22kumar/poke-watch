@@ -1,0 +1,48 @@
+{
+ "name": "rain-dance",
+ "power": null,
+ "accuracy": null,
+ "priority": 0,
+ "pp": 20,
+ "type": {
+  "name": "water",
+  "url": "https://pokeapi.co/api/v2/type/water/"
+ },
+ "damage_class": {
+  "name": "status",
+  "url": "https://pokeapi.co/api/v2/move-damage-class/status/"
+ },
+ "target": {
+  "name": "entire-field",
+  "url": "https://pokeapi.co/api/v2/move-target/entire-field/"
+ },
+ "meta": {
+  "ailment": {
+   "name": "none",
+   "url": "https://pokeapi.co/api/v2/move-ailment/none/"
+  },
+  "ailment_chance": 0,
+  "category": {
+   "name": "field-effect",
+   "url": "https://pokeapi.co/api/v2/move-category/field-effect/"
+  },
+  "crit_rate": 0,
+  "drain": 0,
+  "flinch_chance": 0,
+  "healing": 0,
+  "min_hits": null,
+  "max_hits": null,
+  "min_turns": null,
+  "max_turns": null,
+  "stat_chance": 0
+ },
+ "names": [
+  {
+   "name": "Rain Dance",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

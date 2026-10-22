@@ -1,0 +1,48 @@
+{
+ "id": 2,
+ "chain": {
+  "is_baby": false,
+  "species": {
+   "name": "charmander",
+   "url": "https://pokeapi.co/api/v2/pokemon-species/charmander/"
+  },
+  "evolution_details": [],
+  "evolves_to": [
+   {
+    "is_baby": false,
+    "species": {
+     "name": "charmeleon",
+     "url": "https://pokeapi.co/api/v2/pokemon-species/charmeleon/"
+    },
+    "evolution_details": [
+     {
+      "min_level": 16,
+      "trigger": {
+       "name": "level-up",
+       "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+      }
+     }
+    ],
+    "evolves_to": [
+     {
+      "is_baby": false,
+      "species": {
+       "name": "charizard",
+       "url": "https://pokeapi.co/api/v2/pokemon-species/charizard/"
+      },
+      "evolution_details": [
+       {
+        "min_level": 36,
+        "trigger": {
+         "name": "level-up",
+         "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+        }
+       }
+      ],
+      "evolves_to": []
+     }
+    ]
+   }
+  ]
+ }
+}

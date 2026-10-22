@@ -1,0 +1,31 @@
+// Small inline SVG icons for move archetypes (original, drawn for Poke-Watch).
+const S = (body: string) => `<svg viewBox="0 0 48 48" fill="none" stroke="#1b1630" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+
+export const ARCH_ICON: Record<string, string> = {
+  strike: S('<path d="M10 38 L38 10" stroke-width="6" stroke="currentColor"/><path d="M10 38 L38 10"/><path d="M30 8 L40 18"/>'),
+  dash: S('<path d="M6 24 H34" /><path d="M26 14 L38 24 L26 34" fill="currentColor"/><path d="M6 16 H18 M6 32 H18"/>'),
+  homing: S('<path d="M8 36 C8 14 30 8 38 20" /><path d="M32 12 L39 21 L29 24" fill="currentColor"/>'),
+  orb: S('<circle cx="24" cy="24" r="12" fill="currentColor"/><circle cx="20" cy="20" r="3" fill="#fff" stroke="none"/>'),
+  lob: S('<path d="M6 38 C14 6 34 6 42 38" stroke-dasharray="4 5"/><circle cx="38" cy="30" r="6" fill="currentColor"/>'),
+  bolt: S('<path d="M8 30 L36 18" stroke-width="5" stroke="currentColor"/><path d="M8 30 L36 18"/><path d="M30 14 L40 16 L34 24" fill="currentColor"/>'),
+  beam: S('<rect x="6" y="18" width="36" height="12" rx="6" fill="currentColor"/><path d="M10 24 H38" stroke="#fff"/>'),
+  chain: S('<path d="M8 10 L20 22 L14 26 L30 38 L26 30 L40 34" fill="none" stroke="currentColor" stroke-width="6"/><path d="M8 10 L20 22 L14 26 L30 38 L26 30 L40 34"/>'),
+  barrage: S('<circle cx="12" cy="30" r="4" fill="currentColor"/><circle cx="22" cy="22" r="4" fill="currentColor"/><circle cx="32" cy="30" r="4" fill="currentColor"/><circle cx="38" cy="16" r="4" fill="currentColor"/>'),
+  boomerang: S('<path d="M10 14 L24 24 L38 14 L32 30 L24 26 L16 30 Z" fill="currentColor"/>'),
+  vortex: S('<path d="M24 24 m-3 0 a3 3 0 1 1 6 0 a7 7 0 1 1 -14 0 a11 11 0 1 1 22 0 a15 15 0 1 1 -30 0" stroke="currentColor" stroke-width="5"/><path d="M24 24 m-3 0 a3 3 0 1 1 6 0 a7 7 0 1 1 -14 0 a11 11 0 1 1 22 0 a15 15 0 1 1 -30 0"/>'),
+  nova: S('<circle cx="24" cy="24" r="8" fill="currentColor"/><path d="M24 4 V12 M24 36 V44 M4 24 H12 M36 24 H44 M10 10 L15 15 M33 33 L38 38 M38 10 L33 15 M10 38 L15 33"/>'),
+  spin: S('<path d="M38 20 A15 15 0 1 0 36 32" stroke="currentColor" stroke-width="6"/><path d="M38 20 A15 15 0 1 0 36 32"/><path d="M40 10 L39 21 L29 19" fill="currentColor"/>'),
+  cone: S('<path d="M8 24 L40 8 Q46 24 40 40 Z" fill="currentColor"/>'),
+  aura: S('<circle cx="24" cy="24" r="6" fill="currentColor"/><circle cx="24" cy="24" r="13" stroke-dasharray="4 4"/><circle cx="24" cy="24" r="19" stroke-dasharray="3 5"/>'),
+  orbit: S('<circle cx="24" cy="24" r="14" stroke-dasharray="3 4"/><circle cx="24" cy="10" r="5" fill="currentColor"/><circle cx="12" cy="31" r="5" fill="currentColor"/><circle cx="36" cy="31" r="5" fill="currentColor"/>'),
+  trail: S('<ellipse cx="12" cy="36" rx="6" ry="4" fill="currentColor"/><ellipse cx="24" cy="26" rx="6" ry="4" fill="currentColor"/><ellipse cx="36" cy="14" rx="6" ry="4" fill="currentColor"/>'),
+  meteor: S('<path d="M6 6 L26 26" stroke="currentColor" stroke-width="6"/><circle cx="30" cy="30" r="10" fill="currentColor"/>'),
+  drain: S('<path d="M24 6 C32 18 36 24 36 30 A12 12 0 0 1 12 30 C12 24 16 18 24 6 Z" fill="currentColor"/><path d="M20 30 h8 M24 26 v8" stroke="#fff"/>'),
+  smite: S('<path d="M28 4 L16 24 H26 L18 44 L36 18 H26 L32 4 Z" fill="currentColor"/>'),
+  trap: S('<circle cx="24" cy="26" r="14" stroke="currentColor" stroke-width="6"/><circle cx="24" cy="26" r="14"/><path d="M14 16 L18 22 M34 16 L30 22 M24 10 V16"/>'),
+  buff: S('<path d="M24 6 L38 22 H30 V40 H18 V22 H10 Z" fill="currentColor"/>'),
+  weather: S('<circle cx="18" cy="18" r="8" fill="currentColor"/><path d="M14 36 H36 A7 7 0 0 0 34 22 A9 9 0 0 0 18 26 A6 6 0 0 0 14 36 Z" fill="#fff"/>'),
+  vitamin: S('<rect x="10" y="16" width="28" height="16" rx="8" fill="currentColor"/><path d="M24 16 V32"/><path d="M24 16 H30 A8 8 0 0 1 30 32 H24" fill="#fff"/>'),
+  heal: S('<path d="M24 40 C10 30 6 22 10 15 C14 9 22 10 24 17 C26 10 34 9 38 15 C42 22 38 30 24 40 Z" fill="currentColor"/>'),
+  dash2: S('<path d="M8 24 H30" /><path d="M24 14 L36 24 L24 34" fill="currentColor"/>'),
+};

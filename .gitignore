@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.import-cache/
+packs/
+h8b-results*.json
+sweep*.log
+h8b-summary*.txt
+.DS_Store
+.env
+.env.*
+*.log

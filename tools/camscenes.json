@@ -1,0 +1,242 @@
+[
+ {
+  "name": "cam-classic-swarm",
+  "query": "cam=classic&go=1&species=squirtle&seed=5&autopick=1&stageTime=200",
+  "steps": [
+   {
+    "advance": 30,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx,P=c.player;const W=r.width,H=r.height;const top=96,bot=76;\nconst ins=(x,z,eff)=>{const p=r.project(x,c.world.height(x,z),z);return p&&p[0]>=0&&p[0]<=W&&p[1]>=(eff?top:0)&&p[1]<=H-(eff?bot:0);};\nconst d=(dx,dz,eff)=>{let k=0;while(k<90&&ins(P.x+dx*k,P.z+dz*k,eff))k+=0.25;return k;};\nconst a=r.project(P.x,P.y,P.z),b=r.project(P.x,P.y+1,P.z);const art=r.sheets.get(P.species.id).art;\nreturn {preset:r.cam.id,N:d(0,-1),S:d(0,1),E:d(1,0),W:d(-1,0),Neff:d(0,-1,1),Seff:d(0,1,1),jump1m:Math.round(a[1]-b[1]),spritePx:art.heightPx*r.pixelScale,scale:r.pixelScale,lines:r.canvas.height,enemiesOnScreen:(()=>{let n=0;const E=c.enemies;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return n;})()};})()"
+   }
+  ]
+ },
+ {
+  "name": "cam-classic-jump",
+  "query": "cam=classic&go=1&species=charmander&seed=3&calm=1&tp=42,52",
+  "steps": [
+   {
+    "advance": 0.5,
+    "frames": 5
+   },
+   {
+    "advance": 0.22,
+    "frames": 2,
+    "input": {
+     "jump": true,
+     "mx": 0,
+     "mz": -1
+    }
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-classic-boss",
+  "query": "cam=classic&go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12",
+  "steps": [
+   {
+    "advance": 3,
+    "bot": true,
+    "frames": 6
+   },
+   {
+    "eval": "(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-3;}return i})()"
+   },
+   {
+    "advance": 2.5,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-classic-edge",
+  "query": "cam=classic&go=1&species=totodile&seed=7&autopick=1&tp=40,49",
+  "steps": [
+   {
+    "advance": 20,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-steep-swarm",
+  "query": "cam=steep&go=1&species=squirtle&seed=5&autopick=1&stageTime=200",
+  "steps": [
+   {
+    "advance": 30,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx,P=c.player;const W=r.width,H=r.height;const top=96,bot=76;\nconst ins=(x,z,eff)=>{const p=r.project(x,c.world.height(x,z),z);return p&&p[0]>=0&&p[0]<=W&&p[1]>=(eff?top:0)&&p[1]<=H-(eff?bot:0);};\nconst d=(dx,dz,eff)=>{let k=0;while(k<90&&ins(P.x+dx*k,P.z+dz*k,eff))k+=0.25;return k;};\nconst a=r.project(P.x,P.y,P.z),b=r.project(P.x,P.y+1,P.z);const art=r.sheets.get(P.species.id).art;\nreturn {preset:r.cam.id,N:d(0,-1),S:d(0,1),E:d(1,0),W:d(-1,0),Neff:d(0,-1,1),Seff:d(0,1,1),jump1m:Math.round(a[1]-b[1]),spritePx:art.heightPx*r.pixelScale,scale:r.pixelScale,lines:r.canvas.height,enemiesOnScreen:(()=>{let n=0;const E=c.enemies;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return n;})()};})()"
+   }
+  ]
+ },
+ {
+  "name": "cam-steep-jump",
+  "query": "cam=steep&go=1&species=charmander&seed=3&calm=1&tp=42,52",
+  "steps": [
+   {
+    "advance": 0.5,
+    "frames": 5
+   },
+   {
+    "advance": 0.22,
+    "frames": 2,
+    "input": {
+     "jump": true,
+     "mx": 0,
+     "mz": -1
+    }
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-steep-boss",
+  "query": "cam=steep&go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12",
+  "steps": [
+   {
+    "advance": 3,
+    "bot": true,
+    "frames": 6
+   },
+   {
+    "eval": "(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-3;}return i})()"
+   },
+   {
+    "advance": 2.5,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-steep-edge",
+  "query": "cam=steep&go=1&species=totodile&seed=7&autopick=1&tp=40,49",
+  "steps": [
+   {
+    "advance": 20,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-wide-swarm",
+  "query": "cam=wide&go=1&species=squirtle&seed=5&autopick=1&stageTime=200",
+  "steps": [
+   {
+    "advance": 30,
+    "bot": true,
+    "frames": 15
+   },
+   {
+    "advance": 0.3,
+    "bot": true,
+    "frames": 3
+   },
+   {
+    "shot": "s"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx,P=c.player;const W=r.width,H=r.height;const top=96,bot=76;\nconst ins=(x,z,eff)=>{const p=r.project(x,c.world.height(x,z),z);return p&&p[0]>=0&&p[0]<=W&&p[1]>=(eff?top:0)&&p[1]<=H-(eff?bot:0);};\nconst d=(dx,dz,eff)=>{let k=0;while(k<90&&ins(P.x+dx*k,P.z+dz*k,eff))k+=0.25;return k;};\nconst a=r.project(P.x,P.y,P.z),b=r.project(P.x,P.y+1,P.z);const art=r.sheets.get(P.species.id).art;\nreturn {preset:r.cam.id,N:d(0,-1),S:d(0,1),E:d(1,0),W:d(-1,0),Neff:d(0,-1,1),Seff:d(0,1,1),jump1m:Math.round(a[1]-b[1]),spritePx:art.heightPx*r.pixelScale,scale:r.pixelScale,lines:r.canvas.height,enemiesOnScreen:(()=>{let n=0;const E=c.enemies;for(let i=0;i<E.hi;i++){if(!E.alive[i])continue;const p=r.project(E.x[i],E.y[i],E.z[i]);if(p&&p[0]>=0&&p[0]<=W&&p[1]>=0&&p[1]<=H)n++;}return n;})()};})()"
+   }
+  ]
+ },
+ {
+  "name": "cam-wide-jump",
+  "query": "cam=wide&go=1&species=charmander&seed=3&calm=1&tp=42,52",
+  "steps": [
+   {
+    "advance": 0.5,
+    "frames": 5
+   },
+   {
+    "advance": 0.22,
+    "frames": 2,
+    "input": {
+     "jump": true,
+     "mx": 0,
+     "mz": -1
+    }
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-wide-boss",
+  "query": "cam=wide&go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12",
+  "steps": [
+   {
+    "advance": 3,
+    "bot": true,
+    "frames": 6
+   },
+   {
+    "eval": "(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-3;}return i})()"
+   },
+   {
+    "advance": 2.5,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ },
+ {
+  "name": "cam-wide-edge",
+  "query": "cam=wide&go=1&species=totodile&seed=7&autopick=1&tp=40,49",
+  "steps": [
+   {
+    "advance": 20,
+    "bot": true,
+    "frames": 10
+   },
+   {
+    "shot": "s"
+   }
+  ]
+ }
+]

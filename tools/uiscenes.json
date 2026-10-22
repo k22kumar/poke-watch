@@ -1,0 +1,12 @@
+[
+ {"name":"ui-title","query":"","steps":[{"advance":0.5},{"wait":500},{"shot":"s"}]},
+ {"name":"ui-select","query":"","steps":[{"advance":0.5},{"click":"text=Play"},{"wait":400},{"key":"ArrowRight"},{"wait":200},{"shot":"s"}]},
+ {"name":"ui-hud","query":"go=1&species=charmander&seed=4&autopick=1","steps":[{"advance":20,"bot":true,"frames":10},{"shot":"s"}]},
+ {"name":"ui-levelup","query":"go=1&species=totodile&seed=4","steps":[{"advance":8,"bot":true,"frames":4},{"eval":"pokewatch.addLevel()"},{"advance":0.2,"frames":2},{"wait":300},{"key":"ArrowRight"},{"wait":150},{"shot":"s"}]},
+ {"name":"ui-pause","query":"go=1&species=cyndaquil&seed=4","steps":[{"advance":4,"bot":true,"frames":2},{"key":"Escape"},{"wait":300},{"key":"ArrowDown"},{"wait":150},{"shot":"s"}]},
+ {"name":"ui-settings","query":"go=1&species=cyndaquil&seed=4","steps":[{"advance":2,"bot":true,"frames":2},{"key":"Escape"},{"wait":300},{"click":"text=Settings"},{"wait":300},{"shot":"s"}]},
+ {"name":"ui-credits","query":"","steps":[{"advance":0.5},{"click":"text=Credits"},{"wait":400},{"shot":"s"}]},
+ {"name":"ui-boss","query":"go=1&species=squirtle&seed=5&autopick=1&stageTime=299.5&level=12","steps":[{"advance":3,"bot":true,"frames":6},{"eval":"(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-3;}return i})()"},{"advance":2,"bot":true,"frames":8},{"shot":"s"}]},
+ {"name":"ui-evolve","query":"go=1&species=charmander&seed=4&level=15","steps":[{"advance":1,"frames":1},{"eval":"pokewatch.addLevel()"},{"advance":0.3,"frames":2},{"key":"1"},{"advance":1.2,"frames":4},{"shot":"s"}]},
+ {"name":"ui-end","query":"go=1&species=chikorita&seed=4","steps":[{"advance":3,"bot":true,"frames":2},{"eval":"(()=>{pokewatch.ctx.player.hp=0.1;pokewatch.ctx.player.iframes=0;return 1})()"},{"advance":6,"frames":6},{"wait":900},{"shot":"s"}]}
+]

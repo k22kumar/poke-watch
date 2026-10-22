@@ -1,0 +1,496 @@
+{
+  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays, and (learnsets) which of a starter line's real HGSS level-up moves it learns in the survival game and at which game level. Canonical levels are kept separately in the generated data (canon.levelUp).",
+  "partnerEvolutions": 2,
+  "cryEra": "legacy",
+  "partners": [
+    "bulbasaur",
+    "charmander",
+    "squirtle",
+    "chikorita",
+    "cyndaquil",
+    "totodile"
+  ],
+  "learnsets": {
+    "bulbasaur": {
+      "starter": "vine_whip",
+      "moves": [
+        [
+          3,
+          "tackle"
+        ],
+        [
+          6,
+          "razor_leaf"
+        ],
+        [
+          10,
+          "take_down"
+        ],
+        [
+          14,
+          "growth"
+        ],
+        [
+          20,
+          "seed_bomb"
+        ],
+        [
+          26,
+          "double_edge"
+        ],
+        [
+          34,
+          "petal_dance"
+        ],
+        [
+          40,
+          "solar_beam"
+        ]
+      ]
+    },
+    "charmander": {
+      "starter": "ember",
+      "moves": [
+        [
+          3,
+          "scratch"
+        ],
+        [
+          7,
+          "dragon_rage"
+        ],
+        [
+          11,
+          "fire_fang"
+        ],
+        [
+          15,
+          "slash"
+        ],
+        [
+          20,
+          "fire_spin"
+        ],
+        [
+          25,
+          "flamethrower"
+        ],
+        [
+          36,
+          "wing_attack"
+        ],
+        [
+          38,
+          "air_slash"
+        ],
+        [
+          42,
+          "dragon_claw"
+        ],
+        [
+          48,
+          "heat_wave"
+        ],
+        [
+          54,
+          "flare_blitz"
+        ]
+      ]
+    },
+    "squirtle": {
+      "starter": "bubble",
+      "moves": [
+        [
+          3,
+          "tackle"
+        ],
+        [
+          6,
+          "water_gun"
+        ],
+        [
+          10,
+          "bite"
+        ],
+        [
+          14,
+          "rapid_spin"
+        ],
+        [
+          18,
+          "water_pulse"
+        ],
+        [
+          23,
+          "aqua_tail"
+        ],
+        [
+          28,
+          "skull_bash"
+        ],
+        [
+          33,
+          "rain_dance"
+        ],
+        [
+          38,
+          "flash_cannon"
+        ],
+        [
+          44,
+          "hydro_pump"
+        ]
+      ]
+    },
+    "chikorita": {
+      "starter": "razor_leaf",
+      "moves": [
+        [
+          3,
+          "tackle"
+        ],
+        [
+          8,
+          "magical_leaf"
+        ],
+        [
+          14,
+          "body_slam"
+        ],
+        [
+          34,
+          "petal_dance"
+        ],
+        [
+          40,
+          "solar_beam"
+        ]
+      ]
+    },
+    "cyndaquil": {
+      "starter": "ember",
+      "moves": [
+        [
+          3,
+          "tackle"
+        ],
+        [
+          6,
+          "quick_attack"
+        ],
+        [
+          10,
+          "flame_wheel"
+        ],
+        [
+          15,
+          "swift"
+        ],
+        [
+          20,
+          "lava_plume"
+        ],
+        [
+          26,
+          "flamethrower"
+        ],
+        [
+          31,
+          "rollout"
+        ],
+        [
+          38,
+          "double_edge"
+        ],
+        [
+          46,
+          "eruption"
+        ]
+      ]
+    },
+    "totodile": {
+      "starter": "water_gun",
+      "moves": [
+        [
+          3,
+          "scratch"
+        ],
+        [
+          6,
+          "bite"
+        ],
+        [
+          10,
+          "ice_fang"
+        ],
+        [
+          14,
+          "crunch"
+        ],
+        [
+          18,
+          "slash"
+        ],
+        [
+          23,
+          "thrash"
+        ],
+        [
+          30,
+          "aqua_tail"
+        ],
+        [
+          36,
+          "superpower"
+        ],
+        [
+          42,
+          "hydro_pump"
+        ]
+      ]
+    }
+  },
+  "wild": {
+    "rattata": {
+      "behaviour": "chase"
+    },
+    "geodude": {
+      "behaviour": "tank"
+    },
+    "ledyba": {
+      "behaviour": "swarm",
+      "flying": true
+    },
+    "sandshrew": {
+      "behaviour": "chase"
+    },
+    "oddish": {
+      "behaviour": "ranged",
+      "shot": "venom"
+    },
+    "poliwag": {
+      "behaviour": "chase"
+    },
+    "slugma": {
+      "behaviour": "chase"
+    },
+    "vulpix": {
+      "behaviour": "ranged",
+      "shot": "blaze"
+    },
+    "mareep": {
+      "behaviour": "charger"
+    },
+    "delibird": {
+      "behaviour": "ranged",
+      "shot": "frost",
+      "flying": true
+    },
+    "swinub": {
+      "behaviour": "charger"
+    },
+    "zubat": {
+      "behaviour": "swarm",
+      "flying": true
+    },
+    "gastly": {
+      "behaviour": "ranged",
+      "shot": "wisp",
+      "flying": true
+    },
+    "paras": {
+      "behaviour": "healer"
+    },
+    "houndour": {
+      "behaviour": "charger"
+    },
+    "heracross": {
+      "behaviour": "tank"
+    }
+  },
+  "bosses": {
+    "sudowoodo": {
+      "title": "The tree that isn't",
+      "attacks": [
+        "slam",
+        "radial",
+        "summon",
+        "charge"
+      ],
+      "phaseHp": [
+        0.5
+      ],
+      "summon": "rattata"
+    },
+    "magcargo": {
+      "title": "Molten shell",
+      "attacks": [
+        "slam",
+        "spiral",
+        "volley",
+        "charge"
+      ],
+      "phaseHp": [
+        0.6,
+        0.3
+      ],
+      "summon": "slugma"
+    },
+    "articuno": {
+      "title": "Herald of the white sky",
+      "attacks": [
+        "charge",
+        "radial",
+        "volley",
+        "spiral"
+      ],
+      "phaseHp": [
+        0.5
+      ],
+      "summon": "delibird",
+      "flying": true
+    },
+    "houndoom": {
+      "title": "Lord of the long night",
+      "attacks": [
+        "charge",
+        "spiral",
+        "summon",
+        "slam",
+        "radial"
+      ],
+      "phaseHp": [
+        0.66,
+        0.33
+      ],
+      "summon": "houndour"
+    }
+  },
+  "bossPixelHeight": 60,
+  "stages": [
+    {
+      "biome": "meadow",
+      "spawns": [
+        [
+          "rattata",
+          5
+        ],
+        [
+          "ledyba",
+          3
+        ],
+        [
+          "sandshrew",
+          3
+        ],
+        [
+          "oddish",
+          1.4
+        ],
+        [
+          "poliwag",
+          1.6
+        ],
+        [
+          "mareep",
+          1.2
+        ]
+      ],
+      "elites": [
+        "heracross",
+        "sandshrew"
+      ],
+      "boss": "sudowoodo"
+    },
+    {
+      "biome": "badlands",
+      "spawns": [
+        [
+          "slugma",
+          4
+        ],
+        [
+          "geodude",
+          3
+        ],
+        [
+          "mareep",
+          3
+        ],
+        [
+          "vulpix",
+          1.6
+        ],
+        [
+          "sandshrew",
+          2
+        ]
+      ],
+      "elites": [
+        "heracross",
+        "geodude"
+      ],
+      "boss": "magcargo"
+    },
+    {
+      "biome": "frost",
+      "spawns": [
+        [
+          "delibird",
+          2
+        ],
+        [
+          "swinub",
+          3
+        ],
+        [
+          "geodude",
+          2
+        ],
+        [
+          "ledyba",
+          3
+        ],
+        [
+          "rattata",
+          3
+        ]
+      ],
+      "elites": [
+        "swinub",
+        "heracross"
+      ],
+      "boss": "articuno"
+    },
+    {
+      "biome": "dusk",
+      "spawns": [
+        [
+          "zubat",
+          4
+        ],
+        [
+          "gastly",
+          2
+        ],
+        [
+          "paras",
+          1.2
+        ],
+        [
+          "houndour",
+          3
+        ],
+        [
+          "poliwag",
+          2
+        ]
+      ],
+      "elites": [
+        "houndour",
+        "heracross"
+      ],
+      "boss": "houndoom"
+    }
+  ]
+}

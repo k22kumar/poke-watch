@@ -1,0 +1,5 @@
+:root { color-scheme: dark; --bg: #101018; }
+html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+#stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+#ow, #owui { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; }
+#owui { pointer-events: none; }

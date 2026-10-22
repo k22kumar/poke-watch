@@ -1,0 +1,26 @@
+{
+  "name": "poke-watch",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Poke-Watch - a deterministic, data-driven Pokémon survivor in a DS-era 2.5D presentation (PokéAPI data, PMD SpriteCollab sprites, PokeAPI cries).",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit -p .",
+    "test": "tsx --test tests/*.test.ts",
+    "sim": "tsx scripts/headless.ts",
+    "import": "node scripts/import-pack.mjs",
+    "fixtures": "node scripts/make-fixture-mirror.mjs tests/fixtures/mirror",
+    "import:fixture": "node scripts/import-pack.mjs charmander squirtle totodile --mirror tests/fixtures/mirror --out packs/fixture --id fixture --name \"Fixture starters\"",
+    "fetch-sources": "bash scripts/fetch-sources.sh ../src-data",
+    "content": "node scripts/build-content.mjs --clones ../src-data",
+    "content:net": "node scripts/build-content.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.0.0",
+    "typescript": "^6.0.0"
+  }
+}

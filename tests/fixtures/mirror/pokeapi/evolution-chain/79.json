@@ -1,0 +1,48 @@
+{
+ "id": 79,
+ "chain": {
+  "is_baby": false,
+  "species": {
+   "name": "totodile",
+   "url": "https://pokeapi.co/api/v2/pokemon-species/totodile/"
+  },
+  "evolution_details": [],
+  "evolves_to": [
+   {
+    "is_baby": false,
+    "species": {
+     "name": "croconaw",
+     "url": "https://pokeapi.co/api/v2/pokemon-species/croconaw/"
+    },
+    "evolution_details": [
+     {
+      "min_level": 18,
+      "trigger": {
+       "name": "level-up",
+       "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+      }
+     }
+    ],
+    "evolves_to": [
+     {
+      "is_baby": false,
+      "species": {
+       "name": "feraligatr",
+       "url": "https://pokeapi.co/api/v2/pokemon-species/feraligatr/"
+      },
+      "evolution_details": [
+       {
+        "min_level": 30,
+        "trigger": {
+         "name": "level-up",
+         "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+        }
+       }
+      ],
+      "evolves_to": []
+     }
+    ]
+   }
+  ]
+ }
+}

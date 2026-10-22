@@ -1,0 +1,4 @@
+{
+  "comment": "Licensed recordings that replace Poke-Watch's original tracks. Each key is a music state; put the audio file next to this manifest and give loop points in seconds (loopEnd 0 = end of file). Stingers (evolved, victory, defeat, item) play once. Leave a state out to keep the original track. Run `npm run content` to embed them. Only add recordings you have the right to use.",
+  "slots": {}
+}

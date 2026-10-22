@@ -1,0 +1,10 @@
+[
+ {"name": "gen-spawn-valley", "query": "go=1&world=gen&species=totodile&seed=1&calm=1", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-hamlet", "query": "go=1&world=gen&species=totodile&seed=1&calm=1&tp=34,36", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-shrine-stair", "query": "go=1&world=gen&species=totodile&seed=3&calm=1&tp=42,58", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-pond", "query": "go=1&world=gen&species=totodile&seed=3&calm=1&tp=60,38", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-ridge-lookout", "query": "go=1&world=gen&species=totodile&seed=3&calm=1&tp=91,49", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-swarm", "query": "go=1&world=gen&species=totodile&seed=1", "steps": [{"advance": 40, "bot": true, "frames": 4}, {"shot": "s"}]},
+ {"name": "gen-fire", "query": "go=1&world=gen&species=cyndaquil&seed=3&level=12", "steps": [{"advance": 60, "bot": true, "frames": 4}, {"shot": "s"}, {"eval": "(() => { const F = pokewatch.ctx.world.propField; return { burnt: F.burnt, broken: F.broken, lost: F.lost, cover: F.coverTotal, burning: F.burning.length }; })()"}]},
+ {"name": "authored-spawn", "query": "go=1&species=totodile&seed=3&calm=1", "steps": [{"advance": 1.5, "frames": 4}, {"shot": "s"}]}
+]

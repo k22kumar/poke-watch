@@ -1,0 +1,16 @@
+{
+ "id": 158,
+ "name": "totodile",
+ "evolution_chain": {
+  "url": "https://pokeapi.co/api/v2/evolution-chain/79/"
+ },
+ "names": [
+  {
+   "name": "Totodile",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

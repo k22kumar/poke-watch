@@ -1,0 +1,48 @@
+{
+ "name": "flail",
+ "power": null,
+ "accuracy": 100,
+ "priority": 0,
+ "pp": 20,
+ "type": {
+  "name": "normal",
+  "url": "https://pokeapi.co/api/v2/type/normal/"
+ },
+ "damage_class": {
+  "name": "physical",
+  "url": "https://pokeapi.co/api/v2/move-damage-class/physical/"
+ },
+ "target": {
+  "name": "selected-pokemon",
+  "url": "https://pokeapi.co/api/v2/move-target/selected-pokemon/"
+ },
+ "meta": {
+  "ailment": {
+   "name": "none",
+   "url": "https://pokeapi.co/api/v2/move-ailment/none/"
+  },
+  "ailment_chance": 0,
+  "category": {
+   "name": "damage",
+   "url": "https://pokeapi.co/api/v2/move-category/damage/"
+  },
+  "crit_rate": 0,
+  "drain": 0,
+  "flinch_chance": 0,
+  "healing": 0,
+  "min_hits": null,
+  "max_hits": null,
+  "min_turns": null,
+  "max_turns": null,
+  "stat_chance": 0
+ },
+ "names": [
+  {
+   "name": "Flail",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

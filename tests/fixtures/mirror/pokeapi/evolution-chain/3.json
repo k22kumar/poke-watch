@@ -1,0 +1,48 @@
+{
+ "id": 3,
+ "chain": {
+  "is_baby": false,
+  "species": {
+   "name": "squirtle",
+   "url": "https://pokeapi.co/api/v2/pokemon-species/squirtle/"
+  },
+  "evolution_details": [],
+  "evolves_to": [
+   {
+    "is_baby": false,
+    "species": {
+     "name": "wartortle",
+     "url": "https://pokeapi.co/api/v2/pokemon-species/wartortle/"
+    },
+    "evolution_details": [
+     {
+      "min_level": 16,
+      "trigger": {
+       "name": "level-up",
+       "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+      }
+     }
+    ],
+    "evolves_to": [
+     {
+      "is_baby": false,
+      "species": {
+       "name": "blastoise",
+       "url": "https://pokeapi.co/api/v2/pokemon-species/blastoise/"
+      },
+      "evolution_details": [
+       {
+        "min_level": 36,
+        "trigger": {
+         "name": "level-up",
+         "url": "https://pokeapi.co/api/v2/evolution-trigger/level-up/"
+        }
+       }
+      ],
+      "evolves_to": []
+     }
+    ]
+   }
+  ]
+ }
+}

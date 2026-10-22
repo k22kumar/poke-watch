@@ -1,0 +1,16 @@
+{
+ "id": 159,
+ "name": "croconaw",
+ "evolution_chain": {
+  "url": "https://pokeapi.co/api/v2/evolution-chain/79/"
+ },
+ "names": [
+  {
+   "name": "Croconaw",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

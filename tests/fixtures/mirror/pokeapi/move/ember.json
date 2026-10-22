@@ -1,0 +1,48 @@
+{
+ "name": "ember",
+ "power": 40,
+ "accuracy": 100,
+ "priority": 0,
+ "pp": 20,
+ "type": {
+  "name": "fire",
+  "url": "https://pokeapi.co/api/v2/type/fire/"
+ },
+ "damage_class": {
+  "name": "special",
+  "url": "https://pokeapi.co/api/v2/move-damage-class/special/"
+ },
+ "target": {
+  "name": "selected-pokemon",
+  "url": "https://pokeapi.co/api/v2/move-target/selected-pokemon/"
+ },
+ "meta": {
+  "ailment": {
+   "name": "burn",
+   "url": "https://pokeapi.co/api/v2/move-ailment/burn/"
+  },
+  "ailment_chance": 10,
+  "category": {
+   "name": "damage+ailment",
+   "url": "https://pokeapi.co/api/v2/move-category/damage+ailment/"
+  },
+  "crit_rate": 0,
+  "drain": 0,
+  "flinch_chance": 0,
+  "healing": 0,
+  "min_hits": null,
+  "max_hits": null,
+  "min_turns": null,
+  "max_turns": null,
+  "stat_chance": 0
+ },
+ "names": [
+  {
+   "name": "Ember",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

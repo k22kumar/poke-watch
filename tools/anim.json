@@ -1,0 +1,5 @@
+[
+ {"name":"atk-still","query":"cam=classic&go=1&species=charmander&seed=3&calm=1&tp=56,62","steps":[{"advance":0.3},{"eval":"pokewatch.spawn('geodude',3.5,-0.5)"},{"advance":0.5,"frames":2},{"strip":"f","n":30,"dt":0.0333}]},
+ {"name":"atk-move","query":"cam=classic&go=1&species=squirtle&seed=3&calm=1&tp=50,62","steps":[{"advance":0.3},{"eval":"pokewatch.spawn('geodude',5,-3)"},{"advance":0.3,"frames":2},{"strip":"f","n":30,"dt":0.0333,"input":{"mx":1,"mz":0,"jump":false,"dash":false}}]},
+ {"name":"faint","query":"cam=classic&go=1&species=totodile&seed=3&calm=1&tp=56,62","steps":[{"advance":0.3},{"eval":"(()=>{const a=pokewatch.spawn('rattata',2.5,0),b=pokewatch.spawn('vulpix',-2.5,0);const E=pokewatch.ctx.enemies;E.hp[a]=1;E.hp[b]=1;return [a,b]})()"},{"strip":"f","n":30,"dt":0.0333}]}
+]

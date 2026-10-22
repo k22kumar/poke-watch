@@ -1,0 +1,6 @@
+[
+ {"name": "chase-gen-spawn", "query": "go=1&world=gen&species=totodile&seed=1&calm=1&cam=chase", "steps": [{"advance": 2}, {"shot": "a"}, {"eval": "(()=>{pokewatch.renderer.look(2.4,0);return 1})()"}, {"advance": 1}, {"shot": "b"}]},
+ {"name": "chase-gen-hamlet", "query": "go=1&world=gen&species=totodile&seed=1&calm=1&cam=chase&tp=34,38", "steps": [{"advance": 2}, {"shot": "a"}]},
+ {"name": "chase-gen-shrine", "query": "go=1&world=gen&species=totodile&seed=3&calm=1&cam=chase&tp=42,60", "steps": [{"advance": 2}, {"shot": "a"}]},
+ {"name": "chase-gen-combat", "query": "go=1&world=gen&species=cyndaquil&seed=3&level=12&cam=chase", "steps": [{"advance": 40, "bot": true}, {"shot": "a"}]}
+]

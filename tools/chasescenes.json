@@ -1,0 +1,72 @@
+[
+ {
+  "name": "explore",
+  "query": "go=1&seed=3&species=totodile&calm=1&cam=chase",
+  "steps": [
+   {
+    "advance": 2
+   },
+   {
+    "shot": "a"
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.look(-1.2,0);return 1})()"
+   },
+   {
+    "advance": 1
+   },
+   {
+    "shot": "b"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {yaw:r.yaw,state:r.rig.state,boom:r.rig.boomUsed,eye:r.rig.eye,aim:r.chaseAim(c),player:[c.player.x,c.player.z]}})()"
+   }
+  ]
+ },
+ {
+  "name": "combat",
+  "query": "go=1&seed=3&species=totodile&cam=chase",
+  "steps": [
+   {
+    "advance": 14,
+    "bot": true
+   },
+   {
+    "shot": "a"
+   },
+   {
+    "advance": 2,
+    "bot": true
+   },
+   {
+    "shot": "b"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {state:r.rig.state,boom:r.rig.boomUsed,aim:r.chaseAim(c),player:[c.player.x,c.player.z],n:c.enemies.count}})()"
+   }
+  ]
+ },
+ {
+  "name": "boss",
+  "query": "go=1&seed=5&species=cyndaquil&cam=chase",
+  "steps": [
+   {
+    "advance": 4,
+    "bot": true
+   },
+   {
+    "eval": "(()=>{pokewatch.spawn('articuno',16,-4,4);return 1})()"
+   },
+   {
+    "advance": 3,
+    "bot": true
+   },
+   {
+    "shot": "a"
+   },
+   {
+    "eval": "(()=>{const r=pokewatch.renderer;return {state:r.rig.state,boom:r.rig.boomUsed}})()"
+   }
+  ]
+ }
+]

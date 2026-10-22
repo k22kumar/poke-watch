@@ -1,0 +1,16 @@
+{
+ "id": 4,
+ "name": "charmander",
+ "evolution_chain": {
+  "url": "https://pokeapi.co/api/v2/evolution-chain/2/"
+ },
+ "names": [
+  {
+   "name": "Charmander",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}

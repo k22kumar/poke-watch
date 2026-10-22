@@ -1,0 +1,5 @@
+{
+  "comment": "UI icons imported from PokeAPI/sprites (CC0 repository; LICENCE states all image contents are © The Pokémon Company). Types: HGSS type badges (generation-iv/heartgold-soulsilver, ids 1-17; Fairy did not exist in Gen IV and uses an original badge). Items: DS-era bag icons, each mapped to a game effect that matches the item's canonical effect (docs/ICONS.md).",
+  "types": { "normal": 1, "fighting": 2, "flying": 3, "poison": 4, "ground": 5, "rock": 6, "bug": 7, "ghost": 8, "steel": 9, "fire": 10, "water": 11, "grass": 12, "electric": 13, "psychic": 14, "ice": 15, "dragon": 16, "dark": 17 },
+  "items": ["oran-berry", "sitrus-berry", "hp-up", "protein", "calcium", "iron", "carbos", "scope-lens", "poke-ball", "tm-normal", "tm-fighting", "tm-flying", "tm-poison", "tm-ground", "tm-rock", "tm-bug", "tm-ghost", "tm-steel", "tm-fire", "tm-water", "tm-grass", "tm-electric", "tm-psychic", "tm-ice", "tm-dragon", "tm-dark", "tm-fairy"]
+}

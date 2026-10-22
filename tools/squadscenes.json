@@ -1,0 +1,5 @@
+[
+ {"name":"squad-hud","query":"go=1&species=totodile&seed=4&level=14&squad=mareep,geodude&autopick=1","steps":[{"advance":12,"bot":true,"frames":8},{"shot":"s"},{"eval":"(()=>{const P=pokewatch.ctx.player;return {squad:P.squad.map(m=>[m.species.id,Math.round(m.hp),Math.round(m.maxHp),m.moves.map(s=>s.key)]),active:P.active,state:pokewatch.ctx.state}})()"}]},
+ {"name":"squad-tag","query":"go=1&species=cyndaquil&seed=6&level=14&squad=poliwag,heracross&autopick=1","steps":[{"advance":10,"bot":true,"frames":6},{"advance":0.05,"input":{"btn":4}},{"advance":0.25,"bot":true,"frames":3},{"shot":"in"},{"advance":0.6,"bot":true,"frames":4},{"shot":"action"},{"eval":"(()=>{const P=pokewatch.ctx.player;return {active:P.m.species.id,tagCd:P.tagCd.toFixed(2)}})()"}]},
+ {"name":"squad-recruit","query":"go=1&species=bulbasaur&seed=3&level=12&calm=1","steps":[{"advance":1,"bot":true,"frames":2},{"eval":"(()=>{const c=pokewatch.ctx;c.time=130;c.recruit.pending=['swinub','vulpix'];return 1})()"},{"advance":0.3,"bot":false,"frames":3},{"wait":300},{"shot":"offer"}]}
+]

@@ -1,0 +1,19 @@
+[
+ {"name":"m-spawn","query":"go=1&species=charmander&seed=3&calm=1","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-pond","query":"go=1&species=squirtle&seed=3&calm=1&tp=76,40","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-bridge","query":"go=1&species=totodile&seed=3&calm=1&tp=80,60","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-bluff","query":"go=1&species=bulbasaur&seed=3&calm=1&tp=31,41","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-oak","query":"go=1&species=chikorita&seed=3&calm=1&tp=63,37","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-terrace","query":"go=1&species=cyndaquil&seed=3&calm=1&tp=31,80","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-grass","query":"go=1&species=charmander&seed=3&calm=1&tp=74,86","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-combat","query":"go=1&species=charmander&seed=5&autopick=1","steps":[{"advance":40,"bot":true,"frames":20},{"advance":0.4,"bot":true,"frames":4},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-swarm","query":"go=1&species=squirtle&seed=5&autopick=1&stageTime=200","steps":[{"advance":30,"bot":true,"frames":15},{"advance":0.3,"bot":true,"frames":3},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"m-boss","query":"go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12","steps":[{"advance":3,"bot":true,"frames":6},{"eval":"(()=>{const c=pokewatch.ctx,i=c.director.bossIndex,E=c.enemies;if(i>=0){E.x[i]=E.px[i]=c.player.x+4;E.z[i]=E.pz[i]=c.player.z-2;}return i})()"},{"advance":2.5,"bot":true,"frames":10},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"r-badlands","query":"go=1&species=squirtle&seed=3&calm=1&stage=1","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"r-frost","query":"go=1&species=charmander&seed=3&calm=1&stage=2","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"r-dusk","query":"go=1&species=chikorita&seed=3&calm=1&stage=3","steps":[{"advance":0.6,"frames":6},{"shot":"s"},{"raw":"raw"}]},
+ {"name":"ui-title","query":"","steps":[{"advance":0.5},{"shot":"s"}]},
+ {"name":"ui-select","query":"","steps":[{"advance":0.5},{"click":"text=Play"},{"wait":400},{"shot":"s"}]},
+ {"name":"ui-levelup","query":"go=1&species=totodile&seed=4","steps":[{"advance":6,"bot":true,"frames":3},{"eval":"pokewatch.addLevel()"},{"advance":0.2,"frames":2},{"wait":300},{"shot":"s"}]},
+ {"name":"ui-pause","query":"go=1&species=totodile&seed=4","steps":[{"advance":4,"bot":true,"frames":2},{"key":"Escape"},{"wait":300},{"shot":"s"}]}
+]

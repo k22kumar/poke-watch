@@ -1,0 +1,48 @@
+{
+ "name": "dragon-rage",
+ "power": null,
+ "accuracy": 100,
+ "priority": 0,
+ "pp": 20,
+ "type": {
+  "name": "dragon",
+  "url": "https://pokeapi.co/api/v2/type/dragon/"
+ },
+ "damage_class": {
+  "name": "special",
+  "url": "https://pokeapi.co/api/v2/move-damage-class/special/"
+ },
+ "target": {
+  "name": "selected-pokemon",
+  "url": "https://pokeapi.co/api/v2/move-target/selected-pokemon/"
+ },
+ "meta": {
+  "ailment": {
+   "name": "none",
+   "url": "https://pokeapi.co/api/v2/move-ailment/none/"
+  },
+  "ailment_chance": 0,
+  "category": {
+   "name": "damage",
+   "url": "https://pokeapi.co/api/v2/move-category/damage/"
+  },
+  "crit_rate": 0,
+  "drain": 0,
+  "flinch_chance": 0,
+  "healing": 0,
+  "min_hits": null,
+  "max_hits": null,
+  "min_turns": null,
+  "max_turns": null,
+  "stat_chance": 0
+ },
+ "names": [
+  {
+   "name": "Dragon Rage",
+   "language": {
+    "name": "en",
+    "url": "https://pokeapi.co/api/v2/language/en/"
+   }
+  }
+ ]
+}
