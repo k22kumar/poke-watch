@@ -21,7 +21,7 @@ Music and move sounds are original but the music has slots for licensed recordin
 
 ## Play
 
-Playtest link: *(added after the first deployment: `https://<github-user>.github.io/<repo>/`)*.
+**Play in your browser: https://k22kumar.github.io/poke-watch/**
 
 Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Chrome, Edge, Firefox or Safari (WebGL2 required, keyboard and mouse; no server needed). For live editing use `npm run dev`.
 
