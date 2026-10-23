@@ -4,10 +4,10 @@ A browser Pokémon survival roguelite in a DS-era 2.5D presentation: handcrafted
 
 The Pokémon are built in, generated from three sources by `scripts/build-content.mjs`:
 
-- **PokéAPI**: species, stats, types, abilities, HGSS level-up moves, evolutions and the official type chart.
+- **PokéAPI**: species, stats, types, abilities, level-up moves merged across official game versions, evolutions and the official type chart.
 - **PMD SpriteCollab**: animated sprites in 8 directions (idle, walk, attack, shoot, charge, hurt, faint, sleep), shadow anchors and portraits.
-- **PokeAPI/cries**: each Pokémon's cry, from the legacy (HGSS-era) set.
-- **PokeAPI/sprites**: HGSS type badges and DS-era item icons for the UI.
+- **PokeAPI/cries**: each Pokémon's latest available recorded cry.
+- **PokeAPI/sprites**: Pokémon type badges and item icons for the UI.
 
 The roster: 6 partners (Bulbasaur, Charmander, Squirtle, Chikorita, Cyndaquil, Totodile), each evolving twice to its final form, 16 wild Pokémon, and 4 bosses (Sudowoodo, Magcargo, Articuno, Houndoom): 38 Pokémon. Each carries a ability adapted to survival play (`docs/SPECIES.md`).
 
@@ -23,7 +23,7 @@ Music and move sounds are original but the music has slots for licensed recordin
 
 **Play in your browser: https://k22kumar.github.io/poke-watch/**
 
-Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Chrome, Edge, Firefox or Safari (WebGL2 required, keyboard and mouse; no server needed). For live editing use `npm run dev`.
+Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Chrome, Edge, Firefox or Safari (WebGL2 required, keyboard / mouse or touch controls; no server needed). For live editing use `npm run dev`.
 
 | Action | Keys |
 |---|---|
@@ -34,7 +34,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Guard (tap: deflect or parry; hold: brace) | E · RB / LB |
 | Dash (brief invulnerability) | Shift / B |
 | Jump (onto rocks, logs, bushes; flyers glide while holding) | Space / A |
-| Level-up cards (they wait in a tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
+| Level-up cards (compact top tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
 | Menus | Arrows / Tab to move, Enter / Space to choose, Esc / Backspace to go back; gamepad d-pad, A, B, Start |
 | Pause | Esc / P |
 | Tuning panel | ` (backtick) |
@@ -69,9 +69,9 @@ npm run build
 
 ## Squad, Tag and coats (unified squad blueprint, phases 4–6)
 
-The design is in the *Poke-Watch Unified Squad Blueprint* doc; `docs/SQUAD.md` lists what is built, the numbers and what was measured.
+The Pokémon-first content process is in [`docs/POKEMON_FIRST.md`](docs/POKEMON_FIRST.md). The design is in the *Poke-Watch Unified Squad Blueprint* doc; [`docs/SQUAD.md`](docs/SQUAD.md) lists what is built, the numbers and what was measured.
 
-- **Banked picks.** Upgrade offers remain available while the run continues. Choose with 1–3 (4 when swapping a technique), D-pad left/up/right, or click when the cursor is free; `C` toggles cursor/camera control. Multiple level-ups queue one offer at a time.
+- **Banked picks.** Upgrade offers stay in a compact top-edge tray while the run continues. Cards show their type, name and key effects; hover or focus a card to inspect its full details. Choose with 1–3 (4 when swapping a technique), D-pad left/up/right, or click when the cursor is free; `C` toggles cursor/camera control. Multiple level-ups queue one offer at a time.
 - **Squad of three.** You start with your partner. After an elite falls (from 2:00 for the first recruit, 5:00 for the second) two wild Pokémon from the region offer to join; pick one or let it go. One squad level and XP bar; every Pokémon evolves at its own level, benched ones on the bench.
 - **Tag (Q / Y).** A tap swaps to the last Pokémon; hold Tag and press Move A or Move B to pick the first or second reserve. The incoming Pokémon arrives where the other stood, invulnerable for 0.15 s, and 0.2 s later fires its **Tag Action** (`rules/tags.ts`: Aqua Tail, Flame Wheel, Vine Whip, Thunder Shock, Rock Throw that leaves a rock…) toward your aim. 4 s squad-wide cooldown; Reflex charges belong to the trainer. At its first evolution (level 18 for Pokémon that do not evolve) each Pokémon can switch to a variant Tag Action.
 - **Resting.** Benched Pokémon keep their cooldowns ticking, refill grey health (40% of each hit, which drains away if you stay on the field) and shed coats and paralysis twice as fast. They give no passive bonuses. A fainted Pokémon is replaced after 1 s with a free Tag Action; the run ends when all three faint; the next region's portal revives them at 30%.
@@ -117,6 +117,7 @@ The project needs Node 18+ and three dev tools: esbuild, TypeScript and tsx.
 npm install          # esbuild, typescript, tsx
 npm run build        # -> dist/index.html (single file, ~1.9 MB with the Pokémon art, cries and icons)
 npm run dev          # rebuild-on-change server at http://localhost:5173
+npm run check        # typecheck, tests, and production build
 npm test             # sim, tile-world, asset-pipeline, audio, identity, combat, bodies, cells, banked-pick, coat, squad, phase 7, capability and build tests
 npx tsx scripts/checksum.ts    # replay checksums (same seed + inputs => same hashes); "off" must equal v10, "build-off" must equal Phase 8a
 npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms
@@ -218,11 +219,11 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 
 - `docs/ART_BIBLE.md`: camera, pixel density, sprite, animation, palette, layering and UI standards.
 - `docs/ART_DIRECTION.md`: the expedition art direction (floor/frame/actor/signal layers, per-biome values, decor, the crossroads camp), the before/after measurements and their limits.
-- `docs/HGSS_REFERENCE.md`: what was observed in HGSS reference graphics versus recalled, and the palettes taken from it.
+- `docs/POKEMON_FIRST.md`: how to research and adapt Pokémon identities across official appearances.
 - `docs/CAMERA.md`: the camera preset comparison and decision.
 - `docs/AUDIO.md`: cries (era audit), every move's sound, music states, mixing, verification.
 - `docs/ICONS.md`: which icons are Pokémon items and why, and which are original.
-- `docs/SPECIES.md`: abilities, curated learnsets against HGSS levels, unmodelled move mechanics.
+- `docs/SPECIES.md`: abilities, curated learnsets, unmodelled move mechanics and cross-game canon.
 - `docs/PIPELINE.md`: how PokéAPI, SpriteCollab and cries become the built-in roster.
 - `docs/MAPLEBROOK.md`: the overworld visual spec, reference comparison and feature list.
 
@@ -254,7 +255,7 @@ npm run typecheck
 npm audit
 ```
 
-Known limitations: desktop keyboard and mouse (gamepad works; no touch controls); needs WebGL2; audio starts after the first click; settings are stored in the browser's localStorage only. There is no multiplayer and no server.
+Known limitations: desktop keyboard and mouse still feel best, touch controls are supported on portable screens, and gamepad works; needs WebGL2; audio starts after the first click; settings are stored in the browser's localStorage only. There is no multiplayer and no server.
 
 ## Licensing and takedown
 

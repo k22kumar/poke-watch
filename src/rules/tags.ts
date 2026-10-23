@@ -1,6 +1,6 @@
 // Tag Actions (blueprint sections 5 to 7): tagging a Pokémon in fires one strong, aimed move toward the
 // aim point. Each line has a base move and a variant it can switch to at its first evolution (or at
-// rules.squad.variantLevel for Pokémon that do not evolve). Moves come from the line's own HGSS
+// rules.squad.variantLevel for Pokémon that do not evolve). Moves come from the line's own cross-game
 // learnset where it has one, and every key must exist in the move database (tests/squad.test.ts).
 // `create` leaves a body where the move lands (Rock Throw drops a rock).
 

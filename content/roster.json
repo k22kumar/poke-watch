@@ -1,7 +1,7 @@
 {
-  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays, and (learnsets) which of a starter line's real HGSS level-up moves it learns in the survival game and at which game level. Canonical levels are kept separately in the generated data (canon.levelUp).",
+  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays and which cross-game level-up moves each starter line learns at Poke-Watch's own game levels. Canonical moves and facts are kept separately in generated data (canon).",
   "partnerEvolutions": 2,
-  "cryEra": "legacy",
+  "cryEra": "latest",
   "partners": [
     "bulbasaur",
     "charmander",

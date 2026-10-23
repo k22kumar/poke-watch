@@ -4,10 +4,10 @@
 
 | Content | Source | Repository licence | Content rights | Attribution |
 |---|---|---|---|---|
-| 38 Pokémon: 6 partner lines to their final forms (18), 16 wild, 4 bosses. Species data, stats, types, abilities, HGSS level-up moves (112 implemented), evolutions, the type chart | PokéAPI v2 (static `PokeAPI/api-data`) | PokéAPI | Game data © Nintendo / Creatures / GAME FREAK / The Pokémon Company | `src/content/pokedex.ts` header; Credits screen; `content/report.json` |
+| 38 Pokémon: 6 partner lines to their final forms (18), 16 wild, 4 bosses. Species data, stats, types, abilities, cross-version level-up moves (187 currently implemented), evolutions, the type chart | PokéAPI v2 (static `PokeAPI/api-data`) | PokéAPI | Game data © Nintendo / Creatures / GAME FREAK / The Pokémon Company | `src/content/pokedex.ts` header; Credits screen; `content/report.json` |
 | Animated sprites in 8 directions (Idle, Walk, Attack, Strike, Shoot, Charge, Hurt, Faint, Sleep), shadow anchors, portraits | PMD SpriteCollab (`PMDCollab/SpriteCollab`) | **CC BY-NC 4.0**: attribution, non-commercial | Character designs © the same companies. 28 of 38 are credited only to **CHUNSOFT** (official Pokémon Mystery Dungeon sprites); the rest add community artists: bwappi, Grimlin, JFain, Emboarger, 3P1C, Emmuffin, G〜, FlowerSnek, Caitemis and one unnamed contributor | Per-Pokémon credits on the Credits screen; `art.json` `credits` |
-| Cries (all 38): legacy era (the cries heard in HGSS), plus an MP3 transcode of each for browsers without Vorbis | PokeAPI/cries `cries/pokemon/legacy/<id>.ogg` (falls back to `latest`) | CC0 repository | Its LICENSE states the audio is © The Pokémon Company | Credits screen; `art.json` `cry.source`, `cry.era`; era audit in `docs/AUDIO.md` |
-| UI icons: 17 HGSS type badges and 27 DS-era bag icons (vitamins, Scope Lens, berries, Poké Ball, TMs) | PokeAPI/sprites `sprites/types/generation-iv/heartgold-soulsilver`, `sprites/items` | CC0 repository | Its LICENCE states all image contents are © The Pokémon Company | Credits screen; `src/content/icons.json`; usage rules in `docs/ICONS.md` |
+| Cries (all 38): latest available recording, plus an MP3 transcode for browsers without Vorbis | PokeAPI/cries `cries/pokemon/latest/<id>.ogg` (falls back when unavailable) | CC0 repository | Its LICENSE states the audio is © The Pokémon Company | Credits screen; `art.json` `cry.source`, `cry.era`; era audit in `docs/AUDIO.md` |
+| UI icons: type badges for all 18 types and 27 bag icons (vitamins, Scope Lens, berries, Poké Ball, TMs) | PokeAPI/sprites `sprites/types/generation-viii/sword-shield`, `sprites/items` | CC0 repository | Its LICENCE states all image contents are © The Pokémon Company | Credits screen; `src/content/icons.json`; usage rules in `docs/ICONS.md` |
 | Provenance | importer | — | — | Every source file's URL and SHA-256 in `content/report.json` |
 
 ## Original to Poke-Watch (generated from code)
@@ -19,14 +19,14 @@ Apart from the Pokémon content above and the font, no image, model, sound or mu
 | Maplebrook's creatures (overworld slice only) | `src/rules/originals.ts`, `src/render/designs.ts` | Original part-model designs | Original work |
 | Gameplay rules, archetypes, stage pacing, boss attack kits | `src/rules/*.ts`, `content/roster.json` | Original (formulas modelled on PokéBonk) | Original work |
 | Four arenas (Sunpetal Meadow, Cinder Badlands, Rimefrost Heights, Duskwood Hollow) | `src/world/arenas.ts` | Handcrafted layouts with the arena builder | Original work |
-| Ground, cliffs, ledges, stairs, water, bridge textures | `src/overworld/terrain.ts`, palettes in `src/render/tileart.ts` | Painted in code; palettes sampled from HGSS reference graphics (`docs/HGSS_REFERENCE.md`), no HGSS pixels copied | Original work |
+| Ground, cliffs, ledges, stairs, water, bridge textures | `src/overworld/terrain.ts`, palettes in `src/render/tileart.ts` | Painted in code from original palettes; no game graphics copied | Original work |
 | Arena props (conifers, round trees, elder oak, bushes, rocks, boulders, stumps, logs, berry trees, signs, lanterns, pillars, standing stone, shrine, crystals, vents, mushrooms, flowers, tall grass, reeds, lily pads) | `src/overworld/sprites.ts`, `src/render/pixelart.ts`, `src/render/tileart.ts` | Painted in code | Original work |
 | Combat effects (26 element sprites), rings, beams | `src/render/pixelart.ts`, `src/render/renderer.ts` | Painted in code | Original work |
 | Fallback cries (used only if a sample fails to decode) | `src/assets/cries.ts` | Synthesised per species from its id, size and element | Original work |
-| Move sounds (all 112 moves), UI sounds | `src/audio/sfx.ts`, `src/audio/audio.ts` | Web Audio synthesis; per-move mapping in `docs/AUDIO.md` | Original work |
+| Move sounds (all 187 moves), UI sounds | `src/audio/sfx.ts`, `src/audio/audio.ts` | Web Audio synthesis; per-move mapping in `docs/AUDIO.md` | Original work |
 | Music: 8 looping tracks, 4 stingers | `src/audio/music.ts` | Original compositions played by an in-game sequencer. Slots for licensed recordings in `content/music/manifest.json` (empty) | Original work |
 | Survival icons (charms, EXP shard, lure, move-shape glyphs, category icons, Fairy badge) | `src/ui/pixicons.ts`, `src/render/pixelart.ts` | Painted in code | Original work |
-| UI (boxes, info box, area sign, cards, menus) | `src/ui/*` | Original CSS after the HGSS box language | Original work |
+| UI (boxes, info box, area sign, cards, menus) | `src/ui/*` | Original CSS drawing on handheld adventure conventions | Original work |
 | Font: Pixelify Sans | `content/fonts/PixelifySans.woff` (Latin subset), embedded in the build | Works offline | SIL Open Font License 1.1 (`content/fonts/OFL.txt`) |
 | Maplebrook overworld | `src/overworld/*` | Original town, people, buildings | Original work |
 
@@ -34,9 +34,9 @@ Apart from the Pokémon content above and the font, no image, model, sound or mu
 
 | Resource | Finding | Decision |
 |---|---|---|
-| PokeAPI/sprites | CC0 repository whose LICENCE states "All image contents within are Copyright The Pokémon Company". Front/back battle sprites (Gen IV HGSS at 80×80), Showdown animated GIFs, item icons; **no directional walk animations** | Not used for creature rendering (wrong view and no 8-direction sets). Type badges and item icons are used in the UI (above) |
-| pret/pokeheartgold (decompilation) | Reference for HGSS palettes and the area-sign frame | Looked at only; no graphics, code or data copied into the build |
-| HGSS soundtrack, HGSS move sound effects | Not licensable for this project | Not used. Original music and SFX instead; music slots take licensed recordings |
+| PokeAPI/sprites | CC0 repository whose LICENCE states "All image contents within are Copyright The Pokémon Company". Front/back battle sprites (80×80), Showdown animated GIFs, item icons; **no directional walk animations** | Not used for creature rendering (wrong view and no 8-direction sets). Type badges and item icons are used in the UI (above) |
+| Official Pokémon games | Lore and behavior references for species research | Consulted as research only; no game graphics, code or audio copied into the build |
+| Official game soundtracks and move sound effects | Not licensable for this project | Not used. Original music and SFX instead; music slots take licensed recordings |
 | Pokémon Showdown | MIT code; data is game data | Reference for data modelling only |
 | Pokémon Essentials | CC BY-NC-SA 4.0; RPG Maker XP / Ruby | Reference only; not usable in a browser, ShareAlike would bind derived code |
 

@@ -3,6 +3,7 @@
 import { Rng, streamSeed } from '../../core/rng';
 import { ArenaBuilder } from '../builder';
 import type { ArenaMap } from '../tiles';
+export { HAB } from '../../rules/habitats';
 
 export type Archetype = 'ridge' | 'valley' | 'hollow';
 
@@ -24,9 +25,6 @@ export interface Lookout { x: number; y: number; w: number; h: number; height: n
 /** Encounter-space kinds the gameplay pass looks for (blueprint section 4). */
 export type SpaceKind = 'hub' | 'choke' | 'overlook' | 'grove' | 'water';
 export interface Space { kind: SpaceKind; x: number; y: number; score: number }
-
-/** Habitat bits per tile (blueprint section 1, "Pokémon-world identity"). */
-export const HAB = { meadow: 1, grass: 2, water: 4, rock: 8, dry: 16, forest: 32 } as const;
 
 export interface GenMeta {
   generator: 'poke-watch-worldgen';

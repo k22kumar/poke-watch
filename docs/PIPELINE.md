@@ -4,8 +4,8 @@ How species data, sprites, portraits and cries get into Poke-Watch. Every Pokém
 
 - **PokéAPI** (static `PokeAPI/api-data`): species, stats, types, level-up moves, evolution chains, the type chart.
 - **PMD SpriteCollab**: `sprite/<dex4>/AnimData.xml`, `<Anim>-Anim.png`, `<Anim>-Shadow.png`, `credits.txt`; `portrait/<dex4>/Normal.png`; `credit_names.txt`.
-- **PokeAPI/cries**: `cries/pokemon/legacy/<id>.ogg` (or `latest`, by `cryEra`).
-- **PokeAPI/sprites**: HGSS type badges and item icons listed in `content/icons.json`.
+- **PokeAPI/cries**: `cries/pokemon/latest/<id>.ogg` (with fallback to `legacy` when needed).
+- **PokeAPI/sprites**: type badges and item icons listed in `content/icons.json`.
 
 The content is generated at build time and shipped inside the game; nothing is downloaded while playing.
 
@@ -60,12 +60,12 @@ npm run build
 
 1. **Identify**: `pokemon/<name>` → id, types, stats, height, moves, cry URL; `pokemon-species/<id>` → national dex number, English name, evolution chain.
 2. **Normalise data**: types → Poke-Watch elements (fire→blaze, water→tide, …); stats → `hp/atk/def/spa/spd/spe`. Gameplay values are derived (hitbox height from the sprite, not the Pokédex height).
-3. **Moves**: level-up moves for the version group are fetched one by one (`move/<name>`). Damage moves become rows with power, class, priority, accuracy, ailment and chance, drain and multi-hit. Weather moves become `weather`, self stat boosts `buff`, other status moves are dropped. **Archetype hints** come from canonical targeting: moves that hit every opponent become a radial `nova`, physical priority moves a `dash`; everything else goes through the runtime classifier.
-4. **Learnsets**: partner lines use the curated `learnsets` in `content/roster.json` (a starter move plus `[gameLevel, move]` pairs). Every move is checked against the line's HGSS level-up list and attached to the earliest stage that learns it; a move the line can't learn in HGSS stops the import. Other Pokémon get the automatic pacing: an early same-type attack, then six moves at Lv 3, 6, 9, 13, 18, 24. Moves of another type become **coverage** offers, gated by their HGSS level. The HGSS facts themselves (abilities without hidden ones, the level-up list, evolution level, height, weight) are written to `canon` and never edited by balancing. `--learnsets <file>` overrides the roster's curated sets.
+3. **Moves**: level-up moves are unioned across all official game versions, then move records are fetched one by one (`move/<name>`). If a learned level differs across versions, the earliest listed level is retained. Damage moves become rows with power, class, priority, accuracy, ailment and chance, drain and multi-hit. Weather moves become `weather`, self stat boosts `buff`, other status moves are dropped. **Archetype hints** come from canonical targeting: moves that hit every opponent become a radial `nova`, physical priority moves a `dash`; everything else goes through the runtime classifier.
+4. **Learnsets**: partner lines use the curated `learnsets` in `content/roster.json` (a starter move plus `[gameLevel, move]` pairs). Every move is checked against all forms in the line across official games and attached to the earliest stage that learns it; unsupported moves stop the import. Poke-Watch's game levels are its own pacing. Other Pokémon get the automatic pacing: an early same-type attack, then six moves at Lv 3, 6, 9, 13, 18, 24. Moves of another type become **coverage** offers, gated by their earliest listed level. Cross-game abilities (including hidden abilities), merged level-up moves, evolution data, height and weight are written to `canon` and never edited by balancing. `--learnsets <file>` overrides the roster's curated sets.
 5. **Evolution**: the full chain is read, giving each stage and its level (Totodile → Croconaw at 18 → Feraligatr at 30). `partnerEvolutions` in the roster (or `--evolutions`) sets how many stages to include; the built-in roster uses 2.
 6. **Sprites**: `AnimData.xml` is parsed (CopyOf resolved). For Idle, Walk, Attack, Strike, Shoot, Charge, Hurt, Faint and Sleep, the importer decodes `<Anim>-Anim.png` and `<Anim>-Shadow.png`. Each frame is cropped to its opaque box; its feet anchor is the centroid of the shadow marker (or the lowest opaque row if the shadow sheet is missing). Identical frames are deduplicated and everything is shelf-packed into one atlas per species. Frame durations and Hit frames are kept exactly.
 7. **Portrait and credits**: `portrait/<dex4>/Normal.png` and the folder's credit list. Discord ids in `credits.txt` are resolved to artist names through `credit_names.txt`; ids with no public name are kept and labelled.
-8. **Cry**: `cries/pokemon/<era>/<id>.ogg` for the chosen era (`--cry-era`, default `legacy`), falling back to the other era; checked for an OGG header. The content build adds an MP3 transcode (ffmpeg) and records loudness and length. The era actually used is stored per cry.
+8. **Cry**: `cries/pokemon/<era>/<id>.ogg` for the chosen era (`--cry-era`, default `latest`), falling back to the other era; checked for an OGG header. The content build adds an MP3 transcode (ffmpeg) and records loudness and length. The era actually used is stored per cry.
 9. **Validate and report**: column/duration mismatch, missing direction rows, missing shadow sheets, missing cries or portraits are reported per species. The output has a preview contact sheet and `report.json` with every source URL and its SHA-256.
 
 ## Runtime loading
@@ -82,7 +82,7 @@ npm run import:fixture   # packs/fixture/fixture.bonkpack.json
 npm test                 # includes tests/pack.test.ts (end-to-end importer + validator + fallbacks)
 ```
 
-The fixture mirror uses real stats, HGSS learnsets, evolution levels, move metadata, and the real SpriteCollab frame sizes and durations for 0004/0007/0158. Its pictures are placeholder blobs, and it contains two deliberate faults (Squirtle's Hurt has no shadow sheet; Totodile has no cry) so the reporting and fallbacks are exercised.
+The fixture mirror uses real stats, multi-version learnsets, evolution levels, move metadata, and the real SpriteCollab frame sizes and durations for 0004/0007/0158. Its pictures are placeholder blobs, and it contains two deliberate faults (Squirtle's Hurt has no shadow sheet; Totodile has no cry) so the reporting and fallbacks are exercised.
 
 ## Licensing
 

@@ -173,8 +173,8 @@ export function personSheet(p: Person): Pix {
 }
 
 // =================================================================== props
-// HGSS-referenced foliage (docs/HGSS_REFERENCE.md): light lumps lean yellow-green, shadow masses
-// lean teal, outlines are dark teal rather than brown-black.
+// Handheld-adventure foliage: light lumps lean yellow-green, shadow masses lean teal,
+// outlines are dark teal rather than brown-black.
 export interface TreeRamps { hl: string; light: string; base: string; shade: string; deep: string; outline: string; trunk: Ramp }
 export const JOHTO: TreeRamps = { hl: '#c4f080', light: '#8ed458', base: '#5cb444', shade: '#2e8a46', deep: '#1c6248', outline: '#173a2e', trunk: ['#a87c50', '#7a5838', '#523a26'] };
 export const JOHTO_DARK: TreeRamps = { hl: '#a8e070', light: '#74bc4c', base: '#48a040', shade: '#287a44', deep: '#185444', outline: '#13322a', trunk: ['#9a7048', '#6e5034', '#4a3424'] };
@@ -242,7 +242,7 @@ export function paintBush(variant = 0, R: TreeRamps = JOHTO): ImageData {
   return s.render();
 }
 
-/** small flower clump (HGSS-style four-petal blooms), 2 frames of sway */
+/** small four-petal flower clump, 2 frames of sway */
 export function paintFlowers(color: string, frame: number, stem: Ramp = ['#7cc850', '#4ea83e', '#2f8a34'], outline = '#245a2c'): ImageData {
   const s = new Sprite(16, 12);
   s.outline = outline;

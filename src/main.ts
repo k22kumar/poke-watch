@@ -183,7 +183,7 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'cardPicked': ui.hideCards(e.card); if (e.card) audio.pick(); break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
-      // boss cries play at their recorded pitch (as in HGSS encounters); see docs/AUDIO.md
+      // boss cries play at their recorded pitch; see docs/AUDIO.md
       case 'bossSpawn': ui.banner(SPECIES_BY_ID[e.species].name, SPECIES_BY_ID[e.species].boss?.title ?? 'appears!', 3); audio.boss(); audio.onBossSpawn(); setTimeout(() => audio.cry(e.species, { volume: 0.8, gate: 0 }), 450); break;
       case 'bossPhase': ui.banner('It\'s getting angry!', '', 1.4); break;
       case 'bossDead': ui.banner('Boss defeated!', 'Step into the portal', 3); audio.cry(e.species, { volume: 0.8, pitch: 0.85, gate: 0 }); audio.onBossDead(); break;
@@ -242,12 +242,13 @@ function lookInput(dt: number, live: boolean) {
 
 // third person: until the browser has given us the mouse, say how to get it (gamepad players never see this)
 const lockHint = document.createElement('div');
+lockHint.className = 'aim-hint';
 lockHint.setAttribute('role', 'status');
-lockHint.style.cssText = 'position:fixed;left:50%;bottom:92px;transform:translateX(-50%);padding:6px 14px;border-radius:10px;background:rgba(20,28,44,.82);color:#fff;font:600 14px system-ui,sans-serif;pointer-events:none;z-index:5;display:none';
+lockHint.style.cssText = 'border-radius:10px;background:rgba(20,28,44,.82);color:#fff;font:600 14px system-ui,sans-serif;pointer-events:none;z-index:5;display:none';
 lockHint.textContent = 'Click the game to aim with the mouse · Esc pauses';
 document.body.appendChild(lockHint);
 function updateLockHint(c: SimContext | null) {
-  const show = !!c && renderer.chase && !paused && c.state === 'play' && !input.locked && input.context === 'play' && !input.pad();
+  const show = !!c && renderer.chase && !paused && c.state === 'play' && !ui.trayOpen() && !input.locked && input.context === 'play' && !input.pad();
   const want = show ? 'block' : 'none';
   if (lockHint.style.display !== want) lockHint.style.display = want;
 }

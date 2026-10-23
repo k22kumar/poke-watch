@@ -32,6 +32,9 @@ export class Input {
   private expectUnlock = false;
   bindings = DEFAULT_BINDINGS;
   private dashLatch = false;
+  private touchButtons: Record<string, boolean> = {};
+  private touchMove: [number, number] = [0, 0];
+  private touchLook: [number, number] = [0, 0];
   onAction?: (a: string) => void;
   /** 'menu' while a menu owns the keyboard (the UI handles it), 'play' during gameplay */
   context: 'menu' | 'play' = 'menu';
@@ -85,10 +88,79 @@ export class Input {
     window.addEventListener('mousemove', (e) => {
       if (this.locked || this.dragging) { this.mouseDx += e.movementX; this.mouseDy += e.movementY; }
     });
+    const bindTouchAction = (down: boolean, action: string) => {
+      if (!action) return;
+      this.touchButtons[action] = down;
+      if (down && action === 'dash') this.dashLatch = true;
+    };
+    document.addEventListener('pointerdown', (e) => {
+      const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-touch-action]');
+      if (!btn) return;
+      e.preventDefault();
+      bindTouchAction(true, btn.dataset.touchAction ?? '');
+    }, { passive: false });
+    document.addEventListener('pointerup', (e) => {
+      const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-touch-action]');
+      if (!btn) return;
+      e.preventDefault();
+      bindTouchAction(false, btn.dataset.touchAction ?? '');
+    }, { passive: false });
+    document.addEventListener('pointercancel', (e) => {
+      const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-touch-action]');
+      if (!btn) return;
+      bindTouchAction(false, btn.dataset.touchAction ?? '');
+    });
+    const setTouchInput = (x: number, y: number) => {
+      const r = this.el.getBoundingClientRect();
+      const leftZone = r.width * 0.42;
+      if (x < leftZone) {
+        const dx = this.clamp((x - r.width * 0.18) / Math.max(1, r.width * 0.18), -1, 1);
+        const dy = this.clamp((r.height * 0.5 - y) / Math.max(1, r.height * 0.45), -1, 1);
+        this.touchMove = [dx, dy];
+      } else {
+        const nx = this.clamp((x - r.width * 0.7) / Math.max(1, r.width * 0.3), -1, 1);
+        const ny = this.clamp((r.height * 0.5 - y) / Math.max(1, r.height * 0.45), -1, 1);
+        this.touchLook = [nx, ny];
+        this.stickAim = [nx, ny];
+        this.aimSource = 'stick';
+      }
+    };
+    this.el.addEventListener('touchstart', (e) => {
+      if (this.context !== 'play') return;
+      for (const t of e.changedTouches) {
+        const r = this.el.getBoundingClientRect();
+        setTouchInput(t.clientX - r.left, t.clientY - r.top);
+      }
+      e.preventDefault();
+    }, { passive: false });
+    this.el.addEventListener('touchmove', (e) => {
+      if (this.context !== 'play') return;
+      for (const t of e.touches) {
+        const r = this.el.getBoundingClientRect();
+        setTouchInput(t.clientX - r.left, t.clientY - r.top);
+      }
+      e.preventDefault();
+    }, { passive: false });
+    const clearTouchInput = () => {
+      this.touchMove = [0, 0];
+      this.touchLook = [0, 0];
+      if (this.aimSource === 'stick' && !this.touchButtons.moveA && !this.touchButtons.moveB && !this.touchButtons.sig && !this.touchButtons.guard) this.aimSource = 'none';
+    };
+    this.el.addEventListener('touchend', () => clearTouchInput(), { passive: false });
+    this.el.addEventListener('touchcancel', () => clearTouchInput(), { passive: false });
   }
 
+  private clamp(v: number, min: number, max: number) { return Math.min(max, Math.max(min, v)); }
   private is(action: string, code: string) { return this.bindings[action]?.includes(code); }
-  down(action: string) { return this.bindings[action]?.some((c) => this.keys.has(c)) ?? false; }
+  down(action: string) {
+    if (action === 'jump') return (this.bindings.jump?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.jump;
+    if (action === 'dash') return (this.bindings.dash?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.dash;
+    if (action === 'moveA') return (this.bindings.moveA?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.moveA;
+    if (action === 'moveB') return (this.bindings.moveB?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.moveB;
+    if (action === 'sig') return (this.bindings.sig?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.sig;
+    if (action === 'guard') return (this.bindings.guard?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.guard;
+    return this.bindings[action]?.some((c) => this.keys.has(c)) ?? false;
+  }
 
   releaseLock() { if (document.pointerLockElement) { this.expectUnlock = true; document.exitPointerLock(); } }
 
@@ -100,6 +172,7 @@ export class Input {
 
   /** right stick as a look axis, for the third-person camera */
   lookStick(): [number, number] {
+    if (this.touchLook[0] || this.touchLook[1]) return this.touchLook;
     const p = this.pad();
     return p ? [p.rx, p.ry] : [0, 0];
   }
@@ -121,8 +194,8 @@ export class Input {
 
   /** build a sim input frame for camera yaw (aim is filled in by the host, which knows the camera) */
   sample(yaw: number): InputFrame {
-    let f = (this.down('up') ? 1 : 0) - (this.down('down') ? 1 : 0);
-    let s = (this.down('right') ? 1 : 0) - (this.down('left') ? 1 : 0);
+    let f = (this.down('up') ? 1 : 0) - (this.down('down') ? 1 : 0) + this.touchMove[1];
+    let s = (this.down('right') ? 1 : 0) - (this.down('left') ? 1 : 0) + this.touchMove[0];
     const pad = this.pad();
     let jump = this.down('jump');
     let dash = this.dashLatch;

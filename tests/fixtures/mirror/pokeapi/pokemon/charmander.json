@@ -12,6 +12,24 @@
   "name": "4",
   "url": "https://pokeapi.co/api/v2/pokemon-species/4/"
  },
+ "abilities": [
+  {
+   "ability": {
+    "name": "blaze",
+    "url": "https://pokeapi.co/api/v2/ability/blaze/"
+   },
+   "slot": 1,
+   "is_hidden": false
+  },
+  {
+   "ability": {
+    "name": "solar-power",
+    "url": "https://pokeapi.co/api/v2/ability/solar-power/"
+   },
+   "slot": 3,
+   "is_hidden": true
+  }
+ ],
  "stats": [
   {
    "base_stat": 39,
@@ -85,8 +103,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 1,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -105,8 +135,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 1,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -125,8 +167,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 6,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -145,8 +199,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 9,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -165,8 +231,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 15,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -185,8 +263,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 18,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -205,8 +295,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 24,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -225,8 +327,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 27,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -245,8 +359,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 33,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }
@@ -265,8 +391,20 @@
       "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
      },
      "version_group": {
-      "name": "heartgold-soulsilver",
-      "url": "https://pokeapi.co/api/v2/version-group/heartgold-soulsilver/"
+      "name": "red-blue",
+      "url": "https://pokeapi.co/api/v2/version-group/red-blue/"
+     },
+     "order": null
+    },
+    {
+     "level_learned_at": 36,
+     "move_learn_method": {
+      "name": "level-up",
+      "url": "https://pokeapi.co/api/v2/move-learn-method/level-up/"
+     },
+     "version_group": {
+      "name": "scarlet-violet",
+      "url": "https://pokeapi.co/api/v2/version-group/scarlet-violet/"
      },
      "order": null
     }

@@ -33,9 +33,9 @@ for (const d of fs.readdirSync(D)) for (const a of JSON.parse(fs.readFileSync(D+
 console.log([...s].join(' '));")
 (cd "$DIR/api-data" && git sparse-checkout add $(for i in $ABIL; do echo "/data/api/v2/ability/$i/"; done))
 (cd "$DIR/spritecollab" && git sparse-checkout set --no-cone $(for i in $IDS; do d=$(printf %04d "$i"); echo "/sprite/$d/*"; echo "!/sprite/$d/*/"; echo "/portrait/$d/Normal.png"; done) /LICENSE.md /credit_names.txt)
-# both cry eras: 'legacy' (the Gen 1-5 recordings heard in the DS games) is the default; 'latest' kept for comparison
-(cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; echo "/cries/pokemon/legacy/$i.ogg"; done) /LICENSE)
-# UI icons: HGSS type badges and DS-era bag icons for the items the game maps upgrades to
+# latest available cry recordings
+(cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; done) /LICENSE)
+# UI icons: Pokémon type badges and bag icons for the items the game maps upgrades to
 clone PokeAPI/sprites sprites
-(cd "$DIR/sprites" && git sparse-checkout set --no-cone '/sprites/types/generation-iv/heartgold-soulsilver/*' $(node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))" 2>/dev/null || (cd - >/dev/null; node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))")) /LICENCE.txt)
+(cd "$DIR/sprites" && git sparse-checkout set --no-cone '/sprites/types/generation-viii/sword-shield/*' $(node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))" 2>/dev/null || (cd - >/dev/null; node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))")) /LICENCE.txt)
 echo "sources ready in $DIR (species: $(echo $IDS | wc -w), moves: $(echo $MOVES | wc -w))"

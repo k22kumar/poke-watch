@@ -60,7 +60,7 @@ export const defaultRules = {
   },
   camera: {
     // DS-style fixed three-quarter view (see docs/ART_BIBLE.md). PokéBonk used an orbit camera
-    // (distance 9, pitch 0.45 [C]); Poke-Watch locks yaw like HeartGold/SoulSilver routes.
+    // (distance 9, pitch 0.45 [C]); Poke-Watch keeps a fixed route-like camera.
     pitch: 0.82, // [B] rad (~47°) above the horizon
     fov: 30, // [B] degrees; narrow lens keeps tiles nearly square across the screen
     pxPerMetre: 16, // [B] one texel of every sprite and tile = one screen pixel at the focus
@@ -274,9 +274,9 @@ export const defaultRules = {
   // stage seed (seed + stage*7919 + loop*104729) with src/world/gen. Biomes not listed stay authored.
   worldgen: {
     mode: 'authored' as 'authored' | 'generated',
-    biomes: ['meadow'] as string[],
+    biomes: ['meadow', 'badlands', 'frost', 'dusk'] as string[],
     size: 128, // tiles (m) per side of a generated region
-    version: 1, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
+    version: 2, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
     regionSeed: -1, // ≥ 0: use this region seed for every stage instead of the run's (experiments: hold the map, vary the run)
   },
   // [I] W4 materials (rules/surfaces.ts): trees, bushes and rocks have a material, burn, break and leave stumps or

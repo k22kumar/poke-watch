@@ -24,7 +24,7 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pokewatch-content-'));
 
 fs.writeFileSync(path.join(tmp, 'learnsets.json'), JSON.stringify(roster.learnsets ?? {}));
 function runImport(id, names, evolutions) {
-  const args = [path.join(ROOT, 'scripts/import-pack.mjs'), ...names, '--out', path.join(tmp, id), '--id', id, '--evolutions', String(evolutions), '--cry-era', roster.cryEra ?? 'legacy', '--learnsets', path.join(tmp, 'learnsets.json')];
+  const args = [path.join(ROOT, 'scripts/import-pack.mjs'), ...names, '--out', path.join(tmp, id), '--id', id, '--evolutions', String(evolutions), '--cry-era', roster.cryEra ?? 'latest', '--learnsets', path.join(tmp, 'learnsets.json')];
   if (CLONES) args.push('--clones', CLONES);
   console.log(`importing ${names.length} species (${id})…`);
   const out = execFileSync('node', args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'] }).toString();
@@ -159,7 +159,7 @@ fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ genera
     if (!CLONES) { const r = await fetch('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/' + rel); if (r.ok) return Buffer.from(await r.arrayBuffer()); }
     return null;
   };
-  for (const [type, id] of Object.entries(spec.types)) { const b = await read(`types/generation-iv/heartgold-soulsilver/${id}.png`); if (b) out.types[type] = 'data:image/png;base64,' + b.toString('base64'); }
+  for (const [type, id] of Object.entries(spec.types)) { const b = await read(`types/generation-viii/sword-shield/${id}.png`); if (b) out.types[type] = 'data:image/png;base64,' + b.toString('base64'); }
   for (const it of spec.items) { const b = await read(`items/${it}.png`); if (b) out.items[it] = 'data:image/png;base64,' + b.toString('base64'); }
   fs.writeFileSync(path.join(ROOT, 'src/content/icons.json'), JSON.stringify(out));
   console.log(`icons: ${Object.keys(out.types).length} type badges, ${Object.keys(out.items).length} item icons`);

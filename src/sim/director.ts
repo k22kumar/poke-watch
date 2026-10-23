@@ -3,7 +3,7 @@
 // v8's director stays underneath as the background difficulty: the spawn accumulator, the HP and speed
 // curves, elites, ring swarms and the boss at 5:00. On top of it the beat director paces a stage in beats:
 //   Build (35-45 s)  spawns ramp from 0.75x to 1.15x
-//   Peak  (20-30 s)  1.3x spawns plus one event: an objective, a composition, or Rain / Sun
+//   Peak  (20-30 s)  1.3x spawns plus one event: an objective, a composition, or regional weather
 //   Relax (10-15 s)  spawns drop to 0.3x; the banked level-up picks are the thing to do
 // A Peak ends early once intensity (recent damage, enemies within 6 m, missing health) has stayed at 0.85
 // or more for 5 s. While the boss is out the beats rest. Objectives open at the first Peak after 1:30 and
@@ -15,12 +15,13 @@ import { clamp } from '../core/util';
 import { COMPOSITIONS, REGION_WEATHER, resolve, type CompositionDef } from '../rules/compositions';
 import { STAGES } from '../rules/stages';
 import { SPECIES_BY_ID } from '../rules/species';
-import { applyAgent } from './cells';
+import { applyAgent, CS } from './cells';
 import { ringPoint, spawnEnemy, stageIndex } from './enemies';
 import { objectiveDue, startObjective } from './objectives';
 import { ROLE } from './pools';
 import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
+import { habitatSpawnFactor } from '../rules/habitats';
 
 export function freshBeat(): Beat {
   return { phase: 'build', t: 0, dur: 40, intensity: 0, hot: 0, dmgRecent: 0, dmgSeen: 0, peaks: 0, objectives: 0 };
@@ -62,8 +63,8 @@ export function compositionsFor(ctx: SimContext, when: 'peak' | 'objective'): Co
   return COMPOSITIONS.filter((c) => c.when === when && resolve(c, table));
 }
 
-function startWeather(ctx: SimContext, kind: 'rain' | 'sun') {
-  ctx.weather.element = kind === 'rain' ? 'tide' : 'blaze';
+function startWeather(ctx: SimContext, kind: 'rain' | 'sun' | 'frost') {
+  ctx.weather.element = kind === 'rain' ? 'tide' : kind === 'sun' ? 'blaze' : 'frost';
   ctx.weather.t = ctx.rules.beats.weatherTime;
   ctx.events.push({ t: 'weatherEvent', kind });
 }
@@ -129,14 +130,15 @@ function weatherTick(ctx: SimContext) {
   const el = ctx.weather.element;
   if (!el || ctx.tick % 30 !== 0) return;
   const P = ctx.player, W = ctx.world, C = W.cells;
-  const tries = el === 'tide' ? 10 : el === 'blaze' ? 4 : 0;
+  const tries = el === 'tide' ? 10 : el === 'blaze' ? 4 : el === 'frost' ? 8 : 0;
   for (let k = 0; k < tries; k++) {
     const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(1, 14);
     const x = P.x + dsin(a) * r, z = P.z + dcos(a) * r;
     const t = C.tile(x, z);
     if (t < 0) continue;
     if (el === 'tide') { if (W.walkable(x, z)) applyAgent(ctx, 'wet', x, z, 1.2); }
-    else if (C.isGrass(t) && ctx.rng.world.next() < 0.35) applyAgent(ctx, 'heat', x, z, 0.6);
+    else if (el === 'blaze' && C.isGrass(t) && ctx.rng.world.next() < 0.35) applyAgent(ctx, 'heat', x, z, 0.6);
+    else if (el === 'frost' && (C.isWater(t) || C.state[t] === CS.wet)) applyAgent(ctx, 'cold', x, z, 0.8);
   }
 }
 
@@ -181,8 +183,15 @@ export const directorSystem = {
       dir.spawnAcc -= 1;
       const cap = Math.min(dir.liveCap, D.capBase + D.capPerMin * t + (dir.finalSwarm ? 9999 : 0));
       if (E.count >= cap) { dir.spawnAcc = 0; break; }
-      const [id] = ctx.rng.spawn.weighted(table.spawns, (w) => w[1]);
-      const [x, z] = ringPoint(ctx, rMin, rMax);
+      let id: string, x: number, z: number;
+      if (ctx.world.map.gen) {
+        [x, z] = ringPoint(ctx, rMin, rMax);
+        const habitat = ctx.world.habitatAt(x, z);
+        [id] = ctx.rng.spawn.weighted(table.spawns, ([species, weight]) => weight * habitatSpawnFactor(species, habitat));
+      } else {
+        [id] = ctx.rng.spawn.weighted(table.spawns, (w) => w[1]);
+        [x, z] = ringPoint(ctx, rMin, rMax);
+      }
       const sp = SPECIES_BY_ID[id];
       const cluster = sp.behaviour === 'swarm' ? 4 : 1;
       for (let c = 0; c < cluster; c++) spawnEnemy(ctx, id, x + c * 0.9, z + (c % 2) * 0.9);
@@ -202,8 +211,11 @@ export const directorSystem = {
       if (ctx.stageTime > 30 && !bossAlive && !(ctx.rules.beats.enabled && ctx.beat.phase === 'relax')) {
         const n = ctx.rng.spawn.int(D.swarmSize[0], D.swarmSize[1]) + s * 4;
         const swarmers = table.spawns.filter(([id]) => ['swarm', 'chase'].includes(SPECIES_BY_ID[id].behaviour ?? 'chase'));
-        const id = ctx.rng.spawn.pick(swarmers)[0];
         const P = ctx.player;
+        const habitat = ctx.world.habitatAt(P.x, P.z);
+        const id = ctx.world.map.gen
+          ? ctx.rng.spawn.weighted(swarmers, ([species, weight]) => weight * habitatSpawnFactor(species, habitat))[0]
+          : ctx.rng.spawn.pick(swarmers)[0];
         for (let k = 0; k < n && E.count < dir.liveCap; k++) {
           const a = (k / n) * Math.PI * 2;
           spawnEnemy(ctx, id, clamp(P.x + dcos(a) * 20, -ctx.world.bound, ctx.world.bound), clamp(P.z + dsin(a) * 20, -ctx.world.bound, ctx.world.bound), ROLE.stampede);

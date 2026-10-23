@@ -1,5 +1,5 @@
-// Pokémon cries. Every species carries its recorded cry (PokeAPI/cries, legacy era: the Gen 1-5
-// recordings heard in the DS games) as OGG Vorbis plus an MP3 transcode for browsers without
+// Pokémon cries. Every species carries its latest available recorded cry (PokeAPI/cries)
+// as OGG Vorbis plus an MP3 transcode for browsers without
 // Vorbis decoding. Samples are decoded on audio unlock, loudness-normalised to one RMS, and
 // played at their recorded pitch unless a caller asks otherwise.
 //

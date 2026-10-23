@@ -1,4 +1,4 @@
-// Arena stage renderer: the HeartGold/SoulSilver-style 2.5D world. Ground, cliffs, ledges,
+// Arena stage renderer: the 2.5D handheld-style world. Ground, cliffs, ledges,
 // stairs, banks, water and the bridge are textured 3D geometry; trees, rocks, flowers, tall
 // grass and ruins are upright pixel billboards stretched by 1/cos(pitch) so every texel
 // lands on one screen pixel. Depth testing with alpha-tested texels sorts creatures behind

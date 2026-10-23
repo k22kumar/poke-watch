@@ -14,7 +14,7 @@ import { getArena } from '../src/world/arenas';
 import { T, PROP_RULES } from '../src/world/tiles';
 
 const SPECIES = ['rattata', 'ledyba', 'sandshrew', 'oddish', 'poliwag', 'mareep', 'heracross', 'geodude'];
-const GEN = { ...defaultRules.worldgen, mode: 'generated' as const };
+const GEN = { ...defaultRules.worldgen, mode: 'generated' as const, biomes: ['meadow'] };
 
 test('the same seed generates the same map; different seeds give different places', () => {
   const a = generateRegion({ biome: 'meadow', seed: 1234, species: SPECIES });

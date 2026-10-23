@@ -264,7 +264,7 @@ export type SimEvent =
   | { t: 'benchEvolve'; from: string; to: string }
   | { t: 'objective'; kind: ObjectiveKind; phase: 'offer' | 'active' | 'done' | 'failed' | 'expired'; x: number; z: number; reward?: string }
   | { t: 'beat'; phase: 'build' | 'peak' | 'relax'; event: string }
-  | { t: 'weatherEvent'; kind: 'rain' | 'sun' }
+  | { t: 'weatherEvent'; kind: 'rain' | 'sun' | 'frost' }
   | { t: 'block'; x: number; z: number; enemy: number }
   | { t: 'hex'; x: number; z: number; r: number; element: Element; life: number }
   | { t: 'react'; kind: 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel'; x: number; z: number; r: number; deep: boolean; n: number };

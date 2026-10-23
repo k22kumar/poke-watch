@@ -30,8 +30,8 @@ export interface SpeciesDef {
   coverage?: [number, string][];
   evolvesTo?: string;
   evolveLevel?: number; // game evolution level
-  /** canonical source facts (PokéAPI, HGSS version group), kept apart from game balancing */
-  canon?: { versionGroup: string; levelUp: [number, string][]; abilities: string[]; heightM: number; weightKg: number; evolveLevel?: number; evolveTrigger?: string };
+  /** cross-game source facts, kept apart from Poke-Watch balancing */
+  canon?: { levelUp: [number, string][]; abilities: string[]; heightM: number; weightKg: number; evolveLevel?: number; evolveTrigger?: string };
   ability?: string; // legacy originals only ('adaptive'); Pokémon abilities come from canon.abilities
   // enemy-only
   behaviour?: Behaviour;
@@ -39,11 +39,46 @@ export interface SpeciesDef {
   boss?: { attacks: BossAttack[]; phaseHp: number[]; summon?: string; title: string };
 }
 
+import { Rng, streamSeed } from '../core/rng';
+
 export const bst = (s: Stats) => s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
 
 export const SPECIES: SpeciesDef[] = POKEDEX_SPECIES;
 
 export const SPECIES_BY_ID: Record<string, SpeciesDef> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
+
+/** A starter-eligible pool should prefer one option per evolutionary line and avoid repeat families. */
+export function starterFamilyRoot(sp: SpeciesDef): SpeciesDef {
+  let root = sp;
+  while (root.evolvesTo) {
+    const previous = SPECIES.find((candidate) => candidate.evolvesTo === root.id);
+    if (!previous) break;
+    root = previous;
+  }
+  return root;
+}
+
+export function starterEligibleSpecies(): SpeciesDef[] {
+  const seen = new Set<string>();
+  const out: SpeciesDef[] = [];
+  for (const sp of SPECIES.filter((s) => s.playable)) {
+    const root = starterFamilyRoot(sp);
+    if (seen.has(root.id)) continue;
+    seen.add(root.id);
+    out.push(sp);
+  }
+  return out;
+}
+
+/** Deterministic random offer of starter candidates for a run, with one mulligan available in the menu. */
+export function starterChoices(seed: number, count = 3): string[] {
+  const pool = starterEligibleSpecies();
+  if (!pool.length) return [];
+  const rng = new Rng(streamSeed(seed, 'starter-pick'));
+  const shuffled = [...pool];
+  rng.shuffle(shuffled);
+  return shuffled.slice(0, Math.min(count, shuffled.length)).map((sp) => sp.id);
+}
 
 /** Weight class 0-4 from PokéAPI kilograms: Weightless < 1 kg, Light < 10, Medium < 50, Heavy < 200, Massive.
  *  Bosses count one class heavier. It decides what a Pokémon can Guard against and what can move it. */

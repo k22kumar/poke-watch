@@ -78,6 +78,13 @@ test('canonical move metadata becomes game behaviour', () => {
   assert.equal(classify({ ...m.tackle }), 'dash', 'runtime classifier still handles names');
 });
 
+test('canonical learnsets merge all game versions and retain hidden abilities', () => {
+  const charmander = pack.species.find((s) => s.id === 'charmander')!;
+  assert.equal(charmander.canon?.levelUp.find(([, key]) => key === 'ember')?.[0], 6, 'earliest level across version groups');
+  assert.deepEqual(charmander.canon?.abilities, ['blaze', 'solar_power']);
+  assert.ok(!('versionGroup' in (charmander.canon ?? {})), 'canonical facts do not name one source version');
+});
+
 test('animation fallbacks resolve every state, even from a walk-only source', () => {
   const f = (x: number): FrameRect => ({ x, y: 0, w: 16, h: 16, ax: 8, ay: 15 });
   const walkOnly = { Walk: { frames: Array.from({ length: 8 }, () => [f(0), f(16), f(32), f(48)]), durations: [0.1, 0.1, 0.1, 0.1] } };

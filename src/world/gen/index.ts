@@ -17,7 +17,7 @@ import { carveWater } from './water';
 import { DIRS4, mixSeed, navOpen, walkDist } from './util';
 import { validate, walkPath, type Validation } from './validate';
 
-export const GEN_VERSION = 1;
+export const GEN_VERSION = 2;
 export const MAX_ATTEMPTS = 12;
 export const MAX_REPAIRS = 3;
 
@@ -191,4 +191,3 @@ function near(D: Int32Array, S: number, x: number, y: number) {
   for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const i = x + dx, j = y + dy; if (i >= 0 && j >= 0 && i < S && j < S && D[j * S + i] >= 0) return true; }
   return false;
 }
-

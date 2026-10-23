@@ -2,7 +2,7 @@
 // Builds an offline test mirror for scripts/import-pack.mjs (`--mirror tests/fixtures/mirror`).
 //
 // - pokeapi/: PokéAPI-shaped JSON for Charmander, Squirtle, Totodile and their first
-//   evolutions: real base stats, types, HGSS level-up learnsets, evolution levels and move
+//   evolutions: real base stats, types, cross-game level-up learnsets, evolution levels and move
 //   metadata, written in PokéAPI's field layout (verified against live responses).
 // - spritecollab/: SpriteCollab-layout folders (AnimData.xml + <Anim>-Anim.png +
 //   <Anim>-Shadow.png + portrait Normal.png) using the real frame sizes, durations and
@@ -78,9 +78,13 @@ for (const sp of SPECIES) {
     id: sp.id, name: sp.name, height: sp.h, weight: sp.h * 15, base_experience: 60,
     cries: { latest: `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${sp.id}.ogg`, legacy: null },
     species: ref('pokemon-species', String(sp.id)),
+    abilities: [{ ability: ref('ability', 'blaze'), slot: 1, is_hidden: false }, { ability: ref('ability', 'solar-power'), slot: 3, is_hidden: true }],
     stats: sp.s.map((v, i) => ({ base_stat: v, effort: 0, stat: ref('stat', statNames[i]) })),
     types: sp.types.map((t, i) => ({ slot: i + 1, type: ref('type', t) })),
-    moves: sp.learn.map(([m, lvl]) => ({ move: ref('move', m), version_group_details: [{ level_learned_at: lvl, move_learn_method: ref('move-learn-method', 'level-up'), version_group: ref('version-group', 'heartgold-soulsilver'), order: null }] })),
+    moves: sp.learn.map(([m, lvl]) => ({ move: ref('move', m), version_group_details: [
+      { level_learned_at: lvl, move_learn_method: ref('move-learn-method', 'level-up'), version_group: ref('version-group', 'red-blue'), order: null },
+      { level_learned_at: Math.max(1, lvl - 1), move_learn_method: ref('move-learn-method', 'level-up'), version_group: ref('version-group', 'scarlet-violet'), order: null },
+    ] })),
   };
   J(`pokeapi/pokemon/${sp.name}.json`, pokemon);
   J(`pokeapi/pokemon/${sp.id}.json`, pokemon);

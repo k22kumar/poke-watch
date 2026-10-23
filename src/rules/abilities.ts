@@ -1,4 +1,4 @@
-// Abilities: canonical HGSS-era abilities (from PokéAPI, hidden abilities excluded) mapped onto
+// Abilities: canonical PokéAPI abilities, including hidden abilities, mapped onto
 // explicit survival-game adaptations. Each Pokémon uses the first of its canonical abilities that
 // is supported here; unsupported ones are listed with the reason so the gap is visible.
 import type { SpeciesDef } from './species';

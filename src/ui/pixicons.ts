@@ -1,4 +1,4 @@
-// UI icons. Imported: HGSS type badges and DS-era bag icons (PokeAPI/sprites, see
+// UI icons. Imported: Pokémon type badges and bag icons (PokeAPI/sprites, see
 // docs/ICONS.md), used only where the item's canonical effect matches the game effect.
 // Original: pixel glyphs for survival-only concepts (EXP shards, attack shapes, cooldowns…)
 // painted with the same outlined, top-left-lit painter as the rest of the game's pixel art,
@@ -15,7 +15,7 @@ export const TYPE_OF: Record<Element, string> = {
   gale: 'flying', mind: 'psychic', hive: 'bug', stone: 'rock', wisp: 'ghost', wyrm: 'dragon', gloom: 'dark', alloy: 'steel', fae: 'fairy',
 };
 
-/** HGSS type badge (48x16); Fairy, absent from Gen IV, gets an original badge in the same style */
+/** Pokémon type badge (48x16); a local fallback is used if an imported badge is unavailable. */
 export function typeBadge(el: Element, scale = 1): HTMLElement {
   const t = TYPE_OF[el];
   const src = IC.types[t];

@@ -63,7 +63,7 @@ function buildArena(biome: string): ArenaMap {
   b.path([[56, 2], [56, 18], [55, 36], [54, 50], C, [58, 74], [56, 92], [57, 112]], 3, T.path);
   b.path([[0, 55], [14, 56], [34, 55], C, [76, 61], [96, 59], [112, 58]], 3, T.path);
   // loop trail: axis-aligned runs with rounded corners (the ground painter rounds them), like the
-  // orthogonal trails of an HGSS route, rather than a staircase circle
+  // orthogonal trails through the route, rather than a staircase circle
   b.path([[33, 38], [79, 38], [79, 80], [33, 80], [33, 38]], 2, T.dirt);
   b.path([[31, 38], [31, 44]], 2, T.dirt); // bluff stairs come down onto the trail
   b.path([[76, 38], [76, 34]], 2, T.dirt); // to the pond shore
@@ -127,7 +127,7 @@ function buildArena(biome: string): ArenaMap {
   b.treeLine(36, 75, 4, 2, 0, D.clump, seed + 42); b.treeLine(68, 75, 4, 2, 0, D.clump, seed + 43);
   b.scatter(D.low, 56, 58, 44, 44, 0.012, seed + 13);
   b.scatter(D.extra, 56, 58, 46, 46, biome === 'meadow' ? 0.002 : 0.008, seed + 14);
-  // flower beds at the junctions, HGSS-style compact clusters instead of a thin sprinkle
+  // flower beds at the junctions, compact clusters instead of a thin sprinkle
   b.flowerBed(51, 52, 3, 2, D.flowers, seed + 15); b.flowerBed(60, 62, 3, 2, D.flowers, seed + 19);
   b.flowerBed(52, 34, 2, 2, D.flowers, seed + 21); b.flowerBed(81, 55, 3, 2, D.flowers, seed + 22);
   b.scatter(D.flowers, C[0], C[1], 16, 14, 0.015, seed + 15);

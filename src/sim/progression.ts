@@ -47,7 +47,7 @@ export function recomputeMember(ctx: SimContext, P: Member) {
   P.hp = oldMax > 0 ? Math.min(P.maxHp, P.hp + Math.max(0, P.maxHp - oldMax)) : P.maxHp * ratio;
 }
 
-/** a species' level-up moves: the curated learnset for partners, else its HGSS level-up moves in the move database */
+/** a species' level-up moves: the curated partner set, else its cross-game level-up moves */
 export function learnsetOf(sp: SpeciesDef): [number, string][] {
   if (sp.learnset?.length) return sp.learnset;
   return (sp.canon?.levelUp ?? []).filter(([, k]) => MOVE_BY_KEY[k]);

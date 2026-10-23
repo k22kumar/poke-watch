@@ -7,8 +7,7 @@ import { T } from '../world/tiles';
 export { T };
 export type { TerrainId } from '../world/tiles';
 
-// HGSS-referenced palette (docs/HGSS_REFERENCE.md): warm yellow-green grass, teal shadows,
-// warm beige paths. Hue/value relationships taken from colours counted in extracted HGSS art.
+// Handheld-adventure palette: warm yellow-green grass, teal shadows, warm beige paths.
 const DEFAULT_GROUND = {
   grass: hex('#8cd060'), grassD: hex('#5ea242'), grassL: hex('#b8ec88'), grassEdge: hex('#5a9c40'),
   path: hex('#e0c890'), pathD: hex('#c8ac76'), pathL: hex('#f0dcaa'), pathEdge: hex('#a88a5a'), pathEdge2: hex('#8a6e46'),
@@ -84,7 +83,7 @@ export function paintGround(g: GroundInput): Pix {
   };
   // smoothed indicator of a terrain set at pixel (px, py): the per-tile indicator is blurred with
   // a 3x3 kernel, then sampled bilinearly between tile centres. The blur turns tile staircases on
-  // diagonal paths and shores into smooth curves (HGSS edges), while straight runs stay straight.
+  // diagonal paths and shores into smooth curves, while straight runs stay straight.
   const blurCache = new Map<(t: number) => boolean, Float32Array>();
   const blurred = (test: (t: number) => boolean) => {
     let b = blurCache.get(test);
@@ -174,7 +173,7 @@ export function paintGround(g: GroundInput): Pix {
           }
           if (c === T.tall) col = C.tallBase;
           if (c === T.flowerbed) col = mix(C.grass, C.flowerbed, 0.6);
-          // HGSS-style ground: one flat base with a sparse, regular tuft motif. Each 16 px tile
+          // Handheld-style ground: one flat base with a sparse, regular tuft motif. Each 16 px tile
           // gets one of three fixed two-tuft layouts, or none (about 40 % of tiles stay plain).
           const lx = x & 15, ly = y & 15, pick = h2(x >> 4, y >> 4, 3);
           if (pick < 0.72) {
@@ -308,7 +307,7 @@ export function paintCliff(kind: 'rock' | 'ledge' | 'bank' | 'snow' = 'rock', pa
   const light = pal?.light ?? (kind === 'bank' ? hex('#e4d8a8') : hex('#dcc094'));
   const lipA = pal?.lipA ?? hex('#5aa844'), lipB = pal?.lipB ?? hex('#3c8a3a');
   // texture v spans one metre per 16 px; horizontal strata 4 px tall with a lit top row and
-  // a dark crack under each band (HGSS rock faces), staggered joints so bands don't tile visibly
+  // a dark crack under each band, staggered joints so bands don't tile visibly
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 32; x++) {
       let c = base;

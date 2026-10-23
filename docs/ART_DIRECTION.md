@@ -11,7 +11,7 @@ How Poke-Watch looks, why, and how to check it. The rules are data in `src/rende
 
 ## Principles
 
-The references set the job, not the look. Explorers of Sky contributes creature-centred scale, a wilderness that feels lived in, and dungeon walls that frame a lit floor. HeartGold/SoulSilver contributes tile-built ground with soft transitions, regional palettes and memorable landmarks. UNITE contributes the rule that combat signals own their hues and always sit on top.
+The references set the job, not the look. Pokémon Mystery Dungeon contributes creature-centred scale, a wilderness that feels lived in, and dungeon walls that frame a lit floor. Main-series adventures contribute tile-built ground with soft transitions, regional palettes and memorable landmarks. Pokémon UNITE contributes the rule that combat signals own their hues and always sit on top.
 
 The frame is built in four layers, from quietest to loudest:
 
@@ -58,7 +58,7 @@ About 530 sprites per arena.
 
 **Camera.** The camera is unchanged: the Wide preset, fixed north-up. The comparison in `docs/CAMERA.md` still holds. The occlusion problem it left open, a player hidden behind a canopy, is now handled by the silhouette rather than by fading trees. Fading trees would cost depth sorting and break the frame layer.
 
-**UI.** The existing cream-box UI already matches a PMD/HGSS hybrid and was left alone. Own-team colour in the squad HUD is a possible follow-up.
+**UI.** The existing cream-box UI draws on familiar Pokémon adventure conventions and was left alone. Own-team colour in the squad HUD is a possible follow-up.
 
 ## Prototype: the Sunpetal Meadow crossroads
 

@@ -20,7 +20,7 @@ import { addTechnique, cardWeight, evolveNow, generateBuildOffer, notePick, kitT
 import { TECHNIQUES, TRANSFORMS, TRANSFORM_BY_ID, TRANSFORMS_OF } from '../src/rules/build';
 import { capOf } from '../src/rules/capabilities';
 import { AG } from '../src/rules/reactions';
-import { SPECIES_BY_ID, weightClass } from '../src/rules/species';
+import { SPECIES_BY_ID, starterChoices, starterFamilyRoot, weightClass } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { BTN, type Card, type InputFrame, type SimContext } from '../src/sim/types';
 
@@ -120,6 +120,16 @@ test('transforms edit capabilities as stated: Pressure Jet Push 2 beam, Scatter 
   assert.equal(capOf(t('bite', 'crunch_down').caps, 'push'), 2);
   assert.equal(t('bite', 'lunge').archetype, 'dash'); assert.equal(capOf(t('bite', 'lunge').caps, 'push'), 0);
   assert.equal(t('ember', 'searing').coatDepth, 2); assert.ok(t('ember', 'kindle').landHeat! > 0);
+});
+
+test('starter offers give three unique family choices and a deterministic mulligan reroll', () => {
+  const first = starterChoices(5);
+  assert.equal(first.length, 3);
+  const families = new Set(first.map((id) => starterFamilyRoot(SPECIES_BY_ID[id]).id));
+  assert.equal(families.size, 3);
+  const rerolled = starterChoices(6);
+  assert.ok(rerolled.length >= 1);
+  assert.notDeepEqual(first, rerolled);
 });
 
 // ------------------------------------------------------------------ offers
@@ -231,13 +241,13 @@ test('exclusion: once Pressure Jet is taken, Scatter is never offered; neither i
   assert.ok(!after.has('xf:pressure_jet') && !after.has('xf:scatter'));
 });
 
-test('identity: a transform that adds Push needs a line that already pushes (Crunch Down for Totodile, not for Houndour)', () => {
+test('identity: cross-game Flame Charge gives Houndour a Push line for Crunch Down', () => {
   const toto = calm('totodile');
   assert.ok(lineVerbs(toto.rules, toto.player.m).has('push'));
   assert.equal(transformAllowed(toto.rules, toto.player.m, TRANSFORM_BY_ID.crunch_down), true);
   const h = addMember(toto, 'houndour')!;
-  assert.equal(lineVerbs(toto.rules, h).has('push'), false, 'Houndour line has no Push');
-  assert.equal(transformAllowed(toto.rules, h, TRANSFORM_BY_ID.crunch_down), false);
+  assert.equal(lineVerbs(toto.rules, h).has('push'), true, 'Houndour learns Flame Charge in a later game');
+  assert.equal(transformAllowed(toto.rules, h, TRANSFORM_BY_ID.crunch_down), true);
   assert.equal(transformAllowed(toto.rules, h, TRANSFORM_BY_ID.lunge), true);
   assert.equal(transformAllowed(toto.rules, h, TRANSFORM_BY_ID.kindle), true);
 });

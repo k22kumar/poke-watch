@@ -18,7 +18,7 @@ power and shape. The UI shows them on learn, upgrade and Tag cards and in the mo
 
 Power from base power: under 60 = 1, 60–90 = 2, over 90 = 3; a combined force can reach 4. `CAP_OVERRIDES` adds or
 removes tags per move (Phase 8b transforms compile their own edited caps instead; see `docs/BUILDS.md`). A test checks that the compiled Push and Hold Power of
-all 112 moves equals the v10 derivation.
+all 187 cross-version moves equals the v10 derivation.
 
 ## The resolver (`sim/capabilities.ts`)
 

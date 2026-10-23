@@ -1,6 +1,6 @@
 // Stage 6: ecology. Moisture, distance to routes and a low-frequency grove field pick the ground cover in bands
 // (blueprint section 3, "Forest" and "Grassland to other biomes"):
-//   grove     — 2×2 tree masses on an even grid, the HGSS wall look, with a feathered edge;
+//   grove     — 2×2 tree masses on an even grid, with a feathered forest edge;
 //   scattered — single trees and bushes in the band around a grove;
 //   grass     — rectangular tall-grass blocks beside routes in mid moisture (never on a route);
 //   shore     — sand banks, reeds at the water's edge, lilies on still water.
@@ -8,6 +8,7 @@
 import { fbm } from '../../core/rng';
 import { T } from '../tiles';
 import { HAB, type GenCtx } from './context';
+import { BIOMES } from '../../rules/stages';
 import { kindsOf } from './kit';
 import { MARGIN } from './plan';
 import { FIX } from './terrain';
@@ -18,7 +19,7 @@ import { clearTile } from './gameplay';
 export interface Fields { dRoute: Int32Array; dWater: Int32Array; moist: Float32Array }
 
 export function fields(g: GenCtx): Fields {
-  const S = g.S, m = g.m;
+  const S = g.S, m = g.m, ecology = BIOMES[g.biome]?.ecology;
   const dRoute = distanceTo(S, S, (k) => g.route[k] > 0, 40);
   const dWater = distanceTo(S, S, (k) => m.terrain[k] === T.water, 40);
   const moist = new Float32Array(S * S);
@@ -26,18 +27,18 @@ export function fields(g: GenCtx): Fields {
   for (let k = 0; k < S * S; k++) {
     const x = k % S, y = (k / S) | 0;
     const dw = dWater[k] < 0 ? 40 : dWater[k];
-    moist[k] = 0.55 * (1 - smoothstep(0, 18, dw)) + 0.6 * (fbm(x / 16, y / 16, s, 3) - 0.5) + 0.3;
+    moist[k] = Math.max(0, Math.min(1, 0.55 * (1 - smoothstep(0, 18, dw)) + 0.6 * (fbm(x / 16, y / 16, s, 3) - 0.5) + 0.3 + (ecology?.moisture ?? 0)));
   }
   return { dRoute, dWater, moist };
 }
 
 export function plantEcology(g: GenCtx, F: Fields) {
-  const S = g.S, m = g.m, b = g.b, R = g.rng('ecology'), K = kindsOf(g.biome);
+  const S = g.S, m = g.m, b = g.b, R = g.rng('ecology'), K = kindsOf(g.biome), ecology = BIOMES[g.biome]?.ecology;
   const gs = R.int(1, 1e6);
   const groveField = new Float32Array(S * S);
   for (let k = 0; k < S * S; k++) {
     const x = k % S, y = (k / S) | 0;
-    groveField[k] = fbm(x / 20, y / 20, gs, 3) + 0.18 * F.moist[k];
+    groveField[k] = fbm(x / 20, y / 20, gs, 3) + 0.18 * F.moist[k] + (ecology?.canopy ?? 0.5) * 0.12;
   }
   const clearOf = (k: number) => !g.keepOpen[k] && !g.route[k] && !m.stairs[k] && m.terrain[k] !== T.water && m.terrain[k] !== T.wood && g.fixed[k] !== FIX.ramp;
   // ---- groves: 2×2 masses on an even grid where the field is high and routes are at least 3 tiles away
@@ -79,13 +80,13 @@ export function plantEcology(g: GenCtx, F: Fields) {
     return true;
   };
   let fieldsN = 0;
-  const fieldsWant = 4 + R.int(0, 1);
+  const fieldsWant = Math.max(1, Math.round((4 + R.int(0, 1)) * (ecology?.tallGrass ?? 1)));
   for (let t = 0; t < 500 && fieldsN < fieldsWant; t++) {
     const w = R.int(10, 16), h = R.int(6, 9);
     if (tryBlock(R.int(MARGIN - 2, S - MARGIN - w + 2), R.int(MARGIN - 2, S - MARGIN - h + 2), w, h, [2, 30], [0.15, 0.8])) fieldsN++;
   }
   let blocks = 0;
-  const target = 26 + R.int(0, 8);
+  const target = Math.max(4, Math.round((26 + R.int(0, 8)) * (ecology?.tallGrass ?? 1)));
   for (let t = 0; t < 1500 && blocks < target; t++) {
     const w = R.int(5, 12), h = R.int(3, 7);
     if (tryBlock(R.int(MARGIN - 2, S - MARGIN - w + 2), R.int(MARGIN - 2, S - MARGIN - h + 2), w, h, [2, 12], [0.1, 0.9])) blocks++;
@@ -107,7 +108,8 @@ export function plantEcology(g: GenCtx, F: Fields) {
       if (wn >= 23 && hashf(x, y, gs, 9) < 0.07 && (g.biome === 'meadow' || g.biome === 'dusk')) b.prop('lily', x, y);
       continue;
     }
-    if (F.dWater[k] === 1 && !g.route[k] && !g.keepOpen[k] && hashf(x, y, gs, 10) < 0.22) b.prop('reeds', x, y);
+    const reedChance = (ecology?.reeds ?? 1) * (F.dWater[k] === 1 ? 0.22 : F.dWater[k] === 2 && ecology?.reeds && ecology.reeds > 1.2 ? 0.08 : 0);
+    if (reedChance > 0 && !g.route[k] && !g.keepOpen[k] && hashf(x, y, gs, 10) < reedChance) b.prop('reeds', x, y);
   }
   // ---- painted ground flowers in open meadow away from forest
   for (let k = 0; k < S * S; k++) {
@@ -139,13 +141,6 @@ export function tagHabitat(g: GenCtx, F: Fields) {
   }
   void DIRS4;
 }
-
-/** spawn-table species → the habitat they belong to (presentation: burrows, tufts, prints follow it) */
-export const SPECIES_HABITAT: Record<string, number> = {
-  rattata: HAB.meadow | HAB.grass, ledyba: HAB.forest | HAB.meadow, sandshrew: HAB.dry, oddish: HAB.grass, poliwag: HAB.water,
-  mareep: HAB.meadow, heracross: HAB.forest, geodude: HAB.rock, houndour: HAB.dry | HAB.rock, zubat: HAB.forest, paras: HAB.forest,
-  vulpix: HAB.dry, slugma: HAB.rock, swinub: HAB.water, delibird: HAB.meadow, gastly: HAB.forest,
-};
 
 /** Break every straight grove edge longer than 10 tiles: take out the tree in the middle of the run (a notch). */
 export function featherGroves(g: GenCtx) {

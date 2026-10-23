@@ -160,7 +160,7 @@ export function addMember(ctx: SimContext, id: string): Member | null {
   P.squad.push(m);
   recomputeMember(ctx, m);
   m.hp = m.maxHp;
-  // its first two attacks from its HGSS level-up moves, the earliest first (it becomes the basic attack)
+  // its first two attacks from its cross-game level-up moves, the earliest first (it becomes the basic attack)
   const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(P.level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
   const moveKeys = [...new Set(keys)].slice(0, 2);
   if (!moveKeys.length) { const any = learnsetOf(sp).find(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status'); if (any) moveKeys.push(any[1]); }

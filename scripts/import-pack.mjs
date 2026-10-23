@@ -9,7 +9,6 @@
 //   --out DIR              output folder (default packs/<id>)
 //   --id ID / --name NAME  pack id and display name (default "starters"/"Starter pack")
 //   --evolutions N         also import N evolution stages after each species (default 1)
-//   --version-group VG     learnset source (default heartgold-soulsilver; falls back automatically)
 //   --no-cries             skip cries (the game synthesises a call instead)
 //   --mirror DIR           read every source from a local mirror instead of the network:
 //                            DIR/pokeapi/<endpoint>/<key>.json
@@ -31,7 +30,7 @@ import { decodePng, encodePng } from './lib/png.mjs';
 
 // ----------------------------------------------------------------------------- options
 const argv = process.argv.slice(2);
-const VALUED = new Set(['out', 'id', 'name', 'evolutions', 'version-group', 'mirror', 'clones', 'cry-era', 'learnsets']);
+const VALUED = new Set(['out', 'id', 'name', 'evolutions', 'mirror', 'clones', 'cry-era', 'learnsets']);
 const opts = {}, names = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -45,15 +44,13 @@ const PACK_ID = opt('id', 'starters');
 const PACK_NAME = opt('name', 'Starter pack');
 const OUT = opt('out', path.join('packs', PACK_ID));
 const EVOS = Number(opt('evolutions', '1'));
-const VG = opt('version-group', 'heartgold-soulsilver');
 const MIRROR = opt('mirror', null);
 // --clones DIR: git checkouts of PokeAPI/api-data, PMDCollab/SpriteCollab and PokeAPI/cries
 // (DIR/api-data, DIR/spritecollab, DIR/cries), e.g. sparse clones made by scripts/fetch-sources.sh
 const CLONES = opt('clones', null);
 const OFFLINE = flag('offline');
 const CRIES = !flag('no-cries');
-// 'legacy' = the Gen 1-5 recordings heard in the DS games (HGSS era); 'latest' = the modern re-recordings
-const CRY_ERA = opt('cry-era', 'legacy');
+const CRY_ERA = opt('cry-era', 'latest');
 // curated learnsets: JSON { <baseSpecies>: { starter, moves: [[gameLevel, moveKey], ...] } }
 const LEARNSETS = opt('learnsets', null) ? JSON.parse(fs.readFileSync(opt('learnsets', null), 'utf8')) : {};
 const CACHE = '.import-cache';
@@ -155,19 +152,16 @@ function englishName(obj, fallback) {
   return obj?.names?.find((n) => n.language?.name === 'en')?.name ?? fallback.replace(/(^|-)([a-z])/g, (_, a, b) => (a ? ' ' : '') + b.toUpperCase());
 }
 
-/** level-up moves for a version group, falling back to the group with the most level-up data */
+/** Union every official version-group level-up learnset; use the earliest level when it varies. */
 function levelUpMoves(pokemon) {
-  const by = new Map();
+  const byMove = new Map();
   for (const m of pokemon.moves) for (const d of m.version_group_details) {
     if (d.move_learn_method.name !== 'level-up') continue;
-    const vg = d.version_group.name;
-    if (!by.has(vg)) by.set(vg, []);
-    by.get(vg).push({ name: m.move.name, url: m.move.url, level: d.level_learned_at });
+    const found = byMove.get(m.move.name);
+    if (!found || d.level_learned_at < found.level) byMove.set(m.move.name, { name: m.move.name, url: m.move.url, level: d.level_learned_at });
   }
-  let vg = VG;
-  if (!by.has(vg)) vg = [...by.entries()].sort((a, b) => b[1].length - a[1].length)[0]?.[0];
-  const list = (by.get(vg) ?? []).sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
-  return { vg, list };
+  const list = [...byMove.values()].sort((a, b) => a.level - b.level || a.name.localeCompare(b.name));
+  return { list };
 }
 
 /** PokéAPI move -> Poke-Watch MoveData row (+ archetype hint from metadata), or null if unusable */
@@ -336,7 +330,7 @@ async function importOne(nameOrId, role, report) {
   const dex = species.id;
   const sprites = await importSprites(dex);
   const evo = await evolutionInfo(species, pokemon.name);
-  const { vg, list } = levelUpMoves(pokemon);
+  const { list } = levelUpMoves(pokemon);
   const rows = [];
   for (const { name, url, level } of list) {
     const row = toMoveRow(await move(name, url));
@@ -356,11 +350,10 @@ async function importOne(nameOrId, role, report) {
     if (magic === 'OggS' || magic === 'RIFF') cry = { src: dataUrl(magic === 'OggS' ? 'audio/ogg' : 'audio/wav', buf), source: url, era, license: MIRROR && !CLONES ? 'fixture (generated test tone)' : 'PokeAPI/cries (CC0 repository); audio © The Pokémon Company' };
     else sprites.warnings.push('cry missing or not an OGG/WAV file; the game will synthesise a call');
   }
-  report.push({ id, dex, role, versionGroup: vg, levelUpMoves: list.length, usableMoves: rows.length, sprite: { folder: `sprite/${sprites.d4}`, available: sprites.available, used: sprites.used, frames: sprites.frames, uniqueFrames: sprites.uniqueFrames, atlas: `${sprites.W}x${sprites.H}`, heightPx: sprites.heightPx }, warnings: sprites.warnings });
-  // canonical facts, kept apart from the game's balancing: HGSS-era abilities (no hidden abilities,
-  // which arrived in Gen 5), the HGSS level-up list with real levels, size, evolution level
-  const abilities = (pokemon.abilities ?? []).filter((a) => !a.is_hidden).sort((a, b) => a.slot - b.slot).map((a) => a.ability.name.replace(/-/g, '_'));
-  const canon = { versionGroup: vg, levelUp: rows.map((r) => [r.level, r.row.key]), abilities, heightM: pokemon.height / 10, weightKg: pokemon.weight / 10, evolveLevel: evo?.level ?? undefined, evolveTrigger: evo?.trigger };
+  report.push({ id, dex, role, levelUpMoves: list.length, usableMoves: rows.length, sprite: { folder: `sprite/${sprites.d4}`, available: sprites.available, used: sprites.used, frames: sprites.frames, uniqueFrames: sprites.uniqueFrames, atlas: `${sprites.W}x${sprites.H}`, heightPx: sprites.heightPx }, warnings: sprites.warnings });
+  // Keep canonical facts separate from game balance; include every listed ability, including hidden abilities.
+  const abilities = (pokemon.abilities ?? []).sort((a, b) => a.slot - b.slot).map((a) => a.ability.name.replace(/-/g, '_'));
+  const canon = { levelUp: rows.map((r) => [r.level, r.row.key]), abilities, heightM: pokemon.height / 10, weightKg: pokemon.weight / 10, evolveLevel: evo?.level ?? undefined, evolveTrigger: evo?.trigger };
   return {
     id, dex, display, types, stats, sprites, evo, rows, cry, canon,
     flying: types.includes('flying'),
@@ -405,10 +398,9 @@ async function main() {
     for (const e of chain) for (const r of e.rows) moves.set(r.row.key, r.row);
     const curated = LEARNSETS[base.id];
     if (curated) {
-      // curated learnset (content/roster.json): every move must be one the line canonically learns
-      // by level-up in HGSS; each is attached to the earliest form that learns it, at its game level
+      // Curated learnsets must use a move learned by any form in the line across official games.
       const stageOf = (key) => chain.findIndex((e) => e.rows.some((r) => r.row.key === key));
-      for (const key of [curated.starter, ...curated.moves.map((m) => m[1])]) if (stageOf(key) < 0) throw new Error(`${base.id}: curated move ${key} is not in the line's ${base.canon.versionGroup} level-up moves (or is unsupported)`);
+      for (const key of [curated.starter, ...curated.moves.map((m) => m[1])]) if (stageOf(key) < 0) throw new Error(`${base.id}: curated move ${key} is not in the line's official level-up moves (or is unsupported)`);
       const per = chain.map(() => []);
       for (const [lv, key] of curated.moves) per[stageOf(key)].push([lv, key]);
       const chosen = new Set([curated.starter, ...curated.moves.map((m) => m[1])]);
@@ -444,8 +436,6 @@ async function main() {
       species.push(buildSpecies(e, { playable: false, learnset: extra.map((r, i) => [EVO_SLOTS[i], r.row.key]), evolvesTo: chain[k + 1]?.id, evolveLevel: chain[k + 1] ? e.evo?.level ?? 32 : undefined }));
     }
   }
-  // keep only moves some species actually uses
-  const used = new Set(species.flatMap((s) => [s.starter, ...(s.learnset ?? []).map((l) => l[1]), ...(s.coverage ?? []).map((c) => c[1])].filter(Boolean)));
   const pack = {
     format: 'poke-watch-pack', version: 1, id: PACK_ID, name: PACK_NAME,
     generator: 'scripts/import-pack.mjs 1.0', created: new Date().toISOString(),
@@ -456,7 +446,7 @@ async function main() {
       { scope: 'cries', name: 'CC0 repository; audio © The Pokémon Company', url: 'https://github.com/PokeAPI/cries', holder: 'The Pokémon Company', note: 'Repository is CC0, but its LICENSE states the audio is copyright The Pokémon Company.' },
     ],
     species,
-    moves: [...moves.values()].filter((m) => used.has(m.key)),
+    moves: [...moves.values()],
   };
   fs.mkdirSync(path.join(OUT, 'preview'), { recursive: true });
   const file = path.join(OUT, `${PACK_ID}.bonkpack.json`);

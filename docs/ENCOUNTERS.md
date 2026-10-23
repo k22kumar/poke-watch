@@ -54,13 +54,14 @@ v8's spawner is unchanged underneath (spawn curve, caps, elites, ring swarms, bo
 | Beat | Length | Spawn rate | What happens |
 | --- | --- | --- | --- |
 | Build | 35–45 s | 0.75× → 1.15× | — |
-| Peak | 20–30 s (ends early after 5 s at intensity ≥ 0.85) | 1.3× | An objective when due; else Rain or Sun (30% where the region has weather); else a composition (not before 1:15 of a stage) |
+| Peak | 20–30 s (ends early after 5 s at intensity ≥ 0.85) | 1.3× | An objective when due; else regional weather (30% where the region has weather); else a composition (not before 1:15 of a stage) |
 | Relax | 10–15 s | 0.3×, no ring swarms | Time to spend banked picks |
 
 Intensity = 0.45 × recent damage (≈10 s, against 35% of max HP) + 0.35 × enemies within 6 m (of 14) + 0.2 × missing
 health, smoothed. Beats rest while the boss is out. Weather: Rain (Meadow, Dusk) soaks open ground near you every
 0.5 s and weakens Fire; harsh Sun (Meadow, Badlands) strengthens Fire, doubles Chlorophyll speed and now and then
-lights tall grass. Both last 30 s.
+lights tall grass; Frost (Rimefrost Heights) freezes nearby wet ground and ponds into slippery, walkable ice. These
+regional weather events last 30 s.
 
 ## Measurements (2026-10-21, headless, this build)
 

@@ -129,6 +129,11 @@ export class World {
     return k >= 0 && this.map.terrain[k] === T.tall;
   }
 
+  habitatAt(x: number, z: number): number {
+    const k = this.tile(x, z);
+    return k >= 0 ? this.map.gen?.habitat[k] ?? 0 : 0;
+  }
+
   /** a tile ground walkers can stand on and reach the player from */
   walkable(x: number, z: number): boolean {
     const k = this.tile(x, z);

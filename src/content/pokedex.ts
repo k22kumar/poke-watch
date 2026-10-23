@@ -55,44 +55,62 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    [
     26,
     "double_edge"
+   ],
+   [
+    40,
+    "solar_beam"
+   ]
+  ],
+  "coverage": [
+   [
+    33,
+    "power_whip"
    ]
   ],
   "evolvesTo": "ivysaur",
   "evolveLevel": 16,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "tackle"
     ],
     [
-     9,
+     3,
      "vine_whip"
+    ],
+    [
+     6,
+     "growth"
+    ],
+    [
+     12,
+     "razor_leaf"
     ],
     [
      15,
      "take_down"
     ],
     [
-     19,
-     "razor_leaf"
-    ],
-    [
-     25,
-     "growth"
+     18,
+     "seed_bomb"
     ],
     [
      27,
      "double_edge"
     ],
     [
-     37,
-     "seed_bomb"
+     33,
+     "power_whip"
+    ],
+    [
+     36,
+     "solar_beam"
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "chlorophyll"
    ],
    "heightM": 0.7,
    "weightKg": 6.9,
@@ -123,24 +141,26 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.18,
   "art": "pokemon:ivysaur",
   "blurb": "Grass/Poison type. Evolves at Lv 32. Imported from PokéAPI and PMD SpriteCollab.",
-  "learnset": [
-   [
-    40,
-    "solar_beam"
-   ]
-  ],
+  "learnset": [],
   "evolvesTo": "venusaur",
   "evolveLevel": 32,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "growth"
+    ],
     [
      1,
      "tackle"
     ],
     [
-     9,
+     1,
      "vine_whip"
+    ],
+    [
+     12,
+     "razor_leaf"
     ],
     [
      15,
@@ -148,11 +168,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      20,
-     "razor_leaf"
-    ],
-    [
-     28,
-     "growth"
+     "seed_bomb"
     ],
     [
      31,
@@ -161,10 +177,15 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     [
      44,
      "solar_beam"
+    ],
+    [
+     45,
+     "power_whip"
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "chlorophyll"
    ],
    "heightM": 1,
    "weightKg": 13,
@@ -201,9 +222,34 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "petal_dance"
    ]
   ],
+  "coverage": [
+   [
+    1,
+    "petal_blizzard"
+   ]
+  ],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     0,
+     "petal_blizzard"
+    ],
+    [
+     0,
+     "petal_dance"
+    ],
+    [
+     1,
+     "amnesia"
+    ],
+    [
+     1,
+     "growth"
+    ],
+    [
+     1,
+     "power_whip"
+    ],
     [
      1,
      "tackle"
@@ -213,8 +259,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "vine_whip"
     ],
     [
-     9,
-     "vine_whip"
+     12,
+     "razor_leaf"
     ],
     [
      15,
@@ -222,19 +268,11 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      20,
-     "razor_leaf"
-    ],
-    [
-     28,
-     "growth"
+     "seed_bomb"
     ],
     [
      31,
      "double_edge"
-    ],
-    [
-     32,
-     "petal_dance"
     ],
     [
      53,
@@ -242,7 +280,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "chlorophyll"
    ],
    "heightM": 2,
    "weightKg": 100
@@ -295,44 +334,102 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    [
     25,
     "flamethrower"
+   ],
+   [
+    54,
+    "flare_blitz"
+   ]
+  ],
+  "coverage": [
+   [
+    12,
+    "dragon_breath"
+   ],
+   [
+    13,
+    "metal_claw"
+   ],
+   [
+    18,
+    "fury_swipes"
+   ],
+   [
+    19,
+    "rage"
+   ],
+   [
+    28,
+    "flame_burst"
+   ],
+   [
+    36,
+    "inferno"
    ]
   ],
   "evolvesTo": "charmeleon",
   "evolveLevel": 16,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "scratch"
     ],
     [
-     7,
+     4,
      "ember"
+    ],
+    [
+     12,
+     "dragon_breath"
+    ],
+    [
+     13,
+     "metal_claw"
     ],
     [
      16,
      "dragon_rage"
     ],
     [
-     25,
+     17,
      "fire_fang"
     ],
     [
-     28,
+     18,
+     "fury_swipes"
+    ],
+    [
+     19,
+     "rage"
+    ],
+    [
+     20,
      "slash"
     ],
     [
-     34,
+     24,
      "flamethrower"
     ],
     [
-     37,
+     27,
      "fire_spin"
+    ],
+    [
+     28,
+     "flame_burst"
+    ],
+    [
+     36,
+     "inferno"
+    ],
+    [
+     40,
+     "flare_blitz"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "solar_power"
    ],
    "heightM": 0.6,
    "weightKg": 8.5,
@@ -365,7 +462,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "evolvesTo": "charizard",
   "evolveLevel": 36,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -376,32 +472,57 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "scratch"
     ],
     [
-     7,
-     "ember"
+     12,
+     "dragon_breath"
+    ],
+    [
+     13,
+     "metal_claw"
     ],
     [
      17,
      "dragon_rage"
     ],
     [
-     28,
+     19,
      "fire_fang"
     ],
     [
-     32,
+     20,
+     "fury_swipes"
+    ],
+    [
+     20,
+     "rage"
+    ],
+    [
+     24,
      "slash"
     ],
     [
-     39,
+     30,
      "flamethrower"
     ],
     [
-     43,
+     32,
+     "flame_burst"
+    ],
+    [
+     33,
      "fire_spin"
+    ],
+    [
+     48,
+     "inferno"
+    ],
+    [
+     54,
+     "flare_blitz"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "solar_power"
    ],
    "heightM": 1.1,
    "weightKg": 19,
@@ -449,24 +570,35 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    [
     48,
     "heat_wave"
-   ],
-   [
-    54,
-    "flare_blitz"
    ]
   ],
   "coverage": [
+   [
+    1,
+    "crunch"
+   ],
    [
     1,
     "shadow_claw"
    ]
   ],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
-     1,
+     0,
      "air_slash"
+    ],
+    [
+     0,
+     "wing_attack"
+    ],
+    [
+     1,
+     "counter"
+    ],
+    [
+     1,
+     "crunch"
     ],
     [
      1,
@@ -478,6 +610,18 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      1,
+     "flare_blitz"
+    ],
+    [
+     1,
+     "heat_wave"
+    ],
+    [
+     1,
+     "metal_claw"
+    ],
+    [
+     1,
      "scratch"
     ],
     [
@@ -485,44 +629,49 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "shadow_claw"
     ],
     [
-     7,
-     "ember"
+     12,
+     "dragon_breath"
     ],
     [
      17,
      "dragon_rage"
     ],
     [
-     28,
+     19,
      "fire_fang"
     ],
     [
-     32,
+     20,
+     "fury_swipes"
+    ],
+    [
+     20,
+     "rage"
+    ],
+    [
+     24,
      "slash"
     ],
     [
-     36,
-     "wing_attack"
-    ],
-    [
-     42,
+     30,
      "flamethrower"
     ],
     [
-     49,
+     32,
+     "flame_burst"
+    ],
+    [
+     33,
      "fire_spin"
     ],
     [
-     59,
-     "heat_wave"
-    ],
-    [
-     66,
-     "flare_blitz"
+     54,
+     "inferno"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "solar_power"
    ],
    "heightM": 1.7,
    "weightKg": 90.5
@@ -589,62 +738,88 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "hydro_pump"
    ]
   ],
+  "coverage": [
+   [
+    27,
+    "bubble_beam"
+   ],
+   [
+    36,
+    "headbutt"
+   ],
+   [
+    36,
+    "wave_crash"
+   ]
+  ],
   "evolvesTo": "wartortle",
   "evolveLevel": 16,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "tackle"
     ],
     [
+     3,
+     "water_gun"
+    ],
+    [
+     6,
+     "withdraw"
+    ],
+    [
      7,
      "bubble"
     ],
     [
-     10,
-     "withdraw"
-    ],
-    [
-     13,
-     "water_gun"
-    ],
-    [
-     16,
-     "bite"
-    ],
-    [
-     19,
+     9,
      "rapid_spin"
     ],
     [
-     25,
+     12,
+     "bite"
+    ],
+    [
+     15,
      "water_pulse"
     ],
     [
-     28,
+     21,
+     "rain_dance"
+    ],
+    [
+     24,
      "aqua_tail"
+    ],
+    [
+     27,
+     "bubble_beam"
+    ],
+    [
+     30,
+     "iron_defense"
     ],
     [
      31,
      "skull_bash"
     ],
     [
-     34,
-     "iron_defense"
-    ],
-    [
-     37,
-     "rain_dance"
-    ],
-    [
-     40,
+     33,
      "hydro_pump"
+    ],
+    [
+     36,
+     "headbutt"
+    ],
+    [
+     36,
+     "wave_crash"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "rain_dish"
    ],
    "heightM": 0.5,
    "weightKg": 9,
@@ -677,7 +852,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "evolvesTo": "blastoise",
   "evolveLevel": 36,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -688,32 +862,36 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "tackle"
     ],
     [
-     7,
-     "bubble"
-    ],
-    [
-     10,
-     "withdraw"
-    ],
-    [
-     13,
+     1,
      "water_gun"
     ],
     [
-     16,
-     "bite"
+     1,
+     "withdraw"
     ],
     [
-     20,
+     9,
      "rapid_spin"
     ],
     [
-     28,
+     12,
+     "bite"
+    ],
+    [
+     15,
      "water_pulse"
     ],
     [
-     32,
+     25,
+     "rain_dance"
+    ],
+    [
+     30,
      "aqua_tail"
+    ],
+    [
+     33,
+     "bubble_beam"
     ],
     [
      36,
@@ -725,15 +903,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      44,
-     "rain_dance"
+     "hydro_pump"
     ],
     [
-     48,
-     "hydro_pump"
+     46,
+     "headbutt"
+    ],
+    [
+     50,
+     "wave_crash"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "rain_dish"
    ],
    "heightM": 1,
    "weightKg": 22.5,
@@ -768,16 +951,33 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "flash_cannon"
    ]
   ],
+  "coverage": [
+   [
+    1,
+    "aqua_jet"
+   ],
+   [
+    1,
+    "fake_out"
+   ]
+  ],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     0,
+     "flash_cannon"
+    ],
+    [
+     1,
+     "aqua_jet"
+    ],
     [
      1,
      "bubble"
     ],
     [
      1,
-     "flash_cannon"
+     "fake_out"
     ],
     [
      1,
@@ -785,55 +985,60 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      1,
-     "withdraw"
-    ],
-    [
-     7,
-     "bubble"
-    ],
-    [
-     10,
-     "withdraw"
-    ],
-    [
-     13,
      "water_gun"
     ],
     [
-     16,
-     "bite"
+     1,
+     "withdraw"
     ],
     [
-     20,
+     9,
      "rapid_spin"
     ],
     [
-     28,
+     12,
+     "bite"
+    ],
+    [
+     15,
      "water_pulse"
     ],
     [
-     32,
+     25,
+     "rain_dance"
+    ],
+    [
+     30,
      "aqua_tail"
+    ],
+    [
+     33,
+     "bubble_beam"
     ],
     [
      39,
      "skull_bash"
     ],
     [
-     46,
+     42,
      "iron_defense"
     ],
     [
-     53,
-     "rain_dance"
+     49,
+     "hydro_pump"
     ],
     [
-     60,
-     "hydro_pump"
+     54,
+     "headbutt"
+    ],
+    [
+     56,
+     "wave_crash"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "rain_dish"
    ],
    "heightM": 1.6,
    "weightKg": 85.5
@@ -880,10 +1085,15 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "solar_beam"
    ]
   ],
+  "coverage": [
+   [
+    42,
+    "giga_drain"
+   ]
+  ],
   "evolvesTo": "bayleef",
   "evolveLevel": 16,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -902,8 +1112,12 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "natural_gift"
     ],
     [
-     34,
+     29,
      "body_slam"
+    ],
+    [
+     42,
+     "giga_drain"
     ],
     [
      45,
@@ -911,7 +1125,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "leaf_guard"
    ],
    "heightM": 0.9,
    "weightKg": 6.4,
@@ -944,7 +1159,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "evolvesTo": "meganium",
   "evolveLevel": 32,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -955,10 +1169,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "tackle"
     ],
     [
-     6,
-     "razor_leaf"
-    ],
-    [
      22,
      "magical_leaf"
     ],
@@ -967,8 +1177,12 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "natural_gift"
     ],
     [
-     40,
+     31,
      "body_slam"
+    ],
+    [
+     50,
+     "giga_drain"
     ],
     [
      54,
@@ -976,7 +1190,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "leaf_guard"
    ],
    "heightM": 1.2,
    "weightKg": 15.8,
@@ -1011,9 +1226,22 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "petal_dance"
    ]
   ],
+  "coverage": [
+   [
+    1,
+    "petal_blizzard"
+   ]
+  ],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     0,
+     "petal_dance"
+    ],
+    [
+     1,
+     "petal_blizzard"
+    ],
     [
      1,
      "razor_leaf"
@@ -1021,10 +1249,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     [
      1,
      "tackle"
-    ],
-    [
-     6,
-     "razor_leaf"
     ],
     [
      22,
@@ -1035,20 +1259,21 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "natural_gift"
     ],
     [
-     32,
-     "petal_dance"
-    ],
-    [
-     46,
+     31,
      "body_slam"
     ],
     [
-     66,
+     60,
+     "giga_drain"
+    ],
+    [
+     61,
      "solar_beam"
     ]
    ],
    "abilities": [
-    "overgrow"
+    "overgrow",
+    "leaf_guard"
    ],
    "heightM": 1.8,
    "weightKg": 100.5
@@ -1115,25 +1340,46 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "eruption"
    ]
   ],
+  "coverage": [
+   [
+    28,
+    "flame_charge"
+   ],
+   [
+    43,
+    "overheat"
+   ],
+   [
+    46,
+    "inferno"
+   ],
+   [
+    58,
+    "burn_up"
+   ]
+  ],
   "evolvesTo": "quilava",
   "evolveLevel": 14,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "quick_attack"
+    ],
     [
      1,
      "tackle"
     ],
     [
-     10,
+     6,
      "ember"
     ],
     [
-     13,
-     "quick_attack"
+     11,
+     "rollout"
     ],
     [
-     19,
+     18,
      "flame_wheel"
     ],
     [
@@ -1141,32 +1387,45 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "defense_curl"
     ],
     [
-     28,
+     25,
      "swift"
+    ],
+    [
+     28,
+     "flame_charge"
     ],
     [
      31,
      "lava_plume"
     ],
     [
-     37,
+     34,
      "flamethrower"
     ],
     [
-     40,
-     "rollout"
+     43,
+     "overheat"
     ],
     [
      46,
      "double_edge"
     ],
     [
+     46,
+     "inferno"
+    ],
+    [
      49,
      "eruption"
+    ],
+    [
+     58,
+     "burn_up"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "flash_fire"
    ],
    "heightM": 0.5,
    "weightKg": 7.9,
@@ -1199,22 +1458,25 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "evolvesTo": "typhlosion",
   "evolveLevel": 36,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "quick_attack"
+    ],
     [
      1,
      "tackle"
     ],
     [
-     10,
+     6,
      "ember"
     ],
     [
-     13,
-     "quick_attack"
+     11,
+     "rollout"
     ],
     [
-     20,
+     18,
      "flame_wheel"
     ],
     [
@@ -1222,32 +1484,45 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "defense_curl"
     ],
     [
-     31,
+     25,
      "swift"
+    ],
+    [
+     34,
+     "flamethrower"
+    ],
+    [
+     35,
+     "flame_charge"
     ],
     [
      35,
      "lava_plume"
     ],
     [
-     42,
-     "flamethrower"
-    ],
-    [
-     46,
-     "rollout"
+     43,
+     "overheat"
     ],
     [
      53,
      "double_edge"
     ],
     [
+     53,
+     "inferno"
+    ],
+    [
      57,
      "eruption"
+    ],
+    [
+     68,
+     "burn_up"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "flash_fire"
    ],
    "heightM": 0.9,
    "weightKg": 19,
@@ -1278,11 +1553,18 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "blurb": "Fire type. Imported from PokéAPI and PMD SpriteCollab.",
   "learnset": [],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
+     "double_edge"
+    ],
+    [
+     1,
      "ember"
+    ],
+    [
+     1,
+     "eruption"
     ],
     [
      1,
@@ -1291,10 +1573,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     [
      1,
      "tackle"
-    ],
-    [
-     10,
-     "ember"
     ],
     [
      13,
@@ -1314,6 +1592,10 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      35,
+     "flame_charge"
+    ],
+    [
+     35,
      "lava_plume"
     ],
     [
@@ -1325,16 +1607,21 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "rollout"
     ],
     [
-     53,
-     "double_edge"
+     56,
+     "inferno"
     ],
     [
-     57,
-     "eruption"
+     74,
+     "burn_up"
+    ],
+    [
+     74,
+     "overheat"
     ]
    ],
    "abilities": [
-    "blaze"
+    "blaze",
+    "flash_fire"
    ],
    "heightM": 1.7,
    "weightKg": 79.5
@@ -1403,14 +1690,21 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   ],
   "coverage": [
    [
-    8,
+    7,
     "rage"
+   ],
+   [
+    8,
+    "mud_slap"
+   ],
+   [
+    29,
+    "chip_away"
    ]
   ],
   "evolvesTo": "croconaw",
   "evolveLevel": 18,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -1421,15 +1715,19 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "water_gun"
     ],
     [
-     8,
+     7,
      "rage"
     ],
     [
-     13,
+     8,
+     "mud_slap"
+    ],
+    [
+     9,
      "bite"
     ],
     [
-     20,
+     19,
      "ice_fang"
     ],
     [
@@ -1437,8 +1735,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "flail"
     ],
     [
+     22,
+     "thrash"
+    ],
+    [
      27,
      "crunch"
+    ],
+    [
+     29,
+     "chip_away"
+    ],
+    [
+     29,
+     "low_kick"
     ],
     [
      29,
@@ -1446,23 +1756,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      36,
-     "thrash"
-    ],
-    [
-     41,
      "aqua_tail"
     ],
     [
-     43,
+     41,
      "superpower"
     ],
     [
-     48,
+     43,
      "hydro_pump"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "sheer_force"
    ],
    "heightM": 0.6,
    "weightKg": 9.5,
@@ -1495,8 +1802,11 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "evolvesTo": "feraligatr",
   "evolveLevel": 30,
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "rage"
+    ],
     [
      1,
      "scratch"
@@ -1506,12 +1816,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "water_gun"
     ],
     [
-     6,
-     "water_gun"
-    ],
-    [
      8,
-     "rage"
+     "mud_slap"
     ],
     [
      13,
@@ -1526,8 +1832,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "flail"
     ],
     [
+     24,
+     "thrash"
+    ],
+    [
      30,
      "crunch"
+    ],
+    [
+     33,
+     "chip_away"
+    ],
+    [
+     33,
+     "low_kick"
     ],
     [
      33,
@@ -1535,23 +1853,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      42,
-     "thrash"
-    ],
-    [
-     48,
      "aqua_tail"
     ],
     [
-     51,
+     48,
      "superpower"
     ],
     [
-     57,
+     51,
      "hydro_pump"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "sheer_force"
    ],
    "heightM": 1.1,
    "weightKg": 25,
@@ -1582,8 +1897,15 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "blurb": "Water type. Imported from PokéAPI and PMD SpriteCollab.",
   "learnset": [],
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "agility"
+    ],
+    [
+     1,
+     "mud_slap"
+    ],
     [
      1,
      "rage"
@@ -1595,14 +1917,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     [
      1,
      "water_gun"
-    ],
-    [
-     6,
-     "water_gun"
-    ],
-    [
-     8,
-     "rage"
     ],
     [
      13,
@@ -1617,8 +1931,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "flail"
     ],
     [
-     30,
-     "agility"
+     24,
+     "thrash"
     ],
     [
      32,
@@ -1626,27 +1940,32 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      37,
+     "chip_away"
+    ],
+    [
+     37,
+     "low_kick"
+    ],
+    [
+     37,
      "slash"
     ],
     [
      50,
-     "thrash"
-    ],
-    [
-     58,
      "aqua_tail"
     ],
     [
-     63,
-     "superpower"
+     58,
+     "hydro_pump"
     ],
     [
-     71,
-     "hydro_pump"
+     58,
+     "superpower"
     ]
    ],
    "abilities": [
-    "torrent"
+    "torrent",
+    "sheer_force"
    ],
    "heightM": 2.3,
    "weightKg": 88.8
@@ -1674,7 +1993,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:rattata",
   "behaviour": "chase",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -1690,30 +2008,34 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      13,
+     "hyper_fang"
+    ],
+    [
+     13,
      "pursuit"
     ],
     [
+     15,
+     "super_fang"
+    ],
+    [
      16,
-     "hyper_fang"
+     "take_down"
+    ],
+    [
+     18,
+     "crunch"
+    ],
+    [
+     19,
+     "assurance"
     ],
     [
      19,
      "sucker_punch"
     ],
     [
-     22,
-     "crunch"
-    ],
-    [
-     25,
-     "assurance"
-    ],
-    [
-     28,
-     "super_fang"
-    ],
-    [
-     31,
+     27,
      "double_edge"
     ],
     [
@@ -1723,7 +2045,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "abilities": [
     "run_away",
-    "guts"
+    "guts",
+    "hustle"
    ],
    "heightM": 0.3,
    "weightKg": 3.5,
@@ -1755,7 +2078,6 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:geodude",
   "behaviour": "tank",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
@@ -1763,43 +2085,79 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ],
     [
      1,
+     "rollout"
+    ],
+    [
+     1,
      "tackle"
     ],
     [
-     8,
+     4,
+     "sandstorm"
+    ],
+    [
+     6,
+     "bide"
+    ],
+    [
+     6,
      "rock_polish"
     ],
     [
-     11,
+     9,
+     "mud_slap"
+    ],
+    [
+     9,
      "rock_throw"
     ],
     [
-     15,
+     12,
+     "bulldoze"
+    ],
+    [
+     12,
+     "harden"
+    ],
+    [
+     12,
      "magnitude"
+    ],
+    [
+     15,
+     "iron_defense"
+    ],
+    [
+     15,
+     "take_down"
     ],
     [
      18,
      "self_destruct"
     ],
     [
-     22,
-     "rollout"
+     18,
+     "smack_down"
     ],
     [
-     25,
+     21,
+     "rock_slide"
+    ],
+    [
+     22,
      "rock_blast"
     ],
     [
-     29,
+     27,
      "earthquake"
+    ],
+    [
+     31,
+     "double_edge"
     ],
     [
      32,
      "explosion"
-    ],
-    [
-     36,
-     "double_edge"
     ],
     [
      39,
@@ -1808,7 +2166,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "abilities": [
     "rock_head",
-    "sturdy"
+    "sturdy",
+    "sand_veil"
    ],
    "heightM": 0.4,
    "weightKg": 20,
@@ -1841,44 +2200,52 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "flying": true,
   "behaviour": "swarm",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "tackle"
     ],
     [
+     8,
+     "swift"
+    ],
+    [
      9,
      "comet_punch"
     ],
     [
-     17,
+     15,
      "mach_punch"
     ],
     [
-     25,
+     19,
      "silver_wind"
     ],
     [
-     30,
+     22,
+     "struggle_bug"
+    ],
+    [
+     29,
      "agility"
     ],
     [
      33,
-     "swift"
+     "bug_buzz"
+    ],
+    [
+     36,
+     "air_slash"
     ],
     [
      38,
      "double_edge"
-    ],
-    [
-     41,
-     "bug_buzz"
     ]
    ],
    "abilities": [
     "swarm",
-    "early_bird"
+    "early_bird",
+    "rattled"
    ],
    "heightM": 1,
    "weightKg": 10.8,
@@ -1908,51 +2275,74 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:sandshrew",
   "behaviour": "chase",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "defense_curl"
+    ],
     [
      1,
      "scratch"
     ],
     [
      3,
-     "defense_curl"
-    ],
-    [
-     9,
      "poison_sting"
     ],
     [
-     13,
-     "rapid_spin"
-    ],
-    [
-     15,
-     "swift"
-    ],
-    [
-     19,
-     "fury_swipes"
-    ],
-    [
-     21,
+     7,
      "rollout"
     ],
     [
-     25,
+     9,
+     "rapid_spin"
+    ],
+    [
+     11,
      "fury_cutter"
     ],
     [
-     27,
+     11,
+     "swift"
+    ],
+    [
+     14,
+     "magnitude"
+    ],
+    [
+     16,
+     "fury_swipes"
+    ],
+    [
+     17,
+     "slash"
+    ],
+    [
+     18,
+     "bulldoze"
+    ],
+    [
+     20,
+     "dig"
+    ],
+    [
+     23,
      "sand_tomb"
     ],
     [
-     31,
-     "slash"
+     27,
+     "agility"
+    ],
+    [
+     28,
+     "swords_dance"
     ],
     [
      33,
      "gyro_ball"
+    ],
+    [
+     36,
+     "earthquake"
     ],
     [
      37,
@@ -1960,7 +2350,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     ]
    ],
    "abilities": [
-    "sand_veil"
+    "sand_veil",
+    "sand_rush"
    ],
    "heightM": 0.6,
    "weightKg": 12,
@@ -1993,35 +2384,51 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "behaviour": "ranged",
   "shot": "venom",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "absorb"
     ],
     [
-     9,
+     1,
+     "growth"
+    ],
+    [
+     4,
      "acid"
     ],
     [
-     21,
+     12,
      "mega_drain"
+    ],
+    [
+     18,
+     "razor_leaf"
+    ],
+    [
+     20,
+     "giga_drain"
+    ],
+    [
+     28,
+     "moonblast"
     ],
     [
      29,
      "natural_gift"
     ],
     [
-     37,
-     "giga_drain"
+     33,
+     "petal_dance"
     ],
     [
-     41,
-     "petal_dance"
+     46,
+     "solar_beam"
     ]
    ],
    "abilities": [
-    "chlorophyll"
+    "chlorophyll",
+    "run_away"
    ],
    "heightM": 0.5,
    "weightKg": 5.4,
@@ -2051,19 +2458,30 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:poliwag",
   "behaviour": "chase",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
-     5,
+     1,
      "bubble"
     ],
     [
-     11,
+     1,
      "water_gun"
+    ],
+    [
+     4,
+     "pound"
+    ],
+    [
+     12,
+     "mud_shot"
     ],
     [
      15,
      "double_slap"
+    ],
+    [
+     18,
+     "bubble_beam"
     ],
     [
      18,
@@ -2074,29 +2492,38 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "body_slam"
     ],
     [
-     25,
-     "bubble_beam"
-    ],
-    [
-     28,
-     "mud_shot"
+     26,
+     "low_kick"
     ],
     [
      35,
      "wake_up_slap"
     ],
     [
-     38,
+     36,
+     "earth_power"
+    ],
+    [
+     36,
      "hydro_pump"
+    ],
+    [
+     38,
+     "amnesia"
     ],
     [
      41,
      "mud_bomb"
+    ],
+    [
+     54,
+     "double_edge"
     ]
    ],
    "abilities": [
     "water_absorb",
-    "damp"
+    "damp",
+    "swift_swim"
    ],
    "heightM": 0.6,
    "weightKg": 12.4,
@@ -2126,56 +2553,68 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:slugma",
   "behaviour": "chase",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "smog"
     ],
     [
-     8,
+     5,
      "ember"
     ],
     [
-     11,
+     8,
      "rock_throw"
     ],
     [
-     16,
+     13,
      "harden"
     ],
     [
-     26,
+     15,
+     "incinerate"
+    ],
+    [
+     20,
+     "clear_smog"
+    ],
+    [
+     22,
      "ancient_power"
     ],
     [
-     31,
+     23,
+     "flame_burst"
+    ],
+    [
+     29,
      "amnesia"
     ],
     [
-     38,
-     "lava_plume"
-    ],
-    [
-     41,
+     29,
      "rock_slide"
     ],
     [
-     46,
-     "body_slam"
+     34,
+     "lava_plume"
     ],
     [
-     53,
+     36,
      "flamethrower"
     ],
     [
-     56,
+     41,
+     "body_slam"
+    ],
+    [
+     50,
      "earth_power"
     ]
    ],
    "abilities": [
     "magma_armor",
-    "flame_body"
+    "flame_body",
+    "weak_armor"
    ],
    "heightM": 0.7,
    "weightKg": 35,
@@ -2206,39 +2645,71 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "behaviour": "ranged",
   "shot": "blaze",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "ember"
     ],
     [
-     11,
+     1,
+     "tackle"
+    ],
+    [
+     5,
      "quick_attack"
+    ],
+    [
+     9,
+     "nasty_plot"
+    ],
+    [
+     12,
+     "fire_spin"
+    ],
+    [
+     15,
+     "flame_wheel"
+    ],
+    [
+     16,
+     "incinerate"
+    ],
+    [
+     18,
+     "payback"
+    ],
+    [
+     20,
+     "feint_attack"
+    ],
+    [
+     21,
+     "hex"
+    ],
+    [
+     23,
+     "flame_burst"
     ],
     [
      24,
      "flamethrower"
     ],
     [
-     31,
-     "payback"
-    ],
-    [
-     34,
-     "fire_spin"
-    ],
-    [
-     44,
+     28,
      "extrasensory"
     ],
     [
-     47,
+     31,
      "fire_blast"
+    ],
+    [
+     44,
+     "inferno"
     ]
    ],
    "abilities": [
-    "flash_fire"
+    "flash_fire",
+    "drought"
    ],
    "heightM": 0.6,
    "weightKg": 9.9,
@@ -2267,39 +2738,59 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:mareep",
   "behaviour": "charger",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "tackle"
     ],
     [
-     10,
+     8,
      "thunder_shock"
     ],
     [
-     23,
+     15,
      "charge"
+    ],
+    [
+     18,
+     "take_down"
+    ],
+    [
+     22,
+     "electro_ball"
     ],
     [
      28,
      "discharge"
     ],
     [
+     29,
+     "power_gem"
+    ],
+    [
+     32,
+     "cotton_guard"
+    ],
+    [
      32,
      "signal_beam"
     ],
     [
-     41,
-     "power_gem"
+     37,
+     "thunder"
     ],
     [
-     46,
-     "thunder"
+     39,
+     "charge_beam"
+    ],
+    [
+     39,
+     "dazzling_gleam"
     ]
    ],
    "abilities": [
-    "static"
+    "static",
+    "plus"
    ],
    "heightM": 0.6,
    "weightKg": 7.8,
@@ -2333,16 +2824,20 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "behaviour": "ranged",
   "shot": "frost",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "present"
+    ],
+    [
+     25,
+     "drill_peck"
     ]
    ],
    "abilities": [
     "vital_spirit",
-    "hustle"
+    "hustle",
+    "insomnia"
    ],
    "heightM": 0.9,
    "weightKg": 16
@@ -2372,52 +2867,76 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:swinub",
   "behaviour": "charger",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "mud_slap"
+    ],
     [
      1,
      "tackle"
     ],
     [
-     8,
+     5,
      "powder_snow"
     ],
     [
-     13,
-     "mud_slap"
-    ],
-    [
-     20,
-     "mud_bomb"
-    ],
-    [
-     25,
-     "icy_wind"
-    ],
-    [
-     28,
+     6,
      "ice_shard"
     ],
     [
-     32,
+     10,
+     "flail"
+    ],
+    [
+     11,
+     "bulldoze"
+    ],
+    [
+     18,
+     "icicle_crash"
+    ],
+    [
+     18,
+     "mud_bomb"
+    ],
+    [
+     21,
+     "icy_wind"
+    ],
+    [
+     25,
+     "high_horsepower"
+    ],
+    [
+     28,
      "take_down"
+    ],
+    [
+     34,
+     "ancient_power"
+    ],
+    [
+     35,
+     "amnesia"
     ],
     [
      37,
      "earthquake"
     ],
     [
-     44,
+     43,
      "blizzard"
     ],
     [
-     49,
-     "amnesia"
+     52,
+     "double_edge"
     ]
    ],
    "abilities": [
     "oblivious",
-    "snow_cloak"
+    "snow_cloak",
+    "thick_fat"
    ],
    "heightM": 0.4,
    "weightKg": 6.5,
@@ -2450,39 +2969,63 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "flying": true,
   "behaviour": "swarm",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
+    [
+     1,
+     "gust"
+    ],
     [
      1,
      "leech_life"
     ],
     [
-     9,
-     "astonish"
-    ],
-    [
-     13,
-     "bite"
-    ],
-    [
-     17,
+     4,
      "wing_attack"
     ],
     [
-     25,
-     "air_cutter"
+     5,
+     "astonish"
     ],
     [
-     33,
+     9,
+     "bite"
+    ],
+    [
+     12,
+     "swift"
+    ],
+    [
+     15,
      "poison_fang"
     ],
     [
-     41,
+     18,
+     "air_cutter"
+    ],
+    [
+     25,
+     "cross_poison"
+    ],
+    [
+     30,
+     "acrobatics"
+    ],
+    [
+     33,
      "air_slash"
+    ],
+    [
+     37,
+     "venoshock"
     ]
    ],
    "abilities": [
-    "inner_focus"
+    "inner_focus",
+    "infiltrator"
    ],
    "heightM": 0.8,
    "weightKg": 7.5,
@@ -2516,35 +3059,50 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "behaviour": "ranged",
   "shot": "wisp",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "astonish"
+    ],
     [
      1,
      "lick"
     ],
     [
-     15,
+     1,
      "night_shade"
     ],
     [
-     22,
+     1,
+     "smog"
+    ],
+    [
+     11,
+     "hex"
+    ],
+    [
+     12,
+     "payback"
+    ],
+    [
+     18,
+     "venoshock"
+    ],
+    [
+     19,
      "sucker_punch"
     ],
     [
      26,
-     "payback"
-    ],
-    [
-     29,
      "shadow_ball"
     ],
     [
-     33,
-     "dream_eater"
+     28,
+     "dark_pulse"
     ],
     [
-     36,
-     "dark_pulse"
+     28,
+     "dream_eater"
     ]
    ],
    "abilities": [
@@ -2580,8 +3138,11 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:paras",
   "behaviour": "healer",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
     [
      1,
      "scratch"
@@ -2591,25 +3152,42 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "leech_life"
     ],
     [
-     22,
+     12,
+     "growth"
+    ],
+    [
+     15,
+     "fury_swipes"
+    ],
+    [
+     15,
+     "venoshock"
+    ],
+    [
+     17,
+     "fury_cutter"
+    ],
+    [
+     19,
      "slash"
     ],
     [
-     27,
-     "growth"
+     31,
+     "x_scissor"
     ],
     [
      33,
      "giga_drain"
     ],
     [
-     43,
-     "x_scissor"
+     47,
+     "energy_ball"
     ]
    ],
    "abilities": [
     "effect_spore",
-    "dry_skin"
+    "dry_skin",
+    "damp"
    ],
    "heightM": 0.3,
    "weightKg": 5.4,
@@ -2641,48 +3219,72 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:houndour",
   "behaviour": "charger",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "ember"
     ],
     [
-     9,
+     8,
      "smog"
     ],
     [
-     17,
+     16,
      "bite"
     ],
     [
-     27,
+     20,
+     "incinerate"
+    ],
+    [
+     25,
      "beat_up"
     ],
     [
-     30,
-     "fire_fang"
-    ],
-    [
-     35,
+     27,
      "feint_attack"
     ],
     [
-     43,
+     28,
+     "fire_fang"
+    ],
+    [
+     32,
+     "payback"
+    ],
+    [
+     35,
      "flamethrower"
     ],
     [
-     48,
+     37,
+     "comeuppance"
+    ],
+    [
+     37,
+     "flame_charge"
+    ],
+    [
+     40,
+     "foul_play"
+    ],
+    [
+     43,
      "crunch"
     ],
     [
-     53,
+     52,
      "nasty_plot"
+    ],
+    [
+     56,
+     "inferno"
     ]
    ],
    "abilities": [
     "early_bird",
-    "flash_fire"
+    "flash_fire",
+    "unnerve"
    ],
    "heightM": 0.6,
    "weightKg": 10.8,
@@ -2714,8 +3316,15 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "art": "pokemon:heracross",
   "behaviour": "tank",
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "arm_thrust"
+    ],
+    [
+     1,
+     "bullet_seed"
+    ],
     [
      1,
      "horn_attack"
@@ -2729,45 +3338,78 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "tackle"
     ],
     [
-     7,
+     5,
      "fury_attack"
     ],
     [
-     13,
+     5,
+     "rock_smash"
+    ],
+    [
+     7,
+     "feint"
+    ],
+    [
+     9,
+     "pin_missile"
+    ],
+    [
+     10,
      "aerial_ace"
+    ],
+    [
+     16,
+     "chip_away"
     ],
     [
      19,
      "brick_break"
     ],
     [
-     25,
+     19,
      "counter"
     ],
     [
-     31,
+     21,
+     "slash"
+    ],
+    [
+     28,
      "take_down"
     ],
     [
-     37,
+     29,
+     "swords_dance"
+    ],
+    [
+     34,
      "close_combat"
+    ],
+    [
+     37,
+     "double_edge"
+    ],
+    [
+     37,
+     "megahorn"
+    ],
+    [
+     40,
+     "throat_chop"
     ],
     [
      43,
      "reversal"
     ],
     [
-     49,
-     "feint"
-    ],
-    [
-     55,
-     "megahorn"
+     45,
+     "thrash"
     ]
    ],
    "abilities": [
     "swarm",
-    "guts"
+    "guts",
+    "moxie"
    ],
    "heightM": 1.5,
    "weightKg": 54
@@ -2809,11 +3451,18 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "summon": "rattata"
   },
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     0,
+     "slam"
+    ],
     [
      1,
      "flail"
+    ],
+    [
+     1,
+     "hammer_arm"
     ],
     [
      1,
@@ -2822,55 +3471,60 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     [
      1,
      "rock_throw"
+    ],
+    [
+     1,
+     "rollout"
+    ],
+    [
+     1,
+     "stone_edge"
     ],
     [
      1,
      "wood_hammer"
     ],
     [
-     6,
-     "flail"
+     5,
+     "tackle"
     ],
     [
-     9,
-     "low_kick"
-    ],
-    [
-     14,
-     "rock_throw"
-    ],
-    [
-     25,
-     "feint_attack"
-    ],
-    [
-     30,
-     "rock_tomb"
-    ],
-    [
-     33,
+     15,
      "rock_slide"
     ],
     [
-     38,
-     "slam"
+     19,
+     "feint_attack"
     ],
     [
-     41,
+     20,
+     "rock_tomb"
+    ],
+    [
+     21,
+     "iron_defense"
+    ],
+    [
+     28,
      "sucker_punch"
     ],
     [
-     46,
+     33,
+     "counter"
+    ],
+    [
+     37,
      "double_edge"
     ],
     [
-     49,
-     "hammer_arm"
+     47,
+     "head_smash"
     ]
    ],
    "abilities": [
     "sturdy",
-    "rock_head"
+    "rock_head",
+    "rattled"
    ],
    "heightM": 1.2,
    "weightKg": 38
@@ -2915,8 +3569,11 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "summon": "slugma"
   },
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "earth_power"
+    ],
     [
      1,
      "ember"
@@ -2930,49 +3587,50 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "smog"
     ],
     [
-     8,
-     "ember"
-    ],
-    [
-     11,
-     "rock_throw"
-    ],
-    [
-     16,
+     13,
      "harden"
     ],
     [
-     26,
+     15,
+     "incinerate"
+    ],
+    [
+     20,
+     "clear_smog"
+    ],
+    [
+     22,
      "ancient_power"
     ],
     [
-     31,
+     23,
+     "flame_burst"
+    ],
+    [
+     29,
      "amnesia"
     ],
     [
-     40,
-     "lava_plume"
-    ],
-    [
-     45,
+     29,
      "rock_slide"
     ],
     [
-     52,
-     "body_slam"
+     34,
+     "lava_plume"
     ],
     [
-     61,
+     36,
      "flamethrower"
     ],
     [
-     66,
-     "earth_power"
+     43,
+     "body_slam"
     ]
    ],
    "abilities": [
     "magma_armor",
-    "flame_body"
+    "flame_body",
+    "weak_armor"
    ],
    "heightM": 0.8,
    "weightKg": 55
@@ -3017,43 +3675,67 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "summon": "delibird"
   },
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
+    [
+     1,
+     "freeze_dry"
+    ],
     [
      1,
      "gust"
     ],
     [
      1,
-     "powder_snow"
+     "hurricane"
     ],
     [
-     15,
-     "ice_shard"
-    ],
-    [
-     29,
-     "ancient_power"
-    ],
-    [
-     36,
-     "agility"
-    ],
-    [
-     43,
+     1,
      "ice_beam"
     ],
     [
-     71,
+     1,
+     "ice_shard"
+    ],
+    [
+     1,
+     "peck"
+    ],
+    [
+     1,
+     "powder_snow"
+    ],
+    [
+     20,
+     "agility"
+    ],
+    [
+     24,
+     "mirror_coat"
+    ],
+    [
+     25,
+     "ancient_power"
+    ],
+    [
+     50,
+     "hail"
+    ],
+    [
+     50,
+     "snowscape"
+    ],
+    [
+     51,
      "blizzard"
     ],
     [
-     85,
-     "hail"
+     72,
+     "sky_attack"
     ]
    ],
    "abilities": [
-    "pressure"
+    "pressure",
+    "snow_cloak"
    ],
    "heightM": 1.7,
    "weightKg": 55.4
@@ -3099,11 +3781,18 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "summon": "houndour"
   },
   "canon": {
-   "versionGroup": "heartgold-soulsilver",
    "levelUp": [
     [
      1,
      "ember"
+    ],
+    [
+     1,
+     "inferno"
+    ],
+    [
+     1,
+     "nasty_plot"
     ],
     [
      1,
@@ -3114,41 +3803,54 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
      "thunder_fang"
     ],
     [
-     9,
-     "smog"
-    ],
-    [
-     17,
+     16,
      "bite"
     ],
     [
-     28,
+     20,
+     "incinerate"
+    ],
+    [
+     26,
      "beat_up"
     ],
     [
-     32,
-     "fire_fang"
-    ],
-    [
-     38,
+     30,
      "feint_attack"
     ],
     [
-     48,
+     30,
+     "fire_fang"
+    ],
+    [
+     35,
+     "payback"
+    ],
+    [
+     41,
+     "comeuppance"
+    ],
+    [
+     41,
+     "flame_charge"
+    ],
+    [
+     41,
      "flamethrower"
     ],
     [
-     54,
-     "crunch"
+     45,
+     "foul_play"
     ],
     [
-     60,
-     "nasty_plot"
+     52,
+     "crunch"
     ]
    ],
    "abilities": [
     "early_bird",
-    "flash_fire"
+    "flash_fire",
+    "unnerve"
    ],
    "heightM": 1.4,
    "weightKg": 35
@@ -3176,13 +3878,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/vine-whip"
  },
  {
-  "key": "take_down",
-  "name": "Take Down",
+  "key": "growth",
+  "name": "Growth",
   "element": "plain",
-  "cls": "physical",
-  "power": 90,
-  "accuracy": 85,
-  "source": "pokeapi move/take-down"
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/growth"
  },
  {
   "key": "razor_leaf",
@@ -3195,22 +3897,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "growth",
-  "name": "Growth",
-  "element": "plain",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/growth"
- },
- {
-  "key": "double_edge",
-  "name": "Double-Edge",
+  "key": "take_down",
+  "name": "Take Down",
   "element": "plain",
   "cls": "physical",
-  "power": 120,
-  "accuracy": 100,
-  "source": "pokeapi move/double-edge"
+  "power": 90,
+  "accuracy": 85,
+  "source": "pokeapi move/take-down"
  },
  {
   "key": "seed_bomb",
@@ -3222,6 +3915,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/seed-bomb"
  },
  {
+  "key": "double_edge",
+  "name": "Double-Edge",
+  "element": "plain",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/double-edge"
+ },
+ {
+  "key": "power_whip",
+  "name": "Power Whip",
+  "element": "bloom",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 85,
+  "source": "pokeapi move/power-whip"
+ },
+ {
   "key": "solar_beam",
   "name": "Solar Beam",
   "element": "bloom",
@@ -3231,6 +3942,16 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/solar-beam"
  },
  {
+  "key": "petal_blizzard",
+  "name": "Petal Blizzard",
+  "element": "bloom",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/petal-blizzard",
+  "archetype": "nova"
+ },
+ {
   "key": "petal_dance",
   "name": "Petal Dance",
   "element": "bloom",
@@ -3238,6 +3959,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 120,
   "accuracy": 100,
   "source": "pokeapi move/petal-dance"
+ },
+ {
+  "key": "amnesia",
+  "name": "Amnesia",
+  "element": "mind",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/amnesia"
  },
  {
   "key": "scratch",
@@ -3260,6 +3990,26 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 10
  },
  {
+  "key": "dragon_breath",
+  "name": "Dragon Breath",
+  "element": "wyrm",
+  "cls": "special",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/dragon-breath",
+  "ailment": "stun",
+  "ailmentChance": 30
+ },
+ {
+  "key": "metal_claw",
+  "name": "Metal Claw",
+  "element": "alloy",
+  "cls": "physical",
+  "power": 50,
+  "accuracy": 95,
+  "source": "pokeapi move/metal-claw"
+ },
+ {
   "key": "dragon_rage",
   "name": "Dragon Rage",
   "element": "wyrm",
@@ -3278,6 +4028,25 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/fire-fang",
   "ailment": "burn",
   "ailmentChance": 10
+ },
+ {
+  "key": "fury_swipes",
+  "name": "Fury Swipes",
+  "element": "plain",
+  "cls": "physical",
+  "power": 18,
+  "accuracy": 80,
+  "source": "pokeapi move/fury-swipes",
+  "hits": 4
+ },
+ {
+  "key": "rage",
+  "name": "Rage",
+  "element": "plain",
+  "cls": "physical",
+  "power": 20,
+  "accuracy": 100,
+  "source": "pokeapi move/rage"
  },
  {
   "key": "slash",
@@ -3311,6 +4080,37 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 100
  },
  {
+  "key": "flame_burst",
+  "name": "Flame Burst",
+  "element": "blaze",
+  "cls": "special",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/flame-burst"
+ },
+ {
+  "key": "inferno",
+  "name": "Inferno",
+  "element": "blaze",
+  "cls": "special",
+  "power": 100,
+  "accuracy": 50,
+  "source": "pokeapi move/inferno",
+  "ailment": "burn",
+  "ailmentChance": 100
+ },
+ {
+  "key": "flare_blitz",
+  "name": "Flare Blitz",
+  "element": "blaze",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/flare-blitz",
+  "ailment": "burn",
+  "ailmentChance": 10
+ },
+ {
   "key": "air_slash",
   "name": "Air Slash",
   "element": "gale",
@@ -3320,24 +4120,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/air-slash"
  },
  {
-  "key": "dragon_claw",
-  "name": "Dragon Claw",
-  "element": "wyrm",
-  "cls": "physical",
-  "power": 80,
-  "accuracy": 100,
-  "source": "pokeapi move/dragon-claw"
- },
- {
-  "key": "shadow_claw",
-  "name": "Shadow Claw",
-  "element": "wisp",
-  "cls": "physical",
-  "power": 70,
-  "accuracy": 100,
-  "source": "pokeapi move/shadow-claw"
- },
- {
   "key": "wing_attack",
   "name": "Wing Attack",
   "element": "gale",
@@ -3345,6 +4127,34 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/wing-attack"
+ },
+ {
+  "key": "counter",
+  "name": "Counter",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 0,
+  "priority": -5,
+  "accuracy": 100,
+  "source": "pokeapi move/counter"
+ },
+ {
+  "key": "crunch",
+  "name": "Crunch",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/crunch"
+ },
+ {
+  "key": "dragon_claw",
+  "name": "Dragon Claw",
+  "element": "wyrm",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/dragon-claw"
  },
  {
   "key": "heat_wave",
@@ -3359,15 +4169,31 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "flare_blitz",
-  "name": "Flare Blitz",
-  "element": "blaze",
+  "key": "shadow_claw",
+  "name": "Shadow Claw",
+  "element": "wisp",
   "cls": "physical",
-  "power": 120,
+  "power": 70,
   "accuracy": 100,
-  "source": "pokeapi move/flare-blitz",
-  "ailment": "burn",
-  "ailmentChance": 10
+  "source": "pokeapi move/shadow-claw"
+ },
+ {
+  "key": "water_gun",
+  "name": "Water Gun",
+  "element": "tide",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/water-gun"
+ },
+ {
+  "key": "withdraw",
+  "name": "Withdraw",
+  "element": "tide",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/withdraw"
  },
  {
   "key": "bubble",
@@ -3380,13 +4206,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "water_gun",
-  "name": "Water Gun",
-  "element": "tide",
-  "cls": "special",
-  "power": 40,
+  "key": "rapid_spin",
+  "name": "Rapid Spin",
+  "element": "plain",
+  "cls": "physical",
+  "power": 50,
   "accuracy": 100,
-  "source": "pokeapi move/water-gun"
+  "source": "pokeapi move/rapid-spin"
  },
  {
   "key": "bite",
@@ -3396,15 +4222,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/bite"
- },
- {
-  "key": "rapid_spin",
-  "name": "Rapid Spin",
-  "element": "plain",
-  "cls": "physical",
-  "power": 50,
-  "accuracy": 100,
-  "source": "pokeapi move/rapid-spin"
  },
  {
   "key": "water_pulse",
@@ -3418,6 +4235,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 20
  },
  {
+  "key": "rain_dance",
+  "name": "Rain Dance",
+  "element": "tide",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/rain-dance"
+ },
+ {
   "key": "aqua_tail",
   "name": "Aqua Tail",
   "element": "tide",
@@ -3425,6 +4251,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 90,
   "accuracy": 90,
   "source": "pokeapi move/aqua-tail"
+ },
+ {
+  "key": "bubble_beam",
+  "name": "Bubble Beam",
+  "element": "tide",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/bubble-beam"
+ },
+ {
+  "key": "iron_defense",
+  "name": "Iron Defense",
+  "element": "alloy",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/iron-defense"
  },
  {
   "key": "skull_bash",
@@ -3436,15 +4280,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/skull-bash"
  },
  {
-  "key": "rain_dance",
-  "name": "Rain Dance",
-  "element": "tide",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "weather",
-  "source": "pokeapi move/rain-dance"
- },
- {
   "key": "hydro_pump",
   "name": "Hydro Pump",
   "element": "tide",
@@ -3452,6 +4287,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 110,
   "accuracy": 80,
   "source": "pokeapi move/hydro-pump"
+ },
+ {
+  "key": "headbutt",
+  "name": "Headbutt",
+  "element": "plain",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/headbutt"
+ },
+ {
+  "key": "wave_crash",
+  "name": "Wave Crash",
+  "element": "tide",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/wave-crash"
  },
  {
   "key": "flash_cannon",
@@ -3463,6 +4316,28 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/flash-cannon"
  },
  {
+  "key": "aqua_jet",
+  "name": "Aqua Jet",
+  "element": "tide",
+  "cls": "physical",
+  "power": 40,
+  "priority": 1,
+  "accuracy": 100,
+  "source": "pokeapi move/aqua-jet",
+  "archetype": "dash"
+ },
+ {
+  "key": "fake_out",
+  "name": "Fake Out",
+  "element": "plain",
+  "cls": "physical",
+  "power": 40,
+  "priority": 3,
+  "accuracy": 100,
+  "source": "pokeapi move/fake-out",
+  "archetype": "dash"
+ },
+ {
   "key": "magical_leaf",
   "name": "Magical Leaf",
   "element": "bloom",
@@ -3470,6 +4345,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": null,
   "source": "pokeapi move/magical-leaf"
+ },
+ {
+  "key": "natural_gift",
+  "name": "Natural Gift",
+  "element": "plain",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/natural-gift"
  },
  {
   "key": "body_slam",
@@ -3483,6 +4367,16 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 30
  },
  {
+  "key": "giga_drain",
+  "name": "Giga Drain",
+  "element": "bloom",
+  "cls": "special",
+  "power": 75,
+  "accuracy": 100,
+  "source": "pokeapi move/giga-drain",
+  "drain": 0.5
+ },
+ {
   "key": "quick_attack",
   "name": "Quick Attack",
   "element": "plain",
@@ -3492,6 +4386,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 100,
   "source": "pokeapi move/quick-attack",
   "archetype": "dash"
+ },
+ {
+  "key": "rollout",
+  "name": "Rollout",
+  "element": "stone",
+  "cls": "physical",
+  "power": 30,
+  "accuracy": 90,
+  "source": "pokeapi move/rollout"
  },
  {
   "key": "flame_wheel",
@@ -3505,6 +4408,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 10
  },
  {
+  "key": "defense_curl",
+  "name": "Defense Curl",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/defense-curl"
+ },
+ {
   "key": "swift",
   "name": "Swift",
   "element": "plain",
@@ -3513,6 +4425,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": null,
   "source": "pokeapi move/swift",
   "archetype": "nova"
+ },
+ {
+  "key": "flame_charge",
+  "name": "Flame Charge",
+  "element": "blaze",
+  "cls": "physical",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/flame-charge"
  },
  {
   "key": "lava_plume",
@@ -3527,13 +4448,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "rollout",
-  "name": "Rollout",
-  "element": "stone",
-  "cls": "physical",
-  "power": 30,
+  "key": "overheat",
+  "name": "Overheat",
+  "element": "blaze",
+  "cls": "special",
+  "power": 130,
   "accuracy": 90,
-  "source": "pokeapi move/rollout"
+  "source": "pokeapi move/overheat"
  },
  {
   "key": "eruption",
@@ -3546,13 +4467,31 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "rage",
-  "name": "Rage",
-  "element": "plain",
+  "key": "burn_up",
+  "name": "Burn Up",
+  "element": "blaze",
+  "cls": "special",
+  "power": 130,
+  "accuracy": 100,
+  "source": "pokeapi move/burn-up"
+ },
+ {
+  "key": "gyro_ball",
+  "name": "Gyro Ball",
+  "element": "alloy",
   "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/gyro-ball"
+ },
+ {
+  "key": "mud_slap",
+  "name": "Mud-Slap",
+  "element": "quake",
+  "cls": "special",
   "power": 20,
   "accuracy": 100,
-  "source": "pokeapi move/rage"
+  "source": "pokeapi move/mud-slap"
  },
  {
   "key": "ice_fang",
@@ -3566,13 +4505,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 10
  },
  {
-  "key": "crunch",
-  "name": "Crunch",
-  "element": "gloom",
+  "key": "flail",
+  "name": "Flail",
+  "element": "plain",
   "cls": "physical",
-  "power": 80,
+  "power": 0,
   "accuracy": 100,
-  "source": "pokeapi move/crunch"
+  "source": "pokeapi move/flail"
  },
  {
   "key": "thrash",
@@ -3584,6 +4523,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/thrash"
  },
  {
+  "key": "chip_away",
+  "name": "Chip Away",
+  "element": "plain",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/chip-away"
+ },
+ {
+  "key": "low_kick",
+  "name": "Low Kick",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/low-kick"
+ },
+ {
   "key": "superpower",
   "name": "Superpower",
   "element": "brawl",
@@ -3591,6 +4548,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 120,
   "accuracy": 100,
   "source": "pokeapi move/superpower"
+ },
+ {
+  "key": "agility",
+  "name": "Agility",
+  "element": "mind",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/agility"
+ },
+ {
+  "key": "hyper_fang",
+  "name": "Hyper Fang",
+  "element": "plain",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 90,
+  "source": "pokeapi move/hyper-fang"
  },
  {
   "key": "pursuit",
@@ -3602,13 +4577,22 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/pursuit"
  },
  {
-  "key": "hyper_fang",
-  "name": "Hyper Fang",
+  "key": "super_fang",
+  "name": "Super Fang",
   "element": "plain",
   "cls": "physical",
-  "power": 80,
+  "power": 0,
   "accuracy": 90,
-  "source": "pokeapi move/hyper-fang"
+  "source": "pokeapi move/super-fang"
+ },
+ {
+  "key": "assurance",
+  "name": "Assurance",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/assurance"
  },
  {
   "key": "sucker_punch",
@@ -3622,13 +4606,42 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "dash"
  },
  {
-  "key": "defense_curl",
-  "name": "Defense Curl",
+  "key": "endeavor",
+  "name": "Endeavor",
   "element": "plain",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/endeavor"
+ },
+ {
+  "key": "sandstorm",
+  "name": "Sandstorm",
+  "element": "stone",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/sandstorm"
+ },
+ {
+  "key": "bide",
+  "name": "Bide",
+  "element": "plain",
+  "cls": "physical",
+  "power": 0,
+  "priority": 1,
+  "accuracy": null,
+  "source": "pokeapi move/bide",
+  "archetype": "dash"
+ },
+ {
+  "key": "rock_polish",
+  "name": "Rock Polish",
+  "element": "stone",
   "cls": "status",
   "power": 0,
   "statusKind": "buff",
-  "source": "pokeapi move/defense-curl"
+  "source": "pokeapi move/rock-polish"
  },
  {
   "key": "rock_throw",
@@ -3638,6 +4651,25 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 50,
   "accuracy": 90,
   "source": "pokeapi move/rock-throw"
+ },
+ {
+  "key": "bulldoze",
+  "name": "Bulldoze",
+  "element": "quake",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/bulldoze",
+  "archetype": "nova"
+ },
+ {
+  "key": "harden",
+  "name": "Harden",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/harden"
  },
  {
   "key": "magnitude",
@@ -3659,6 +4691,25 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
+  "key": "smack_down",
+  "name": "Smack Down",
+  "element": "stone",
+  "cls": "physical",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/smack-down"
+ },
+ {
+  "key": "rock_slide",
+  "name": "Rock Slide",
+  "element": "stone",
+  "cls": "physical",
+  "power": 75,
+  "accuracy": 90,
+  "source": "pokeapi move/rock-slide",
+  "archetype": "nova"
+ },
+ {
   "key": "rock_blast",
   "name": "Rock Blast",
   "element": "stone",
@@ -3667,6 +4718,35 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 90,
   "source": "pokeapi move/rock-blast",
   "hits": 4
+ },
+ {
+  "key": "earthquake",
+  "name": "Earthquake",
+  "element": "quake",
+  "cls": "physical",
+  "power": 100,
+  "accuracy": 100,
+  "source": "pokeapi move/earthquake",
+  "archetype": "nova"
+ },
+ {
+  "key": "explosion",
+  "name": "Explosion",
+  "element": "plain",
+  "cls": "physical",
+  "power": 250,
+  "accuracy": 100,
+  "source": "pokeapi move/explosion",
+  "archetype": "nova"
+ },
+ {
+  "key": "stone_edge",
+  "name": "Stone Edge",
+  "element": "stone",
+  "cls": "physical",
+  "power": 100,
+  "accuracy": 80,
+  "source": "pokeapi move/stone-edge"
  },
  {
   "key": "comet_punch",
@@ -3699,13 +4779,23 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/silver-wind"
  },
  {
-  "key": "agility",
-  "name": "Agility",
-  "element": "mind",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/agility"
+  "key": "struggle_bug",
+  "name": "Struggle Bug",
+  "element": "hive",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/struggle-bug",
+  "archetype": "nova"
+ },
+ {
+  "key": "bug_buzz",
+  "name": "Bug Buzz",
+  "element": "hive",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-buzz"
  },
  {
   "key": "poison_sting",
@@ -3719,14 +4809,42 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 30
  },
  {
-  "key": "fury_swipes",
-  "name": "Fury Swipes",
-  "element": "plain",
+  "key": "fury_cutter",
+  "name": "Fury Cutter",
+  "element": "hive",
   "cls": "physical",
-  "power": 18,
-  "accuracy": 80,
-  "source": "pokeapi move/fury-swipes",
-  "hits": 4
+  "power": 40,
+  "accuracy": 95,
+  "source": "pokeapi move/fury-cutter"
+ },
+ {
+  "key": "dig",
+  "name": "Dig",
+  "element": "quake",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/dig"
+ },
+ {
+  "key": "sand_tomb",
+  "name": "Sand Tomb",
+  "element": "quake",
+  "cls": "physical",
+  "power": 35,
+  "accuracy": 85,
+  "source": "pokeapi move/sand-tomb",
+  "ailment": "root",
+  "ailmentChance": 100
+ },
+ {
+  "key": "swords_dance",
+  "name": "Swords Dance",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/swords-dance"
  },
  {
   "key": "absorb",
@@ -3759,23 +4877,31 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "drain": 0.5
  },
  {
-  "key": "natural_gift",
-  "name": "Natural Gift",
-  "element": "plain",
-  "cls": "physical",
-  "power": 0,
+  "key": "moonblast",
+  "name": "Moonblast",
+  "element": "fae",
+  "cls": "special",
+  "power": 95,
   "accuracy": 100,
-  "source": "pokeapi move/natural-gift"
+  "source": "pokeapi move/moonblast"
  },
  {
-  "key": "giga_drain",
-  "name": "Giga Drain",
-  "element": "bloom",
-  "cls": "special",
-  "power": 75,
+  "key": "pound",
+  "name": "Pound",
+  "element": "plain",
+  "cls": "physical",
+  "power": 40,
   "accuracy": 100,
-  "source": "pokeapi move/giga-drain",
-  "drain": 0.5
+  "source": "pokeapi move/pound"
+ },
+ {
+  "key": "mud_shot",
+  "name": "Mud Shot",
+  "element": "quake",
+  "cls": "special",
+  "power": 55,
+  "accuracy": 95,
+  "source": "pokeapi move/mud-shot"
  },
  {
   "key": "double_slap",
@@ -3788,22 +4914,22 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "hits": 4
  },
  {
-  "key": "bubble_beam",
-  "name": "Bubble Beam",
-  "element": "tide",
-  "cls": "special",
-  "power": 65,
+  "key": "wake_up_slap",
+  "name": "Wake-Up Slap",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 70,
   "accuracy": 100,
-  "source": "pokeapi move/bubble-beam"
+  "source": "pokeapi move/wake-up-slap"
  },
  {
-  "key": "mud_shot",
-  "name": "Mud Shot",
+  "key": "earth_power",
+  "name": "Earth Power",
   "element": "quake",
   "cls": "special",
-  "power": 55,
-  "accuracy": 95,
-  "source": "pokeapi move/mud-shot"
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/earth-power"
  },
  {
   "key": "mud_bomb",
@@ -3826,13 +4952,23 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 40
  },
  {
-  "key": "harden",
-  "name": "Harden",
-  "element": "plain",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/harden"
+  "key": "incinerate",
+  "name": "Incinerate",
+  "element": "blaze",
+  "cls": "special",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/incinerate",
+  "archetype": "nova"
+ },
+ {
+  "key": "clear_smog",
+  "name": "Clear Smog",
+  "element": "venom",
+  "cls": "special",
+  "power": 50,
+  "accuracy": null,
+  "source": "pokeapi move/clear-smog"
  },
  {
   "key": "ancient_power",
@@ -3844,14 +4980,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/ancient-power"
  },
  {
-  "key": "rock_slide",
-  "name": "Rock Slide",
-  "element": "stone",
-  "cls": "physical",
-  "power": 75,
-  "accuracy": 90,
-  "source": "pokeapi move/rock-slide",
-  "archetype": "nova"
+  "key": "nasty_plot",
+  "name": "Nasty Plot",
+  "element": "gloom",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/nasty-plot"
  },
  {
   "key": "payback",
@@ -3861,6 +4996,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 50,
   "accuracy": 100,
   "source": "pokeapi move/payback"
+ },
+ {
+  "key": "feint_attack",
+  "name": "Feint Attack",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": null,
+  "source": "pokeapi move/feint-attack"
+ },
+ {
+  "key": "hex",
+  "name": "Hex",
+  "element": "wisp",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/hex"
  },
  {
   "key": "extrasensory",
@@ -3903,6 +5056,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/charge"
  },
  {
+  "key": "electro_ball",
+  "name": "Electro Ball",
+  "element": "volt",
+  "cls": "special",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/electro-ball"
+ },
+ {
   "key": "discharge",
   "name": "Discharge",
   "element": "volt",
@@ -3913,6 +5075,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailment": "stun",
   "ailmentChance": 30,
   "archetype": "nova"
+ },
+ {
+  "key": "power_gem",
+  "name": "Power Gem",
+  "element": "stone",
+  "cls": "special",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/power-gem"
+ },
+ {
+  "key": "cotton_guard",
+  "name": "Cotton Guard",
+  "element": "bloom",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/cotton-guard"
  },
  {
   "key": "signal_beam",
@@ -3926,15 +5106,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 10
  },
  {
-  "key": "power_gem",
-  "name": "Power Gem",
-  "element": "stone",
-  "cls": "special",
-  "power": 80,
-  "accuracy": 100,
-  "source": "pokeapi move/power-gem"
- },
- {
   "key": "thunder",
   "name": "Thunder",
   "element": "volt",
@@ -3946,6 +5117,25 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 30
  },
  {
+  "key": "charge_beam",
+  "name": "Charge Beam",
+  "element": "volt",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 90,
+  "source": "pokeapi move/charge-beam"
+ },
+ {
+  "key": "dazzling_gleam",
+  "name": "Dazzling Gleam",
+  "element": "fae",
+  "cls": "special",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/dazzling-gleam",
+  "archetype": "nova"
+ },
+ {
   "key": "present",
   "name": "Present",
   "element": "plain",
@@ -3953,6 +5143,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 0,
   "accuracy": 90,
   "source": "pokeapi move/present"
+ },
+ {
+  "key": "drill_peck",
+  "name": "Drill Peck",
+  "element": "gale",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/drill-peck"
  },
  {
   "key": "powder_snow",
@@ -3967,13 +5166,24 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "mud_slap",
-  "name": "Mud-Slap",
-  "element": "quake",
-  "cls": "special",
-  "power": 20,
+  "key": "ice_shard",
+  "name": "Ice Shard",
+  "element": "frost",
+  "cls": "physical",
+  "power": 40,
+  "priority": 1,
   "accuracy": 100,
-  "source": "pokeapi move/mud-slap"
+  "source": "pokeapi move/ice-shard",
+  "archetype": "dash"
+ },
+ {
+  "key": "icicle_crash",
+  "name": "Icicle Crash",
+  "element": "frost",
+  "cls": "physical",
+  "power": 85,
+  "accuracy": 90,
+  "source": "pokeapi move/icicle-crash"
  },
  {
   "key": "icy_wind",
@@ -3986,15 +5196,13 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "ice_shard",
-  "name": "Ice Shard",
-  "element": "frost",
+  "key": "high_horsepower",
+  "name": "High Horsepower",
+  "element": "quake",
   "cls": "physical",
-  "power": 40,
-  "priority": 1,
-  "accuracy": 100,
-  "source": "pokeapi move/ice-shard",
-  "archetype": "dash"
+  "power": 95,
+  "accuracy": 95,
+  "source": "pokeapi move/high-horsepower"
  },
  {
   "key": "blizzard",
@@ -4007,6 +5215,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailment": "chill",
   "ailmentChance": 10,
   "archetype": "nova"
+ },
+ {
+  "key": "gust",
+  "name": "Gust",
+  "element": "gale",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/gust"
  },
  {
   "key": "leech_life",
@@ -4028,6 +5245,17 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/astonish"
  },
  {
+  "key": "poison_fang",
+  "name": "Poison Fang",
+  "element": "venom",
+  "cls": "physical",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/poison-fang",
+  "ailment": "poison",
+  "ailmentChance": 50
+ },
+ {
   "key": "air_cutter",
   "name": "Air Cutter",
   "element": "gale",
@@ -4038,15 +5266,33 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "poison_fang",
-  "name": "Poison Fang",
+  "key": "cross_poison",
+  "name": "Cross Poison",
   "element": "venom",
   "cls": "physical",
-  "power": 50,
+  "power": 70,
   "accuracy": 100,
-  "source": "pokeapi move/poison-fang",
+  "source": "pokeapi move/cross-poison",
   "ailment": "poison",
-  "ailmentChance": 50
+  "ailmentChance": 10
+ },
+ {
+  "key": "acrobatics",
+  "name": "Acrobatics",
+  "element": "gale",
+  "cls": "physical",
+  "power": 55,
+  "accuracy": 100,
+  "source": "pokeapi move/acrobatics"
+ },
+ {
+  "key": "venoshock",
+  "name": "Venoshock",
+  "element": "venom",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/venoshock"
  },
  {
   "key": "lick",
@@ -4078,6 +5324,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/shadow-ball"
  },
  {
+  "key": "dark_pulse",
+  "name": "Dark Pulse",
+  "element": "gloom",
+  "cls": "special",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/dark-pulse"
+ },
+ {
   "key": "dream_eater",
   "name": "Dream Eater",
   "element": "mind",
@@ -4088,15 +5343,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "drain": 0.5
  },
  {
-  "key": "dark_pulse",
-  "name": "Dark Pulse",
-  "element": "gloom",
-  "cls": "special",
-  "power": 80,
-  "accuracy": 100,
-  "source": "pokeapi move/dark-pulse"
- },
- {
   "key": "x_scissor",
   "name": "X-Scissor",
   "element": "hive",
@@ -4104,6 +5350,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 80,
   "accuracy": 100,
   "source": "pokeapi move/x-scissor"
+ },
+ {
+  "key": "energy_ball",
+  "name": "Energy Ball",
+  "element": "bloom",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/energy-ball"
  },
  {
   "key": "beat_up",
@@ -4116,13 +5371,42 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "hits": 6
  },
  {
-  "key": "feint_attack",
-  "name": "Feint Attack",
+  "key": "comeuppance",
+  "name": "Comeuppance",
   "element": "gloom",
   "cls": "physical",
-  "power": 60,
-  "accuracy": null,
-  "source": "pokeapi move/feint-attack"
+  "power": 1,
+  "accuracy": 100,
+  "source": "pokeapi move/comeuppance"
+ },
+ {
+  "key": "foul_play",
+  "name": "Foul Play",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 95,
+  "accuracy": 100,
+  "source": "pokeapi move/foul-play"
+ },
+ {
+  "key": "arm_thrust",
+  "name": "Arm Thrust",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 15,
+  "accuracy": 100,
+  "source": "pokeapi move/arm-thrust",
+  "hits": 4
+ },
+ {
+  "key": "bullet_seed",
+  "name": "Bullet Seed",
+  "element": "bloom",
+  "cls": "physical",
+  "power": 25,
+  "accuracy": 100,
+  "source": "pokeapi move/bullet-seed",
+  "hits": 4
  },
  {
   "key": "horn_attack",
@@ -4153,6 +5437,36 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "hits": 4
  },
  {
+  "key": "rock_smash",
+  "name": "Rock Smash",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/rock-smash"
+ },
+ {
+  "key": "feint",
+  "name": "Feint",
+  "element": "plain",
+  "cls": "physical",
+  "power": 30,
+  "priority": 2,
+  "accuracy": 100,
+  "source": "pokeapi move/feint",
+  "archetype": "dash"
+ },
+ {
+  "key": "pin_missile",
+  "name": "Pin Missile",
+  "element": "hive",
+  "cls": "physical",
+  "power": 25,
+  "accuracy": 95,
+  "source": "pokeapi move/pin-missile",
+  "hits": 4
+ },
+ {
   "key": "aerial_ace",
   "name": "Aerial Ace",
   "element": "gale",
@@ -4171,32 +5485,58 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/brick-break"
  },
  {
-  "key": "counter",
-  "name": "Counter",
+  "key": "close_combat",
+  "name": "Close Combat",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/close-combat"
+ },
+ {
+  "key": "megahorn",
+  "name": "Megahorn",
+  "element": "hive",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 85,
+  "source": "pokeapi move/megahorn"
+ },
+ {
+  "key": "throat_chop",
+  "name": "Throat Chop",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/throat-chop"
+ },
+ {
+  "key": "reversal",
+  "name": "Reversal",
   "element": "brawl",
   "cls": "physical",
   "power": 0,
-  "priority": -5,
   "accuracy": 100,
-  "source": "pokeapi move/counter"
+  "source": "pokeapi move/reversal"
  },
  {
-  "key": "flail",
-  "name": "Flail",
+  "key": "slam",
+  "name": "Slam",
   "element": "plain",
   "cls": "physical",
-  "power": 0,
-  "accuracy": 100,
-  "source": "pokeapi move/flail"
+  "power": 80,
+  "accuracy": 75,
+  "source": "pokeapi move/slam"
  },
  {
-  "key": "low_kick",
-  "name": "Low Kick",
+  "key": "hammer_arm",
+  "name": "Hammer Arm",
   "element": "brawl",
   "cls": "physical",
-  "power": 0,
-  "accuracy": 100,
-  "source": "pokeapi move/low-kick"
+  "power": 100,
+  "accuracy": 90,
+  "source": "pokeapi move/hammer-arm"
  },
  {
   "key": "wood_hammer",
@@ -4217,13 +5557,35 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/rock-tomb"
  },
  {
-  "key": "gust",
-  "name": "Gust",
+  "key": "head_smash",
+  "name": "Head Smash",
+  "element": "stone",
+  "cls": "physical",
+  "power": 150,
+  "accuracy": 80,
+  "source": "pokeapi move/head-smash"
+ },
+ {
+  "key": "freeze_dry",
+  "name": "Freeze-Dry",
+  "element": "frost",
+  "cls": "special",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/freeze-dry",
+  "ailment": "chill",
+  "ailmentChance": 10
+ },
+ {
+  "key": "hurricane",
+  "name": "Hurricane",
   "element": "gale",
   "cls": "special",
-  "power": 40,
-  "accuracy": 100,
-  "source": "pokeapi move/gust"
+  "power": 110,
+  "accuracy": 70,
+  "source": "pokeapi move/hurricane",
+  "ailment": "confuse",
+  "ailmentChance": 30
  },
  {
   "key": "ice_beam",
@@ -4235,6 +5597,52 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/ice-beam",
   "ailment": "chill",
   "ailmentChance": 10
+ },
+ {
+  "key": "peck",
+  "name": "Peck",
+  "element": "gale",
+  "cls": "physical",
+  "power": 35,
+  "accuracy": 100,
+  "source": "pokeapi move/peck"
+ },
+ {
+  "key": "mirror_coat",
+  "name": "Mirror Coat",
+  "element": "mind",
+  "cls": "special",
+  "power": 0,
+  "priority": -5,
+  "accuracy": 100,
+  "source": "pokeapi move/mirror-coat"
+ },
+ {
+  "key": "hail",
+  "name": "Hail",
+  "element": "frost",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/hail"
+ },
+ {
+  "key": "snowscape",
+  "name": "Snowscape",
+  "element": "frost",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/snowscape"
+ },
+ {
+  "key": "sky_attack",
+  "name": "Sky Attack",
+  "element": "gale",
+  "cls": "physical",
+  "power": 140,
+  "accuracy": 90,
+  "source": "pokeapi move/sky-attack"
  },
  {
   "key": "thunder_fang",

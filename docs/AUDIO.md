@@ -6,9 +6,9 @@ How Poke-Watch sounds, where each sound comes from, and what has and hasn't been
 
 | Area | Authentic recordings | Adapted | Original to Poke-Watch | Gap |
 |---|---|---|---|---|
-| Pokémon cries (38) | 38 legacy-era cries from PokeAPI/cries (OGG Vorbis) | Each cry is also stored as an MP3 transcode (ffmpeg) for browsers that can't decode Vorbis; loudness is normalised per cry at load | Synthesised fallback voice per species, used only when both files fail to decode | None |
-| Move sounds (112) | None | None | Every move: a type material, an attack-shape motion and, for 38 moves, a dedicated signature layer (table below) | **No authentic HGSS move SFX.** No licensable source was available; the original set is a stand-in |
-| Music (8 loops, 4 stingers) | None | None | Original chiptune score written for Poke-Watch, played by an in-game sequencer | **No HGSS soundtrack.** It isn't licensable for this project; the music slots below take recordings you have rights to |
+| Pokémon cries (38) | 38 latest-available cries from PokeAPI/cries (OGG Vorbis) | Each cry is also stored as an MP3 transcode (ffmpeg) for browsers that can't decode Vorbis; loudness is normalised per cry at load | Synthesised fallback voice per species, used only when both files fail to decode | None |
+| Move sounds (187) | None | None | Every move: a type material, an attack-shape motion and, for 38 moves, a dedicated signature layer (table below) | **No authentic main-series move SFX.** No licensable source was available; the original set is a stand-in |
+| Music (8 loops, 4 stingers) | None | None | Original chiptune score written for Poke-Watch, played by an in-game sequencer | **No official soundtrack.** It isn't licensable for this project; the music slots below take recordings you have rights to |
 | UI, level-up, pickups, boss alarm | None | None | Synthesised | None |
 
 "Verified" in this document means measured in a recording of the game's own output (the mixer's `captureStream`, through headless Chromium), not that a person listened to it. Recordings are in `shots/audio/` of the working folder (`cries`, `cryfix`, `moves`, `music`, `loop`, `play`; `.webm` and `.wav`, with a `.json` of timed labels and bus meters).
@@ -17,7 +17,7 @@ How Poke-Watch sounds, where each sound comes from, and what has and hasn't been
 
 ### Era audit
 
-PokeAPI/cries offers two sets: `legacy` (the original Game Boy–era cries as heard in HGSS) and `latest` (the remastered cries from Gen VI onward). Both were measured for all 38 Pokémon with ffmpeg `volumedetect`.
+PokeAPI/cries offers legacy and latest recordings. Both were measured for all 38 Pokémon with ffmpeg `volumedetect`.
 
 | | Legacy | Latest |
 |---|---|---|
@@ -26,7 +26,7 @@ PokeAPI/cries offers two sets: `legacy` (the original Game Boy–era cries as he
 | Median length | 0.78 s | 0.94 s |
 | Coverage of the roster | 38 / 38 | 38 / 38 |
 
-**Decision: legacy.** HGSS used the legacy cries, so they match the reference era. They're also more consistent in loudness (a 2.8 dB spread against 8 dB) and shorter, which matters when several play close together in a swarm. Set `"cryEra": "latest"` in `content/roster.json` and run `npm run content` to switch; the importer falls back to the other era per Pokémon and records which one it used (`cry.era` in `art.json`, shown on the Credits screen).
+**Decision: latest.** These are the most recent available official game recordings and bring the current sound identity into the roster. The measured legacy set is more consistent in loudness (a 2.8 dB spread against 8 dB) and shorter, which matters when several play close together in a swarm; the mixer normalises loudness and limits overlapping cries. The importer falls back to the alternate recording per Pokémon and records which one it used (`cry.era` in `art.json`, shown on the Credits screen).
 
 <details><summary>Per-Pokémon measurements (mean dB / length)</summary>
 
@@ -111,9 +111,9 @@ Impacts of the same type within 40 ms are merged into one louder hit, so 30 Embe
 | When full | A new sound replaces the lower-priority voice that ends soonest; if no voice has lower priority, the new sound is skipped |
 | Repeats | UI, pickup, kill and charge-up sounds repeated within their gate time (25–150 ms) are skipped |
 
-Verified (`play` recording, 45 s of bot play from 4:32 in the meadow, through the boss arrival): 492 sounds played, 283 merged impacts, 109 gated repeats, at most 10 voices at once, none dropped. In the `moves` recording all 112 moves were audible above −45 dBFS: median −20 dB, 10th–90th percentile −25.6 to −16.6 dB.
+Verified (`play` recording, 45 s of bot play from 4:32 in the meadow, through the boss arrival): 492 sounds played, 283 merged impacts, 109 gated repeats, at most 10 voices at once, none dropped. In the archived `moves` recording, all 112 moves from the pre-merge catalogue were audible above −45 dBFS: median −20 dB, 10th–90th percentile −25.6 to −16.6 dB. That recording does not cover the current 187-move catalogue.
 
-112 moves; 38 with a dedicated signature layer; all origin: original synthesis.
+187 moves; 38 with a dedicated signature layer; all origin: original synthesis.
 
 | Move | Type | Material | Motion | Charge-up | Signature | Origin |
 |---|---|---|---|---|---|---|

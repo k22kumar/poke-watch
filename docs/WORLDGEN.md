@@ -9,8 +9,8 @@ in `src/rules/surfaces.ts` and the prop overlay in `src/sim/props.ts`. Every num
 
 - Settings → World → Sunpetal Meadow: **Handcrafted** (default) or **Generated each run**.
 - URL: `?world=gen` (or `?world=authored`), e.g. `index.html?go=1&world=gen&seed=7`.
-- Rules: `worldgen.mode: 'generated'`, `worldgen.biomes` (slice: `['meadow']`), `worldgen.size` (128),
-  `worldgen.version` (1), `worldgen.regionSeed` (≥ 0 holds the map fixed across runs, for experiments).
+- Rules: `worldgen.mode: 'generated'`, `worldgen.biomes` (defaults to all four regions), `worldgen.size` (128),
+  `worldgen.version` (2), `worldgen.regionSeed` (≥ 0 holds the map fixed across runs, for experiments).
 
 The map is a pure function: `map = generate(regionSeed, biome, version)`; the region seed is the existing stage seed
 `seed + stage*7919 + loop*104729`. Same seed, same map, on every client (`mapChecksum` in `world/maps.ts` is the value
@@ -22,7 +22,7 @@ a co-op handshake would compare).
 | --- | --- |
 | `World` asks `regionMap(rules.worldgen, biome, seed, species)` instead of `getArena(biome)` | `sim/world.ts`, `world/maps.ts` |
 | Generated maps cached by (biome, seed, version, size), LRU of 6 | `world/maps.ts` |
-| Renderer stages and the ground texture keyed by `map.id` (`meadow` for the arena, `meadow@7v1` for a region); at most 3 generated stages kept, older ones disposed | `render/renderer.ts`, `render/tilestage.ts` |
+| Renderer stages and the ground texture keyed by `map.id` (`meadow` for the arena, `meadow@7v2` for a region); at most 3 generated stages kept, older ones disposed | `render/renderer.ts`, `render/tilestage.ts` |
 | Spatial grid sized for the larger map when generation is on | `sim/run.ts` |
 | Authored arenas are untouched and remain "authored mode" | `world/arenas.ts` |
 
@@ -45,8 +45,9 @@ greps the generator for `Math.sin/cos/atan/hypot/exp/log/pow/random`.
 | Routes | `routes.ts` | A* over (tile, heading) with a turn penalty, so routes are straight runs with corners; only legal steps; reuses earlier routes; crosses water straight on bridges of at most 6 tiles; ponds are reached at their shore; bridge ends are paved onto the route. Roads 3 wide (`path`), trails 2 wide (`dirt`). |
 | Kit | `kit.ts` | 12 stamps with footprint, sockets, precondition, cover and height values (`STAMPS`): shrine ruin, elder oak, pond shore, camp and signpost, hamlet (grammar), battle glade, rock gate, log bridge, hedge gate, stone stair, berry grove, lookout. Objective sites get bare dirt (non-flammable). |
 | Hamlet grammar | `kit.ts` | An E–W street through the site; 5–6-tile lots on its north side, cabins with doors facing the street (the DS camera looks north); hedges behind the lots; a well, fenced garden, flower beds, bench, lamp and a sign on the south side. |
-| Ecology | `ecology.ts` | Moisture from water distance and noise; a low-frequency grove field: 2×2 tree masses on an even grid kept 3–6 tiles off routes (the distance varies along the route so edges never run parallel to it), a scattered band, low props; 4–5 tall-grass fields and 26–34 roadside blocks, topped up until plain grass is at most 77 % of open ground; reeds on banks, lilies on still water, painted flowers. A pass breaks any straight tree edge over 10 tiles with a notch. |
-| Habitat | `ecology.ts` | Bits per tile: water edge, tall grass, rock, dry open ground, meadow, forest edge. The decor layer draws burrow mounds on dry ground, wool tufts on meadow and prints by the water (`render/decor.ts`). Spawns are unchanged: habitat is identity, not a spawn rule. |
+| Ecology | `ecology.ts`, `rules/stages.ts` | Moisture, canopy, tall-grass and reed densities are biome data, not palette swaps. Meadow has broad grass cover; the arid Badlands thin it and expose sand and vents; Frost limits understory and keeps snowbound ground open; humid Duskwood grows dense canopy and reed-fringed wet ground. Existing map structures (rivers, ponds, ridges, hamlets, groves) remain shared. |
+| Habitat | `rules/habitats.ts`, `ecology.ts` | Per-tile bits: water edge, tall grass, rock, dry open ground, meadow, forest edge. Each native species has one or more affinities; generated-region spawns in matching habitat get 2× weight, mismatches retain 0.55× weight, and unclassified species remain neutral. The decor layer draws burrow mounds, wool tufts and water-edge prints (`render/decor.ts`). |
+| Field play | `sim/cells.ts`, `sim/director.ts` | Generated tall grass slows most ground-builds but not Bloom/Hive Pokémon; Badlands sand slows non-Quake/Stone builds and becomes deeper mud when soaked; Frost ground slows non-Ice builds and periodic frost weather can freeze wet ground or ponds into slippery shortcuts; Duskwood wet edges slow builds without Tide, Bloom, Venom or Quake affinity. Rain, fire spread, water-created Wet cells and Electric discharge keep cross-biome counterplay useful. Terrain footing is generated-map-only; regional weather and cell chemistry also apply to authored arenas. |
 | Gameplay pass | `gameplay.ts` | Spawn clearing: no blockers within 12 m, 6–8 cover pieces at 13–21 m, at most 12 within 22 m. Light cover across the map. Chest spots tucked against walls or on high ground. Encounter spaces measured from 64 route samples (hub, chokepoint, overlook, grove, water edge). |
 | Pockets | `gameplay.ts` | Walkable ground the routes never reach is connected by a trail when a legal one exists (it may bridge or climb), otherwise planted as forest, so nothing that looks walkable is an invisible wall. Repair trails clear only trees, bushes and rocks, never buildings or stamps. |
 | Frame | `index.ts` | Border forest, ledge lips, stone outcrops on the 2.5 m ridge top. |
@@ -73,7 +74,7 @@ it says so.
 | rivers / lakes | no water on the ridge; at most 2 lakes, each with a rim ≥ 0.5 m on 3 of 4 sides (land 2–5 tiles out) |
 | groveEdge | no straight tree edge over 12 tiles (hedges, fences and buildings are deliberate lines and do not count) |
 | hamlet | 3–5 cabins, every door on the street and reachable |
-| habitat | every spawn-table species of the region has at least 30 reachable tiles of its habitat |
+| habitat | every classified spawn-table species of the region has at least 30 reachable tiles of its habitat |
 
 ## W4: materials and the overlay
 
@@ -135,8 +136,7 @@ three runs per map the test has little power; it needs more runs per map and a b
   in (P0 had branched before them). Third-person captures of generated regions: `tools/genchasescenes.json`. The
   bot-survival and variety figures above were measured on the _13 base; the simulation is identical (P0 is render-only,
   checksums unchanged), so they carry over.
-- **No Web Worker.** In the slice only the Meadow (stage 0, and stage 4 on a second loop) is generated, at run start.
-  Generation runs on the main thread; see the timings above.
+- **No Web Worker.** Generated regions are built at stage start on the main thread; see the timings above.
 - **Blind review and human playtests** (Different places 90 %, Believable ≥ 3.5) need people. The contact sheet and
   captures are the inputs for them.
 - **W5/W6** (map checksum handshake in co-op, overlay recap lines, PvP fairness and seed pool) are not built;

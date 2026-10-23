@@ -98,6 +98,6 @@ export function resolve(def: CompositionDef, table: StageDef): SpeciesDef[][] | 
 }
 
 /** weather a region can have (Rain soaks, Sun dries and lights the grass) */
-export const REGION_WEATHER: Record<string, ('rain' | 'sun')[]> = {
-  meadow: ['rain', 'sun'], badlands: ['sun'], frost: [], dusk: ['rain'],
+export const REGION_WEATHER: Record<string, ('rain' | 'sun' | 'frost')[]> = {
+  meadow: ['rain', 'sun'], badlands: ['sun'], frost: ['frost'], dusk: ['rain'],
 };

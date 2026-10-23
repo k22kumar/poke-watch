@@ -2,7 +2,7 @@
 
 The rules that keep the world, the creatures (original or imported), the effects and the UI looking like one DS-era production. Each rule names the code that enforces it, so a change is made in one place.
 
-Reference: the 2.5D handheld Pokémon look of HeartGold/SoulSilver (16 px tiles, tilted perspective camera, tiered conifer walls, outlined pixel sprites lit from the top-left, cream text boxes). Poke-Watch copies none of those games' assets; everything below is painted in code or imported by the player.
+Reference: the 2.5D pixel presentation of Pokémon handheld adventures (16 px tiles, tilted perspective camera, tiered tree walls, outlined pixel sprites lit from the top-left, cream text boxes). Poke-Watch copies none of those games' assets; everything below is painted in code or imported by the player.
 
 ## 1. Camera and projection
 

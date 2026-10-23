@@ -32,7 +32,7 @@ void main(){
   // pixel-art ground detail (grass strokes / pebbles) at 24 texels per metre
   vec2 tex = floor(vW.xz * 24.0) + 0.5;
   float d = texture(uDetail, tex / 64.0).r * 2.0;
-  // crisp, outlined path edges resolved per texel (HGSS-style tile transitions)
+  // crisp, outlined path edges resolved per texel
   float t = vP * 1.25 + (vn(tex / 5.0) - 0.5) * 0.35;
   vec3 col = vC;
   if (t > 0.5) col = uPath * (t < 0.57 ? 0.8 : 1.0);

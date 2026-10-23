@@ -1,6 +1,6 @@
 # Maplebrook: overworld vertical slice
 
-Maplebrook is a small town joined to a forest route, Fernwood Trail, with four interiors. It's built to look and feel like a late Nintendo DS 2.5D overworld: HeartGold/SoulSilver's cosy world design shown with Black/White-style rendering. Every map, character, building and creature in it is original.
+Maplebrook is a small town joined to a forest route, Fernwood Trail, with four interiors. It's built to look and feel like a late Nintendo DS 2.5D overworld, combining the cosy world design of handheld Pokémon adventures with the rendering style of the DS-era games. Every map, character, building and creature in it is original.
 
 Build: `node scripts/build.mjs --overworld` produces `dist/overworld.html` (a single file, about 125 KB).
 
@@ -18,7 +18,7 @@ There are no touch controls yet. A tap only dismisses the title card.
 
 ## Visual spec measured from the references
 
-| Characteristic | Reference (HGSS screenshot, 256×192 shown at ≈2.93×; BW city screenshot) | Maplebrook |
+| Characteristic | Reference (DS-era Pokémon field and city screenshots, 256×192 shown at ≈2.93×) | Maplebrook |
 |---|---|---|
 | Native resolution | 256×192 per screen; every element on one pixel grid | Rendered at about 240 px tall, integer-scaled with nearest filtering |
 | Tile and character scale | 16 px tiles; people ≈ 16×27 px (≈1.7 tiles) | 16 px tiles; people 16×27 px inside 24×32 cells; partners 16–24 px |

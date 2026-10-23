@@ -1,6 +1,6 @@
 // Arena art: per-biome palettes for ground, cliffs and water, and every prop sprite an
 // arena can place, painted in code at 16 texels per tile. Sunpetal Meadow reuses the
-// Maplebrook overworld painters (the HeartGold/SoulSilver-style route look); the other
+// Maplebrook overworld painters (handheld route look); the other
 // regions recolour the same shapes so all four read as one production.
 import * as S from '../overworld/sprites';
 import { Sprite, h2, hex, type Ramp, type RGB } from '../overworld/paint';

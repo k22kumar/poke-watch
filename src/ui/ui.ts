@@ -9,7 +9,7 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { weightClass } from '../rules/species';
 import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
-import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
+import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
 import { ABILITIES, abilityOf } from '../rules/abilities';
@@ -264,7 +264,7 @@ export class UI {
       xp: h('div'), portrait: h('div', { class: 'hud-portrait' }), name: h('span', { class: 'nm' }), lvl: h('span', { class: 'lvl' }), types: h('span', { class: 'types' }),
       hpFill: h('div', { class: 'fill' }), hpLag: h('div', { class: 'lag' }), hpText: h('div', { class: 'hptext' }), status: h('div', { class: 'status' }),
       timer: h('div', { class: 'timer' }), stage: h('div', { class: 'stagename' }),
-      kills: h('div'), live: h('small'), fps: h('small'),
+      kills: h('div'), live: h('small'),
       boss: h('div', { class: 'box bossbox hidden' }), bossName: h('div', { class: 'name' }), bossFill: h('div', { class: 'fill' }), bossTypes: h('span', { class: 'types' }),
       slots: h('div', { class: 'hud-bottom' }), vits: h('div', { class: 'vits' }), vignette: h('div', { class: 'vignette' }),
       squad: h('div', { class: 'squad hidden', role: 'group', 'aria-label': 'Squad' }), tagcd: h('div', { class: 'tagcd' }),
@@ -278,17 +278,27 @@ export class UI {
       h('div', { class: 'box infobox' }, H.portrait, h('div', { class: 'col' },
         h('div', { class: 'hud-name' }, H.name, H.lvl),
         H.types,
-        h('div', { class: 'hprow' }, h('span', { class: 'hptag' }, 'HP'), h('div', { class: 'hpbar' }, h('div', { class: 'track' }, H.hpLag, H.hpFill))),
-        H.hpText,
+        h('div', { class: 'hp-line' },
+          h('div', { class: 'hprow' }, h('span', { class: 'hptag' }, 'HP'), h('div', { class: 'hpbar' }, h('div', { class: 'track' }, H.hpLag, H.hpFill))),
+          H.hpText),
         h('div', { class: 'exprow' }, h('span', { class: 'exptag' }, 'EXP'), h('div', { class: 'expbar' }, H.xp)))),
       H.status, H.squad,
       h('div', { class: 'box timebox' }, H.timer, H.stage),
       H.obj,
-      h('div', { class: 'box hud-tr' }, H.kills, H.live, H.fps),
+      h('div', { class: 'box hud-tr' }, H.kills, H.live),
       H.boss, H.slots, H.vits,
       h('div', { class: 'hint' }, h('kbd', {}, 'WASD'), ' move  ', h('kbd', {}, 'Mouse'), ' look + aim  ', h('kbd', {}, 'LMB'), h('kbd', {}, 'RMB'), ' moves  ', h('kbd', {}, 'Q'), ' tag  ', h('kbd', {}, 'E'), ' guard  ', h('kbd', {}, 'Shift'), ' dash  ', h('kbd', {}, 'Space'), ' jump  ', h('kbd', {}, 'Esc'), ' pause'),
     );
     this.add('hud', hud);
+    const touchControls = h('div', { id: 'touch-controls', class: 'touch-controls' },
+      h('button', { type: 'button', class: 'touch-btn moveA', 'data-touch-action': 'moveA', 'aria-label': 'Move A' }, 'A'),
+      h('button', { type: 'button', class: 'touch-btn moveB', 'data-touch-action': 'moveB', 'aria-label': 'Move B' }, 'B'),
+      h('button', { type: 'button', class: 'touch-btn sig', 'data-touch-action': 'sig', 'aria-label': 'Signature / Tag' }, 'Sig'),
+      h('button', { type: 'button', class: 'touch-btn guard', 'data-touch-action': 'guard', 'aria-label': 'Guard' }, 'Guard'),
+      h('button', { type: 'button', class: 'touch-btn jump', 'data-touch-action': 'jump', 'aria-label': 'Jump' }, 'Jump'),
+      h('button', { type: 'button', class: 'touch-btn dash', 'data-touch-action': 'dash', 'aria-label': 'Dash' }, 'Dash'),
+    );
+    this.root.append(touchControls);
     this.root.append(h('div', { id: 'banner', role: 'status', 'aria-live': 'polite' }), h('div', { id: 'plaque' }));
     this.tray = h('div', { id: 'tray-cards', class: 'hidden', role: 'region', 'aria-label': 'Upgrade choices' });
     this.root.append(this.tray);
@@ -345,42 +355,69 @@ export class UI {
     scr.innerHTML = '';
     const roster = h('div', { class: 'roster', role: 'radiogroup', 'aria-label': 'Partner Pokémon' });
     const seedIn = h('input', { type: 'text', inputmode: 'numeric', value: String(Math.floor(Math.random() * 1e6)), 'aria-label': 'Seed' }) as HTMLInputElement;
-    if (!SPECIES.some((s) => s.playable && s.id === this.species)) this.species = SPECIES.find((s) => s.playable)!.id;
+    let offerSeed = Number(seedIn.value) || 1;
+    let offers = starterChoices(offerSeed);
+    let mulligansLeft = 1;
+    if (!offers.length) offers = SPECIES.filter((s) => s.playable).map((s) => s.id);
+    if (!offers.includes(this.species)) this.species = offers[0];
+    const choose = (id: string, card: HTMLElement) => {
+      this.species = id; this.hooks.sound('ui'); this.hooks.cry(id);
+      for (const c of roster.children) { c.setAttribute('aria-checked', 'false'); (c as any)._armed = false; }
+      card.setAttribute('aria-checked', 'true'); (card as any)._armed = true;
+    };
     const go = () => { this.hooks.sound('pick'); this.hooks.start(this.mode, this.species, Number(seedIn.value) || 1); };
-    for (const sp of SPECIES.filter((s) => s.playable)) {
-      const line = lineFrom(sp);
-      const ab = abilityOf(sp);
-      const st = sp.stats;
-      const bars = h('div', { class: 'stats' });
-      for (const [k, lab] of [['hp', 'HP'], ['atk', 'Atk'], ['def', 'Def'], ['spa', 'SpA'], ['spd', 'SpD'], ['spe', 'Spe']] as const) {
-        bars.append(h('span', {}, lab), h('div', { class: 'stat' }, h('div', { style: `width:${Math.min(100, (st[k] / 100) * 100)}%` })), h('b', {}, String(st[k])));
-      }
-      const card: HTMLElement = h('button', {
-        type: 'button', class: 'box choice mon', role: 'radio', 'aria-checked': String(sp.id === this.species), 'aria-label': `${sp.name}, ${sp.elements.map(typeName).join(' and ')} type`,
-        onclick: () => {
-          if (this.species === sp.id && card.getAttribute('aria-checked') === 'true' && document.activeElement === card && (card as any)._armed) { go(); return; }
-          this.species = sp.id; this.hooks.sound('ui'); this.hooks.cry(sp.id);
-          for (const c of roster.children) { c.setAttribute('aria-checked', 'false'); (c as any)._armed = false; }
-          card.setAttribute('aria-checked', 'true'); (card as any)._armed = true;
+    const rebuildRoster = () => {
+      roster.innerHTML = '';
+      for (const id of offers) {
+        const sp = SPECIES_BY_ID[id];
+        if (!sp) continue;
+        const line = lineFrom(sp);
+        const ab = abilityOf(sp);
+        const st = sp.stats;
+        const bars = h('div', { class: 'stats' });
+        for (const [k, lab] of [['hp', 'HP'], ['atk', 'Atk'], ['def', 'Def'], ['spa', 'SpA'], ['spd', 'SpD'], ['spe', 'Spe']] as const) {
+          bars.append(h('span', {}, lab), h('div', { class: 'stat' }, h('div', { style: `width:${Math.min(100, (st[k] / 100) * 100)}%` })), h('b', {}, String(st[k])));
+        }
+        const card: HTMLElement = h('button', {
+          type: 'button', class: 'box choice mon', role: 'radio', 'aria-checked': String(sp.id === this.species), 'aria-label': `${sp.name}, ${sp.elements.map(typeName).join(' and ')} type`,
+          onclick: () => {
+            if (this.species === sp.id && card.getAttribute('aria-checked') === 'true' && document.activeElement === card && (card as any)._armed) { go(); return; }
+            choose(sp.id, card);
+          },
         },
-      },
-        h('div', { class: 'pic' }, copyCanvas(this.hooks.portrait(sp.id))),
-        h('div', { class: 'info' },
-          h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
-          h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),
-          ab ? h('div', { class: 'ability' }, h('b', {}, ABILITIES[ab].name), ' — ', ABILITIES[ab].game) : null,
-          h('div', { class: 'line' }, line.map((s, i) => (i ? `${s.name} (Lv ${line[i - 1].evolveLevel})` : s.name)).join(' → ')),
-          bars),
-      );
-      roster.append(card);
-    }
+          h('div', { class: 'pic' }, copyCanvas(this.hooks.portrait(sp.id))),
+          h('div', { class: 'info' },
+            h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
+            h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),
+            ab ? h('div', { class: 'ability' }, h('b', {}, ABILITIES[ab].name), ' — ', ABILITIES[ab].game) : null,
+            h('div', { class: 'line' }, line.map((s, i) => (i ? `${s.name} (Lv ${line[i - 1].evolveLevel})` : s.name)).join(' → ')),
+            bars),
+        );
+        roster.append(card);
+      }
+    };
+    rebuildRoster();
+    const mulligan = btn(mulligansLeft > 0 ? 'Mulligan (1)' : 'Mulligan used', () => {
+      if (mulligansLeft <= 0) return;
+      offerSeed = (offerSeed + 1) >>> 0;
+      offers = starterChoices(offerSeed);
+      if (!offers.length) offers = SPECIES.filter((s) => s.playable).map((s) => s.id);
+      this.species = offers[0];
+      mulligansLeft = 0;
+      this.hooks.sound('ui');
+      rebuildRoster();
+      btnText.textContent = 'Mulligan used';
+      btnText.disabled = true;
+    }, 'btn');
+    const btnText = mulligan as HTMLButtonElement;
     scr.append(
       h('h2', { class: 'box heading' }, 'Choose your partner'),
-      h('div', { class: 'sub' }, `Mode: ${this.mode.name} · press a partner twice or Start to begin`),
+      h('div', { class: 'sub' }, `Mode: ${this.mode.name} · pick one of the three starters, or use your single mulligan before starting`),
       roster,
       h('div', { class: 'select-actions' },
         btn('Back', () => this.title()),
         h('label', { class: 'seed' }, 'Seed ', seedIn),
+        mulligan,
         btn('Start run', go, 'btn primary')),
     );
     this.backs['screen-select'] = () => this.title();
@@ -421,7 +458,7 @@ export class UI {
     setTimeout(() => this.hud.vignette.classList.remove('hurt'), 180);
   }
 
-  update(ctx: SimContext, dt: number, fps: number) {
+  update(ctx: SimContext, dt: number, _fps: number) {
     const H = this.hud;
     const P = ctx.player;
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) document.getElementById('banner')!.classList.remove('show'); }
@@ -447,7 +484,6 @@ export class UI {
     H.stage.textContent = ctx.portal.active ? 'Portal open!' : bossIn > 0 ? `Boss in ${fmtTime(bossIn)}` : ctx.director.finalSwarm ? 'Final swarm' : biome.name;
     H.kills.textContent = `${ctx.stats.kills.toLocaleString()} KOs`;
     H.live.textContent = `${ctx.enemies.count} wild`;
-    H.fps.textContent = `${Math.round(fps)} fps`;
 
     // status chips: paralysis, active ability, boost, weather
     const ab = abilityOf(P.species);
@@ -603,7 +639,8 @@ export class UI {
     cards.forEach((c, i) => {
       const { look, kind, lines, tags } = this.describeCard(ctx, c);
       const title = c.kind === 'vitamin' || c.kind === 'heal' ? look.name : c.title;
-      const el = h('button', { type: 'button', class: `box card ${c.rarity}`, style: c.element ? `--c:${ELEMENT_DEFS[c.element].color}` : '', onclick: () => this.cardClick(i), 'aria-label': `${kind}: ${title}. ${lines.join('. ')}` },
+      const detail = `${kind}: ${title}. ${lines.join('. ')}`;
+      const el = h('button', { type: 'button', class: `box card ${c.rarity}`, style: c.element ? `--c:${ELEMENT_DEFS[c.element].color}` : '', onclick: () => this.cardClick(i), title: detail, 'aria-label': `${kind}: ${title}`, 'aria-description': lines.join('. ') },
         h('div', { class: 'top' }, c.kind === 'recruit' && c.key ? h('div', { class: 'recruit-pic' }, copyCanvas(this.hooks.portrait(c.key))) : lookIcon(look, 2), c.rarity !== 'common' ? h('span', { class: 'rar' }, c.rarity) : null),
         h('div', { class: 'kind' }, kind),
         h('div', { class: 'title' }, title),
@@ -619,17 +656,25 @@ export class UI {
     const src = ctx.cards.source;
     const head = src === 'swap' ? `You can hold ${ctx.rules.build.maxTechniques} techniques: discard one for ${TECHNIQUE_BY_ID[ctx.build.swap?.tech ?? '']?.title ?? 'the new one'}, or keep yours (X)` : src === 'recruit' ? 'A wild Pokémon wants to join! Pick 1, 2 or 3' : src === 'tag' ? `${ctx.player.squad[cards[0]?.member ?? 0]?.species.name ?? ''} can learn a new Tag Action: 1 or 2` : chest ? 'You found an item ball!' : `Lv ${ctx.player.level - Math.max(0, more)}! Choose 1, 2 or 3 · D-pad ← ↑ →${more > 0 ? ` (${more} more banked)` : ''}`;
     this.upgradeStatus.textContent = head;
+    const actions = src === 'recruit' || src === 'tag' || src === 'swap' ? [] : [
+      act('Reroll', C.rerolls, 'F', () => this.cardAction('reroll')),
+      act('Skip', C.skips, 'X', () => this.cardAction('skip')),
+      act('Banish', C.banishes, 'Z', () => this.toggleBanish()),
+    ];
+    const compactHead = chest || src === 'recruit' || src === 'tag' || src === 'swap'
+      ? head
+      : `Lv ${ctx.player.level - Math.max(0, more)}${more > 0 ? ` · ${more} banked` : ' · Choose 1'}`;
     scr.append(
-      h('h2', { class: 'box heading' }, head),
+      h('div', { class: 'upgrade-toolbar' },
+        h('h2', { class: 'box heading', title: head }, compactHead),
+        actions.length ? h('div', { class: 'card-actions' }, ...actions) : null,
+        h('div', { class: 'sub upgrade-controls' }, 'D-pad picks · C cursor'),
+      ),
       row,
-      h('div', { class: 'sub upgrade-controls' }, '1–3 (4 when swapping) or D-pad ← ↑ → to pick · C toggles cursor/camera control'),
       // recruit and Tag-variant offers have no reroll, skip or banish: the last card is the free 'no'
-      ...(src === 'recruit' || src === 'tag' || src === 'swap' ? [] : [h('div', { class: 'card-actions' },
-        act('Reroll', C.rerolls, 'F', () => this.cardAction('reroll')),
-        act('Skip', C.skips, 'X', () => this.cardAction('skip')),
-        act('Banish', C.banishes, 'Z', () => this.toggleBanish()))]),
       h('div', { class: 'sub banish-hint hidden' }, 'Banish: choose a card to remove it from this run'),
     );
+    this.root.classList.add('offer-open');
     this.tray.classList.remove('hidden');
   }
   /** A nonmodal offer is showing; card keys remain routed alongside gameplay input. */
@@ -663,7 +708,7 @@ export class UI {
       return {
         look: LEARN_LOOK(TYPE_OF[md?.element ?? 'plain']), kind: c.key === '1' ? 'New Tag Action' : 'Keep Tag Action',
         tags: md ? [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')] : [],
-        lines: [`${m.species.name}`, spec ? `${SHAPE_NAME[spec.archetype] ?? spec.archetype}` : '', spec ? capLabel(compileCaps(spec, { create: TAG_ACTIONS[lineage(m.species)[0].id]?.[c.key === '1' ? 'variant' : 'base'].create })) || (md?.power ? `Power ${md.power} in HGSS` : 'No fixed power') : '', 'Fires when it tags in'],
+        lines: [`${m.species.name}`, spec ? `${SHAPE_NAME[spec.archetype] ?? spec.archetype}` : '', spec ? capLabel(compileCaps(spec, { create: TAG_ACTIONS[lineage(m.species)[0].id]?.[c.key === '1' ? 'variant' : 'base'].create })) || (md?.power ? `Base power ${md.power}` : 'No fixed power') : '', 'Fires when it tags in'],
       };
     }
     // Phase 8b cards: the slot they came from, then what changes
@@ -706,7 +751,7 @@ export class UI {
       return {
         look: LEARN_LOOK(TYPE_OF[md.element]), kind: `${group} · Replace a move`,
         tags: [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')],
-        lines: [`Forget ${old?.spec.name ?? '?'}, learn ${md.name}`, `${SHAPE_NAME[spec.archetype] ?? spec.archetype}`, capLabel(spec.caps) || (md.power ? `Power ${md.power} in HGSS` : 'No fixed power in HGSS'), `Move ${['basic', 'A', 'B', 'C'][c.slot ?? 1]} slot`],
+        lines: [`Forget ${old?.spec.name ?? '?'}, learn ${md.name}`, `${SHAPE_NAME[spec.archetype] ?? spec.archetype}`, capLabel(spec.caps) || (md.power ? `Base power ${md.power}` : 'No fixed power'), `Move ${['basic', 'A', 'B', 'C'][c.slot ?? 1]} slot`],
       };
     }
     if (c.kind === 'learn') {
@@ -722,7 +767,7 @@ export class UI {
         lines: [
           `${SHAPE_NAME[spec.archetype] ?? spec.archetype}`,
           `≈ ${Math.round(spec.dmg * mult * stab)} damage every ${f2(spec.cd)} s${stab > 1 ? ' (same type)' : ''}`,
-          capLabel(spec.caps) || (md.power ? `Power ${md.power} in HGSS` : 'No fixed power in HGSS'),
+          capLabel(spec.caps) || (md.power ? `Base power ${md.power}` : 'No fixed power'),
           `Fills move slot ${P.moves.length + 1}`,
         ],
       };
@@ -740,7 +785,7 @@ export class UI {
       const L = VITAMIN_LOOK[c.key] ?? { name: c.title, glyph: 'upgrade' };
       const V = ctx.rules.vitamins[c.key];
       const cur = P.vitamins[c.key] ?? 0, add = V.add * ctx.rules.cards.rarityMult[c.rarity];
-      return { look: L, kind: L.item ? 'Item' : 'Charm', lines: [`${V.label} +${Math.round(cur * 100)}% → +${Math.round((cur + add) * 100)}%`, L.canon ? `In HGSS: ${L.canon}` : 'Survival-only charm'], tags: [] };
+      return { look: L, kind: L.item ? 'Item' : 'Charm', lines: [`${V.label} +${Math.round(cur * 100)}% → +${Math.round((cur + add) * 100)}%`, L.canon ? `Main-series effect: ${L.canon}` : 'Survival-only charm'], tags: [] };
     }
     const pct = 35 * ctx.rules.cards.rarityMult[c.rarity];
     return { look: HEAL_LOOK, kind: 'Berry', lines: [`Restore ${Math.round(pct)}% HP (+${Math.round(Math.min(P.maxHp - P.hp, P.maxHp * pct / 100))} HP)`, `HP ${Math.ceil(P.hp)}/${Math.round(P.maxHp)}`], tags: [] };
@@ -776,6 +821,7 @@ export class UI {
   hideCards(card?: Card | null) {
     this.tray.classList.add('hidden');
     this.tray.classList.remove('suspended');
+    this.root.classList.remove('offer-open');
     this.cardPending = false;
     if (card !== undefined) {
       const message = card ? `Selected ${card.title}.` : 'Upgrade skipped.';
@@ -948,10 +994,10 @@ export class UI {
       h('h2', {}, 'Credits & sources'),
       h('div', { class: 'credits', tabindex: '0' },
         h('p', {}, h('b', {}, 'Independent fan game. '), 'Poke-Watch is non-commercial and not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company. Pokémon names, designs, cries, items and data are © those companies.'),
-        h('p', {}, h('b', {}, 'Pokémon data: '), 'PokéAPI (species, stats, types, HGSS level-up moves, evolutions, abilities, type chart). Survival balancing (damage, cooldowns, upgrade levels) is Poke-Watch\'s own and kept separate from the canonical values.'),
+        h('p', {}, h('b', {}, 'Pokémon data: '), 'PokéAPI (cross-game level-up moves, species, stats, types, evolutions, abilities and type chart). Survival balancing (damage, cooldowns, upgrade levels) is Poke-Watch\'s own and kept separate from the canonical values.'),
         h('p', {}, h('b', {}, 'Sprites & portraits: '), 'PMD SpriteCollab (CC BY-NC 4.0). Artists are credited per Pokémon below; CHUNSOFT-credited sprites come from the Pokémon Mystery Dungeon games.'),
         h('p', {}, h('b', {}, 'Cries: '), 'PokeAPI/cries, legacy recordings (the DS-era cries). Repository CC0; audio © The Pokémon Company. MP3 copies are transcodes of the same recordings.'),
-        h('p', {}, h('b', {}, 'Icons: '), ICON_LICENSE + ' — HGSS type badges and bag icons. Glyphs for EXP Shards, charms and attack shapes are original.'),
+        h('p', {}, h('b', {}, 'Icons: '), ICON_LICENSE + ' — Pokémon type badges and bag icons. Glyphs for EXP Shards, charms and attack shapes are original.'),
         h('p', {}, h('b', {}, 'Music & sound effects: '), 'original compositions and synthesis made for Poke-Watch (no Pokémon game music or sound effects are included). Font: Pixelify Sans (SIL Open Font License).'),
         h('p', {}, h('b', {}, 'Game: '), 'code, arenas, environment art and effects are original; gameplay formulas are modelled on PokéBonk (no PokéBonk code or assets are used).'),
         h('table', {}, h('tr', {}, h('th', {}, 'Pokémon'), h('th', {}, 'Sprites'), h('th', {}, 'Cry'), h('th', {}, 'Animation notes')),

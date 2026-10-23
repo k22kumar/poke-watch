@@ -4,7 +4,7 @@
 // with per-frame anchors, so loading is decode + register (see builtin.ts).
 import { ELEMENTS, type Element } from '../rules/elements';
 import { MOVES, type MoveData } from '../rules/moves';
-import { SPECIES_BY_ID, type Stats } from '../rules/species';
+import { SPECIES_BY_ID, type SpeciesDef, type Stats } from '../rules/species';
 import { ANIM_STATES, DIRS, NATIVE_CLIP, canvasFrom, type CreatureArt, type FrameRect } from './art';
 import { resolveClips, type SourceAnim } from './clips';
 
@@ -29,6 +29,7 @@ export interface PackSpecies {
   playable?: boolean; blurb?: string;
   starter?: string; learnset?: [number, string][];
   evolvesTo?: string; evolveLevel?: number;
+  canon?: SpeciesDef['canon'];
   art: {
     source: string; // e.g. "PMD SpriteCollab sprite/0004"
     atlas: string; // data: URL (PNG)

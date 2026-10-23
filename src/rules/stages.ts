@@ -18,6 +18,7 @@ export interface BiomeDef {
   ambient: string;
   props: Record<string, number>; // prop type -> count over the map
   particles?: 'petals' | 'embers' | 'snow' | 'motes';
+  ecology: { moisture: number; canopy: number; tallGrass: number; reeds: number };
   music: { root: number; scale: number[]; tempo: number };
 }
 
@@ -34,6 +35,7 @@ export const BIOMES: Record<string, BiomeDef> = {
     ground: ['#5cbf8c', '#6fcc98'], path: '#e6cc90', cliff: '#b89870', water: '#3c8ce0',
     skyTop: '#6cb8ff', skyBottom: '#dff4ff', fog: '#d6f0ff', sun: '#fff6e0', ambient: '#9cc4dc',
     props: { tree: 260, bush: 320, rock: 120, flower: 1400, grass: 2600, pond: 7 },
+    ecology: { moisture: 0, canopy: 0.5, tallGrass: 1, reeds: 1 },
     particles: 'petals', music: { root: 60, scale: [0, 2, 4, 7, 9], tempo: 118 },
   },
   badlands: {
@@ -41,6 +43,7 @@ export const BIOMES: Record<string, BiomeDef> = {
     ground: ['#b8693e', '#cf8a52'], path: '#5a4038', cliff: '#7a3f2c', water: '#ff6a1a', waterGlow: true,
     skyTop: '#d9663a', skyBottom: '#ffc58a', fog: '#f0a070', sun: '#ffd0a0', ambient: '#b07060',
     props: { deadtree: 160, rock: 380, crystal: 120, grass: 900, pond: 9, vent: 40 },
+    ecology: { moisture: -0.24, canopy: 0.16, tallGrass: 0.45, reeds: 0.35 },
     particles: 'embers', music: { root: 57, scale: [0, 3, 5, 7, 10], tempo: 128 },
   },
   frost: {
@@ -48,6 +51,7 @@ export const BIOMES: Record<string, BiomeDef> = {
     ground: ['#e8f2fb', '#c6dcef'], path: '#9fb3c8', cliff: '#7e93ad', water: '#8fd8ff',
     skyTop: '#7fa9d6', skyBottom: '#eef6ff', fog: '#e4eef8', sun: '#ffffff', ambient: '#a8c0de',
     props: { pine: 300, rock: 160, crystal: 160, grass: 700, pond: 6, snowman: 0 },
+    ecology: { moisture: -0.08, canopy: 0.34, tallGrass: 0.55, reeds: 0.55 },
     particles: 'snow', music: { root: 62, scale: [0, 2, 3, 7, 9], tempo: 108 },
   },
   dusk: {
@@ -55,6 +59,7 @@ export const BIOMES: Record<string, BiomeDef> = {
     ground: ['#3d4a3a', '#4b3f5c'], path: '#6b5a4a', cliff: '#3a3048', water: '#7a5cff', waterGlow: true,
     skyTop: '#1d1640', skyBottom: '#6a4a8a', fog: '#3a2e55', sun: '#c9b6ff', ambient: '#6a5a9a',
     props: { darktree: 300, mushroom: 260, rock: 120, crystal: 90, grass: 1600, pond: 6 },
+    ecology: { moisture: 0.2, canopy: 0.72, tallGrass: 0.72, reeds: 1.8 },
     particles: 'motes', music: { root: 55, scale: [0, 1, 5, 7, 8], tempo: 112 },
   },
 };

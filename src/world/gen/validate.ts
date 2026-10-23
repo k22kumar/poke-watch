@@ -3,7 +3,7 @@
 import { dcos, dsin } from '../../core/detmath';
 import { T, PROP_RULES, type ArenaMap } from '../tiles';
 import { HAB, type GateResult, type GenCtx } from './context';
-import { SPECIES_HABITAT } from './ecology';
+import { SPECIES_HABITAT } from '../../rules/habitats';
 import { FIX } from './terrain';
 import { MARGIN } from './plan';
 import { DIRS4, Heap, canStep, d2, navOpen, navTop, walkDist } from './util';

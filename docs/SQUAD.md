@@ -11,7 +11,7 @@ and what was measured. Every number lives in `src/rules/defaults.ts` (`squad`, `
 - **G4 (refactor gate): passed.** `scripts/checksum.ts` replays four bot runs (Cyndaquil, Totodile, Bulbasaur,
   Charmander; Classic, Survival, Boss Rush; 240–420 s). The v8 source and the Phase 4 refactor commit give
   identical hashes at every 60 s mark.
-- **Banked picks.** Upgrade offers wait in a tray while the run keeps going. Choose with 1 / 2 / 3, D-pad
+- **Banked picks.** Upgrade offers wait in a compact top-edge tray while the run keeps going. Choose with 1 / 2 / 3, D-pad
   left/up/right, or click when the cursor is free; C toggles cursor/camera control. Pending level-ups queue one at a time.
 
 ## Phase 5 — coats and reactions (`rules/reactions.ts`, `sim/coats.ts`)

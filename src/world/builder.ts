@@ -223,7 +223,7 @@ export class ArenaBuilder {
     }
     return this;
   }
-  /** rectangular tall-grass block (HGSS patches are blocks), corners nibbled for a softer read */
+  /** rectangular tall-grass block, corners nibbled for a softer read */
   tallRect(x: number, y: number, w: number, h: number, seed = 3) {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
       const corner = (i === x || i === x + w - 1) && (j === y || j === y + h - 1);

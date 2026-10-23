@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
+    "check": "npm run typecheck && npm test && npm run build",
     "typecheck": "tsc --noEmit -p .",
     "test": "tsx --test tests/*.test.ts",
     "sim": "tsx scripts/headless.ts",

@@ -74,7 +74,7 @@ test('starter lines reach their final forms at canonical levels; canonical facts
     for (const id of [a, b]) assert.equal(SPECIES_BY_ID[id].evolveLevel, SPECIES_BY_ID[id].canon?.evolveLevel, `${id}: game level matches canon`);
     for (const id of [a, b, c]) {
       const sp = SPECIES_BY_ID[id];
-      assert.ok(sp.canon?.levelUp.length, `${id}: canonical HGSS level-up list`);
+      assert.ok(sp.canon?.levelUp.length, `${id}: cross-game level-up list`);
       for (const [, k] of sp.learnset ?? []) assert.ok(sp.canon!.levelUp.some(([, m]) => m === k) || [a, b, c].some((x) => SPECIES_BY_ID[x].canon!.levelUp.some(([, m]) => m === k)), `${id}: ${k} is a canonical line move`);
     }
   }

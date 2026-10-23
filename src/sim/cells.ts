@@ -11,6 +11,7 @@
 // Everything decays, the active-cell list is capped, and all randomness uses the world RNG stream.
 
 import type { Element } from '../rules/elements';
+import { HAB } from '../rules/habitats';
 import { T, type ArenaMap } from '../world/tiles';
 import { applyAilment } from './combat';
 import { AG } from '../rules/reactions';
@@ -221,6 +222,15 @@ export function footing(ctx: SimContext, x: number, z: number, elements: readonl
   if (s === CS.frozen) return F_ICE;
   if (s === CS.rubble && !elements.some((e) => HARD.includes(e))) return F_RUBBLE;
   if (s === CS.bramble && enemy && !elements.includes('bloom')) return [ctx.rules.build.brambleSlow, 1];
+  const k = ctx.world.tile(x, z);
+  if (!ctx.world.map.gen || k < 0) return F_NONE;
+  const terrain = ctx.world.map.terrain[k], habitat = ctx.world.habitatAt(x, z), biome = ctx.world.biome.id;
+  if (biome === 'meadow' && terrain === T.tall && !elements.some((e) => e === 'bloom' || e === 'hive')) return [0.78, 1];
+  if (biome === 'badlands' && (terrain === T.sand || terrain === T.dirt) && !elements.some((e) => e === 'quake' || e === 'stone')) {
+    return s === CS.wet ? [0.62, 0.82] : [0.86, 0.92];
+  }
+  if (biome === 'frost' && (terrain === T.grass || terrain === T.sand) && !elements.includes('frost')) return [0.82, 0.88];
+  if (biome === 'dusk' && (habitat & HAB.water) !== 0 && !elements.some((e) => e === 'tide' || e === 'bloom' || e === 'venom' || e === 'quake')) return [0.78, 0.9];
   return F_NONE;
 }
 
@@ -342,4 +352,3 @@ function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
   if (P.hp <= 0) P.hp = 0;
   onHpLoss(ctx, amount * ctx.rules.mode.difficulty);
 }
-

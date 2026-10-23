@@ -1,5 +1,5 @@
 // Stage 4: routes. Roads and trails join the places along the place graph. A* runs over (tile, heading) with a turn
-// penalty, so a route is a few long straight runs with corners — the HGSS look — instead of a wandering line. It
+// penalty, so a route is a few long straight runs with corners instead of a wandering line. It
 // only takes steps a walker can take (0.5 m, or a stair flight north–south), reuses earlier routes, and crosses water
 // only straight, on a bridge of at most 6 tiles (blueprint section 3, "Bridges").
 import { T } from '../tiles';
