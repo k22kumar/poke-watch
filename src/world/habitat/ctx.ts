@@ -62,6 +62,10 @@ export class HabCtx {
   culvert: Uint8Array;
   /** the contest platform (the terrace or forecourt the point sits on): not a perch over its own entries */
   platform: Uint8Array;
+  /** tidal maps: the tiles a tidal fluid body covers at high water (its fluid, and the floor below `tideLevels.high` it
+   *  reaches); dry floor at low water (families.ts tidal) */
+  tide: Uint8Array;
+  tideLevels: { low: number; high: number } | null = null;
   approaches: Approach[] = [];
   joins: Join[] = [];
   /** mode nodes as placed (tile coords) */
@@ -95,6 +99,7 @@ export class HabCtx {
     this.H = new Float32Array(n); this.kind = new Uint8Array(n); this.med = new Uint8Array(n);
     this.wl = new Float32Array(n); this.over = new Float32Array(n);
     this.lock = new Uint8Array(n); this.keep = new Uint8Array(n); this.hazard = new Uint8Array(n); this.culvert = new Uint8Array(n); this.platform = new Uint8Array(n);
+    this.tide = new Uint8Array(n);
     this.habitat = new Uint8Array(n);
   }
 

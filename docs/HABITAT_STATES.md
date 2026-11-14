@@ -1,6 +1,7 @@
 # Habitat environment states: what changes in a match, and what happens to whoever is in the way
 
-Scope: Shrine Gorge (`river-gorge`) and Cinder Crater (`volcanic-ridge`), docs/HABITATS.md. This page says which states
+Scope: Shrine Gorge (`river-gorge`), Cinder Crater (`volcanic-ridge`) and Shoal Grotto (`tidal-cave`, the tide:
+section 7), docs/HABITATS.md. This page says which states
 change while a match runs and which are fixed when the map loads, what each change does to an actor standing in the
 affected space, which defects that turned up (all fixed), and which check covers each transition. Everything below was
 measured in the running sim; `npx tsx scripts/habstate.ts all 2` prints the same measurements for a seed.
@@ -22,7 +23,8 @@ two functions named in the table.
 | Props (trees, rocks burn or break; `stripped` in the validator) | intact at load | **yes** | fire, force; the sim stops at its cover-loss cap (`rules.surfaces.coverLossCap`, 40 % of cover), the validator tests the worse case of all of it gone |
 | Tile conditions (wet, burning grass, ash, rubble) | none at load | yes | the existing cell rules; not habitat-specific |
 | Lava | liquid at load | **no**: Cold on it makes steam, never ice; Heat does nothing | (`cells.ts`) |
-| Water level, falls, a second vent field appearing, a bridge breaking | — | **no such transition exists** | nothing in the game does it |
+| **Tide** (Shoal Grotto only: the tidal floor dry / flooded, the sea's level) | low water at load | **yes, on a fixed cycle** | the sim tick (`rules.habitat.tide`: 90 s; warning from 44 s, high water 52-90 s); section 7 |
+| Water level elsewhere, falls, a second vent field appearing, a bridge breaking | — | **no such transition exists** | nothing in the game does it |
 
 So the Gorge's river **can** freeze and thaw during play (it is a runtime state, not a load-time one), and the Crater's only
 timed hazard is the vent cycle. Both are covered live below. "River frozen when the match starts" is not something a
@@ -139,3 +141,32 @@ Whether the cues read, not whether the rules hold. In a browser build (`npm run 
   trainer's Fire-type exemption and the 3D rule are asserted.
 - Decks over a vent field: none occur (checked on seeds 1-9); the damage rule reads ground height, so a walker on a deck above
   would be safe, by design.
+
+## 7. The tide (Shoal Grotto)
+
+The tidal cave's lower hall, chamber and ramp feet are dry floor at low water and open water at high water (the full
+description, layout and numbers are in docs/HABITATS.md "Tide"). The phase is a pure function of the sim tick (`tidePhase`,
+`tideIn` in `src/sim/hazards.ts`): low water, `warn` s of warning, high water, then low again at the end of the `period`.
+
+**What happens to an actor (as implemented).** Warning: nothing changes on the ground; a `tide` warn event (banner, sound)
+and a pulsing blue overlay on the floor that will flood, on the top decal layer. Flood (`World.setTide(true)`): every
+tidal tile becomes water at the high level in this run's own copy of the map, navigation closes over it, both flow fields
+are rebuilt. Nobody is moved: an actor on the floor is in the water where it stood (a swimmer at the surface) and the liquid
+exposure rule decides, the same rule as a thawed river tile (docs/HAZARDS.md): a Water type or a Pokémon that knows Surf is
+safe; anyone else has 5 s to climb out onto a bank (≤ 0.8 m above the surface). A creature heads for the shore picked on
+entry, then rejoins its route. Ebb (`setTide(false)`): the floor is dry again under whoever is swimming over it (it settles
+onto the floor), the hall reopens. The last safe ground the trainer's next Pokémon comes back to is never a tidal tile.
+Ice on a flooded tile is the river's rule (Cold freezes it); at the ebb the tile is floor again and its cell state thaws to
+wet harmlessly (nobody is put ashore: the ice test needs water under it). That last case is read from the code
+(`cells.ts`), not exercised by a check.
+
+| Check (`scripts/habtide.ts`, asserted by `tests/habtide.test.ts`, seeds 1, 2, 7) | Transition / situation | |
+| --- | --- | --- |
+| `static.gates`, `static.routes` | both waters on the final collision: every gate incl. `reach:flooded`, `independent:flooded`, `tide:*`; low-water shortest route over the tidal floor, high-water shortest route off it | static |
+| `live.cycle` | warn 44.000 s, flood 52.000 s, ebb 90.000 s, twice; tidal floor all open → none → all; stagings and point open at both | live |
+| `live.raid-flow`, `live.raid-party` | the Raiders' flow field and the real Raid party: on the shortcut at low water, never on it at high water, on the point in both | live |
+| `live.warning-escape` | the slowest non-swimmer on the farthest tile at the warning walks out in 1.4 s, no water damage | live |
+| `live.caught`, `live.caught-stays` | the same one at the flood: out on a bank in about 2 s with 37-40 % of its HP lost; one that stays is knocked out at 5 s and the next Pokémon comes in on ground that never floods | live |
+| `live.swimmers` | high water: a Water type and a non-Water Pokémon with Surf take the flooded shortcut, no exposure, sooner than the dry route | live |
+| `live.raider-caught` | a Raider on the shortcut at the flood: in the water, out on a bank, on the point by a dry approach | live |
+| `live.hold-high`, `live.hold-transition` | the Hold by both approaches with the shortcut never open (Raid party live); a Hold across a flood: the raiders caught on the floor all reach the point afterwards | live |

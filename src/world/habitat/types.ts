@@ -62,7 +62,7 @@ export interface HabitatRecipe {
   name: string;
   summary: string;
   /** the generator kernel that lays out this landform (landforms.ts) */
-  landform: 'gorge' | 'crater';
+  landform: 'gorge' | 'crater' | 'shoal';
   /** support model: every playable surface is supported ground or a supported deck */
   support: 'ground';
   medium: Medium;
@@ -95,6 +95,9 @@ export interface HabitatRecipe {
   fallbackSeeds: number[];
   /** the environment states this map really has (validate.ts enumerates every one) */
   states: HabitatState[];
+  /** a tidal fluid body (sim/hazards.ts tideSystem, rules.habitat.tide): its level moves between `low` and `high` (m) over
+   *  one fixed floor, so ground below `high` that the water reaches is dry at low water and flooded at high water */
+  tide?: { low: number; high: number };
 }
 
 /** environment states the validator enumerates (PBL04) */
@@ -102,6 +105,7 @@ export type HabitatState =
   | 'base'
   | 'frozen' // water frozen by Cold: ice is walkable (adds edges; essential routes may not depend on it)
   | 'venting' // vent fields erupt: hazard tiles deal damage (essential routes may not touch them)
+  | 'flooded' // high water: every tidal tile is open water at the tide's high level (essential routes may not touch them)
   | 'stripped'; // every destructible prop (trees, bushes, rocks, boulders, pillars) burnt or broken
 
 // ---- mode graph ----------------------------------------------------------------------------------------------
@@ -177,6 +181,8 @@ export interface HabMeta {
   approaches: { id: string; team: 'A' | 'B'; kind: 'direct' | 'flank'; form: string; tiles: number }[];
   /** hazard tile indices (vent fields) */
   hazard: number[];
+  /** tidal maps: the tiles the water covers at high water (dry floor at low water), and the two levels (m) */
+  tide?: { tiles: number[]; low: number; high: number };
   optional: string[];
   /** the geometry families the map was built from */
   families: FamilyId[];

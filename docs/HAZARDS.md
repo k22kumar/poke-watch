@@ -71,7 +71,10 @@ knockback can carry a creature over a lip that it would never walk over by choic
 - A creature walking by itself stops at the lip of a lethal liquid or a chasm (`avoidsStep`). Knockback above
   `forcedKnock` = 2 m/s still carries it over.
 - After a hazard knockout, the next Pokémon comes in on the last supported dry ground the trainer stood on. That point
-  is only recorded when the ground 0.6 m around it is also safe, so the new Pokémon doesn't start on the lip.
+  is only recorded when the ground 0.6 m around it is also safe, so the new Pokémon doesn't start on the lip, and never on
+  a tidal floor (dry when the trainer stood there, it can be flooded when the next one arrives).
+- **Tide** (Shoal Grotto, docs/HABITATS.md "Tide"): at high water the tidal floor is ordinary water at the tide's level;
+  whoever is on it at the flood is in the water where it stood and the rules above apply unchanged.
 
 ## Tested maps and locations
 
@@ -88,6 +91,7 @@ In the browser, use `?go=1&loc=<map>&mapseed=<seed>&species=<id>&calm=1&tp=<i>,<
 | Mt. Moon | 1 | 19,81 (7 m lip) | walking, diagonal and knocked falls, recovery, creature holds at the lip and falls when knocked |
 | Chargestone Cave | 1 | 39,101 | the same |
 | Viridian Forest | 1 | 62,53 / 58,57 (bridge side) | the same, including walking off a bridge's side |
+| Shoal Grotto (`tidal-cave`) | 1, 2, 7 | the tidal tile farthest from a bank (`scripts/habtide.ts`) | the flood under a standing trainer and Raider, escape, KO and recovery off the tidal floor, swimmers through the flood |
 
 Escape distances (`World.shore`, straight line, for the slowest partner wading at ×0.75 = 5.36 m/s): Shrine Gorge 3, max
 12.1 m (2.25 s); seed 7, max 8.1 m; Cinder Crater 7, max 6.4 m (1.28 s at ×0.7). Every liquid tile can be escaped within

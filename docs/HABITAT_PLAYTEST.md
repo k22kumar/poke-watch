@@ -203,6 +203,13 @@ Run `npm run dev`; `index.html?go=1&loc=<recipe>&mapseed=<seed>&species=bulbasau
 9. **Retreat.** After a Hold with the horde on, retreat by the flank and by the direct approach on each recipe: is the flank worth its 5-8 s?
 10. **Recruits.** Habitat maps open only Holds, so a run on them never gets a recruit (squad stays at 1). Does the Hold feel
     right for one Pokémon, and is that intended?
+11. **Tide warning and flood** (`tidal-cave`, seed 7, `&calm=1&stageTime=40`, then walk down a hall ramp; frames in
+    `tools/tidescenes.json`). At 44 s the banner and the blue pulse on the floor that will flood; at 52 s the water. Record: from the
+    middle of the hall, is it clear which way is out (the exit ramps, the beach), is 8 s enough with a non-swimmer, does the pulse read
+    through the camera at the hall's ends? Repeat with a Water type and swim the flooded hall to the up-ramp: is the swim worth it?
+12. **Tidal Hold** (`tidal-cave`, seed 1 and 2, horde on). Take the low-water shortcut to the point at ~10 s; open the Hold so it
+    runs across the flood (offer it at ~35-45 s). Do Raiders caught in the hall feel like a reward (they wade, lose HP, arrive late)
+    or noise? Does the gallery's causeway, with the hall under it, give a view worth holding?
 
 ## 8. Seeds to keep for the next playtest
 
@@ -216,6 +223,7 @@ Run `npm run dev`; `index.html?go=1&loc=<recipe>&mapseed=<seed>&species=bulbasau
 | Crater 2 | the largest vent field (25 tiles) for the warning test |
 | Crater 5, 8 | the denial probes (68 % at 76,55; 12 floor spots at 55,78) |
 | not Gorge 8 | the second B approach is not 5 tiles from the first: a single-route map for approach-independence tests |
+| Tidal cave 1, 2, 7 | the validated tide seeds (`scripts/habtide.ts`): 7 has the farthest flooded tile (10.5 m) and the shortest swim (8.1 s vs 9.9 s dry) |
 
 ## Reproduce
 

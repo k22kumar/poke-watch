@@ -29,9 +29,11 @@ export function write(g: HabCtx) {
       case HK.shelf: t = sf.shelf; break;
       case HK.tunnel: t = sf.ramp; break;
       case HK.rock: t = T.stone; m.wall[k] = 1; break;
-      case HK.mass: t = g.recipe.landform === 'crater' ? T.stone : sf.rim; m.wall[k] = g.recipe.landform === 'crater' ? 1 : 0; break;
+      case HK.mass: t = g.recipe.landform !== 'gorge' ? T.stone : sf.rim; m.wall[k] = g.recipe.landform !== 'gorge' ? 1 : 0; break;
       default: t = g.H[k] > 0.5 && g.recipe.landform === 'gorge' ? sf.rim : sf.floor;
     }
+    // the tidal floor (dry at low water) reads as the bank: the tide line is visible at every tide
+    if (g.tide[k] && kd !== HK.fluid) t = sf.bank;
     // culverts keep their fluid level for drainage and the water drawn under a low bridge
     if (g.culvert[k]) wl[k] = g.wl[k];
     m.terrain[k] = t;
@@ -199,7 +201,9 @@ export function dress(g: HabCtx) {
   for (let k = 0; k < n; k++) {
     if (!g.play(k)) continue;
     const moist = dist[k] < 6;
-    g.habitat[k] = g.recipe.landform === 'gorge' ? (moist ? HAB.water | HAB.forest : HAB.forest | HAB.grass | HAB.meadow) : (g.hazard[k] ? HAB.dry : HAB.rock | HAB.dry);
+    g.habitat[k] = g.recipe.landform === 'gorge' ? (moist ? HAB.water | HAB.forest : HAB.forest | HAB.grass | HAB.meadow)
+      : g.recipe.landform === 'shoal' ? (moist || g.tide[k] ? HAB.water | HAB.rock : HAB.rock)
+      : (g.hazard[k] ? HAB.dry : HAB.rock | HAB.dry);
   }
 }
 

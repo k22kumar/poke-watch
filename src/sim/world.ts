@@ -67,6 +67,10 @@ export class World {
   readonly voids: Uint8Array | null = null;
   /** an actor below this height has fallen out of the map (hazards on: the lowest floor minus rules.hazards.killDepth) */
   readonly killY: number = -Infinity;
+  /** habitat maps with a tide (HabMeta.tide, hazards on): the tiles high water covers, their dry terrain and fluid
+   *  levels as built (low water), and whether the water is high now (World.setTide; sim/hazards.ts tideSystem) */
+  readonly tide: { tiles: Int32Array; terrain: Uint8Array; wlevel: Float32Array; high: number; mask: Uint8Array } | null = null;
+  tideHigh = false;
 
   constructor(rules: Rules, biome: BiomeDef, seed: number, species: string[] = []) {
     const base = regionMap(rules.worldgen, biome.id, seed, species);
@@ -74,6 +78,15 @@ export class World {
     // one run without touching the map other runs (and the renderer cache) share
     const materials = rules.surfaces.enabled && (!!base.gen || rules.surfaces.inAuthored);
     this.map = materials ? { ...base, wall: base.wall.slice(), platform: base.platform.slice() } : base;
+    // a tide changes terrain and fluid levels during the run: this world's own copy (the cached map is shared)
+    const T0 = rules.hazards.enabled ? base.gen?.hab?.tide : undefined;
+    if (T0 && T0.tiles.length) {
+      this.map = { ...this.map, terrain: base.terrain.slice(), wlevel: (base.wlevel ?? new Float32Array(base.w * base.h).fill(WATER_Y)).slice() };
+      const tiles = Int32Array.from(T0.tiles);
+      const mask = new Uint8Array(base.w * base.h);
+      for (const k of tiles) mask[k] = 1;
+      this.tide = { tiles, terrain: Uint8Array.from(tiles, (k) => base.terrain[k]), wlevel: Float32Array.from(tiles, (k) => this.map.wlevel![k]), high: T0.high, mask };
+    }
     this.w = this.map.w; this.h = this.map.h;
     this.size = this.w;
     this.half = this.w / 2;
@@ -317,6 +330,31 @@ export class World {
     }
     this.flowFrom = -1;
     this.goalFlow = null;
+  }
+
+  /** Tidal maps: set the water high (every tidal tile is open water at the tide's high level) or low (the tiles as built:
+   *  dry floor, and the sea at its low level). Navigation follows at once: tidal tiles close or open, both flow fields are
+   *  rebuilt. Whoever is on a tile that floods is left where it is, in the water, and the exposure rule decides. */
+  setTide(high: boolean) {
+    const D = this.tide;
+    if (!D || high === this.tideHigh) return;
+    this.tideHigh = high;
+    const M = this.map, wl = M.wlevel!;
+    for (let i = 0; i < D.tiles.length; i++) {
+      const k = D.tiles[i];
+      M.terrain[k] = high ? T.water : D.terrain[i];
+      wl[k] = high ? D.high : D.wlevel[i];
+      this.navOpen[k] = M.wall[k] || (M.terrain[k] === T.water && !this.cells.iceAt(k)) || M.platform[k] > 0.6 ? 0 : 1;
+      this.navTop[k] = this.height((k % this.w) - this.half + 0.5, ((k / this.w) | 0) - this.half + 0.5);
+    }
+    this.flowFrom = -1;
+    this.goalFlow = null;
+  }
+
+  /** tidal maps: does high water cover (x, z)? (dry floor at low water counts) */
+  tidalAt(x: number, z: number): boolean {
+    const k = this.tile(x, z);
+    return !!this.tide && k >= 0 && this.tide.mask[k] === 1;
   }
 
   /** W4: the only writer of the wall/platform overlay; keeps navigation in step and forces a new flow field. */
@@ -583,13 +621,21 @@ export class World {
     const W = this.w, H = this.h, k = a % n, i = k % W, j = (k / W) | 0;
     const top = this.over ? this.nodeTop(a) : 0;
     const at = (t: number) => (this.over && this.over[t] > 0 && top >= this.over[t] - DECK_REACH ? n + t : t);
+    // a step up of at most 0.6 m (or a flight of stairs) from node `from` to node `to` (see the neighbour test below)
+    const climb = (to: number, from: number) => (this.over ? this.nodeTop(to) : this.navTop[to]) - (this.over ? this.nodeTop(from) : this.navTop[from]) <= 0.6 + 1e-6 || (!!(this.map.stairs[to % n] || this.map.stairs[from % n]) && Math.abs((to % n) - (from % n)) === W);
     let best = F[a], bi = -1, bj = -1;
     for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
       if (!di && !dj) continue;
       const ni = i + di, nj = j + dj;
       if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue;
-      let v = F[at(nj * W + ni)];
+      const t = at(nj * W + ni);
+      let v = F[t];
       if (v === UNREACHED) continue;
+      // never head for a cheaper tile up a face higher than a step (a causeway's landing at the lip of a hall above the
+      // walker): the flow reached it some other way, and steering at it pins the walker to the face. Drops are left as
+      // they were. A diagonal counts when it is a step up at most through both side tiles (a diagonal up a ramp rises more
+      // than a step between tile centres, but the slope itself is continuous; a corner over a dip or a face is not cut)
+      if (!(di && dj ? climb(at(j * W + ni), a) && climb(t, at(j * W + ni)) && climb(at(nj * W + i), a) && climb(t, at(nj * W + i)) : climb(t, a))) continue;
       if (di && dj) {
         if (F[at(j * W + ni)] === UNREACHED || F[at(nj * W + i)] === UNREACHED) continue;
         if (this.hazard && !this.hazard[k] && (this.hazard[j * W + ni] || this.hazard[nj * W + i])) continue; // never clip a vent tile's corner

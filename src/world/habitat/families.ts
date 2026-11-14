@@ -249,6 +249,26 @@ export function basin(g: HabCtx, cx: number, cy: number, rx: number, ry: number,
   return out;
 }
 
+/** a tidal body: the fluid tiles of medium `med` and every floor tile the water reaches from them through open ground
+ *  (4-neighbours; rock and mass stop it) whose surface lies below `high`. Those tiles are dry at low water and open water
+ *  at `high` (sim/hazards.ts tideSystem); a tile at or above `high` is never covered. Marks g.tide, returns the tiles. */
+export function tidal(g: HabCtx, med: number, low: number, high: number): number[] {
+  g.used.add('channel');
+  const S = g.S, n = S * S, Q: number[] = [];
+  for (let k = 0; k < n; k++) if (g.kind[k] === HK.fluid && g.med[k] === med) { g.tide[k] = 1; Q.push(k); }
+  for (let h = 0; h < Q.length; h++) {
+    const a = Q[h], x = a % S, y = (a / S) | 0;
+    for (const [dx, dy] of DIRS) {
+      if (!g.in(x + dx, y + dy)) continue;
+      const b = g.idx(x + dx, y + dy);
+      if (g.tide[b] || g.kind[b] === HK.rock || g.kind[b] === HK.mass || g.culvert[b] || !(g.H[b] < high - 0.05)) continue;
+      g.tide[b] = 1; Q.push(b);
+    }
+  }
+  g.tideLevels = { low, high };
+  return Q;
+}
+
 // ---- chambers and tunnels ---------------------------------------------------------------------------------------
 
 /** a tunnel: a graded tread carved through rock mass; its sides stay rock. Returns the tiles. */

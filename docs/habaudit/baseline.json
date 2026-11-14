@@ -123,6 +123,66 @@
    "loads": 3,
    "agree": true,
    "ms": "558/570/386"
+  },
+  {
+   "request": "tidal-cave seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "4c15a18c",
+   "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
+   "nav": "258ce6bb.2e7d8a33",
+   "sim": "c342892e",
+   "loads": 4,
+   "agree": true,
+   "ms": "153/156/165/59"
+  },
+  {
+   "request": "tidal-cave seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "9326ae3",
+   "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
+   "nav": "d44c55d2.81a23e65",
+   "sim": "8a21114f",
+   "loads": 4,
+   "agree": true,
+   "ms": "166/162/168/148"
+  },
+  {
+   "request": "tidal-cave/glimmer seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "4c15a18c",
+   "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
+   "nav": "258ce6bb.2e7d8a33",
+   "sim": "c342892e",
+   "loads": 3,
+   "agree": true,
+   "ms": "160/166/111"
+  },
+  {
+   "request": "tidal-cave/glimmer seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "9326ae3",
+   "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
+   "nav": "d44c55d2.81a23e65",
+   "sim": "8a21114f",
+   "loads": 3,
+   "agree": true,
+   "ms": "164/282/94"
   }
  ],
  "replayLinks": [
@@ -929,6 +989,409 @@
     }
    ],
    "sheet": "docs/habaudit/volcanic-ridge-layouts.png"
+  },
+  "tidal-cave": {
+   "layouts": [
+    {
+     "seed": 3,
+     "accepted": 3,
+     "attempts": 1,
+     "checksum": "4c15a18c",
+     "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
+     "orientation": "rot 90° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 436,
+       "length": 123.3,
+       "sinuosity": 4.29,
+       "turns": 1.6,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "A.flank": {
+       "tiles": 403,
+       "length": 77,
+       "sinuosity": 1.49,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      },
+      "B.direct": {
+       "tiles": 436,
+       "length": 126.9,
+       "sinuosity": 4.96,
+       "turns": 1.5,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "B.flank": {
+       "tiles": 425,
+       "length": 81.2,
+       "sinuosity": 1.53,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      }
+     },
+     "vertical": {
+      "contestH": 3,
+      "stageA": 3,
+      "stageB": 3,
+      "relief": 3.3,
+      "bands": {
+       "<2": 716,
+       "2-4": 2041,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 0
+     },
+     "crossings": {
+      "causeway": 2
+     },
+     "deckTiles": 61,
+     "heights": "causeway@3.0",
+     "cover": {
+      "hardTiles": 411,
+      "softTiles": 0,
+      "spurs": 0,
+      "ringTiles": 753
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "contestUsable": 0.88,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 81,
+      "fallsEdges": 0,
+      "tideTiles": 624,
+      "tideExit": 10.4,
+      "shortcutA": 0.207,
+      "swimA": 68,
+      "shortcutB": 0.2,
+      "swimB": 71,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 12.6,
+      "timeB": 13.1,
+      "skew": 0.032,
+      "perches": 0
+     },
+     "shape": {
+      "hall": 102.1,
+      "contestDy": 22.1,
+      "chamber": 5.6,
+      "beachA": 88,
+      "spurA": 4,
+      "crossA": 43.8,
+      "riseA": 14.1,
+      "beachB": 101,
+      "spurB": 2,
+      "crossB": 40,
+      "riseB": 15.8
+     }
+    },
+    {
+     "seed": 7,
+     "accepted": 7,
+     "attempts": 1,
+     "checksum": "9326ae3",
+     "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
+     "orientation": "rot 270°",
+     "routes": {
+      "A.direct": {
+       "tiles": 418,
+       "length": 119.7,
+       "sinuosity": 4.83,
+       "turns": 1.6,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "A.flank": {
+       "tiles": 389,
+       "length": 74.2,
+       "sinuosity": 1.54,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      },
+      "B.direct": {
+       "tiles": 437,
+       "length": 125.7,
+       "sinuosity": 5,
+       "turns": 1.5,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "B.flank": {
+       "tiles": 409,
+       "length": 77.7,
+       "sinuosity": 1.49,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      }
+     },
+     "vertical": {
+      "contestH": 3,
+      "stageA": 3,
+      "stageB": 3,
+      "relief": 3.3,
+      "bands": {
+       "<2": 741,
+       "2-4": 1956,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 0
+     },
+     "crossings": {
+      "causeway": 2
+     },
+     "deckTiles": 70,
+     "heights": "causeway@3.0",
+     "cover": {
+      "hardTiles": 409,
+      "softTiles": 0,
+      "spurs": 0,
+      "ringTiles": 752
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "contestUsable": 0.97,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 88,
+      "fallsEdges": 0,
+      "tideTiles": 662,
+      "tideExit": 10.5,
+      "shortcutA": 0.238,
+      "swimA": 63,
+      "shortcutB": 0.244,
+      "swimB": 67,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 12.2,
+      "timeB": 13.1,
+      "skew": 0.064,
+      "perches": 0
+     },
+     "shape": {
+      "hall": 101.7,
+      "contestDy": 20.7,
+      "chamber": 5.3,
+      "beachA": 71,
+      "spurA": 4,
+      "crossA": 42.5,
+      "riseA": 15.1,
+      "beachB": 102,
+      "spurB": 0,
+      "crossB": 40.8,
+      "riseB": 14.6
+     }
+    },
+    {
+     "seed": 11,
+     "accepted": 11,
+     "attempts": 1,
+     "checksum": "a6dbf6f0",
+     "geometry": "2fcc9e37.9cd0e6cc.e8d80ca3.8fe2e24d.81c5d965.38699dc5.69b19351.811c9dc5",
+     "orientation": "rot 180° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 434,
+       "length": 122,
+       "sinuosity": 4.21,
+       "turns": 1.6,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "A.flank": {
+       "tiles": 396,
+       "length": 75.5,
+       "sinuosity": 1.47,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      },
+      "B.direct": {
+       "tiles": 421,
+       "length": 121.3,
+       "sinuosity": 4.88,
+       "turns": 1.6,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "stable gallery above the tide, causeway over the hall"
+      },
+      "B.flank": {
+       "tiles": 387,
+       "length": 74.1,
+       "sinuosity": 1.49,
+       "turns": 0.3,
+       "rise": 0,
+       "fall": 0,
+       "lo": 3,
+       "hi": 3,
+       "form": "sheltered tunnel through the massif"
+      }
+     },
+     "vertical": {
+      "contestH": 3,
+      "stageA": 3,
+      "stageB": 3,
+      "relief": 3.3,
+      "bands": {
+       "<2": 725,
+       "2-4": 1936,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 0
+     },
+     "crossings": {
+      "causeway": 2
+     },
+     "deckTiles": 70,
+     "heights": "causeway@3.0",
+     "cover": {
+      "hardTiles": 399,
+      "softTiles": 1,
+      "spurs": 0,
+      "ringTiles": 754
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "contestUsable": 0.96,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 84,
+      "fallsEdges": 0,
+      "tideTiles": 654,
+      "tideExit": 9.7,
+      "shortcutA": 0.23,
+      "swimA": 66,
+      "shortcutB": 0.209,
+      "swimB": 67,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 12.6,
+      "timeB": 12.5,
+      "skew": 0.011,
+      "perches": 0
+     },
+     "shape": {
+      "hall": 103.4,
+      "contestDy": 20.8,
+      "chamber": 5.5,
+      "beachA": 65,
+      "spurA": 3,
+      "crossA": 44.9,
+      "riseA": 13.5,
+      "beachB": 90,
+      "spurB": 3,
+      "crossB": 41.7,
+      "riseB": 14
+     }
+    }
+   ],
+   "pairs": [
+    {
+     "a": 3,
+     "b": 7,
+     "checksumA": "4c15a18c",
+     "checksumB": "9326ae3",
+     "routeOverlap": 0.002,
+     "meanElevDiff": 2.84,
+     "wallTilesDiffer": 0.342,
+     "crossingsA": {
+      "causeway": 2
+     },
+     "crossingsB": {
+      "causeway": 2
+     },
+     "coverA": 411,
+     "coverB": 409
+    },
+    {
+     "a": 3,
+     "b": 11,
+     "checksumA": "4c15a18c",
+     "checksumB": "a6dbf6f0",
+     "routeOverlap": 0.13,
+     "meanElevDiff": 2.26,
+     "wallTilesDiffer": 0.259,
+     "crossingsA": {
+      "causeway": 2
+     },
+     "crossingsB": {
+      "causeway": 2
+     },
+     "coverA": 411,
+     "coverB": 399
+    },
+    {
+     "a": 7,
+     "b": 11,
+     "checksumA": "9326ae3",
+     "checksumB": "a6dbf6f0",
+     "routeOverlap": 0.119,
+     "meanElevDiff": 2.27,
+     "wallTilesDiffer": 0.26,
+     "crossingsA": {
+      "causeway": 2
+     },
+     "crossingsB": {
+      "causeway": 2
+     },
+     "coverA": 409,
+     "coverB": 399
+    }
+   ],
+   "sheet": "/private/tmp/claude-501/-Users-kajanthkumar-Projects-vibecode-poke-watch/e27ca793-21d4-425b-8520-4c8baaa90548/scratchpad/habaudit3/tidal-cave-layouts.png"
   }
  },
  "variants": {
@@ -1192,6 +1655,132 @@
     "collision geometry",
     "legacy-snow:snow under rock (1x1 wall=false platform=0.75) vs bush/bushR (1x1 wall=false platform=0.7)"
    ]
+  },
+  "tidal-cave": {
+   "variant": "glimmer",
+   "propRuleIssues": [],
+   "rows": [
+    {
+     "seed": 1,
+     "issues": [],
+     "base": {
+      "checksum": "127d25e7",
+      "geometry": "80eef40d.f22b06a4.7a83934d.0e9b8e15.acb249cb.38699dc5.3511f776.811c9dc5",
+      "paint": "04849741.c1fc8c9d"
+     },
+     "variant": {
+      "checksum": "127d25e7",
+      "geometry": "80eef40d.f22b06a4.7a83934d.0e9b8e15.acb249cb.38699dc5.3511f776.811c9dc5",
+      "paint": "04849741.c1fc8c9d"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 2,
+     "issues": [],
+     "base": {
+      "checksum": "d310e98c",
+      "geometry": "d60f8e49.e1f61601.2a307d26.6572e8e5.7f1a9b0b.38699dc5.1108e6c8.811c9dc5",
+      "paint": "02732b68.ef667ca0"
+     },
+     "variant": {
+      "checksum": "d310e98c",
+      "geometry": "d60f8e49.e1f61601.2a307d26.6572e8e5.7f1a9b0b.38699dc5.1108e6c8.811c9dc5",
+      "paint": "02732b68.ef667ca0"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 3,
+     "issues": [],
+     "base": {
+      "checksum": "4c15a18c",
+      "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
+      "paint": "b87bed98.8f18897f"
+     },
+     "variant": {
+      "checksum": "4c15a18c",
+      "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
+      "paint": "b87bed98.8f18897f"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 4,
+     "issues": [],
+     "base": {
+      "checksum": "cd869ee",
+      "geometry": "48142442.53c6203a.3b62c97d.e1ab6445.c17fe14b.38699dc5.869a1ea0.811c9dc5",
+      "paint": "8eeda995.91fb9a50"
+     },
+     "variant": {
+      "checksum": "cd869ee",
+      "geometry": "48142442.53c6203a.3b62c97d.e1ab6445.c17fe14b.38699dc5.869a1ea0.811c9dc5",
+      "paint": "8eeda995.91fb9a50"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 5,
+     "issues": [],
+     "base": {
+      "checksum": "9c2943b9",
+      "geometry": "a8f0c0cb.3a885e8a.39a9d526.2b7268e5.3ec63be5.38699dc5.6cf7d3fd.811c9dc5",
+      "paint": "c0af32cc.9e265463"
+     },
+     "variant": {
+      "checksum": "9c2943b9",
+      "geometry": "a8f0c0cb.3a885e8a.39a9d526.2b7268e5.3ec63be5.38699dc5.6cf7d3fd.811c9dc5",
+      "paint": "c0af32cc.9e265463"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 6,
+     "issues": [],
+     "base": {
+      "checksum": "20faff4",
+      "geometry": "100540d9.2906451e.673f3d96.2161ed0d.b5d49205.38699dc5.a427a469.811c9dc5",
+      "paint": "36fcf8e6.1c7cc94e"
+     },
+     "variant": {
+      "checksum": "20faff4",
+      "geometry": "100540d9.2906451e.673f3d96.2161ed0d.b5d49205.38699dc5.a427a469.811c9dc5",
+      "paint": "36fcf8e6.1c7cc94e"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 7,
+     "issues": [],
+     "base": {
+      "checksum": "9326ae3",
+      "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
+      "paint": "b7de10ae.0bcb132f"
+     },
+     "variant": {
+      "checksum": "9326ae3",
+      "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
+      "paint": "b7de10ae.0bcb132f"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 8,
+     "issues": [],
+     "base": {
+      "checksum": "75f55745",
+      "geometry": "6daf49c4.e840ab68.8cfe2f03.b685c5ed.2f516625.38699dc5.bdac5d5d.811c9dc5",
+      "paint": "3ade009f.bb8296e0"
+     },
+     "variant": {
+      "checksum": "75f55745",
+      "geometry": "6daf49c4.e840ab68.8cfe2f03.b685c5ed.2f516625.38699dc5.bdac5d5d.811c9dc5",
+      "paint": "3ade009f.bb8296e0"
+     },
+     "foot": {}
+    }
+   ]
   }
  },
  "retries": {
@@ -1271,6 +1860,33 @@
     "failure": {
      "candidates": 9,
      "dialog": "Cinder Crater could not be generated for seed 9: all 9 candidates, the re-rolls and the known valid seeds, failed the playability checks (fixture ×9). No match was started. Pick another seed or map in Settings → World."
+    }
+   }
+  ],
+  "tidal-cave": [
+   {
+    "requested": 9,
+    "attemptsAsked": [
+     9,
+     2917061395,
+     2052309553,
+     3971438100,
+     1012188843,
+     2355227048,
+     1
+    ],
+    "fallbackUsed": 1,
+    "plaque": "map seed 9 → 1 (9 rejected)",
+    "console": "[map] tidal-cave v2 seed 9 — seed 9 was rejected on every attempt (fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected); loaded the known valid seed 1: replay with ?loc=tidal-cave&mapseed=9&hv=2 (this layout alone: ?loc=tidal-cave&mapseed=1&hv=2)",
+    "checksum": "127d25e7",
+    "directChecksum": "127d25e7",
+    "layoutLink": "?loc=tidal-cave&mapseed=1&hv=2",
+    "gates": 19
+   },
+   {
+    "failure": {
+     "candidates": 9,
+     "dialog": "Shoal Grotto could not be generated for seed 9: all 9 candidates, the re-rolls and the known valid seeds, failed the playability checks (fixture ×9). No match was started. Pick another seed or map in Settings → World."
     }
    }
   ]
@@ -1370,6 +1986,48 @@
      "otherRot": {
       "pairs": 327,
       "mean": 0.057,
+      "above50": 0
+     }
+    }
+   }
+  },
+  "tidal-cave": {
+   "seeds": 30,
+   "firstAttempt": 30,
+   "retried": 0,
+   "fallbacks": 0,
+   "errors": 0,
+   "attemptsMean": 1,
+   "attemptsMax": 1,
+   "rejectedByGate": {},
+   "retriedSeeds": [],
+   "msP50": 40,
+   "msP95": 41,
+   "msMax": 41,
+   "msMean": 40,
+   "variety": {
+    "pairs": 435,
+    "routeOverlapMedian": 0.113,
+    "routeOverlapMax": 0.795,
+    "pairsAbove50": 54,
+    "pairsAbove80": 0,
+    "orientations": 8,
+    "sameOrientationPairs": 51,
+    "sameOrientationAbove50": 28,
+    "byRelation": {
+     "sameRotSameMirror": {
+      "pairs": 51,
+      "mean": 0.491,
+      "above50": 28
+     },
+     "sameRotOtherMirror": {
+      "pairs": 61,
+      "mean": 0.473,
+      "above50": 26
+     },
+     "otherRot": {
+      "pairs": 323,
+      "mean": 0.074,
       "above50": 0
      }
     }

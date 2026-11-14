@@ -441,6 +441,161 @@ export function crater(g: HabCtx) {
   border(g, 4, () => Hm + 1.2);
 }
 
+// =================================================================================================================
+// shoal
+// =================================================================================================================
+//
+// A sea cave in a coastal massif, on two connected elevations. The sea inlet (the coastal mouth) runs in from the map
+// edge to a lower chamber; a hall on the lower floor runs from each side's staging, down a ramp, through the chamber;
+// an up-ramp climbs from the chamber to the contest on the upper floor. The water is tidal (families.ts tidal: the hall,
+// the chamber and the low end of every ramp are dry at low water and open water at high water), so the hall is the
+// optional low-water shortcut. Each side's two required approaches stay on the upper floor, above maximum tide: a stable
+// gallery along the hall's far wall that crosses the hall on a causeway (a deck the hall passes under), and a sheltered
+// tunnel through the massif that arrives at the point from the other side. Exit ramps out of the hall onto the gallery
+// keep every flooded tile within a short swim of dry ground.
+
+export function shoal(g: HabCtx) {
+  const R = g.rng('landform'), F = g.recipe.freedoms, L = g.recipe.levels;
+  const fr = (key: string) => R.range(F[key][0], F[key][1]);
+  g.rot = R.int(0, 3); g.mir = R.chance(0.5);
+  const S1 = g.S - 1;
+  const C = (x: number, y: number): Pt => g.P(x / S1, y / S1);
+  const wp = (x: number, y: number, h: number): WP => { const [mx, my] = C(x, y); return { x: mx, y: my, h }; };
+  const Hu = L.upper, Hl = L.lower, Hm = L.mass, lo = L.low;
+  const wob = R.int(1, 1e6);
+
+  // ---- relief: the massif is rock everywhere; every space below is carved out of it (cliff + chamber families) ----
+  g.used.add('cliff'); g.used.add('relief');
+  for (let y = 0; y < g.S; y++) for (let x = 0; x < g.S; x++) {
+    const [cx, cy] = g.Q(x + 0.5, y + 0.5), k = g.idx(x, y);
+    g.H[k] = Hm + Math.round(fbm(cx / 5, cy / 5, wob, 2) * 3) * 0.6; g.kind[k] = HK.mass;
+  }
+
+  // ---- the plan (canonical: team A west, B east; B's numbers are drawn apart, so the two sides are not mirror images) ----
+  const hy = fr('hallY'), hallW = fr('hallW'), cx = S1 / 2 + R.range(-1.5, 1.5), dy = fr('contestDy'), cy = hy - dy;
+  const r0 = g.mode.contestR, chR = fr('chamberR'), chY = hy - 1;
+  const plat = r0 + 2.5;
+  g.shape.hall = +hy.toFixed(1); g.shape.contestDy = +dy.toFixed(1); g.shape.chamber = +chR.toFixed(1);
+  const W = 5; // tread width: the largest essential body (elite, 2.84 m) plus turning margin on diagonals
+  const rampL = (Hu - Hl) / 0.42;
+  type Side = { team: 'A' | 'B'; X: (x: number) => number; sx: number; sy: number; bottom: number; gx: number; gy: number; rise: number; exitBack: number };
+  const sideOf = (team: 'A' | 'B'): Side => {
+    const X = (x: number) => (team === 'A' ? x : S1 - x);
+    const sx = fr('stageX'), sy = hy - fr('stageDy');
+    return { team, X, sx, sy, bottom: sx + 5 + rampL, gx: fr('crossX'), gy: hy + hallW / 2 + fr('galleryOff'), rise: fr('tunnelRise'), exitBack: R.range(7, 8) };
+  };
+  const sides = [sideOf('A'), sideOf('B')];
+
+  // ---- the coastal mouth: the sea inlet from the map edge into the chamber (channel family; the tide's fluid) ----
+  const inletW = fr('inletW'), bend = R.range(-3, 3);
+  // (it ends against the border rock: the open sea lies beyond the map)
+  channel(g, [C(cx, hy + 2.6), C(cx + bend * 0.4, hy + chR + 4), C(cx + bend, S1 - 10), C(cx + bend, S1 - 8)], inletW, { med: MED.water, wl: () => lo, depth: 0.8, lock: true });
+  g.outlets.push(C(cx + bend, S1 - 7));
+  g.sources.push(C(cx + bend, S1 - 7));
+
+  // ---- lower floor: the chamber, the hall through it to both sides, the up-ramp to the contest ----
+  const chamberTiles = chamber(g, ...C(cx, chY), chR, Hl);
+  const [A, B] = sides;
+  const xa = A.X(A.bottom), xb = B.X(B.bottom);
+  const hall = path(g, [wp(xa, hy, Hl), wp(cx, hy, Hl), wp(xb, hy, Hl)], { w: hallW, keep: 0 });
+  g.notes.push(`hall ${hall.length} tiles, chamber ${chamberTiles.length}`);
+  // (it climbs from the chamber's middle, so its waterline at high water is close to the pool)
+  path(g, [wp(cx, chY + 0.5, Hl), wp(cx, cy + plat - 0.5, Hu)], { w: W, keep: 0 });
+
+  // ---- the contest platform on the upper floor, and each side's staging clearing ----
+  g.disc(...C(cx, cy), plat, (k) => { g.kind[k] = HK.floor; g.H[k] = Hu; });
+  const [ccx, ccy] = C(cx, cy);
+  g.contest = { x: ccx, y: ccy, h: Hu, r: r0 };
+  g.nodes.contest = [ccx, ccy];
+  g.disc(ccx, ccy, r0 + 4, (k) => { g.platform[k] = 1; });
+  for (const s of sides) {
+    const st = C(s.X(s.sx), s.sy);
+    g.disc(st[0], st[1], 6, (k) => { if (g.kind[k] !== HK.fluid) { g.kind[k] = HK.floor; g.H[k] = Hu; } });
+    for (const id of ['stage', 'spawn', 'exit']) g.nodes[id + s.team] = st;
+  }
+
+  for (const s of sides) {
+    const X = s.X, tw = (x: number, y: number, h: number) => wp(X(x), y, h);
+    // a point placed from the contest (which is not exactly on the map's axis): dx tiles toward this side
+    const near = (dx: number, y: number, h: number) => wp(cx + (s.team === 'A' ? -dx : dx), y, h);
+    // the shortcut's way down: out of staging onto a ramp into the hall's end (its low end floods at high water)
+    path(g, [tw(s.sx, s.sy, Hu), tw(s.sx + 5, hy, Hu), tw(s.bottom + 0.5, hy, Hl)], { w: W, keep: 0 });
+
+    // direct: the stable gallery. Out of staging round the hall's end, along the hall's far wall above maximum tide, over
+    // the hall on a causeway (a deck the hall passes under) and up to the point
+    const A1 = approach(g, s.team, 'direct', 'stable gallery above the tide, causeway over the hall');
+    const gal: WP[] = [tw(s.sx, s.sy, Hu), tw(s.sx - 2.5, s.gy - 4, Hu), tw(s.sx + 4, s.gy, Hu), tw(s.gx, s.gy, Hu)];
+    // the gallery itself is a broad ledge on its outer side, away from the hall (that floor carries cover and stands; the
+    // hall side stays rock, so a ramp out of the hall is a cut with rock walls, never a slope beside open floor)
+    path(g, [tw(s.sx + 4, s.gy + 2.5, Hu), tw(s.gx - 1, s.gy + 2.5, Hu)], { w: 6, kind: HK.floor, can: (k) => !g.lock[k] && g.kind[k] === HK.mass });
+    const edgeS = hy + hallW / 2 + 0.6, edgeN = hy - hallW / 2 - 0.6;
+    path(g, [...gal, tw(s.gx, edgeS, Hu)], { w: W, approach: A1, keep: 1, can: (k) => !g.lock[k] && g.kind[k] !== HK.fluid && !(g.kind[k] === HK.route && g.H[k] < Hu - 0.5) });
+    // the far landing is cut before the deck is laid, so the deck's ends rest on it
+    path(g, [tw(s.gx, edgeN, Hu), tw(s.gx + 4, edgeN - 3.5, Hu), near(plat - 0.5, cy + 2, Hu), wp(cx, cy, Hu)], { w: W, approach: A1, keep: 1, can: (k) => !g.lock[k] && g.kind[k] !== HK.fluid && !(g.H[k] < Hu - 0.5 && (g.kind[k] === HK.route || g.kind[k] === HK.ramp || g.kind[k] === HK.tunnel)) });
+    causeway(g, C(X(s.gx), edgeS + 0.6), C(X(s.gx), edgeN - 0.6), W, Hu, A1);
+
+    // flank: a sheltered tunnel through the massif, arcing away from the hall and arriving at the point from its far side
+    const A2 = approach(g, s.team, 'flank', 'sheltered tunnel through the massif');
+    const ty = cy - s.rise;
+    tunnel(g, [tw(s.sx, s.sy, Hu), tw(s.sx + 1, s.sy - 12, Hu), tw(s.sx + 9, ty + 4, Hu), near(19, ty, Hu), near(9, ty + 2.5, Hu), near(3, cy - plat + 0.5, Hu), wp(cx, cy, Hu)], W, A2);
+    keepLine(g, A2.pts.slice(-3), 3);
+
+    // exits out of the hall onto the gallery: a ramp up the far wall to the gallery ledge and one up the near wall to the
+    // gallery's landing (the tide's ways out: nobody caught in the hall is far from dry ground)
+    // (an exit only cuts rock or the hall: it may meet an approach's tread, never re-grade it)
+    const cut = (k: number) => !g.lock[k] && (g.kind[k] === HK.mass || (g.H[k] < Hu - 0.5 && (g.kind[k] === HK.route || g.kind[k] === HK.ramp)));
+    // the far-wall exit sits just short of the crossing (never under it), climbing back along the wall to the gallery's
+    // tread; the near-wall exit is just past the crossing, between it and the chamber
+    const xS = s.gx - s.exitBack, xN = s.gx + R.range(6.5, 8);
+    path(g, [tw(xS, hy + hallW / 2 - 1.5, Hl), tw(xS - 6.5, s.gy - W / 2, Hu)], { w: W, keep: 0, can: cut });
+    // the near-wall exit climbs onto the gallery's landing leg, at a point on that leg
+    const l0 = tw(s.gx + 4, edgeN - 3.5, Hu), l1 = near(plat - 0.5, cy + 2, Hu), on = { x: lerp(l0.x, l1.x, 0.35), y: lerp(l0.y, l1.y, 0.35), h: Hu };
+    path(g, [tw(xN, hy - 0.5, Hl), on], { w: W, keep: 0, can: cut });
+
+    // the coastal mouth's shore: a beach from the sea inlet's bank up to the gallery's end. At every tide the waterline
+    // lies on it, so anything in the inlet has a bank to climb out onto (its low end floods at high water)
+    {
+      // one beach near the inlet's sea end, the other just below the chamber, so neither end of the inlet is far from one
+      const yb = s.team === 'A' ? S1 - R.range(9, 10) : hy + R.range(4.5, 6), toward = s.team === 'A' ? -1 : 1;
+      let xe = cx + bend;
+      for (let i = 0; i < 24; i++) { const [mx, my] = C(xe, yb), k = g.idx(Math.floor(mx), Math.floor(my)); if (g.in(Math.floor(mx), Math.floor(my)) && g.kind[k] !== HK.fluid) break; xe += toward * 0.5; }
+      // a steep toe at the water (the waterline is never far up the beach), then the long slope to the gallery
+      const toe = wp(xe + toward * 3.6, yb + (s.team === 'A' ? -0.8 : 0.8), L.high + 0.35);
+      const beach = path(g, [wp(xe + toward * 0.6, yb, lo + 0.2), toe, tw(s.gx + 6, s.gy + 1.5, Hu), tw(s.gx + 1, s.gy, Hu)], { w: W, keep: 0, can: (k) => !g.lock[k] && g.kind[k] === HK.mass });
+      g.shape[`beach${s.team}`] = beach.length;
+      // and a far-wall exit just past the crossing climbs onto the beach's upper slope
+      path(g, [tw(s.gx + 5, hy + hallW / 2 - 1.5, Hl), tw(s.gx + 9.5, s.gy + 0.5, Hu)], { w: W, keep: 0, can: cut });
+    }
+
+    // a rock spur on the gallery's outer margin: indestructible cover along the ledge (boulder family)
+    const sp = spur(g, [C(X(lerp(s.sx + 4, s.gx, 0.55)), s.gy + 3.6), C(X(lerp(s.sx + 4, s.gx, 0.55) + 2.5), s.gy + 3.4)], 1.6, 1.6, (k) => !g.lock[k] && !g.keep[k] && g.kind[k] === HK.floor);
+    g.shape[`spur${s.team}`] = sp.length;
+    g.shape[`cross${s.team}`] = +s.gx.toFixed(1); g.shape[`rise${s.team}`] = +s.rise.toFixed(1);
+  }
+
+  // ---- the landmark beside the point, at the angle farthest from every tread; ruin stubs as cover on the platform ----
+  {
+    let best = -Infinity, bx = ccx, by = ccy;
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * 6.2832, x = ccx + dcos(a) * (r0 + 1.5), y = ccy + dsin(a) * (r0 + 1.5);
+      let d = 9;
+      g.disc(x, y, 9, (k, dd) => { const t = g.kind[k]; if ((t === HK.route || t === HK.ramp || t === HK.tunnel) && dd < d) d = dd; });
+      if (d > best) { best = d; bx = x; by = y; }
+    }
+    g.landmark = { x: bx, y: by, name: g.recipe.props.landmark };
+  }
+  const pieces = R.int(4, 6), a0 = R.range(0, 6.28);
+  for (let i = 0; i < pieces; i++) {
+    const a = a0 + (i / pieces) * 6.283, rr = r0 + 1.6;
+    ruinWall(g, [ccx + dcos(a - 0.13) * rr, ccy + dsin(a - 0.13) * rr], [ccx + dcos(a + 0.13) * rr, ccy + dsin(a + 0.13) * rr], 1.3);
+  }
+  for (const k of chamberTiles) g.lock[k] = 1;
+
+  g.anchors.push(g.nodes.stageB, C(cx, chY), C(xa, hy), C(xb, hy), C(cx, cy - 14));
+  g.m.bossSpot = [Math.floor(ccx), Math.floor(ccy)];
+  border(g, 4, () => Hm + 1.2);
+}
+
 /** is any tread (route, ramp or tunnel tile) within d tiles of k? */
 function treadNear(g: HabCtx, k: number, d: number): boolean {
   const x = k % g.S, y = (k / g.S) | 0;
@@ -452,4 +607,4 @@ function treadNear(g: HabCtx, k: number, d: number): boolean {
   return false;
 }
 
-export const LANDFORMS: Record<string, (g: HabCtx) => void> = { gorge, crater };
+export const LANDFORMS: Record<string, (g: HabCtx) => void> = { gorge, crater, shoal };

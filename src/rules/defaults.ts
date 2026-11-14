@@ -299,6 +299,10 @@ export const defaultRules = {
   habitat: {
     vent: { period: 10, warn: 1.5, active: 2.5, pct: 0.02, bossMult: 0.3, tick: 0.5 },
     ice: { crack: 2, dunk: 0.1 },
+    // a tidal map (HabMeta.tide, docs/HABITATS.md "Tide"): one cycle of `period` s of stage time, low water for the first
+    // `low` s, then `warn` s of rising-water warning (still dry), then high water to the end of the cycle (the tidal floor is
+    // open water). low = period: always low; low = warn = 0: always high. A pure function of the sim tick, like the vents.
+    tide: { period: 90, low: 44, warn: 8 },
   },
   // [I] Liquid exposure and exposed falls (sim/hazards.ts, docs/HAZARDS.md). Every Pokémon can walk into open water
   // or lava and back out; only actual geometry (walls, faces higher than a step, decks) stops movement. A Pokémon in

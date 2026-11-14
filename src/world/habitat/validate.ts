@@ -52,6 +52,8 @@ export interface Layout {
   sinks?: [number, number][];
   dropNav: number;
   states: HabitatState[];
+  /** a tidal fluid body: the tiles it covers at high water (dry floor at low water) and its two levels (m) */
+  tide?: { mask: Uint8Array; low: number; high: number };
 }
 
 export interface SideReport { team: 'A' | 'B'; reach: Record<string, boolean>; exit: boolean; independent: boolean; bottleneck?: [number, number]; lengths: [number, number]; planned: Record<string, boolean> }
@@ -73,7 +75,14 @@ export function stateMap(m: ArenaMap, st: HabitatState, L: Layout): ArenaMap {
   if (st === 'base') return m;
   const out: ArenaMap = { ...m, terrain: m.terrain.slice(), elev: m.elev.slice(), wall: m.wall.slice(), platform: m.platform.slice() };
   const n = m.w * m.h;
-  if (st === 'frozen') {
+  if (st === 'flooded') {
+    // high water: every tidal tile is open water at the tide's high level (sim: World.setTide)
+    if (L.tide) {
+      const wl = m.wlevel ? m.wlevel.slice() : new Float32Array(n).fill(WATER_Y);
+      for (let k = 0; k < n; k++) if (L.tide.mask[k] && !m.wall[k]) { out.terrain[k] = T.water; wl[k] = L.tide.high; }
+      out.wlevel = wl;
+    }
+  } else if (st === 'frozen') {
     // every water tile freezes: walkable ice a hand above its water level (sim: CellField frozen, World.height, ICE_LIFT)
     for (let k = 0; k < n; k++) if (m.terrain[k] === T.water) { out.terrain[k] = T.stone; out.elev[k] = (m.wlevel ? m.wlevel[k] : WATER_Y) + ICE_LIFT; }
   } else if (st === 'venting') {
@@ -474,6 +483,7 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
     metrics.fluidTiles = fl; metrics.fallsEdges = falls;
     gate('drainage', lost === 0, lost ? `${lost}/${fl} fluid tiles do not drain to an outlet or sink` : `${fl} fluid tiles drain to ${(L.outlets ?? []).length} outlet(s) and ${(L.sinks ?? []).length} sink(s)`);
   }
+  if (L.tide) tideGates(m0, L, profiles, baseClear, pathsFor, gate, metrics);
   // body fit along the planned approaches (PBL01): narrowest clearance on each as built
   for (const A of L.approaches ?? []) {
     let narrow = Infinity;
@@ -517,4 +527,145 @@ function bfsSym(m: ArenaMap, src: number, allowed: Uint8Array): Uint8Array {
     }
   }
   return p;
+}
+
+/** the farthest (m) a body caught by high water may be from dry ground it can climb out onto: the slowest playable
+ *  Pokémon wading (7.2 m/s × 0.75 = 5.4 m/s) covers 11 m in about 2 s of the 5 s water clock (about 40 % of its maximum HP) */
+export const TIDE_EXIT = 11;
+/** the low-water shortcut must save at least this share of the best dry route (per side) */
+export const TIDE_GAIN = 0.1;
+/** a body in water climbs a bank this high above the surface (rules.hazards.climbOut) */
+const CLIMB_OUT = 0.8;
+
+/** Tidal gates (docs/HABITATS.md "Tide"), on the final collision:
+ *   tide:dry       the contest, both stagings and every planned approach stay off the tidal floor (above maximum tide)
+ *   tide:exit      at high water every flooded tile is within TIDE_EXIT tiles (swimming) of dry, connected ground it can
+ *                  climb out onto
+ *   tide:shortcut  at low water each side's shortest route to the point, using the dry tidal floor, is at least TIDE_GAIN
+ *                  shorter than its best route that avoids it (the shortcut is worth taking)
+ *   tide:swim      at high water a swimmer (a Water type, or anything knowing Surf) still has that shortcut: a route
+ *                  staging → point through the flooded floor, entering and leaving by banks it can climb, shorter than
+ *                  the best dry route */
+function tideGates(m0: ArenaMap, L: Layout, profiles: BodyProfile[], clear: Float32Array, pathsFor: Record<string, { p1: number[] | null; p2: number[] | null }>,
+  gate: (id: string, ok: boolean, value: string) => void, metrics: Record<string, number>) {
+  const T0 = L.tide!, n = m0.w * m0.h, W = m0.w, N = m0.over ? 2 * n : n;
+  const trainer = profiles.find((p) => p.id === 'trainer')!;
+  const mask = T0.mask;
+  let tiles = 0;
+  for (let k = 0; k < n; k++) if (mask[k] && !m0.wall[k]) tiles++;
+  metrics.tideTiles = tiles;
+  // ---- dry: nothing required is tidal ----
+  const wet: string[] = [];
+  const cT = tileOf(m0, [L.contest.x, L.contest.y]);
+  for (let k = 0; k < n; k++) {
+    if (!mask[k]) continue;
+    const x = (k % W) + 0.5, y = ((k / W) | 0) + 0.5;
+    if ((x - L.contest.x) ** 2 + (y - L.contest.y) ** 2 <= L.contest.r ** 2) { wet.push('contest'); break; }
+  }
+  for (const t of ['A', 'B'] as const) if (mask[tileOf(m0, L.stage[t])]) wet.push(`staging ${t}`);
+  for (const A of L.approaches ?? []) if (A.tiles.some((k) => mask[k] && !(m0.over && m0.over[k] > 0))) wet.push(A.id);
+  gate('tide:dry', wet.length === 0 && L.contest.h > T0.high, wet.length ? `tidal: ${wet.join(', ')}` : `the point (${L.contest.h} m), both stagings and every planned approach stay above maximum tide (${T0.high} m)`);
+
+  // ---- exit at high water: swim distance from every flooded tile to a dry bank it can climb onto ----
+  const fm = stateMap(m0, 'flooded', L), core = enemyCore(fm, cT, L.dropNav);
+  const d = tideExitField(fm, core, T0.high);
+  let worst = 0, stuck = 0;
+  for (let k = 0; k < n; k++) if (fm.terrain[k] === T.water && mask[k]) { if (d[k] === Infinity) stuck++; else worst = Math.max(worst, d[k]); }
+  metrics.tideExit = stuck ? 99 : +worst.toFixed(1);
+  gate('tide:exit', stuck === 0 && worst <= TIDE_EXIT, stuck ? `${stuck} flooded tiles have no bank to climb out onto` : `${tiles} tiles flood at high water; the farthest is ${worst.toFixed(1)} m from a bank (limit ${TIDE_EXIT} m)`);
+
+  // ---- shortcut at low water, and the swimmer's route at high water ----
+  const fitT = new Uint8Array(N);
+  for (let v = 0; v < N; v++) fitT[v] = clear[v] >= trainer.radius - 1e-6 ? 1 : 0;
+  const c = nodeAt(m0, [L.contest.x, L.contest.y], L.contest.h);
+  const lows: string[] = [], swims: string[] = [];
+  let okS = true, okW = true;
+  for (const team of ['A', 'B'] as const) {
+    const s = tileOf(m0, L.stage[team]);
+    const any = pathBetween(m0, s, c, fitT);
+    const dryAllow = fitT.slice();
+    for (let v = 0; v < N; v++) if (v < n && mask[v]) dryAllow[v] = 0;
+    const dry = pathBetween(m0, s, c, dryAllow);
+    const la = any?.length ?? Infinity, ld = dry?.length ?? Infinity;
+    const gain = ld === Infinity ? 0 : 1 - la / ld;
+    metrics[`shortcut${team}`] = +gain.toFixed(3);
+    const usesTide = !!any && any.some((v) => v < n && mask[v]);
+    if (!(usesTide && gain >= TIDE_GAIN)) okS = false;
+    lows.push(`${team} ${la}/${ld} tiles (${(gain * 100).toFixed(0)} %)`);
+    const sw = swimPath(fm, s, c, mask, T0.high, fitT);
+    metrics[`swim${team}`] = sw ?? -1;
+    if (sw === null || sw >= ld) okW = false;
+    swims.push(`${team} ${sw ?? 'none'}/${ld} tiles`);
+  }
+  void pathsFor;
+  gate('tide:shortcut', okS, `low water, shortest through the tidal floor vs best dry route: ${lows.join('; ')} (needs ${TIDE_GAIN * 100} %)`);
+  gate('tide:swim', okW, `high water, a swimmer through the flood vs best dry route: ${swims.join('; ')}`);
+}
+
+/** swim distance (m, tile centre to tile centre: 8 directions, no corner cutting) from every open water tile of the map
+ *  to the nearest bank a body in the water can climb out onto: dry, open, in `core`, at most CLIMB_OUT above the surface
+ *  `wl` and not more than a step below it. Infinity where there is none (and on every dry tile). */
+export function tideExitField(m: ArenaMap, core: Uint8Array, wl: number): Float64Array {
+  const W = m.w, H = m.h, n = W * H, d = new Float64Array(n).fill(Infinity);
+  const water = (k: number) => m.terrain[k] === T.water && !m.wall[k];
+  const heap: number[] = [];
+  const push = (k: number) => { heap.push(k); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (d[heap[p]] <= d[heap[i]]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop()!; if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let b = i; if (l < heap.length && d[heap[l]] < d[heap[b]]) b = l; if (r < heap.length && d[heap[r]] < d[heap[b]]) b = r; if (b === i) break; [heap[b], heap[i]] = [heap[i], heap[b]]; i = b; } } return top; };
+  for (let k = 0; k < n; k++) {
+    if (!water(k)) continue;
+    const x = k % W, y = (k / W) | 0;
+    for (const [dx, dy] of N4) {
+      const i = x + dx, j = y + dy;
+      if (i < 0 || j < 0 || i >= W || j >= H) continue;
+      const b = j * W + i, top = navTop(m, b);
+      if (navOpen(m, b) && core[b] && top - wl <= CLIMB_OUT && top >= wl - 0.6) { d[k] = 1; push(k); break; }
+    }
+  }
+  const seen = new Uint8Array(n);
+  while (heap.length) {
+    const a = pop();
+    if (seen[a]) continue;
+    seen[a] = 1;
+    const x = a % W, y = (a / W) | 0;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      if (!dx && !dy) continue;
+      const i = x + dx, j = y + dy;
+      if (i < 0 || j < 0 || i >= W || j >= H) continue;
+      const b = j * W + i;
+      if (!water(b) || seen[b]) continue;
+      if (dx && dy && !(water(y * W + i) && water(j * W + x))) continue;
+      const v = d[a] + (dx && dy ? Math.SQRT2 : 1);
+      if (v < d[b] - 1e-9) { d[b] = v; push(b); }
+    }
+  }
+  return d;
+}
+
+/** shortest route (tiles) for a swimmer: ground nodes, dry where a trainer fits (steps ≤ 0.6 m) or flooded water at
+ *  level `wl`; a swimmer enters the water off a bank and climbs out onto one at most CLIMB_OUT above the surface. null
+ *  when there is none. The path must reach the contest's ground node (decks are walked as on land). */
+function swimPath(m: ArenaMap, a: number, b: number, mask: Uint8Array, wl: number, fit: Uint8Array): number | null {
+  const n = m.w * m.h, W = m.w, D = new Int32Array(n).fill(-1), Q = new Int32Array(n);
+  const water = (k: number) => m.terrain[k] === T.water && !!mask[k] && !m.wall[k];
+  const top = (k: number) => (water(k) ? wl : navTop(m, k));
+  const ok = (k: number) => water(k) || (navOpen(m, k) && fit[k] === 1);
+  const goal = b % n;
+  if (!ok(a)) return null;
+  let h = 0, t = 0;
+  D[a] = 0; Q[t++] = a;
+  while (h < t) {
+    const u = Q[h++];
+    if (u === goal) return D[u];
+    const x = u % W, y = (u / W) | 0;
+    for (const [dx, dy] of N4) {
+      const i = x + dx, j = y + dy;
+      if (i < 0 || j < 0 || i >= W || j >= m.h) continue;
+      const v = j * W + i;
+      if (D[v] >= 0 || !ok(v)) continue;
+      const dh = top(v) - top(u), lim = water(u) || water(v) ? CLIMB_OUT : 0.6;
+      if (Math.abs(dh) > lim && !(water(v) && dh < 0)) continue; // dropping into water off any bank is allowed
+      D[v] = D[u] + 1; Q[t++] = v;
+    }
+  }
+  return null;
 }

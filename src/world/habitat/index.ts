@@ -13,9 +13,9 @@ import type { GenMeta } from '../gen/context';
 import { mixSeed, navOpen } from '../gen/util';
 import { enemyCore } from '../locgen/nav';
 import { PROP_RULES, T, type ArenaMap } from '../tiles';
-import { HK, HabCtx } from './ctx';
+import { HK, HabCtx, MED } from './ctx';
 import { dress, write } from './dress';
-import { smoothTreads } from './families';
+import { smoothTreads, tidal } from './families';
 import { LANDFORMS } from './landforms';
 import { CONTROL_POINT, profilesFor } from './mode';
 import { HABITATS } from './recipes';
@@ -78,6 +78,12 @@ export function attemptHabitat(recipe: HabitatRecipe, mode: ModeGraph, seed: num
   LANDFORMS[recipe.landform](g);
   const smoothed = smoothTreads(g);
   if (smoothed) g.notes.push(`smoothed ${smoothed} tread tiles`);
+  // a tidal recipe: the floor its water covers at high water, measured on the final heights (nothing is dressed there)
+  if (recipe.tide) {
+    const tiles = tidal(g, MED.water, recipe.tide.low, recipe.tide.high);
+    for (const k of tiles) g.keep[k] = 1;
+    g.notes.push(`tide covers ${tiles.length} tiles at high water`);
+  }
   write(g);
   const m = g.m;
   m.spawn = [Math.floor(g.nodes.spawnA[0]), Math.floor(g.nodes.spawnA[1])];
@@ -107,6 +113,7 @@ export function layoutOf(g: HabCtx): Layout {
     approaches: g.approaches.map((a) => ({ id: a.id, team: a.team, tiles: a.tiles })),
     hazard: g.hazard, culvert: g.culvert, platform: g.platform, joins: g.joins, outlets: g.outlets, sinks: g.sinks,
     dropNav: DROP_NAV, states: g.recipe.states,
+    tide: g.tideLevels ? { mask: g.tide, ...g.tideLevels } : undefined,
   };
 }
 
@@ -120,7 +127,7 @@ function seal(g: HabCtx): number {
     sealed++;
     // ground under a deck stays where it is (the slab spans it); it only becomes impassable
     if (m.over && m.over[k] > 0) { m.wall[k] = 1; continue; }
-    if (g.recipe.landform === 'crater' || g.lock[k] || g.keep[k]) { m.wall[k] = 1; m.elev[k] += 2.5; m.terrain[k] = T.stone; g.kind[k] = HK.rock; }
+    if (g.recipe.landform !== 'gorge' || g.lock[k] || g.keep[k]) { m.wall[k] = 1; m.elev[k] += 2.5; m.terrain[k] = T.stone; g.kind[k] = HK.rock; }
     else if (!g.b.prop(g.vegetation().fill as never, k % S, (k / S) | 0, { force: true, allowPath: true })) { m.wall[k] = 1; g.kind[k] = HK.rock; m.terrain[k] = T.stone; m.elev[k] += 2.5; }
   }
   // decks nobody can reach (an arch over a sealed tunnel) are removed
@@ -236,6 +243,15 @@ function identityOf(g: HabCtx, rep: HabReport): string[] {
     if (tall < 25) out.push('tall-grass');
     if (!(g.shape.spurA > 0 && g.shape.spurB > 0)) out.push('spurs');
     if (decks < 20) out.push('causeways');
+  } else if (g.recipe.landform === 'shoal') {
+    // the tide floods a real floor (hall, chamber, ramp feet), the sea inlet is there, the gallery crosses on a deck
+    let floor = 0;
+    for (let k = 0; k < n; k++) if (g.tide[k] && g.kind[k] !== HK.fluid && navOpen(m, k)) floor++;
+    if (floor < 150) out.push('tidal-floor');
+    if (fluid < 30) out.push('inlet');
+    if (g.joins.filter((j) => j.what === 'causeway').length < 2 || decks < 8) out.push('causeways');
+    const sc = rep.gates.find((x) => x.id === 'tide:shortcut');
+    if (!sc || !sc.ok) out.push('shortcut');
   } else {
     let lava = 0;
     for (let k = 0; k < n; k++) if (m.terrain[k] === T.water) lava++;
@@ -266,7 +282,8 @@ function finish(r: HabAttempt, recipe: HabitatRecipe, variant: string, seed: num
     recipe: recipe.id, variant, version: HAB_VERSION, seed, attemptSeed: g.seed, attempts, medium: recipe.medium,
     contest: g.contest, stage: { A: g.nodes.stageA, B: g.nodes.stageB },
     approaches: g.approaches.map((a) => ({ id: a.id, team: a.team, kind: a.kind, form: a.form, tiles: a.tiles.length })),
-    hazard: [...g.hazard.keys()].filter((k) => g.hazard[k]), optional: g.optional, families: [...g.used].sort(), shape: g.shape,
+    hazard: [...g.hazard.keys()].filter((k) => g.hazard[k]), optional: g.optional,
+    ...(g.tideLevels ? { tide: { tiles: [...g.tide.keys()].filter((k) => g.tide[k] && g.kind[k] !== HK.rock), ...g.tideLevels } } : {}), families: [...g.used].sort(), shape: g.shape,
     gates: report.gates, metrics: report.metrics, repairs: g.repairs, rejections, fallback,
     anchors: recipe.anchors.map((a) => ({ id: a.id, provenance: a.provenance, locked: a.locked })), notes: g.notes,
   };

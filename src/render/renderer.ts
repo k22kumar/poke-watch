@@ -9,6 +9,7 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { ROLE, PK, ZK } from '../sim/pools';
 import type { SimContext, SimEvent } from '../sim/types';
 import { pinchActive } from '../sim/combat';
+import { tidePhase } from '../sim/hazards';
 import { MOVE_BY_KEY } from '../rules/moves';
 const MOVE_NAMES: Record<string, string> = new Proxy({}, { get: (_t, k: string) => MOVE_BY_KEY[k]?.name });
 import { CAST_CLIP, TEXELS_PER_METRE, clipLength, dirIndex, frameAt, hitTime, type AnimState, type CreatureArt } from '../assets/art';
@@ -902,6 +903,18 @@ export class Renderer {
         if (C.charge[k] > 0) { const cn = (n: number) => n >= 0 && n < C.charge.length && C.charge[n] > 0; const cm = (i0 < C.w - 1 && cn(k + 1) ? 1 : 0) | (i0 > 0 && cn(k - 1) ? 2 : 0) | (cn(k + C.w) ? 4 : 0) | (cn(k - C.w) ? 8 : 0); put(D, x, z, 0.5, [1, 0.95, 0.3], Math.floor(this.time * 30 + k) % 2 ? 0.85 : 0.45, 5, cm, 0, 0, y + 0.02); if (Math.random() < dt * 12) this.px.spawn('spark', x + rnd(-0.4, 0.4), y + 0.3, z + rnd(-0.4, 0.4), rnd(-1, 1), rnd(0.5, 1.5), rnd(-1, 1), 0.2, 1); }
         if (C.steam[k] > 0 && Math.random() < dt * 6) this.px.spawn('snow', x + rnd(-0.4, 0.4), y + 0.3, z + rnd(-0.4, 0.4), rnd(-0.2, 0.2), rnd(0.8, 1.6), rnd(-0.2, 0.2), 0.7, 1);
       } }
+    // the tide (sim/hazards.ts tideSystem): while the warning runs, the floor that will flood pulses blue on the top layer
+    // (seen through bodies, like a telegraph); at high water a water sheet lies over it at the surface the sim uses
+    if (!hideO && W.tide) {
+      const TD = W.tide, warn = !W.tideHigh && tidePhase(ctx) === 'warn', vx = this.camX, vz = this.camZ, r2 = 40 * 40;
+      if (warn || W.tideHigh) for (let i = 0; i < TD.tiles.length; i++) {
+        if (warn && TD.terrain[i] === 3) continue; // already water at low tide
+        const k = TD.tiles[i], x = (k % W.w) - W.half + 0.5, z = ((k / W.w) | 0) - W.half + 0.5;
+        if ((x - vx) ** 2 + (z - vz) ** 2 > r2) continue;
+        if (warn) put(T, x, z, 0.5, [0.3, 0.62, 1], 0.28 + 0.22 * Math.sin(this.time * 7 + (x + z) * 0.35), 5, 15, 0, 0, W.height(x, z));
+        else put(D, x, z, 0.5, [0.2, 0.42, 0.8], 0.62, 5, 15, 0, 0, W.height(x, z));
+      }
+    }
     // shadows
     const E = ctx.enemies;
     for (let i = 0; i < E.hi; i++) {

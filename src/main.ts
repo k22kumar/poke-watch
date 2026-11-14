@@ -254,6 +254,11 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         else if (e.phase === 'failed') audio.brace();
         break;
       }
+      case 'tide':
+        if (e.phase === 'warn') { ui.banner('The tide is rising!', `The lower hall floods in ${Math.round(e.in)} s · only Water types and Surf swim there`, 2.6); audio.impact('tide', true, 2); }
+        else if (e.phase === 'flood') { ui.banner('High water', 'The lower hall is flooded · the gallery and the tunnel stay dry', 2); audio.impact('tide', true, 1); }
+        else ui.banner('Low water', 'The lower hall is dry again: the short way to the point', 1.8);
+        break;
       case 'weatherEvent': ui.banner(e.kind === 'rain' ? 'It started to rain!' : 'The sunlight turned harsh!', e.kind === 'rain' ? 'Water soaks the ground · Fire weakens' : 'Fire is stronger · the grass may catch', 2.2); break;
       case 'block': audio.guard(); break;
       case 'hazard':

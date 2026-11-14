@@ -22,7 +22,7 @@ export interface PlayResult { recipe: string; seed: number; route: string; reach
   /** of those hits: the trainer's, and a Raider's while the Hold is active (its required travel); the rest are creatures that chose to cross (chasing the trainer) */
   trainerHits: number; raiderHits: number }
 
-function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<number>, minClear = 0.75): number[] | null {
+export function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<number>, minClear = 0.75): number[] | null {
   const m = ctx.world.map, n = m.w * m.h, cl = clearance(m), N = cl.length;
   const allow = new Uint8Array(N);
   for (let v = 0; v < N; v++) allow[v] = cl[v] >= minClear && !(avoid && avoid.has(v % n)) ? 1 : 0;
@@ -31,7 +31,7 @@ function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<number>,
 }
 
 /** drive the player along a node path; returns seconds taken or null if it stalls past the budget */
-function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void): number | null {
+export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void): number | null {
   const W = ctx.world, n = W.w * W.h, P = ctx.player, t0 = ctx.time;
   let i = 0, lastProgress = ctx.time, best = Infinity;
   while (ctx.time - t0 < budget) {

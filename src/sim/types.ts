@@ -269,6 +269,8 @@ export type SimEvent =
   /** an actor's exposure changed: entered a liquid it is not safe in (lethal: s to a knockout), is swimming safely,
    *  left it, or was knocked out by it (fall: out of the map); recover: the next Pokémon after that knockout was put on
    *  the last safe ground */
+  /** tidal maps: the tide's phase changed (warn: high water in `in` s; flood: the tidal floor is open water; ebb: dry again) */
+  | { t: 'tide'; phase: 'warn' | 'flood' | 'ebb'; in: number }
   | { t: 'hazard'; kind: 'water' | 'lava' | 'fall'; phase: 'enter' | 'safe' | 'exit' | 'ko' | 'recover'; who: 'player' | 'enemy'; id: number; lethal: number; x: number; z: number }
   | { t: 'tag'; from: string; to: string; free: boolean }
   | { t: 'tagAction'; species: string; key: string; element: Element; x: number; z: number }

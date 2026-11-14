@@ -109,7 +109,54 @@ export const VOLCANIC_RIDGE: HabitatRecipe = {
   states: ['base', 'venting', 'stripped'],
 };
 
-export const HABITATS: Record<string, HabitatRecipe> = { [RIVER_GORGE.id]: RIVER_GORGE, [VOLCANIC_RIDGE.id]: VOLCANIC_RIDGE };
+export const SHOAL_CAVE: HabitatRecipe = {
+  id: 'tidal-cave',
+  name: 'Shoal Grotto',
+  summary: 'A tidal sea cave on two connected floors: a sea inlet (the coastal mouth) runs into a lower chamber, a lower hall crosses the cave through it, and the point stands on the upper floor above the chamber. Low water leaves the hall and chamber dry as a short way to the point; high water floods them. Adaptation of Shoal Cave (Hoenn: a sea cave whose lower rooms flood and drain with the tide).',
+  landform: 'shoal', support: 'ground', medium: 'water',
+  refs: [
+    { title: 'Bulbapedia — Shoal Cave', url: 'https://bulbapedia.bulbagarden.net/wiki/Shoal_Cave' },
+  ],
+  anchors: [
+    { id: 'inlet', form: 'a sea inlet from the map edge into the cave: the coastal mouth', family: 'channel', provenance: 'canon', refs: [0], locked: true },
+    { id: 'tide', form: 'a tide that rises and falls over one cave floor: the lower floor is dry at low water and flooded at high water', family: 'channel', provenance: 'canon', refs: [0], locked: true },
+    { id: 'two-floors', form: 'two connected elevations: a lower floor at sea level and an upper floor above maximum tide, joined by ramps', family: 'cliff', provenance: 'canon', refs: [0], locked: true },
+    { id: 'chamber', form: 'a lower chamber the inlet opens into, below the point', family: 'chamber', provenance: 'reinterpretation', refs: [0], locked: true },
+    { id: 'gallery', form: 'a stable gallery on the upper floor along the hall\'s far wall, crossing the hall on a causeway', family: 'structure', provenance: 'original', refs: [], locked: false },
+    { id: 'tunnel', form: 'a sheltered tunnel through the massif, dry at every tide', family: 'chamber', provenance: 'original', refs: [], locked: false },
+    { id: 'tidewatch', form: 'a standing stone beside the point with broken rock stubs around it', family: 'structure', provenance: 'original', refs: [], locked: true },
+  ],
+  adaptations: [
+    { feature: 'The tide runs on a fixed cycle of minutes, not hours of the day', why: 'A match must see both waters; the cycle is a pure function of stage time, so every replay agrees on it.' },
+    { feature: 'The flooded hall is the optional shortcut, never a required route', why: 'Both sides keep two dry approaches at every tide; the hall trades a shorter walk for a tide clock.' },
+    { feature: 'A causeway carries the gallery over the hall', why: 'The gallery reaches the point from a different angle than the tunnel without cutting the hall, which passes beneath it.' },
+  ],
+  vegetation: { trees: ['stalagmite'], fill: 'stalagmite', under: ['rock'], density: 0.85, moisture: [0, 1], clearings: 0 },
+  props: { cover: ['boulder'], low: ['rock', 'rock', 'pillarBroken'], ruin: ['pillarBroken', 'rock', 'pillarBroken'], decor: [], landmark: 'Tidewatch Stone', landmarkProp: 'statue' },
+  // floors are path and dirt (neither changes footing in any stage biome) so open floor reads against the grey rock tops;
+  // the tidal floor is the bank surface, so the tide line shows at low water
+  surfaces: { floor: T.path, rim: T.stone, route: T.path, ramp: T.dirt, bank: T.dirt, terrace: T.stone, shelf: T.stone },
+  variants: {
+    // paint only: the glimmering palette and motes; every surface and prop the same
+    glimmer: { name: 'Glimmering grotto', art: 'chargestone', particles: 'motes' },
+  },
+  optional: [],
+  seams: [
+    { recipe: 'river-gorge', via: 'a shore and a cliff in the massif (water continues as the sea)' },
+  ],
+  freedoms: {
+    hallY: [101, 106], hallW: [6, 7], contestDy: [20.5, 22.5], chamberR: [5, 6], stageX: [14, 18], stageDy: [1, 4],
+    crossX: [40, 45], galleryOff: [5.5, 7], tunnelRise: [13, 18], inletW: [4.5, 5.5],
+  },
+  levels: { upper: 3, lower: 0, mass: 9, low: -0.5, high: 1, water: -0.5 },
+  art: 'moon', particles: 'motes',
+  biomeFit: ['frost', 'dusk'],
+  fallbackSeeds: [1, 2, 3],
+  states: ['base', 'flooded', 'stripped'],
+  tide: { low: -0.5, high: 1 },
+};
+
+export const HABITATS: Record<string, HabitatRecipe> = { [RIVER_GORGE.id]: RIVER_GORGE, [VOLCANIC_RIDGE.id]: VOLCANIC_RIDGE, [SHOAL_CAVE.id]: SHOAL_CAVE };
 
 /** look a recipe up loosely ("river gorge", "volcano", "Cinder Crater"); `id:variant` selects a surface variant */
 export function findHabitat(q: string): { id: string; variant: string } | undefined {
@@ -117,7 +164,7 @@ export function findHabitat(q: string): { id: string; variant: string } | undefi
   const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
   const n = norm(base);
   if (!n) return undefined;
-  const alias: Record<string, string> = { gorge: 'river-gorge', river: 'river-gorge', shrine: 'river-gorge', volcano: 'volcanic-ridge', volcanic: 'volcanic-ridge', crater: 'volcanic-ridge' };
+  const alias: Record<string, string> = { gorge: 'river-gorge', river: 'river-gorge', shrine: 'river-gorge', volcano: 'volcanic-ridge', volcanic: 'volcanic-ridge', crater: 'volcanic-ridge', shoal: 'tidal-cave', shoalcave: 'tidal-cave', tide: 'tidal-cave', grotto: 'tidal-cave' };
   for (const R of Object.values(HABITATS)) if (norm(R.id) === n || norm(R.name) === n) return { id: R.id, variant: R.variants[variant] ? variant : '' };
   for (const R of Object.values(HABITATS)) if (norm(R.id).startsWith(n) || norm(R.name).startsWith(n)) return { id: R.id, variant: R.variants[variant] ? variant : '' };
   if (alias[n]) return { id: alias[n], variant: HABITATS[alias[n]].variants[variant] ? variant : '' };

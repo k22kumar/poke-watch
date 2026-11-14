@@ -48,7 +48,7 @@ test('the generator names no recipe, location or species', () => {
   for (const f of readdirSync('src/world/habitat')) {
     if (f === 'recipes.ts') continue;
     const src = readFileSync('src/world/habitat/' + f, 'utf8');
-    for (const word of ['Route 119', 'Ilex', 'Chimney', 'Fiery', 'Firespit', 'river-gorge', 'volcanic-ridge', 'totodile', 'magcargo']) assert.ok(!src.includes(word), `${f} mentions ${word}`);
+    for (const word of ['Route 119', 'Ilex', 'Chimney', 'Fiery', 'Firespit', 'Shoal Cave', 'Shoal Grotto', 'river-gorge', 'volcanic-ridge', 'tidal-cave', 'totodile', 'magcargo']) assert.ok(!src.includes(word), `${f} mentions ${word}`);
     assert.ok(!/Math\.random|Date\.now|performance\.now\(\)\s*[-+*]/.test(src.replace(/typeof performance[^\n]*/g, '')), `${f}: no randomness or clock in the output`);
   }
 });

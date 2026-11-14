@@ -19,7 +19,7 @@ import { playerSystem } from './player';
 import { EnemyPool, PickupPool, ProjectilePool, ZonePool } from './pools';
 import { BodyPool, bodySystem, seedBodies } from './bodies';
 import { cellSystem } from './cells';
-import { exposureSystem, hazardSystem } from './hazards';
+import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { reviveFainted, squadSystem } from './squad';
 import { finishEvolution, handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
@@ -43,7 +43,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, directorSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, exposureSystem, pickupSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, directorSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, pickupSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];

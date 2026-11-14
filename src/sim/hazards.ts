@@ -83,6 +83,49 @@ export const hazardSystem: System = {
   },
 };
 
+// ------------------------------------------------------------------ the tide (docs/HABITATS.md "Tide")
+// A tidal habitat (HabMeta.tide) runs one cycle of rules.habitat.tide.period s of stage time: low water, then `warn` s of
+// warning (still dry), then high water to the end of the cycle. Like the vents, the phase is a pure function of the sim
+// tick. At the flood the tidal tiles become open water at the tide's high level and navigation closes over them (the
+// Raiders' flow field goes round by the dry approaches); at the ebb they are dry floor again. Nobody is moved: whoever is
+// on the tidal floor at the flood is in the water where it stood, and the liquid exposure rule below decides (a Water
+// type or anything knowing Surf swims; anyone else has the water's `lethal` s to reach a bank). The cues are sim events:
+// `tide` warn (with the seconds left), flood and ebb.
+
+export type TidePhase = 'low' | 'warn' | 'high';
+
+function tideClock(ctx: SimContext) {
+  const T0 = ctx.rules.habitat.tide, hz = ctx.rules.sim.hz;
+  const period = Math.max(1, Math.round(T0.period * hz)), low = Math.min(period, Math.round(T0.low * hz)), warnEnd = Math.min(period, low + Math.round(T0.warn * hz));
+  return { at: Math.round(ctx.stageTime * hz) % period, low, warnEnd, period, hz };
+}
+
+export function tidePhase(ctx: SimContext): TidePhase {
+  const c = tideClock(ctx);
+  return c.at < c.low ? 'low' : c.at < c.warnEnd ? 'warn' : 'high';
+}
+
+/** seconds until the next high water begins (0 while the water is high) */
+export function tideIn(ctx: SimContext): number {
+  const c = tideClock(ctx);
+  if (c.at >= c.warnEnd) return 0;
+  return (c.warnEnd - c.at) / c.hz;
+}
+
+export const tideSystem: System = {
+  name: 'tide',
+  update(ctx: SimContext) {
+    const W = ctx.world;
+    if (!W.tide) return;
+    const c = tideClock(ctx), high = c.at >= c.warnEnd;
+    if (c.at === c.low && c.warnEnd > c.low) ctx.events.push({ t: 'tide', phase: 'warn', in: (c.warnEnd - c.low) / c.hz });
+    if (high !== W.tideHigh) {
+      W.setTide(high);
+      ctx.events.push({ t: 'tide', phase: high ? 'flood' : 'ebb', in: 0 });
+    }
+  },
+};
+
 // ------------------------------------------------------------------ liquids and falls (docs/HAZARDS.md)
 // Three questions, answered apart:
 //   is something solid in the way?        World.collides (walls, faces above a step, deck slabs); liquids and open air are not
@@ -246,7 +289,8 @@ function exposePlayer(ctx: SimContext, dt: number) {
     ctx.events.push({ t: 'hazard', kind: KIND_NAME[P.hzKind] as 'water' | 'lava', phase: 'exit', who: 'player', id: -1, lethal: 0, x: P.x, z: P.z });
     P.hzKind = 0; P.hzT = 0; P.hzAcc = 0; P.hzCueT = 0;
   }
-  if (onGround && !P.hzKind && safeFooting(ctx, P.x, P.z, P.y)) { P.safeX = P.x; P.safeY = P.y; P.safeZ = P.z; }
+  // (never on a tidal floor: dry now, it may be under water when the next Pokémon comes in)
+  if (onGround && !P.hzKind && !W.tidalAt(P.x, P.z) && safeFooting(ctx, P.x, P.z, P.y)) { P.safeX = P.x; P.safeY = P.y; P.safeZ = P.z; }
 }
 
 function exposeEnemies(ctx: SimContext, dt: number) {
