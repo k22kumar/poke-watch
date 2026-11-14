@@ -5,11 +5,17 @@ import { BTN, type InputFrame } from '../sim/types';
 export const DEFAULT_BINDINGS: Record<string, string[]> = {
   up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
   jump: ['Space'], dash: ['ShiftLeft', 'ShiftRight'],
-  // aimed combat: Move A / Move B are the mouse buttons (J / K on the keyboard), Q the Signature, E Guard
-  moveA: ['KeyJ'], moveB: ['KeyK'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
+  // hero-shooter combat: the basic attack is primary fire (left mouse, J), Move A secondary (right mouse, K),
+  // Move B R, Q the Signature / Tag, E Guard
+  basic: ['KeyJ'], moveA: ['KeyK'], moveB: ['KeyR'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
   pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
   pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
 };
+
+/** the InputFrame.btn bit each combat action sets */
+const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard };
+/** mouse buttons as InputFrame.btn bits: left is primary fire (the basic attack), right is Move A */
+const mouseBits = (button: number) => (button === 0 ? BTN.basic : button === 2 ? BTN.a : 0);
 
 export class Input {
   keys = new Set<string>();
@@ -18,8 +24,13 @@ export class Input {
   dragging = false;
   /** cursor position in CSS pixels relative to the canvas, once the mouse has moved over it */
   mouseX = 0; mouseY = 0; mouseSeen = false;
-  /** mouse buttons held during play (bit 0 left, bit 1 right) */
+  /** mouse buttons held during play, as BTN bits (left = basic attack, right = Move A) */
   mouseBtn = 0;
+  /** combat buttons pressed since the last sample: a click or tap that goes down and up between two sim ticks
+   *  still reaches the sim as one tick of the button held (so it casts once when ready) */
+  private btnLatch = 0;
+  /** the browser refused the pointer lock; clicks then attack without waiting for it */
+  private lockFailed = false;
   /** which device aimed last: the cursor, the right stick, or nothing yet */
   aimSource: 'none' | 'mouse' | 'stick' = 'none';
   /** right-stick aim direction in world space (unit), valid while aimSource is 'stick' */
@@ -53,6 +64,7 @@ export class Input {
       if (firstPress) this.pressed.add(e.code);
       this.keys.add(e.code);
       if (this.is('dash', e.code)) this.dashLatch = true;
+      if (firstPress) for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.is(a, e.code)) this.btnLatch |= bit;
       if (firstPress) for (const [a, codes] of Object.entries(this.bindings)) if (codes.includes(e.code)) this.onAction?.(a);
       // during play, keep movement keys from scrolling or moving focus to hidden menu buttons
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -62,13 +74,20 @@ export class Input {
     // the camera is fixed (DS-style), so the mouse no longer grabs the pointer
     el.addEventListener('mousedown', (e) => {
       if (e.button === 2) this.dragging = true;
-      if (this.context === 'play') { this.mouseBtn |= e.button === 0 ? 1 : e.button === 2 ? 2 : 0; this.aimSource = 'mouse'; this.mouseSeen = true; this.capture(); }
+      if (this.context !== 'play') return;
+      this.aimSource = 'mouse'; this.mouseSeen = true;
+      // third person: the click that captures the mouse only captures it (no stray attack before you can aim)
+      if (this.chase && !this.locked && !this.lockFailed) { this.capture(); return; }
+      const bit = mouseBits(e.button);
+      this.mouseBtn |= bit; this.btnLatch |= bit;
+      this.capture();
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 2) this.dragging = false;
-      this.mouseBtn &= ~(e.button === 0 ? 1 : e.button === 2 ? 2 : 0);
+      this.mouseBtn &= ~mouseBits(e.button);
     });
-    window.addEventListener('blur', () => { this.mouseBtn = 0; });
+    window.addEventListener('blur', () => this.clearButtons());
+    document.addEventListener('pointerlockerror', () => { this.lockFailed = true; });
     el.addEventListener('mousemove', (e) => {
       const r = el.getBoundingClientRect();
       this.mouseX = e.clientX - r.left; this.mouseY = e.clientY - r.top;
@@ -78,7 +97,9 @@ export class Input {
     document.addEventListener('pointerlockchange', () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === el;
+      if (this.locked) this.lockFailed = false;
       if (was && !this.locked) {
+        this.clearButtons(); // nothing keeps firing once the mouse is let go (menus, pause, Esc)
         // a release the host asked for (menus, pause) is not a pause request; the browser's own Esc release is
         if (!this.expectUnlock && this.chase && this.context === 'play') this.onLockLost?.();
         this.expectUnlock = false;
@@ -92,6 +113,7 @@ export class Input {
       if (!action) return;
       this.touchButtons[action] = down;
       if (down && action === 'dash') this.dashLatch = true;
+      if (down) this.btnLatch |= ACTION_BTN[action] ?? 0;
     };
     document.addEventListener('pointerdown', (e) => {
       const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-touch-action]');
@@ -144,7 +166,7 @@ export class Input {
     const clearTouchInput = () => {
       this.touchMove = [0, 0];
       this.touchLook = [0, 0];
-      if (this.aimSource === 'stick' && !this.touchButtons.moveA && !this.touchButtons.moveB && !this.touchButtons.sig && !this.touchButtons.guard) this.aimSource = 'none';
+      if (this.aimSource === 'stick' && !this.touchButtons.basic && !this.touchButtons.moveA && !this.touchButtons.moveB && !this.touchButtons.sig && !this.touchButtons.guard) this.aimSource = 'none';
     };
     this.el.addEventListener('touchend', () => clearTouchInput(), { passive: false });
     this.el.addEventListener('touchcancel', () => clearTouchInput(), { passive: false });
@@ -152,14 +174,15 @@ export class Input {
 
   private clamp(v: number, min: number, max: number) { return Math.min(max, Math.max(min, v)); }
   private is(action: string, code: string) { return this.bindings[action]?.includes(code); }
+  /** a bound key, or the on-screen touch button of the same name, is held */
   down(action: string) {
-    if (action === 'jump') return (this.bindings.jump?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.jump;
-    if (action === 'dash') return (this.bindings.dash?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.dash;
-    if (action === 'moveA') return (this.bindings.moveA?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.moveA;
-    if (action === 'moveB') return (this.bindings.moveB?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.moveB;
-    if (action === 'sig') return (this.bindings.sig?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.sig;
-    if (action === 'guard') return (this.bindings.guard?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons.guard;
-    return this.bindings[action]?.some((c) => this.keys.has(c)) ?? false;
+    return (this.bindings[action]?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons[action];
+  }
+
+  /** let go of every combat button (focus lost, pointer released, a menu or pause took over) */
+  clearButtons() {
+    this.mouseBtn = 0; this.btnLatch = 0;
+    for (const k of Object.keys(this.touchButtons)) this.touchButtons[k] = false;
   }
 
   releaseLock() { if (document.pointerLockElement) { this.expectUnlock = true; document.exitPointerLock(); } }
@@ -187,8 +210,8 @@ export class Input {
     return {
       lx: dz(p.axes[0] ?? 0), ly: dz(p.axes[1] ?? 0), rx: dz(p.axes[2] ?? 0), ry: dz(p.axes[3] ?? 0),
       a: pr(0), b: pr(1), start: pr(9),
-      // RT Move A, LT Move B, Y Signature, RB or LB Guard
-      rt: pr(7), lt: pr(6), y: pr(3), guard: pr(5) || pr(4),
+      // RT basic attack (primary fire), LT Move A, RB Move B, Y Signature / Tag, LB Guard
+      rt: pr(7), lt: pr(6), rb: pr(5), y: pr(3), guard: pr(4),
     };
   }
 
@@ -199,15 +222,16 @@ export class Input {
     const pad = this.pad();
     let jump = this.down('jump');
     let dash = this.dashLatch;
-    let btn = (this.mouseBtn & 1 || this.down('moveA') ? BTN.a : 0) | (this.mouseBtn & 2 || this.down('moveB') ? BTN.b : 0)
-      | (this.down('sig') ? BTN.sig : 0) | (this.down('guard') ? BTN.guard : 0);
+    let btn = this.mouseBtn | this.btnLatch;
+    for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.down(a)) btn |= bit;
+    this.btnLatch = 0;
     const Fx = Math.sin(yaw), Fz = Math.cos(yaw);
     const Rx = -Math.cos(yaw), Rz = Math.sin(yaw);
     if (pad) {
       f += -pad.ly; s += pad.lx;
       jump = jump || pad.a;
       dash = dash || pad.b;
-      btn |= (pad.rt ? BTN.a : 0) | (pad.lt ? BTN.b : 0) | (pad.y ? BTN.sig : 0) | (pad.guard ? BTN.guard : 0);
+      btn |= (pad.rt ? BTN.basic : 0) | (pad.lt ? BTN.a : 0) | (pad.rb ? BTN.b : 0) | (pad.y ? BTN.sig : 0) | (pad.guard ? BTN.guard : 0);
       if (!this.chase && Math.hypot(pad.rx, pad.ry) > 0.35) {
         const af = -pad.ry, as = pad.rx;
         const ax = Fx * af + Rx * as, az = Fz * af + Rz * as, L = Math.hypot(ax, az) || 1;

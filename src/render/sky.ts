@@ -8,5 +8,11 @@ export const SKY: Record<string, SkyDef> = {
   badlands: { hor: rgb('#f0cfa0'), zen: rgb('#d98a62'), fogNear: 26, fogFar: 115, fog: 0.9 },
   frost: { hor: rgb('#e4eef8'), zen: rgb('#9cb8dc'), fogNear: 22, fogFar: 95, fog: 0.95 },
   dusk: { hor: rgb('#4a5a86'), zen: rgb('#141a3a'), fogNear: 20, fogFar: 85, fog: 0.95 },
+  // location palettes (src/world/locations): a green-lit forest canopy, two caves under an open, dark vault
+  forest: { hor: rgb('#a8cfa0'), zen: rgb('#4f8a6a'), fogNear: 18, fogFar: 80, fog: 0.95 },
+  moon: { hor: rgb('#3a3440'), zen: rgb('#0c0a12'), fogNear: 16, fogFar: 70, fog: 1 },
+  chargestone: { hor: rgb('#1c3450'), zen: rgb('#060c18'), fogNear: 16, fogFar: 72, fog: 1 },
+  // habitat palette: a smoky, ember-lit sky over the crater
+  volcano: { hor: rgb('#7a4a3a'), zen: rgb('#2a1a1e'), fogNear: 24, fogFar: 100, fog: 0.95 },
 };
 export const skyFor = (biome: string): SkyDef => SKY[biome] ?? SKY.meadow;

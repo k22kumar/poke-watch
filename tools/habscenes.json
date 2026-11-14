@@ -1,0 +1,19 @@
+[
+  { "name": "gorge3-wide", "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half + 6; c.player.y = c.world.height(c.player.x, c.player.z, 9); return [H.recipe, H.seed, H.gates.filter((g) => !g.ok).length]; })()" },
+    { "advance": 1.0 }, { "shot": "contest" } ] },
+  { "name": "gorge3-chase", "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half; c.player.y = c.world.height(c.player.x, c.player.z, 9); return 1; })()" },
+    { "advance": 1.2 }, { "shot": "shrine" } ] },
+  { "name": "gorge3-spawn", "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1", "steps": [ { "advance": 1.0 }, { "shot": "spawn" } ] },
+  { "name": "gorge7-snow", "query": "go=1&species=totodile&loc=river-gorge/snow&mapseed=7&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half + 6; c.player.y = c.world.height(c.player.x, c.player.z, 9); return H.variant; })()" },
+    { "advance": 1.0 }, { "shot": "contest" } ] },
+  { "name": "crater3-wide", "query": "go=1&species=cyndaquil&loc=volcanic-ridge&mapseed=3&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half + 6; c.player.y = c.world.height(c.player.x, c.player.z, 9); return [H.recipe, H.seed]; })()" },
+    { "advance": 1.0 }, { "shot": "contest" } ] },
+  { "name": "crater3-chase", "query": "go=1&species=cyndaquil&loc=volcanic-ridge&mapseed=3&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half; c.player.y = c.world.height(c.player.x, c.player.z, 9); return 1; })()" },
+    { "advance": 1.2 }, { "shot": "altar" } ] },
+  { "name": "crater3-spawn", "query": "go=1&species=cyndaquil&loc=volcanic-ridge&mapseed=3&calm=1", "steps": [ { "advance": 1.0 }, { "shot": "spawn" } ] }
+]

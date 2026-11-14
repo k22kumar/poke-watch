@@ -2,8 +2,9 @@
 //
 // Three Pokémon, one on the field. Tag (Q / Y) swaps the field Pokémon; the incoming one arrives where the
 // outgoing one stood, invulnerable for 0.15 s, and 0.2 s later fires its Tag Action toward the aim point.
-// A tap swaps back to the last Pokémon; holding Tag and pressing Move A or Move B picks the first or the
-// second reserve. One squad-wide cooldown (4 s) limits how often you can switch, and Reflex charges
+// A tap swaps back to the last Pokémon; holding Tag and pressing primary or secondary fire (left / right mouse,
+// RT / LT: the basic attack and Move A buttons) picks the first or the second reserve. One squad-wide cooldown
+// (4 s) limits how often you can switch, and Reflex charges
 // belong to the trainer, so switching never refills Dash or Guard.
 //
 // Benched Pokémon rest: their cooldowns keep ticking, grey health (part of each recent hit) refills, and
@@ -233,13 +234,13 @@ export const squadSystem = {
       if (P.faintT < 0) { const next = firstAlive(ctx, P.active); if (next >= 0) tagTo(ctx, next, true); }
     }
 
-    // Tag input: tap swaps to the last Pokémon; hold + Move A / Move B picks the first / second reserve
+    // Tag input: tap swaps to the last Pokémon; hold + primary / secondary fire picks the first / second reserve
     const btn = ctx.input.btn ?? 0;
     const down = (btn & BTN.sig) !== 0;
     if (down && P.squad.length > 1) {
       if (P.tagDownT < 0) { P.tagDownT = 0; P.tagPicked = false; } else P.tagDownT += dt;
       const res = reserves(ctx);
-      const edgeA = (btn & BTN.a) && !(P.tagBtnPrev & BTN.a), edgeB = (btn & BTN.b) && !(P.tagBtnPrev & BTN.b);
+      const edgeA = (btn & BTN.basic) && !(P.tagBtnPrev & BTN.basic), edgeB = (btn & BTN.a) && !(P.tagBtnPrev & BTN.a);
       if (edgeA || edgeB) { P.tagPicked = true; const to = edgeA ? res[0] : res[1]; if (to !== undefined) tagTo(ctx, to); }
     } else if (P.tagDownT >= 0) {
       if (!P.tagPicked && P.tagDownT < R.holdPick) {

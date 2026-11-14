@@ -26,13 +26,41 @@ export interface Lookout { x: number; y: number; w: number; h: number; height: n
 export type SpaceKind = 'hub' | 'choke' | 'overlook' | 'grove' | 'water';
 export interface Space { kind: SpaceKind; x: number; y: number; score: number }
 
+/** Location-driven maps (src/world/locgen): what the sim, renderer and tools read beyond the classic fields. */
+export interface LocMeta {
+  /** location id (src/world/locations) */
+  id: string;
+  /** art palette key for the renderer (sky, ground, cliffs, props); overrides the stage biome's */
+  art: string;
+  particles?: 'petals' | 'embers' | 'snow' | 'motes' | 'sparks' | 'dust';
+  /** enemies may drop down ledges up to this height (m) */
+  dropNav: number;
+  /** shots respect terrain and walls */
+  los: boolean;
+  /** enemy entry anchors (tile coords): cave mouths, forest gates, tunnels */
+  anchors: [number, number][];
+  /** extra loose bodies (tile coords), e.g. Chargestone's floating stones */
+  bodySpots: [number, number][];
+  /** tile indices of chasm cells (open air beside a bridge: no supporting floor; sim/world.ts voids) */
+  chasm?: number[];
+  /** the macro graph as built (for diagnostics, tests and the contact sheet) */
+  zones: { id: number; kind: string; x: number; y: number; r: number; tier: number; name?: string }[];
+  links: { a: number; b: number; kind: string; tiles: number }[];
+  /** quality metrics measured on the final map (docs/LOCATIONS.md) */
+  metrics: Record<string, number>;
+}
+
 export interface GenMeta {
-  generator: 'poke-watch-worldgen';
+  generator: 'poke-watch-worldgen' | 'poke-watch-locgen' | 'poke-watch-habitat';
   version: number;
   seed: number; // the region seed asked for
   attemptSeed: number; // the seed of the attempt that passed
   attempts: number; repairs: number;
-  archetype: Archetype;
+  archetype: Archetype | string;
+  /** set on location maps only */
+  loc?: LocMeta;
+  /** set on habitat maps only (src/world/habitat): recipe, mode layout, gates, rejections */
+  hab?: import('../habitat/types').HabMeta;
   places: Place[];
   lookouts: Lookout[];
   spaces: Space[];

@@ -125,7 +125,11 @@ export const projectileSystem = {
       if (kind === PK.hostile) {
         Pr.x[i] += Pr.vx[i] * dt;
         Pr.z[i] += Pr.vz[i] * dt;
-        Pr.y[i] = W.height(Pr.x[i], Pr.z[i]) + 0.9;
+        if (W.los) {
+          // location maps: terrain and walls are cover (a cliff lip, trees, rock, a boulder or a bush top stops it)
+          Pr.y[i] += Pr.vy[i] * dt;
+          if (W.wallAt(Pr.x[i], Pr.z[i]) && !(W.over && W.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= W.w * W.h) || W.height(Pr.x[i], Pr.z[i], Pr.y[i]) > Pr.y[i] - 0.15) { Pr.kill(i); continue; }
+        } else Pr.y[i] = W.height(Pr.x[i], Pr.z[i]) + 0.9;
         // rocks and boulders are cover: enemy shots stop on them
         let blocked = false;
         eachBodyIn(ctx, Pr.x[i], Pr.z[i], Pr.radius[i], (b) => { if (tpl(ctx, b).weight >= 1) blocked = true; });
@@ -181,14 +185,20 @@ export const projectileSystem = {
         Pr.x[i] += Pr.vx[i] * dt;
         Pr.z[i] += Pr.vz[i] * dt;
       }
-      const ground = W.height(Pr.x[i], Pr.z[i]);
+      // layered maps: the surface under the shot at its own level (a deck above, or the ground below it)
+      const ground = W.over ? W.height(Pr.x[i], Pr.z[i], Pr.y[i] - 0.7) : W.height(Pr.x[i], Pr.z[i]);
       if (kind === PK.lob) {
         const f = 1 - Math.max(0, Pr.life[i]) / Pr.maxLife[i];
         Pr.y[i] = ground + 0.6 + dsin(f * Math.PI) * 4.5;
         if (Pr.life[i] <= 0) { explode(ctx, i); Pr.kill(i); }
         continue;
       }
-      Pr.y[i] = Math.max(ground + 0.7, P.y + 0.8);
+      if (W.los && kind !== PK.orbit) {
+        // location maps: a shot keeps its height, sinks off a ledge (7 m/s) and stops on a rising cliff face
+        const prev = Pr.y[i];
+        if (ground + 0.7 > prev + 0.6) { endShot(ctx, i); continue; }
+        Pr.y[i] = Math.max(ground + 0.7, prev - 7 * dt);
+      } else Pr.y[i] = Math.max(ground + 0.7, P.y + 0.8);
 
       // a Bulwark's shield stops shots coming at its front (lobs go over it, orbits are melee)
       if (kind !== PK.orbit && ctx.director.bulwarks.length && blockedByBulwark(ctx, i)) { endShot(ctx, i); continue; }
@@ -201,6 +211,8 @@ export const projectileSystem = {
         const dx = E.x[e] - Pr.x[i], dz = E.z[e] - Pr.z[i];
         const rr = Pr.radius[i] + E.radius[e];
         if (dx * dx + dz * dz > rr * rr) continue;
+        // location maps: a shot passes over a creature on the floor below (or under one on the ledge above)
+        if (W.los && kind !== PK.orbit && Math.abs(Pr.y[i] - (E.y[e] + E.size[e] * 0.5)) > 1.1 + E.size[e] * 0.5) continue;
         if (Pr.recentlyHit(i, e, ctx.time)) continue;
         const cool = kind === PK.orbit || kind === PK.boomerang ? 0.45 : 999;
         Pr.markHit(i, e, ctx.time + cool);
@@ -230,6 +242,8 @@ export const projectileSystem = {
       if (Pr.alive[i] && Pr.life[i] <= 0) endShot(ctx, i);
       // out of bounds / hit wall
       if (Pr.alive[i] && kind === PK.straight && ground > Pr.y[i] + 1.5) endShot(ctx, i);
+      // location maps: trees, rock masses and buildings stop your shots too (cover works both ways)
+      else if (Pr.alive[i] && W.los && (kind === PK.straight || kind === PK.homing || kind === PK.boomerang) && W.wallAt(Pr.x[i], Pr.z[i]) && !(W.over && W.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= W.w * W.h)) endShot(ctx, i);
     }
     // Phase 8a: shots of opposite teams that overlap after moving: deflect, catch or cancel by Weight
     interceptPass(ctx);

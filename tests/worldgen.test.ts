@@ -86,7 +86,7 @@ test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode 
 test('a generated region plays two minutes for each archetype: no errors, enemies never inside walls or water', () => {
   const seen = new Set<string>();
   for (const seed of [1, 3, 9, 4, 2, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated' }, player: { hpBase: 4000 } } as never });
+    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, player: { hpBase: 4000 } } as never });
     const arch = ctx.world.map.gen!.archetype;
     if (seen.has(arch)) continue;
     seen.add(arch);
@@ -95,7 +95,12 @@ test('a generated region plays two minutes for each archetype: no errors, enemie
       step(ctx, botInput(ctx));
       if (ctx.tick % 60) continue;
       const E = ctx.enemies, W = ctx.world;
-      for (let i = 0; i < E.hi; i++) if (E.alive[i] && E.hover[i] === 0) { checked++; assert.ok(!W.solid(E.x[i], E.z[i]), `${arch}: enemy in a wall`); }
+      for (let i = 0; i < E.hi; i++) if (E.alive[i] && E.hover[i] === 0) {
+        checked++;
+        assert.ok(!W.wallAt(E.x[i], E.z[i]), `${arch}: enemy in a wall`);
+        // liquids are entered only when knocked in (sim/hazards.ts): then the exposure rule has it (or it can swim)
+        if (W.liquidAt(E.x[i], E.z[i], E.y[i], ctx.rules.hazards.contact)) assert.ok(E.hzKind[i] !== 0 || ctx.speciesIndex[E.species[i]].elements.includes('tide'), `${arch}: enemy in water outside the exposure rule`);
+      }
     }
     assert.ok(ctx.enemies.count > 10 && checked > 300, `${arch}: spawning and fighting`);
     assert.notEqual(ctx.state, 'over');

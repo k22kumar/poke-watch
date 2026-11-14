@@ -54,12 +54,12 @@ test('a tap tags in the reserve, fires its Tag Action, and starts the 4 s cooldo
   assert.equal(P.active, 0, 'tap swaps back to the last Pokémon');
 });
 
-test('holding Tag and pressing Move B picks the second reserve, without casting Move B', () => {
+test('holding Tag and pressing secondary fire (Move A) picks the second reserve, without casting Move A', () => {
   const ctx = calm();
   addMember(ctx, 'mareep'); addMember(ctx, 'geodude');
   const P = ctx.player;
   secs(ctx, 0.3, press(BTN.sig));
-  step(ctx, press(BTN.sig | BTN.b));
+  step(ctx, press(BTN.sig | BTN.a));
   assert.equal(P.species.id, 'geodude');
   secs(ctx, 0.2, press(BTN.sig));
   step(ctx, NO_INPUT);

@@ -22,8 +22,8 @@ export interface InputFrame {
   btn?: number;
   card?: { action: 'pick' | 'reroll' | 'skip' | 'banish'; index: number };
 }
-/** held-button bits in InputFrame.btn: Move A, Move B, Signature, Guard */
-export const BTN = { a: 1, b: 2, sig: 4, guard: 8 } as const;
+/** held-button bits in InputFrame.btn: Move A, Move B, Signature, Guard, and the basic attack (slot 0) */
+export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16 } as const;
 export const NO_INPUT: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
 export interface MoveSpec extends MoveFlags {
@@ -145,6 +145,12 @@ export class Player {
   reflexDash = false;
   /** Slipstream: the coat copied by a Dash (agent index), carried by the next Move A or B */
   slipAg = 0;
+  /** liquid exposure of the trainer's body (sim/hazards.ts): liquid kind (0 none, 1 water, 2 lava), s exposed, damage
+   *  carried below a whole point, damage since the last cue and the cue timer; in a liquid it is safe in (cue state) */
+  hzKind = 0; hzT = 0; hzAcc = 0; hzCue = 0; hzCueT = 0; hzSafe = 0;
+  /** the last supported dry ground stood on (a hazard knockout's next Pokémon comes in here), and the hazard whose
+   *  knockout is waiting for that ('' = none) */
+  safeX = 0; safeY = 0; safeZ = 0; hzRecover: '' | 'water' | 'lava' | 'fall' = '';
 
   get m(): Member { return this.squad[this.active]; }
   get species() { return this.m.species; } set species(v) { this.m.species = v; }
@@ -254,9 +260,16 @@ export type SimEvent =
   | { t: 'bodyHit'; x: number; y: number; z: number; amount: number; eff: number; element: Element }
   | { t: 'break'; x: number; z: number; r: number; element: Element }
   | { t: 'throw'; x: number; z: number; tx: number; tz: number; element: Element }
-  | { t: 'cell'; k: number; change: 'ignite' | 'douse' | 'freeze' | 'thaw' | 'charge' }
+  | { t: 'cell'; k: number; change: 'ignite' | 'douse' | 'freeze' | 'crack' | 'thaw' | 'charge' }
   | { t: 'spark'; x: number; z: number; life: number }
   | { t: 'cellHurt'; kind: string }
+  /** an environment rule hurt an actor: a vent tick, the cold water under opened ice, or exposure to a liquid / a fall
+   *  (who: 'player' or 'enemy', id the enemy slot or -1) */
+  | { t: 'hazardHit'; kind: 'vent' | 'dunk' | 'water' | 'lava' | 'fall'; who: 'player' | 'enemy'; id: number; amount: number; x: number; z: number }
+  /** an actor's exposure changed: entered a liquid it is not safe in (lethal: s to a knockout), is swimming safely,
+   *  left it, or was knocked out by it (fall: out of the map); recover: the next Pokémon after that knockout was put on
+   *  the last safe ground */
+  | { t: 'hazard'; kind: 'water' | 'lava' | 'fall'; phase: 'enter' | 'safe' | 'exit' | 'ko' | 'recover'; who: 'player' | 'enemy'; id: number; lethal: number; x: number; z: number }
   | { t: 'tag'; from: string; to: string; free: boolean }
   | { t: 'tagAction'; species: string; key: string; element: Element; x: number; z: number }
   | { t: 'faint'; species: string; out: boolean }

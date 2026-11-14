@@ -8,7 +8,7 @@ measured. Tunables live in `src/rules/defaults.ts` (`roles`, `objectives`, `beat
 
 | Role | Bit | Pressure | Behaviour | Answers |
 | --- | --- | --- | --- | --- |
-| Pursue | (default) | Where you can stand | v8 chase, swarm, charger | Autofire, Push, terrain, Dash |
+| Pursue | (default) | Where you can stand | v8 chase, swarm, charger | Basic attack, Push, terrain, Dash |
 | Disrupt: Hexer | `hexer` | Answer it now | Keeps ~9 m away; every 4.5 s marks where you are heading (0.8 s ring in its type colour), then lays a deep Wet / Heat / Cold / Charge puddle (2 m) and deep-coats you if you are on it | Move off the ring, Dash, Jump, Tag out the coated Pokémon, kill it |
 | Protect: Bulwark | `shielder` | Who dies first | Blocks your shots that reach its front (90° arc, 2.4 m); a pale ring shows a raised shield | Flank, lobs (they fly over), melee, a Fighting hit, a hold or a big shove breaks the guard for 4 s |
 | Protect: Mender | `healer` | Who dies first | Heals everything within 5 m by 12% every 3.2 s; keeps 7 m from you | Reach it through the pack, ranged moves |

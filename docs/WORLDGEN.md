@@ -1,5 +1,11 @@
 # Procedural world (slice W0–W4)
 
+> **Pokémon locations** (2026-11-12) now build the first and last regions by default — Viridian Forest and Mt. Moon —
+> with a separate, data-driven generator (`src/world/locgen`, `src/world/locations`). See [LOCATIONS.md](LOCATIONS.md).
+> This file describes the *classic* generator, which still builds the other regions and every region under
+> Settings → World → Regions → *Generated (classic)* (`rules.worldgen.locations` entries set to `''`). Its output and
+> replays are unchanged (`scripts/checksum.ts gen-classic`).
+
 Design: *Procedural Pokémon World Blueprint* (2026-10-22). This file records what the code does, the rules it uses and
 what was measured. The generator lives in `src/world/gen/`, the map factory in `src/world/maps.ts`, the material table
 in `src/rules/surfaces.ts` and the prop overlay in `src/sim/props.ts`. Every number is in `src/rules/defaults.ts`

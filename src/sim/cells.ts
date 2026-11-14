@@ -45,6 +45,8 @@ export class CellField {
   pending: number[] = [];
   /** set when a frozen water tile thaws or freezes (navigation must be rebuilt) */
   navDirty = false;
+  /** frozen water tiles that opened since the last reaction pass: whatever still stands on one is put ashore */
+  melted: number[] = [];
   /** burning tiles at the last reaction pass, and a signature of which (the flow field is rebuilt when it changes) */
   burning = 0;
   burnSig = 0;
@@ -80,7 +82,7 @@ export class CellField {
     if (!this.activate(k)) return;
     const wasIce = this.iceAt(k);
     this.state[k] = s; this.timer[k] = t;
-    if (wasIce !== this.iceAt(k)) this.navDirty = true;
+    if (wasIce !== this.iceAt(k)) { this.navDirty = true; if (wasIce) this.melted.push(k); }
   }
   activeList() { return this.active.subarray(0, this.nActive); }
 }
@@ -115,6 +117,9 @@ function react(ctx: SimContext, k: number, agent: Agent) {
   if (ctx.world.map.wall[k]) return;
   const s = C.state[k], water = C.isWater(k), grass = C.isGrass(k);
   const wetTime = ctx.world.biome.id === 'badlands' ? 8 : WET_TIME;
+  // habitat maps whose fluid is lava (docs/HABITATS.md): it never freezes or carries a charge; water or cold on it
+  // flashes to steam
+  if (water && ctx.world.hab?.medium === 'lava') { if (agent !== 'heat') steamAt(ctx, k); return; }
   switch (agent) {
     case 'heat':
       if (s === CS.frozen) { C.set(k, water ? CS.none : CS.wet, water ? 0 : 10); steamAt(ctx, k); ctx.events.push({ t: 'cell', k, change: 'thaw' }); }
@@ -138,7 +143,7 @@ function react(ctx: SimContext, k: number, agent: Agent) {
   }
 }
 
-function steamAt(ctx: SimContext, k: number) {
+export function steamAt(ctx: SimContext, k: number) {
   const C = ctx.world.cells;
   C.steam[k] = STEAM_TIME;
   C.set(k, C.state[k], C.timer[k]); // keep it in the active list for the steam timer
@@ -247,6 +252,7 @@ export const cellSystem = {
     }
     if (ctx.tick % PASS_EVERY !== 0) return;
     const pdt = dt * PASS_EVERY;
+    const crack = ctx.rules.habitat.ice.crack;
     const passN = (ctx.tick / PASS_EVERY) | 0;
     const list = C.activeList();
     const n0 = C.nActive;
@@ -262,6 +268,8 @@ export const cellSystem = {
       if (C.steam[k] > 0) C.steam[k] = Math.max(0, C.steam[k] - pdt);
       if (s !== CS.none) {
         C.timer[k] -= pdt;
+        // ice about to open: one cue, `crack` s before the thaw (a refreeze that pushes the timer back re-arms it)
+        if (s === CS.frozen && C.timer[k] > 0 && C.timer[k] <= crack && C.timer[k] + pdt > crack && C.isWater(k)) ctx.events.push({ t: 'cell', k, change: 'crack' });
         if (s === CS.burning) {
           // fire spreads to neighbouring dry tall grass, about two cells a second
           const i = k % C.w, j = (k / C.w) | 0;
@@ -274,7 +282,7 @@ export const cellSystem = {
           if (s === CS.burning) { C.state[k] = CS.ash; C.timer[k] = ASH_TIME; }
           else if (s === CS.frozen) { C.state[k] = C.isWater(k) ? CS.none : CS.wet; C.timer[k] = 6; ctx.events.push({ t: 'cell', k, change: 'thaw' }); }
           else { C.state[k] = CS.none; C.timer[k] = 0; }
-          if (wasIce !== C.iceAt(k)) C.navDirty = true;
+          if (wasIce !== C.iceAt(k)) { C.navDirty = true; if (wasIce) C.melted.push(k); }
           s = C.state[k];
         }
       }
@@ -285,12 +293,13 @@ export const cellSystem = {
     C.nActive = w;
     for (const k of ignite) if (C.state[k] === CS.none || C.state[k] === CS.bramble) { C.set(k, CS.burning, BURN_TIME); nBurn++; sig = (Math.imul(sig, 31) + k + 1) | 0; }
     if (C.navDirty) { C.navDirty = false; ctx.world.refreshNav(); }
+    if (C.melted.length) settleMelted(ctx);
     // W4: burning props tick, spread and burn out; the watchdog checks reachability
     if (ctx.rules.surfaces.enabled) propPass(ctx, pdt);
     // Phase 8a: fire changes the flow field (burning tiles cost rules.caps.burnNavCost), so enemies route around it
     if (ctx.world.burnCost > 1 && (nBurn !== C.burning || sig !== C.burnSig)) {
       C.burning = nBurn; C.burnSig = sig;
-      ctx.world.refreshFlow(ctx.player.x, ctx.player.z);
+      ctx.world.refreshFlow(ctx.player.x, ctx.player.z, ctx.player.y);
     }
 
     // creatures on the cells
@@ -337,13 +346,54 @@ export const cellSystem = {
   },
 };
 
+/**
+ * Ice that opens under an actor (a thaw by time, or Heat on it). The tile is water again, which nothing on the ground
+ * can stand in or leave (World.blocks), so without a rule the actor would be stuck in place for good. Everyone on the
+ * tile (the trainer, grounded creatures, bodies such as the Transport egg) is put on the nearest dry shore with room
+ * for its body and loses `habitat.ice.dunk` of its maximum HP, never its last HP: the cold water is the cost of
+ * staying on ice after the crack cue, not a way to die. Flyers and anything hovering are above the water and stay.
+ */
+function settleMelted(ctx: SimContext) {
+  const C = ctx.world.cells, W = ctx.world, P = ctx.player, E = ctx.enemies, B = ctx.bodies, I = ctx.rules.habitat.ice;
+  const list = C.melted.splice(0);
+  // hazards on (sim/hazards.ts): water is entered like any liquid, so whoever stood on the ice is now in the water and
+  // the exposure rule decides (a swimmer is fine, anyone else has the liquid's lethal time to reach a shore). Only
+  // bodies (rocks, the egg), which cannot swim, are still put ashore.
+  const actors = !W.hazards;
+  for (const k of list) {
+    if (C.iceAt(k)) continue; // frozen again before this pass: still ice
+    if (actors && ctx.state !== 'dead' && C.tile(P.x, P.z) === k) {
+      const [x, z] = W.shore(P.x, P.z, ctx.rules.player.radius, P.y) ?? W.nearestWalkable(P.x, P.z);
+      P.x = x; P.z = z; P.y = W.height(x, z); P.vx = P.vz = P.kx = P.kz = 0; P.vy = 0; P.grounded = true;
+      const amt = Math.min(P.maxHp * I.dunk, Math.max(0, (P.hp - 1) / ctx.rules.mode.difficulty));
+      if (amt > 0) { const before = P.hp; hurtPlayer(ctx, amt, 'dunk'); if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'dunk', who: 'player', id: -1, amount: before - P.hp, x, z }); }
+    }
+    for (let e = 0; e < E.hi && actors; e++) {
+      if (!E.alive[e] || E.hover[e] > 0 || C.tile(E.x[e], E.z[e]) !== k) continue;
+      const [x, z] = W.shore(E.x[e], E.z[e], E.radius[e], E.y[e] - E.hover[e]) ?? W.nearestWalkable(E.x[e], E.z[e]);
+      E.x[e] = E.px[e] = x; E.z[e] = E.pz[e] = z; E.y[e] = E.py[e] = W.height(x, z); E.vx[e] = E.vz[e] = E.kx[e] = E.kz[e] = 0;
+      const loss = Math.min(E.maxHp[e] * I.dunk, Math.max(0, E.hp[e] - 1));
+      E.hp[e] -= loss; E.flash[e] = 0.12;
+      if (loss > 0) {
+        ctx.events.push({ t: 'hit', x, y: E.y[e] + E.size[e], z, amount: loss, crit: false, eff: 1, element: 'frost', enemy: e });
+        ctx.events.push({ t: 'hazardHit', kind: 'dunk', who: 'enemy', id: e, amount: loss, x, z });
+      }
+    }
+    for (let b = 0; b < B.hi; b++) {
+      if (!B.alive[b] || C.tile(B.x[b], B.z[b]) !== k) continue;
+      const [x, z] = W.shore(B.x[b], B.z[b], 0.6, B.y[b]) ?? W.nearestWalkable(B.x[b], B.z[b]);
+      B.x[b] = B.px[b] = x; B.z[b] = B.pz[b] = z; B.y[b] = W.height(x, z); B.vx[b] = B.vz[b] = 0;
+    }
+  }
+}
+
 /** environmental damage to the player: no Guard, no knockback; it still respects dash i-frames */
-function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
+export function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
   const P = ctx.player;
   if (P.dashT > 0 || P.m.fainted || P.faintT >= 0) return;
   setSrc('tile', kind);
   const r = rec(ctx, 'tile', 'hit', true);
-  if (r) { r.amount = amount * ctx.rules.mode.difficulty; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' ? 'blaze' : 'volt'; r.x = P.x; r.z = P.z; }
+  if (r) { r.amount = amount * ctx.rules.mode.difficulty; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }
   P.hp -= amount * ctx.rules.mode.difficulty;
   P.hurtFlash = 0.2;
   ctx.stats.damageTaken += amount;

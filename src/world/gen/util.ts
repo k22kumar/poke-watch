@@ -1,6 +1,6 @@
 // Shared helpers for the procedural world (src/world/gen). Everything here is deterministic: integer hashing,
 // fixed iteration order, heap ties broken by index, no Math.sin/cos/hypot (core/detmath has the ones we need).
-import { T, type ArenaMap } from '../tiles';
+import { T, deckTop, type ArenaMap } from '../tiles';
 
 export const DIRS4: readonly [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
@@ -47,7 +47,7 @@ export function navTop(m: ArenaMap, k: number) {
   const t = m.terrain[k];
   if (m.stairs[k]) return m.elev[k];
   if (t === T.water) return -0.25;
-  if (t === T.wood) return 0.05;
+  if (t === T.wood) return deckTop(m.elev[k]);
   return m.elev[k] + m.platform[k];
 }
 

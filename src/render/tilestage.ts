@@ -7,26 +7,31 @@ import { compile, type GL } from './gl';
 import { InstanceBatch, QUAD_CENTER, QUAD_FEET } from './batches';
 import { Atlas } from '../overworld/render';
 import { boxGeo } from '../overworld/buildings';
-import { Pix, hex } from '../overworld/paint';
-import { paintCliff, paintGround, paintStairs, paintWater } from '../overworld/terrain';
-import { PROP_RULES, T, WATER_Y, stairEdges, type ArenaMap } from '../world/tiles';
-import { BIOME_ART, arenaSprites } from './tileart';
+import { Pix, hex, type RGB } from '../overworld/paint';
+import { paintCliff, paintGround, paintRockFace, paintStairs, paintWater, type GroundInput } from '../overworld/terrain';
+import { PROP_RULES, T, WATER_Y, deckTop, stairEdges, type ArenaMap } from '../world/tiles';
+import { BIOME_ART, TERRAIN_STYLE, arenaSprites } from './tileart';
 import { decorSprites, layoutDecor } from './decor';
 import { artDirection, edgeShade, forestDepth, type ArtDirection } from './artdirection';
+import { SPRITE_SAMPLE_GLSL } from './spritesample';
+import { FOG_VEIL, inStageView, type StageView } from './view';
 
 const MESH_VS = `
 layout(location=0) in vec3 aPos; layout(location=1) in vec2 aUV; layout(location=2) in float aShade;
 uniform mat4 uVP;
 out vec2 vUV; out float vS; out vec3 vW;
 void main(){ vUV = aUV; vS = aShade; vW = aPos; gl_Position = uVP * vec4(aPos,1.0); }`;
-// distance fog (third-person view only: uFog.a = 0 leaves the fixed views untouched)
+// distance fog (third-person view only: uFog.a = 0 leaves the fixed views untouched). Up to uFogR.y it reaches the
+// biome's fog amount uFog.a; past it the rest closes over FOG_VEIL * uFogR.y more, so beyond chaseViewR (render/view.ts)
+// everything is exactly the fog colour and the renderer can skip it without anything visibly appearing or vanishing
 export const FOG_GLSL = `
 uniform vec4 uFog; uniform vec2 uFogR; uniform vec3 uFogCam;
 vec3 applyFog(vec3 col, vec3 w){
   if (uFog.a <= 0.0) return col;
   float d = distance(w, uFogCam);
   float f = clamp((d - uFogR.x) / (uFogR.y - uFogR.x), 0.0, 1.0);
-  return mix(col, uFog.rgb, f * f * uFog.a);
+  float veil = clamp((d - uFogR.y) / (${FOG_VEIL.toFixed(3)} * uFogR.y), 0.0, 1.0);
+  return mix(col, uFog.rgb, f * f * uFog.a + (1.0 - uFog.a) * veil);
 }`;
 const MESH_FS = `
 in vec2 vUV; in float vS; in vec3 vW; uniform sampler2D uTex; uniform vec3 uTint; uniform float uGlow; out vec4 o;
@@ -40,7 +45,7 @@ layout(location=1) in vec4 iA;  // x y z w
 layout(location=2) in vec4 iB;  // h flip sway shade
 layout(location=3) in vec4 iUV; // u0 v0 u1 v1
 uniform mat4 uVP; uniform vec3 uRight; uniform float uStretch; uniform float uTime; uniform vec3 uFogCam;
-out vec2 vUV; out float vS; out vec3 vW;
+out vec2 vUV; flat out vec4 vRect; out float vS; out vec3 vW;
 void main(){
   // fixed views: one stretch for the whole screen; third person (uStretch <= 0): 1/cos of the elevation the camera
   // sees this object at, so far props are not stretched and texels stay square
@@ -49,21 +54,25 @@ void main(){
   vec3 w = iA.xyz + uRight * (aCorner.x * iA.w) + vec3(0.0, aCorner.y * iB.x * st, 0.0);
   w += uRight * iB.z * aCorner.y * aCorner.y * sin(uTime * 1.7 + iA.x * 0.37 + iA.z * 0.21) * 0.07;
   float u = aCorner.x + 0.5; if (iB.y > 0.5) u = 1.0 - u;
-  vUV = vec2(mix(iUV.x, iUV.z, u), mix(iUV.w, iUV.y, aCorner.y));
+  vUV = vec2(mix(iUV.x, iUV.z, u), mix(iUV.w, iUV.y, aCorner.y)); vRect = iUV;
   vS = iB.w; vW = w;
   gl_Position = uVP * vec4(w, 1.0);
 }`;
 const BB_FS = `
-in vec2 vUV; in float vS; in vec3 vW;
+in vec2 vUV; flat in vec4 vRect; in float vS; in vec3 vW;
 uniform sampler2D uTex; uniform vec3 uTint; uniform vec3 uPlayer; uniform vec3 uCam; uniform vec3 uFrameCool; uniform vec3 uBehind; out vec4 o;
 ${FOG_GLSL}
+${SPRITE_SAMPLE_GLSL}
 void main(){
-  vec4 c = texture(uTex, vUV);
+  vec4 c = spriteTex(uTex, vUV, vRect);
   if (c.a < 0.5) discard;
   // screen-door: props between the camera and the player become a 50% dither
   vec3 ab = uPlayer + vec3(0.0, 0.7, 0.0) - uCam; vec3 ap = vW - uCam;
   float t = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
   if (t < 0.93 && distance(vW, uCam + ab * t) < 1.1 && dot(vW - uPlayer, uBehind) > 0.2) { vec2 q = mod(floor(gl_FragCoord.xy), 2.0); if (q.x == q.y) discard; }
+  // a low lens passes close to trunks and canopies: anything within a few metres of it dissolves (4x4 ordered dither)
+  float nl = smoothstep(4.0, 1.5, distance(vW.xz, uCam.xz));
+  if (nl > 0.0) { vec2 g = mod(floor(gl_FragCoord.xy), 4.0); float bayer = (mod(g.x * 2.0 + g.y * 5.0, 8.0) + 0.5) / 8.0; if (bayer < nl) discard; }
   // frame: props deep in the forest are darker and cooler (vS < 1), so walls frame the clearing
   vec3 cool = mix(vec3(1.0), uFrameCool, clamp((1.0 - vS) * 3.0, 0.0, 1.0));
   o = vec4(applyFog(min(c.rgb * uTint * vS * cool, vec3(1.0)), vW), 1.0);
@@ -95,6 +104,21 @@ class Prog {
 interface StaticProp { key: string; frames: number; x: number; y: number; z: number; tile: number; sway: number; flip: boolean; kind: string; shade: number; burns?: boolean; pi?: number; sx?: number; sz?: number }
 
 const groundCache = new Map<string, HTMLCanvasElement>();
+/** separation (m) between faces that would otherwise share a plane: far below a pixel, far above depth precision */
+const COPLANAR = 0.015;
+
+/** the ground under an overhead deck sits in its shadow (full under the slab, half a tile beyond its edge), so a
+ *  covered space reads as covered from any angle */
+function deckShade(m: ArenaMap, shade: Float32Array): Float32Array {
+  if (!m.over) return shade;
+  const W = m.w, H = m.h;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!(m.over[y * W + x] > 0)) continue;
+    shade[y * W + x] = 1;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = x + dx, b = y + dy; if (a >= 0 && b >= 0 && a < W && b < H && !(m.over[b * W + a] > 0)) shade[b * W + a] = Math.max(shade[b * W + a], 0.45); }
+  }
+  return shade;
+}
 
 export class TileStage {
   private mesh: Prog; private bb: Prog; private sh: Prog;
@@ -112,7 +136,7 @@ export class TileStage {
   readonly dir: ArtDirection;
   readonly half: number;
 
-  constructor(private gl: GL, readonly map: ArenaMap, biome: string) {
+  constructor(private gl: GL, readonly map: ArenaMap, readonly biome: string) {
     this.mesh = new Prog(gl, MESH_VS, MESH_FS);
     this.bb = new Prog(gl, BB_VS, BB_FS);
     this.sh = new Prog(gl, SH_VS, SH_FS);
@@ -191,6 +215,8 @@ export class TileStage {
     const m = this.map, W = m.w, H = m.h, o = this.half;
     const E = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : m.elev[y * W + x]);
     const TER = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? T.grass : m.terrain[y * W + x]);
+    // habitat maps (src/world/habitat): water and lava surfaces have their own level per tile; elsewhere WATER_Y
+    const WL = (x: number, y: number) => (m.wlevel && x >= 0 && y >= 0 && x < W && y < H ? m.wlevel[y * W + x] : WATER_Y);
     const q = (out: number[], a: number[], b: number[], c: number[], d: number[], ua: number[], ub: number[], uc: number[], ud: number[], s: number) =>
       out.push(...a, ...ua, s, ...b, ...ub, s, ...c, ...uc, s, ...a, ...ua, s, ...c, ...uc, s, ...d, ...ud, s);
 
@@ -198,37 +224,67 @@ export class TileStage {
     // ground texture cached per map (authored arenas: the biome id; generated regions: biome@seed)
     let gcanvas = groundCache.get(m.id);
     const D = this.dir, pal = { ...this.art.ground, ...D.ground };
-    if (!gcanvas) { gcanvas = paintGround({ w: W, h: H, terrain: m.terrain, dots: m.dots, ledge: m.ledge, palette: pal, macro: D.macro, shade: edgeShade(m, D.edgeShade), shadeCol: D.shadeCol }).canvas(); groundCache.set(m.id, gcanvas); if (groundCache.size > 6) groundCache.delete(groundCache.keys().next().value as string); }
+    const TS = TERRAIN_STYLE[biome];
+    if (!gcanvas) {
+      // location terrain (render/tileart.ts TERRAIN_STYLE): rock tops on bare wall tiles, charged veins, light pools
+      let rock: Uint8Array | undefined, glow: GroundInput['glow'];
+      if (TS?.rockTops) {
+        rock = new Uint8Array(W * H);
+        const cover = new Uint8Array(W * H);
+        for (const p of m.props) if (p.kind !== 'crystal' && p.kind !== 'stalagmite') for (let y = p.y; y < p.y + p.h; y++) for (let x = p.x; x < p.x + p.w; x++) if (x >= 0 && y >= 0 && x < W && y < H) cover[y * W + x] = 1;
+        for (let k = 0; k < W * H; k++) rock[k] = m.wall[k] && !cover[k] ? 1 : 0;
+      }
+      if (TS?.glow) glow = { col: hex(TS.glow.col), at: m.props.filter((p) => TS.glow!.props[p.kind]).map((p) => [p.x + p.w / 2, p.y + p.h / 2, TS.glow!.props[p.kind]!] as [number, number, number]) };
+      const rt = TS?.rockTops;
+      gcanvas = paintGround({
+        w: W, h: H, terrain: m.terrain, dots: m.dots, ledge: TS?.rockLedges ? undefined : m.ledge, palette: pal, macro: D.macro, shade: deckShade(m, edgeShade(m, D.edgeShade)), shadeCol: D.shadeCol,
+        rock, rockPal: rt ? { base: hex(rt.base), dark: hex(rt.dark), light: hex(rt.light), deep: hex(rt.deep), glint: rt.glint ? hex(rt.glint) : undefined, glint2: rt.glint2 ? hex(rt.glint2) : undefined } : undefined,
+        veins: TS?.veins ? { col: hex(TS.veins.col), scale: TS.veins.scale, seed: 61 } : undefined, glow,
+      }).canvas();
+      groundCache.set(m.id, gcanvas); if (groundCache.size > 6) groundCache.delete(groundCache.keys().next().value as string);
+    }
     const gd: number[] = [];
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const t = TER(x, y);
         if (t === T.water || m.stairs[y * W + x]) continue;
-        const e = t === T.wood ? 0.05 : E(x, y);
+        const e = t === T.wood ? deckTop(E(x, y)) : E(x, y);
         const u0 = x / W, u1 = (x + 1) / W, v0 = y / H, v1 = (y + 1) / H;
         q(gd, [x - o, e, y + 1 - o], [x + 1 - o, e, y + 1 - o], [x + 1 - o, e, y - o], [x - o, e, y - o], [u0, v1], [u1, v1], [u1, v0], [u0, v0], 1);
       }
-    this.meshes.push(this.makeMesh(gd, this.texture(gcanvas)));
+    const groundT = this.texture(gcanvas);
+    this.meshes.push(this.makeMesh(gd, groundT));
 
     // skirt of plain ground beyond the map so the camera never sees the void
     // the skirt lies under the decorative forest ring: fully in the forest's shade
-    const skirt = paintGround({ w: 2, h: 2, terrain: new Uint8Array(4), palette: pal, shade: new Float32Array(4).fill(1), shadeCol: D.shadeCol });
+    // caves: the skirt is the mountain itself, rock raised above the highest border wall
+    const rt = TS?.rockTops;
+    const skirt = rt
+      ? paintGround({ w: 2, h: 2, terrain: new Uint8Array(4), rock: new Uint8Array(4).fill(1), rockPal: { base: hex(rt.base), dark: hex(rt.dark), light: hex(rt.light), deep: hex(rt.deep), glint: rt.glint ? hex(rt.glint) : undefined } })
+      : paintGround({ w: 2, h: 2, terrain: new Uint8Array(4), palette: pal, shade: new Float32Array(4).fill(1), shadeCol: D.shadeCol });
+    let skirtY = -0.02;
+    if (rt) { skirtY = 0; for (let i = 0; i < W; i++) skirtY = Math.max(skirtY, E(i, 0), E(i, H - 1), E(0, i), E(W - 1, i)); skirtY += 1.5; }
     const sd: number[] = [];
     const M = 30;
-    const rect = (x0: number, z0: number, x1: number, z1: number) => q(sd, [x0 - o, -0.02, z1 - o], [x1 - o, -0.02, z1 - o], [x1 - o, -0.02, z0 - o], [x0 - o, -0.02, z0 - o], [x0 / 2, z1 / 2], [x1 / 2, z1 / 2], [x1 / 2, z0 / 2], [x0 / 2, z0 / 2], 0.96);
+    const rect = (x0: number, z0: number, x1: number, z1: number) => q(sd, [x0 - o, skirtY, z1 - o], [x1 - o, skirtY, z1 - o], [x1 - o, skirtY, z0 - o], [x0 - o, skirtY, z0 - o], [x0 / 2, z1 / 2], [x1 / 2, z1 / 2], [x1 / 2, z0 / 2], [x0 / 2, z0 / 2], 0.96);
     rect(-M, -M, W + M, 0); rect(-M, H, W + M, H + M); rect(-M, 0, 0, H); rect(W, 0, W + M, H);
     this.meshes.push(this.makeMesh(sd, this.texture(skirt.canvas(), true)));
 
     // vertical faces: 1 m cliffs (rock), 0.5 m ledges (grassy lip), banks down to the water
-    const cliffT = this.texture(paintCliff('rock', this.art.cliff).canvas(), true);
-    const ledgeT = this.texture(paintCliff('ledge', this.art.cliff).canvas(), true);
+    // location maps: one fractured rock face, 4 tiles × 3 m before it repeats (uv scaled to match); others: 2 × 1
+    const rf = TS ? paintRockFace(this.art.cliff, { moss: TS.face.moss?.map(hex) as [RGB, RGB] | undefined, glint: TS.face.glint?.map(hex) as [RGB, RGB, RGB] | undefined }) : null;
+    const cliffT = this.texture((rf ?? paintCliff('rock', this.art.cliff)).canvas(), true);
+    const ledgeT = TS?.rockLedges ? cliffT : this.texture(paintCliff('ledge', this.art.cliff).canvas(), true);
+    const cu = rf ? 0.25 : 0.5, cv = rf ? 1 / 3 : 1, lu = TS?.rockLedges ? cu : 0.5, lv = TS?.rockLedges ? cv : 1;
     const bankT = this.texture(paintCliff('bank', this.art.bank).canvas(), true);
     const cd: number[] = [], ld: number[] = [], bd: number[] = [];
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         const t = TER(x, y);
         if (t === T.water || m.stairs[y * W + x]) continue;
-        const top = t === T.wood ? 0.05 : E(x, y);
+        const top = t === T.wood ? deckTop(E(x, y)) : E(x, y);
+        // an elevated deck (location maps) has open sides: rails are drawn below, never a solid wall under it
+        const deck = t === T.wood && E(x, y) > 0.05;
         const sides: [number, number, number[], number[], number][] = [
           [0, 1, [x, y + 1], [x + 1, y + 1], 0.86], [1, 0, [x + 1, y + 1], [x + 1, y], 0.72],
           [-1, 0, [x, y], [x, y + 1], 0.66], [0, -1, [x + 1, y], [x, y], 0.6],
@@ -238,13 +294,20 @@ export class TileStage {
           if (nx >= 0 && ny >= 0 && nx < W && ny < H && m.stairs[ny * W + nx] && dy !== 0) continue;
           const nt = TER(nx, ny);
           let bottom: number, out: number[];
-          if (nt === T.water) { if (t === T.wood) continue; bottom = WATER_Y - 0.05; out = bd; }
-          else { bottom = nt === T.wood ? 0.05 : E(nx, ny); out = top - bottom > 0.75 ? cd : ld; }
+          if (nt === T.water) { if (t === T.wood) continue; bottom = WL(nx, ny) - 0.05; out = bd; }
+          else { bottom = nt === T.wood ? deckTop(E(nx, ny)) : E(nx, ny); out = top - bottom > 0.75 ? cd : ld; }
           if (top - bottom < 0.01) continue;
+          if (deck && top - bottom > 0.75) continue;
           const la = A[0] + A[1], lb = B[0] + B[1];
-          q(out, [A[0] - o, bottom, A[1] - o], [B[0] - o, bottom, B[1] - o], [B[0] - o, top, B[1] - o], [A[0] - o, top, A[1] - o], [la / 2, top - bottom], [lb / 2, top - bottom], [lb / 2, 0], [la / 2, 0], s);
+          const su = out === cd ? cu : out === ld ? lu : 0.5, sv = out === cd ? cv : out === ld ? lv : 1;
+          q(out, [A[0] - o, bottom, A[1] - o], [B[0] - o, bottom, B[1] - o], [B[0] - o, top, B[1] - o], [A[0] - o, top, A[1] - o], [la * su, (top - bottom) * sv], [lb * su, (top - bottom) * sv], [lb * su, 0], [la * su, 0], s);
         }
       }
+    // caves: an inward rock face from the floor of the world up to the raised skirt along the map border
+    if (rt) for (let i = 0; i < W; i++) {
+      const f = (ax: number, az: number, bx: number, bz: number) => q(cd, [ax - o, 0, az - o], [bx - o, 0, bz - o], [bx - o, skirtY, bz - o], [ax - o, skirtY, az - o], [(ax + az) * cu, skirtY * cv], [(bx + bz) * cu, skirtY * cv], [(bx + bz) * cu, 0], [(ax + az) * cu, 0], 0.7);
+      f(i, 0, i + 1, 0); f(i + 1, H, i, H); f(0, i + 1, 0, i); f(W, i, W, i + 1);
+    }
     if (cd.length) this.meshes.push(this.makeMesh(cd, cliffT));
     if (ld.length) this.meshes.push(this.makeMesh(ld, ledgeT));
     if (bd.length) this.meshes.push(this.makeMesh(bd, bankT));
@@ -277,14 +340,27 @@ export class TileStage {
       for (let x = 0; x < W; x++) {
         const t = TER(x, y);
         if (t !== T.water && t !== T.wood) continue;
-        q(wd, [x - o, WATER_Y, y + 1 - o], [x + 1 - o, WATER_Y, y + 1 - o], [x + 1 - o, WATER_Y, y - o], [x - o, WATER_Y, y - o], [x / 2, (y + 1) / 2], [(x + 1) / 2, (y + 1) / 2], [(x + 1) / 2, y / 2], [x / 2, y / 2], 1);
+        if (t === T.wood && E(x, y) > 0.05) continue; // elevated deck: no water under it
+        const wy = WL(x, y);
+        q(wd, [x - o, wy, y + 1 - o], [x + 1 - o, wy, y + 1 - o], [x + 1 - o, wy, y - o], [x - o, wy, y - o], [x / 2, (y + 1) / 2], [(x + 1) / 2, (y + 1) / 2], [(x + 1) / 2, y / 2], [x / 2, y / 2], 1);
+        // habitat maps: where water drops to lower water or ground (a falls lip), a sheet of falling water
+        if (m.wlevel && t === T.water) {
+          const sides: [number, number, number[], number[]][] = [[0, 1, [x, y + 1], [x + 1, y + 1]], [1, 0, [x + 1, y + 1], [x + 1, y]], [-1, 0, [x, y], [x, y + 1]], [0, -1, [x + 1, y], [x, y]]];
+          for (const [dx, dy, A, B] of sides) {
+            const nx = x + dx, ny = y + dy, nt = TER(nx, ny);
+            const below = nt === T.water || nt === T.wood ? WL(nx, ny) : E(nx, ny);
+            if (wy - below < 0.5) continue;
+            const v = wy - below;
+            q(wd, [A[0] - o, below, A[1] - o], [B[0] - o, below, B[1] - o], [B[0] - o, wy, B[1] - o], [A[0] - o, wy, A[1] - o], [(A[0] + A[1]) / 2, v], [(B[0] + B[1]) / 2, v], [(B[0] + B[1]) / 2, 0], [(A[0] + A[1]) / 2, 0], 0.85);
+          }
+        }
       }
     if (wd.length) this.water = this.makeMesh(wd, this.waterTex[0], this.art.waterGlow);
 
     // bridge rails and plank edges
     const rails = new Pix(8, 8);
     rails.fill(0, 0, 8, 8, hex('#a87040')); rails.fill(0, 0, 8, 2, hex('#e0a868')); rails.fill(0, 6, 8, 2, hex('#7a4a28'));
-    const rd: number[] = [];
+    const rd: number[] = [], gd2: number[] = [];
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
       if (TER(x, y) !== T.wood) continue;
       for (const dz of [0, 1]) {
@@ -294,9 +370,74 @@ export class TileStage {
         const ox = x - o;
         boxGeo(rd, ox, 0.05, z - (dz ? 0.12 : 0), ox + 1, 0.42, z + (dz ? 0 : 0.12), [0, 0, 1, 0.25], [0, 0, 1, 1]);
         if ((x & 1) === 0) boxGeo(rd, ox + 0.4, 0.05, z - 0.08, ox + 0.6, 0.62, z + 0.08, [0, 0, 1, 0.25], [0, 0, 1, 1]);
-        q(rd, [x - o, WATER_Y + 0.1, z], [x + 1 - o, WATER_Y + 0.1, z], [x + 1 - o, 0.05, z], [x - o, 0.05, z], [0, 1], [1, 1], [1, 0], [0, 0], dz ? 0.7 : 0.5);
+        q(rd, [x - o, WL(x, ny) + 0.1, z], [x + 1 - o, WL(x, ny) + 0.1, z], [x + 1 - o, 0.05, z], [x - o, 0.05, z], [0, 1], [1, 1], [1, 0], [0, 0], dz ? 0.7 : 0.5);
       }
     }
+    // elevated decks: rails along every side that drops away, a plank beam under the edge, posts every other tile
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      if (TER(x, y) !== T.wood || E(x, y) <= 0.05) continue;
+      const top = E(x, y), ox = x - o, oz = y - o;
+      for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]] as [number, number][]) {
+        const nx = x + dx, ny = y + dy;
+        if (TER(nx, ny) === T.wood || E(nx, ny) > top - 0.75 || (m.over && m.over[ny * W + nx] > top - 0.75)) continue;
+        const [x0, z0, x1, z1] = dy ? [ox, oz + (dy > 0 ? 1 - 0.12 : 0), ox + 1, oz + (dy > 0 ? 1 : 0.12)] : [ox + (dx > 0 ? 1 - 0.12 : 0), oz, ox + (dx > 0 ? 1 : 0.12), oz + 1];
+        boxGeo(rd, x0, top + 0.3, z0, x1, top + 0.42, z1, [0, 0, 1, 0.25], [0, 0, 1, 1]);
+        // the beam's top face stops just under the deck surface: level with it, the two would z-fight along every edge
+        boxGeo(rd, x0, top - 0.45, z0, x1, top - COPLANAR, z1, [0, 0, 1, 0.25], [0, 0, 1, 1]);
+        if (((x + y) & 1) === 0) { const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; boxGeo(rd, cx - 0.08, top - 0.45, cz - 0.08, cx + 0.08, top + 0.62, cz + 0.08, [0, 0, 1, 0.25], [0, 0, 1, 1]); }
+      }
+    }
+    // overhead decks (ArenaMap.over, locgen/decks.ts): a slab whose top continues the floor it grows from (rock
+    // shelf, or the planks of a bridge), fractured rock or plank edges, a dark underside; a plank deck gets rails on
+    // its open sides and posts down to the passage beneath
+    if (m.over) {
+      const OV = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : m.over![y * W + x]);
+      const TH = 0.6;
+      const dt: number[] = [], ds: number[] = [];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const ov = OV(x, y);
+        if (ov <= 0) continue;
+        // donor: the nearest floor tile at deck height without a deck of its own (what this deck continues)
+        let dx0 = x, dy0 = y, best = 1e9;
+        for (let r = 1; r <= 4 && best === 1e9; r++) for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+          const ax = x + i, ay = y + j;
+          if (Math.max(Math.abs(i), Math.abs(j)) !== r || ax < 0 || ay < 0 || ax >= W || ay >= H) continue;
+          if (OV(ax, ay) > 0 || m.wall[ay * W + ax] || Math.abs(E(ax, ay) - ov) > 0.05) continue;
+          const d = i * i + j * j;
+          if (d < best) { best = d; dx0 = ax; dy0 = ay; }
+        }
+        const wood = TER(dx0, dy0) === T.wood;
+        const u0 = dx0 / W, u1 = (dx0 + 1) / W, v0 = dy0 / H, v1 = (dy0 + 1) / H;
+        q(gd2, [x - o, ov, y + 1 - o], [x + 1 - o, ov, y + 1 - o], [x + 1 - o, ov, y - o], [x - o, ov, y - o], [u0, v1], [u1, v1], [u1, v0], [u0, v0], 1);
+        // underside
+        q(wood ? rd : dt, [x - o, ov - TH, y - o], [x + 1 - o, ov - TH, y - o], [x + 1 - o, ov - TH, y + 1 - o], [x - o, ov - TH, y + 1 - o], [0, 0], [1, 0], [1, 1], [0, 1], 0.4);
+        // open edges: wherever the neighbour is neither deck nor floor at deck height
+        const sides: [number, number, number[], number[], number][] = [[0, 1, [x, y + 1], [x + 1, y + 1], 0.86], [1, 0, [x + 1, y + 1], [x + 1, y], 0.72], [-1, 0, [x, y], [x, y + 1], 0.66], [0, -1, [x + 1, y], [x, y], 0.6]];
+        for (const [sx, sy, A, B, sh] of sides) {
+          const nx = x + sx, ny = y + sy;
+          if (OV(nx, ny) > ov - 0.05) continue;
+          if (Math.abs(E(nx, ny) - ov) < 0.05) continue; // the rim it grows from
+          const la = A[0] + A[1], lb = B[0] + B[1];
+          q(wood ? rd : ds, [A[0] - o, ov - TH, A[1] - o], [B[0] - o, ov - TH, B[1] - o], [B[0] - o, ov, B[1] - o], [A[0] - o, ov, A[1] - o], [la * cu, TH * cv], [lb * cu, TH * cv], [lb * cu, 0], [la * cu, 0], sh);
+          if (!wood) {
+            // a ragged rock lip along the open edge: the overhang reads as a ledge from above and from below
+            // its outer face stands COPLANAR proud of the slab's edge face (sharing that plane, the two would z-fight)
+            const e = COPLANAR;
+            const [x0, z0, x1, z1] = sy ? [x - o, y - o + (sy > 0 ? 1 - 0.2 : -e), x + 1 - o, y - o + (sy > 0 ? 1 + e : 0.2)] : [x - o + (sx > 0 ? 1 - 0.2 : -e), y - o, x - o + (sx > 0 ? 1 + e : 0.2), y + 1 - o];
+            const hgt = 0.14 + (((x * 7 + y * 13) % 3) * 0.06);
+            boxGeo(ds, x0, ov - 0.05, z0, x1, ov + hgt, z1, [0.05, 0.05, 0.2, 0.12], [0.05, 0.05, 0.2, 0.12]);
+          }
+          if (wood) {
+            // rail along the open side and a post down to the floor below on every other tile
+            const [x0, z0, x1, z1] = sy ? [x - o, y - o + (sy > 0 ? 1 - 0.12 : 0), x + 1 - o, y - o + (sy > 0 ? 1 : 0.12)] : [x - o + (sx > 0 ? 1 - 0.12 : 0), y - o, x - o + (sx > 0 ? 1 : 0.12), y + 1 - o];
+            boxGeo(rd, x0, ov + 0.3, z0, x1, ov + 0.42, z1, [0, 0, 1, 0.25], [0, 0, 1, 1]);
+            if (((x + y) & 1) === 0) { const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2; boxGeo(rd, cx - 0.1, E(x, y), cz - 0.1, cx + 0.1, ov + 0.62, cz + 0.1, [0, 0, 1, 0.25], [0, 0, 1, 1]); }
+          }
+        }
+      }
+      if (dt.length || ds.length) this.meshes.push(this.makeMesh([...dt, ...ds], cliffT));
+    }
+    if (gd2.length) this.meshes.push(this.makeMesh(gd2, groundT));
     if (rd.length) this.meshes.push(this.makeMesh(rd, this.texture(rails.canvas(), true)));
   }
 
@@ -310,7 +451,7 @@ export class TileStage {
       for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) d = Math.min(d, depth[j * W + i]);
       return 1 - FD * Math.max(0, Math.min(1, (d - 0.5) / 3));
     };
-    const big = new Set(['tree', 'tree2', 'round', 'blossom', 'elder', 'deadtree', 'icepine', 'boulder', 'statue', 'shrine', 'cabin', 'well']);
+    const big = new Set(['tree', 'tree2', 'round', 'blossom', 'elder', 'deadtree', 'icepine', 'boulder', 'statue', 'shrine', 'cabin', 'well', 'gatehouse', 'tent']);
     for (let pi = 0; pi < m.props.length; pi++) {
       const p = m.props[pi];
       const cx = p.x + p.w / 2 - o, base = p.y + p.h - o;
@@ -322,18 +463,19 @@ export class TileStage {
         case 'reeds': frames = 2; dz = -0.35; sway = 1; break;
         case 'lily': dz = -0.5; break;
         case 'elder': dz = -0.9; sway = 0.3; break;
-        case 'cabin': dz = -0.35; break;
+        case 'cabin': case 'gatehouse': dz = -0.35; break;
+        case 'ladder': dz = -0.9; break;
         case 'fence': case 'hedge': dz = -0.45; break;
         default: if (big.has(p.kind)) { dz = -0.55; sway = p.kind === 'boulder' || p.kind === 'statue' || p.kind === 'shrine' || p.kind === 'well' ? 0 : 0.25; }
       }
       const jx = p.kind.startsWith('flower') ? (((p.x * 7 + p.y * 13) % 5) - 2) * 0.09 : 0;
       if (p.kind === 'tree') key = ['tree', 'tree3', 'tree'][p.variant % 3];
-      const flip = p.kind === 'tall' || p.kind === 'shrine' || p.kind === 'statue' || p.kind === 'sign' ? false : (p.variant & 1) === 1;
+      const flip = p.kind === 'tall' || p.kind === 'shrine' || p.kind === 'statue' || p.kind === 'sign' || p.kind === 'gatehouse' || p.kind === 'cabin' ? false : (p.variant & 1) === 1;
       this.props.push({ key, frames, x: cx + jx, y: p.kind === 'lily' ? -0.22 : y, z: base + dz, tile: p.y * W + p.x, sway, flip, kind: p.kind, shade: PROP_RULES[p.kind].wall ? frameShade(p.x, p.y, p.w, p.h) : 1, pi, sx: p.x + 0.5 - o, sz: base - 0.4 });
-      if (big.has(p.kind) && PROP_RULES[p.kind].wall) this.treeShadows.push([cx, y, base - 0.6, p.kind === 'elder' || p.kind === 'cabin' ? 2.2 : 1.0, pi]);
+      if (big.has(p.kind) && PROP_RULES[p.kind].wall) this.treeShadows.push([cx, y, base - 0.6, p.kind === 'elder' || p.kind === 'cabin' || p.kind === 'gatehouse' ? 2.2 : 1.0, pi]);
     }
     // ground decor: clumps, litter, pebbles, edge ferns and the crossroads camp (render/decor.ts)
-    for (const d of layoutDecor(m, edgeShade(m, 1))) {
+    for (const d of layoutDecor(m, edgeShade(m, 1), this.biome)) {
       const y = m.elev[d.tile];
       this.props.push({ key: d.key, frames: d.frames, x: d.x - o, y, z: d.z - o, tile: d.tile, sway: d.sway, flip: d.flip, kind: 'decor', shade: d.shade, burns: d.burns });
     }
@@ -344,6 +486,8 @@ export class TileStage {
     const counts = new Map<string, number>();
     for (const p of m.props) if (treeKinds.includes(p.kind)) counts.set(p.kind, (counts.get(p.kind) ?? 0) + 1);
     const wallKind = [...counts].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'tree';
+    // caves have no forest beyond their walls: the skirt is raised rock instead (buildGeometry)
+    if (!counts.size && TERRAIN_STYLE[this.biome]?.rockTops) return;
     for (let y = -14; y < m.h + 14; y += 2) {
       const off = (y >> 1) & 1; // staggered rows, like a woven Johto tree wall
       for (let x = -15 + off; x < m.w + 14; x += 2) {
@@ -369,7 +513,7 @@ export class TileStage {
     if (this.map.terrain[k] === T.tall) this.rustle.set(k, 0.45);
   }
 
-  draw(VP: Float32Array, right: number[], stretch: number, cam: number[], player: number[], time: number, dt: number, view: { x: number; z: number; r: number }, fog: Fog = NO_FOG) {
+  draw(VP: Float32Array, right: number[], stretch: number, cam: number[], player: number[], time: number, dt: number, view: StageView, fog: Fog = NO_FOG) {
     const gl = this.gl;
     const tint = this.dir.world;
     const mp = this.mesh.use();
@@ -400,11 +544,9 @@ export class TileStage {
     gl.depthMask(false);
     const S = this.shBatch;
     S.begin();
-    const r2 = view.r * view.r;
     for (const [x, y, z, r, pi] of this.treeShadows) {
       if (this.propState && this.propState[pi] >= 2 && this.propState[pi] <= 3) continue;
-      const dx = x - view.x, dz = z - view.z;
-      if (dx * dx + dz * dz > r2) continue;
+      if (!inStageView(view, x, z)) continue;
       const o = S.push(); S.data.set([x, y + 0.03, z, r, r * 0.45, 0.2, 0, 0], o);
     }
     const sp = this.sh.use();
@@ -420,8 +562,7 @@ export class TileStage {
     const A = this.atlas;
     const flowerFrame = Math.floor(time * 1.6) % 2;
     for (const p of this.props) {
-      const dx = p.x - view.x, dz = p.z - view.z;
-      if (dx * dx + dz * dz > r2) continue;
+      if (!inStageView(view, p.x, p.z)) continue;
       let key = p.key;
       let px = p.x, pz = p.z;
       // W4: burnt wood is a stump, burnt leaf and broken props are gone (sim/props.ts PS: 2 burnt, 3 broken)

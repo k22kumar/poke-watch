@@ -233,8 +233,8 @@ function spawnZone(ctx: SimContext, kind: number, spec: MoveSpec, x: number, z: 
 interface Aim { manual: boolean; t: number; ux: number; uz: number; px: number; pz: number }
 const AIM: Aim = { manual: false, t: -1, ux: 0, uz: 1, px: 0, pz: 0 };
 const MELEE = new Set(['strike', 'cone', 'spin', 'dash', 'aura', 'nova']);
-/** button bit for each move slot: slot 0 is the basic attack (autofire) */
-export const SLOT_BTN = [0, BTN.a, BTN.b, BTN.sig];
+/** button bit for each move slot: slot 0 is the basic attack (primary fire; automatic only in 'auto' mode) */
+export const SLOT_BTN = [BTN.basic, BTN.a, BTN.b, BTN.sig];
 
 /** the point the last resolved aim landed on (the Tag Action's target) */
 export function aimPoint(): [number, number] { return [AIM.px, AIM.pz]; }
@@ -741,6 +741,12 @@ export function isManual(ctx: SimContext, i: number): boolean {
   return i > 0 && ctx.rules.combat.mode !== 'auto';
 }
 
+/** true when move slots cast only while their button is held: every slot outside 'auto' mode, including the basic
+ *  attack. Unlike isManual this does not make the basic attack a heavier, slower "manual move". */
+export function needsButton(ctx: SimContext): boolean {
+  return ctx.rules.combat.mode !== 'auto';
+}
+
 /** the spec slot i casts with now: levelled, and for manual moves a heavier, slower version */
 export function slotSpec(ctx: SimContext, i: number): MoveSpec {
   const slot = ctx.player.moves[i];
@@ -755,8 +761,8 @@ export const movesSystem = {
   update(ctx: SimContext, dt: number) {
     const p = ctx.player;
     if (p.m.fainted) return;
-    // while Tag is held, Move A / Move B pick a reserve instead of casting
-    const btn = (ctx.input.btn ?? 0) & ((ctx.input.btn ?? 0) & BTN.sig ? ~(BTN.a | BTN.b) : ~0);
+    // while Tag is held, primary and secondary fire (basic attack, Move A) pick a reserve instead of casting
+    const btn = (ctx.input.btn ?? 0) & ((ctx.input.btn ?? 0) & BTN.sig ? ~(BTN.basic | BTN.a | BTN.b) : ~0);
     // Pressure (Articuno): within 12 m, cooldowns recover 15% slower (there is no PP to drain)
     let pressure = 1;
     { const E = ctx.enemies, b = ctx.director.bossIndex; if (b >= 0 && E.alive[b] && E.ability[b] === AB_PRESSURE && dhypot(E.x[b] - p.x, E.z[b] - p.z) < 12) pressure = 0.85; }
@@ -766,7 +772,11 @@ export const movesSystem = {
       const slot = p.moves[i];
       castDepth = i === 0 ? (catalyst ? 0 : 1) : 2;
       setCastSlot(i);
-      const manual = isManual(ctx, i);
+      // a slot cast by its button (every slot outside 'auto' mode) is player-aimed: it fires along the aim even with
+      // no enemy there; an automatic one (or the basic attack under basicNeedsTarget) waits for a target.
+      // slotSpec still makes only slots 1-3 heavier and slower.
+      const byButton = needsButton(ctx);
+      const aimed = byButton && !(i === 0 && ctx.rules.combat.basicNeedsTarget);
       const spec = slotSpec(ctx, i);
       const impl = ARCHETYPES[spec.archetype];
       if (!impl) continue;
@@ -778,20 +788,21 @@ export const movesSystem = {
         if (slot.windup > 0) continue;
         const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
         slot.windup = 0;
-        if (resolveAim(ctx, spec, manual, i === 0) && fire(ctx, impl, spec, i)) slot.cd = Math.max(0.05, spec.cd - w);
+        if (resolveAim(ctx, spec, aimed, i === 0) && fire(ctx, impl, spec, i)) slot.cd = Math.max(0.05, spec.cd - w);
         else slot.cd = 0.1;
         continue;
       }
       if (slot.cd > 0) slot.cd -= dt * pressure;
       if (slot.cd > 0) continue;
-      // manual moves wait, ready, until their button is held (holding repeats on cooldown)
-      if (manual && !(btn & (SLOT_BTN[i] ?? 0))) { slot.cd = 0; continue; }
-      if (!manual) {
+      // button-cast slots wait, ready, until their button is held (holding repeats on cooldown; releasing starts
+      // nothing new, though a wind-up already under way still lands)
+      if (byButton && !(btn & (SLOT_BTN[i] ?? 0))) { slot.cd = 0; continue; }
+      if (!aimed) {
         // automatic casts only when something is in reach; otherwise retry soon
         const reach = Math.max(spec.range, spec.radius * 1.5, 8);
         if (nearestEnemy(ctx, p.x, p.z, reach) < 0) { slot.cd = 0.1; continue; }
       }
-      if (!resolveAim(ctx, spec, manual, i === 0)) { slot.cd = 0.1; continue; }
+      if (!resolveAim(ctx, spec, aimed, i === 0)) { slot.cd = 0.1; continue; }
       const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
       if (w <= 0) { if (fire(ctx, impl, spec, i)) slot.cd = spec.cd; else slot.cd = 0.1; continue; }
       slot.windup = w;

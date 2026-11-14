@@ -41,9 +41,74 @@ export const BIOME_ART: Record<string, BiomeArt> = {
   },
 };
 
+// location palettes (src/world/locations): Viridian Forest, Mt. Moon, Chargestone Cave
+BIOME_ART.forest = { ground: {}, cliff: g({ base: '#8a7a62', dark: '#6a5c48', deep: '#4a4032', light: '#a8987a', lipA: '#4c8c40', lipB: '#346e36' }), bank: {}, water: {}, waterGlow: false, clear: hex('#5c8c48'), tint: [0.96, 1, 0.95] };
+BIOME_ART.moon = {
+  ground: g({ dirt: '#8a7660', dirtD: '#72604e', sand: '#a48c6c', sandD: '#8c7658', stone: '#6e6866', stoneD: '#5a5452', stoneL: '#86807c', mortar: '#3e3a3a' }),
+  cliff: g({ base: '#625a54', dark: '#4a4440', deep: '#302c2a', light: '#7e746c', lipA: '#6e6866', lipB: '#5a5452' }),
+  bank: g({ base: '#4a4440', dark: '#3a3432', deep: '#262220', light: '#625a54' }),
+  water: g({ base: '#3a4a7a', light: '#5a6aa0', foam: '#c8d0f0', dark: '#2a3460' }), waterGlow: false, clear: hex('#2a2628'), tint: [0.9, 0.88, 0.94],
+};
+BIOME_ART.chargestone = {
+  ground: g({ stone: '#4a5a70', stoneD: '#3a485c', stoneL: '#5e7088', mortar: '#26303e', dirt: '#56607a', dirtD: '#464e66', sand: '#5a6a84', sandD: '#4a586e' }),
+  cliff: g({ base: '#38445a', dark: '#2a3446', deep: '#1a2230', light: '#4e5e78', lipA: '#5ad0f0', lipB: '#3890c0' }),
+  bank: g({ base: '#2a3446', dark: '#1e2636', deep: '#121822', light: '#38445a' }),
+  water: g({ base: '#2a6ab0', light: '#5ac0f0', foam: '#e0f8ff', dark: '#1a4a90' }), waterGlow: true, clear: hex('#141c2a'), tint: [0.9, 0.96, 1.08],
+};
+// habitat palette (src/world/habitat): Cinder Crater — dark cooled basalt, ash floors, glowing lava
+BIOME_ART.volcano = {
+  ground: g({ dirt: '#6a5650', dirtD: '#584640', sand: '#8a6e5e', sandD: '#765c4e', stone: '#54484a', stoneD: '#443a3c', stoneL: '#6a5c5c', mortar: '#2a2224', grass: '#5a4c48', grassD: '#4a3e3a', grassL: '#6c5c56', grassEdge: '#3a302c' }),
+  cliff: g({ base: '#4a3e3e', dark: '#382e2e', deep: '#221a1a', light: '#62524e', lipA: '#5a4c48', lipB: '#4a3e3a' }),
+  bank: g({ base: '#3a2e2c', dark: '#2c2220', deep: '#1a1212', light: '#4a3e3a' }),
+  water: g({ base: '#ff6a20', light: '#ffb048', foam: '#fff0a0', dark: '#d8400e' }), waterGlow: true, clear: hex('#2a2020'), tint: [1.06, 0.97, 0.92],
+};
+/**
+ * How a location's terrain is built beyond its palette (render only). Caves paint the tops of their rock masses as
+ * natural rock (never grass) and use one fractured rock face for every vertical, so a wall never reads as a lawn or a
+ * brick course; Chargestone embeds crystals in that rock, runs charged veins through the floor and lets every crystal
+ * cast a pool of light; the Moon Stone glows on Mt. Moon's top floor; Viridian's bluffs are mossy rock.
+ */
+export interface TerrainStyle {
+  /** paint wall tiles without a prop as natural rock tops */
+  rockTops?: { base: string; dark: string; light: string; deep: string; glint?: string; glint2?: string };
+  /** every cliff face (and, in caves, every ledge face) is this rock face */
+  face: { moss?: [string, string]; glint?: [string, string, string] };
+  /** ledge faces use the rock face too (no grassy lip) */
+  rockLedges: boolean;
+  veins?: { col: string; scale: number };
+  /** light pools: prop kind -> radius (tiles) */
+  glow?: { col: string; props: Partial<Record<string, number>> };
+}
+export const TERRAIN_STYLE: Record<string, TerrainStyle> = {
+  volcano: {
+    rockTops: { base: '#4a3e3e', dark: '#3a3030', light: '#5e504c', deep: '#221a1a', glint: '#ff8a3a', glint2: '#ffd080' },
+    face: {}, rockLedges: true,
+    veins: { col: '#e8602a', scale: 7 },
+    glow: { col: '#ff9a50', props: { vent: 2.2 } },
+  },
+  forest: { face: { moss: ['#4c8c40', '#346e36'] }, rockLedges: false },
+  moon: {
+    rockTops: { base: '#5e5650', dark: '#4c4540', light: '#746a62', deep: '#2e2a28' },
+    face: {}, rockLedges: true,
+    glow: { col: '#d8d0ff', props: { moonstone: 6 } },
+  },
+  chargestone: {
+    rockTops: { base: '#323c52', dark: '#262e40', light: '#44506a', deep: '#161c28', glint: '#8ae8ff', glint2: '#e8fcff' },
+    face: { glint: ['#ffffff', '#8ae8ff', '#3aa8e0'] }, rockLedges: true,
+    veins: { col: '#5ac8f0', scale: 5 },
+    glow: { col: '#7ad8ff', props: { magnetite: 6.5, crystal: 2.6 } },
+  },
+};
+
+/** location art keys draw their props with a base palette's shapes */
+const BASE_PAL: Record<string, A.BiomePal> = { forest: 'meadow', moon: 'badlands', chargestone: 'frost', volcano: 'badlands' };
+
 const ROCK: Record<string, Ramp> = { meadow: ['#e0d8c8', '#b8b0a0', '#908878', '#6a6458'], badlands: ['#e0a888', '#b87860', '#905040', '#683830'], frost: ['#e8f0f8', '#b8c8d8', '#8898b0', '#687890'], dusk: ['#a8a0b8', '#787090', '#585070', '#403850'] };
 const GRASS: Record<string, Ramp> = { meadow: ['#8cd458', '#4ea83e', '#2f8a34', '#1f6a2c'], badlands: ['#f0d890', '#d0b060', '#a88840', '#806830'], frost: ['#e8f8ff', '#b8dce8', '#88b8c8', '#6898a8'], dusk: ['#6ab060', '#3e8a48', '#2a6a3c', '#1c4c2e'] };
-const CRYSTAL: Record<string, Ramp> = { meadow: ['#ffffff', '#c8f4ff', '#78d8f8', '#40a8d8'], badlands: ['#fff0c0', '#ffc060', '#f08830', '#c05820'], frost: ['#ffffff', '#c8f4ff', '#78d8f8', '#40a8d8'], dusk: ['#f0d8ff', '#c8a0ff', '#9868e8', '#6840c0'] };
+const ROCK_LOC: Record<string, Ramp> = { volcano: ['#7a6a66', '#5a4c4a', '#423634', '#2c2222'], moon: ['#a89e94', '#82786e', '#5e564e', '#403a34'], chargestone: ['#7a8aa8', '#58688a', '#3e4c6a', '#28344a'], forest: ['#c4c8b4', '#969e8a', '#6e7866', '#4c5448'] };
+/** moss on top of forest stones (Viridian's boulders sit in shade and damp) */
+const MOSS: Record<string, Ramp> = { forest: ['#9ccc6a', '#6aa848', '#4a8a3c'] };
+const CRYSTAL: Record<string, Ramp> = { chargestone: ['#ffffff', '#b8f8ff', '#58d8ff', '#2890e0'], moon: ['#fff8ff', '#e8d8ff', '#b8a0e8', '#8068c0'], meadow: ['#ffffff', '#c8f4ff', '#78d8f8', '#40a8d8'], badlands: ['#fff0c0', '#ffc060', '#f08830', '#c05820'], frost: ['#ffffff', '#c8f4ff', '#78d8f8', '#40a8d8'], dusk: ['#f0d8ff', '#c8a0ff', '#9868e8', '#6840c0'] };
 const FLOWER: Record<string, string> = { flowerR: '#ff5878', flowerW: '#ffffff', flowerY: '#ffd838', flowerB: '#80a8ff' };
 const TRUNK: Ramp = ['#a07850', '#7a5838', '#5a4028'];
 /** night forest foliage for Duskwood Hollow (the global tint cools it further) */
@@ -51,11 +116,13 @@ const NIGHT: S.TreeRamps = { hl: '#9ad870', light: '#5aa850', base: '#3a8448', s
 
 /** Sprite set for one biome: key -> image (animated kinds have numbered frames, e.g. tall0..2) */
 export function arenaSprites(biome: string): Map<string, ImageData> {
-  const pal = (['meadow', 'badlands', 'frost', 'dusk'].includes(biome) ? biome : 'meadow') as A.BiomePal;
+  const pal = (BASE_PAL[biome] ?? (['meadow', 'badlands', 'frost', 'dusk'].includes(biome) ? biome : 'meadow')) as A.BiomePal;
+  const rockR = ROCK_LOC[biome] ?? ROCK[pal], crystalR = CRYSTAL[biome] ?? CRYSTAL[pal];
+  const cave = biome === 'moon' || biome === 'chargestone';
   const out = new Map<string, ImageData>();
   const put = (k: string, im: ImageData) => out.set(k, im);
   const meadow = pal === 'meadow';
-  const forest = pal === 'meadow' || pal === 'dusk';
+  const forest = !cave && (pal === 'meadow' || pal === 'dusk');
   const R = pal === 'dusk' ? NIGHT : S.JOHTO, R2 = pal === 'dusk' ? NIGHT : S.JOHTO_DARK;
   put('tree', forest ? S.paintJohtoTree(0, R) : A.tieredTree(pal, 1, 0, pal === 'frost'));
   put('tree2', forest ? S.paintJohtoTree(1, R2) : A.tieredTree(pal, 1, 1, pal === 'frost'));
@@ -68,8 +135,8 @@ export function arenaSprites(biome: string): Map<string, ImageData> {
   put('bush', forest ? S.paintBush(0, R) : A.bush(pal, 0.95));
   put('bushR', forest ? S.paintBush(1, R) : A.bush(pal, 0.95, '#ff5070'));
   put('bushB', forest ? S.paintBush(2, R) : A.bush(pal, 0.95, '#80a0ff'));
-  put('rock', meadow ? S.paintRock() : A.rock(0.95, ROCK[pal]));
-  put('boulder', boulder(ROCK[pal]));
+  put('rock', meadow && !MOSS[biome] ? S.paintRock() : mossy(A.rock(0.95, rockR), MOSS[biome]));
+  put('boulder', boulder(rockR, MOSS[biome]));
   put('stump', stump());
   put('log', S.paintLog());
   put('berry', S.paintBerryTree());
@@ -79,7 +146,7 @@ export function arenaSprites(biome: string): Map<string, ImageData> {
   put('pillarBroken', pillar(ROCK[pal], true));
   put('statue', statue(ROCK[pal]));
   put('shrine', shrine(ROCK[pal]));
-  put('crystal', A.crystal(CRYSTAL[pal], 0.75));
+  put('crystal', A.crystal(crystalR, 0.75));
   put('vent', A.vent(0.6));
   put('mushroom', A.mushroom(0.8));
   const STEM: Record<string, [Ramp, string]> = { meadow: [['#7cc850', '#4ea83e', '#2f8a34'], '#245a2c'], dusk: [['#6ab060', '#3e8a48', '#2a6a3c'], '#14303a'], badlands: [['#d8b070', '#a8803c', '#7a5a2c'], '#4a3018'], frost: [['#b8d8e0', '#80a8b8', '#5a7e90'], '#3a5468'] };
@@ -94,38 +161,167 @@ export function arenaSprites(biome: string): Map<string, ImageData> {
   put('well', S.paintWell());
   put('lamp', S.paintLamp());
   put('bench', S.paintBench());
+  // location kit (src/world/locgen)
+  put('thicket', forest ? S.paintBush(1, R2) : A.bush(pal, 1.2));
+  put('stalagmite', stalagmite(rockR));
+  put('moonstone', moonstone());
+  put('magnetite', A.crystal(crystalR, 1.6));
+  put('fossil', fossil());
+  put('crate', crate());
+  put('gatehouse', gatehouse());
+  put('tent', tent());
+  put('ladder', ladder());
   return out;
 }
 
-/** An original log cabin, 4 × 3 tiles: gabled roof, plank door facing the street (south), shuttered window, chimney. */
+/** a cave spire, 1 tile */
+function stalagmite(r: Ramp): ImageData {
+  const s = new Sprite(16, 34);
+  s.outline = '#201c1a';
+  const st = s.ramp(r);
+  for (let y = 0; y < 30; y++) { const w = 2 + (y / 30) * 11; s.rect(8 - w / 2, 3 + y, w, 1, st); }
+  s.ellipse(8, 32, 7, 2, s.ramp([r[1], r[2], r[3] ?? r[2]]));
+  for (let y = 8; y < 30; y += 5) s.dot(7 - (y / 30) * 3, y, r[0]);
+  return s.render();
+}
+
+/** the Moon Stone of Mt. Moon Square: a pale meteorite, 2 × 2 tiles (an interpretation of the canonical stone) */
+function moonstone(): ImageData {
+  const s = new Sprite(36, 40);
+  s.outline = '#2a2440';
+  s.ellipse(18, 24, 16, 14, s.ramp(['#f4f0ff', '#d4ccec', '#aaa0cc', '#7c72a4']));
+  s.ellipse(13, 16, 8, 7, s.ramp(['#ffffff', '#ece6ff', '#cec4ec']));
+  for (const [x, y, r] of [[22, 22, 3], [12, 28, 2.5], [25, 31, 2]] as [number, number, number][]) s.ellipse(x, y, r, r * 0.8, s.ramp(['#9a90c0', '#7c72a4', '#625a8a']));
+  for (const [x, y] of [[9, 12], [27, 14], [17, 9]]) s.dot(x, y, '#fff6c0');
+  s.ellipse(18, 37, 15, 2.5, s.ramp(['#5a5452', '#46403e', '#36302e']));
+  return s.render();
+}
+
+/** a pile of fossil bones and shell fragments at the dig */
+function fossil(): ImageData {
+  const s = new Sprite(16, 12);
+  s.outline = '#3a2e22';
+  s.ellipse(8, 8, 7, 3.5, s.ramp(['#b8a080', '#98805e', '#78603e']));
+  s.ellipse(6, 6, 3.5, 3, s.ramp(['#f0e4c8', '#d8c8a0', '#b8a47a']));
+  for (let a = 0; a < 3; a++) s.dline(5 + a * 0.5, 4 + a, 8 + a, 5 + a, '#a08a64');
+  s.rect(10, 5, 4, 2, s.ramp(['#f0e4c8', '#d8c8a0', '#b8a47a']));
+  return s.render();
+}
+
+/** a wooden supply crate (dig sites, trainer camps) */
+function crate(): ImageData {
+  const s = new Sprite(16, 16);
+  s.outline = '#3a2614';
+  s.rect(1, 3, 14, 12, s.ramp(['#c89a60', '#a87a44', '#86602e']));
+  s.rect(1, 3, 14, 2, s.ramp(['#e0b878', '#c89a60', '#a87a44']));
+  s.dline(2, 5, 13, 14, '#7a5426'); s.dline(13, 5, 2, 14, '#7a5426');
+  s.rect(1, 9, 14, 1, s.ramp(['#86602e', '#6e4c22', '#563a18']));
+  return s.render();
+}
+
+/**
+ * A small house, 4 × 3 tiles, in the handheld-adventure town style (original design): pale plaster walls on a stone
+ * footing, timber corner posts, a tiled gable roof in the region's colour with a light ridge, white-framed windows,
+ * a dark door under a little awning facing the street (south). Replaces an earlier log cabin that read as generic
+ * fantasy rather than a Pokémon-world town.
+ */
 function cabin(pal: A.BiomePal): ImageData {
   const s = new Sprite(64, 62);
-  s.outline = '#2a2018';
-  const roofR: Ramp = pal === 'frost' ? ['#f4f8fc', '#d4e0ec', '#a8b8cc', '#7a8ca4'] : pal === 'badlands' ? ['#d89a6a', '#b07048', '#884e30', '#603420'] : pal === 'dusk' ? ['#8a7cc0', '#6a5ca0', '#4c4080', '#342a5c'] : ['#e07a5a', '#c0563c', '#94402c', '#6a2c20'];
-  const logR = s.ramp(['#d8a870', '#b88450', '#94663a', '#6e4a28']);
-  // walls: stacked logs
-  s.rect(6, 30, 52, 30, logR);
-  for (let y = 33; y < 60; y += 4) s.rect(6, y, 52, 1, s.ramp(['#7a5432', '#664428', '#523620']));
-  // log ends at the corners
-  for (let y = 31; y < 60; y += 4) { s.ellipse(6, y + 1, 2, 1.6, s.ramp(['#f0d0a0', '#d0a878', '#a88050'])); s.ellipse(57, y + 1, 2, 1.6, s.ramp(['#f0d0a0', '#d0a878', '#a88050'])); }
-  // chimney behind the roof
-  s.rect(44, 6, 7, 14, s.ramp(['#c8c0b4', '#a49c90', '#80786e']));
-  s.rect(43, 5, 9, 3, s.ramp(['#d8d0c4', '#b4ac9e', '#8e867a']));
-  // gabled roof with overhang
+  s.outline = '#2a2420';
+  const roofR: Ramp = pal === 'frost' ? ['#a8c4e0', '#7898c0', '#56769c', '#3c5476'] : pal === 'badlands' ? ['#e09a6a', '#c07448', '#985430', '#6a3a20'] : pal === 'dusk' ? ['#8a7cc0', '#6a5ca0', '#4c4080', '#342a5c'] : ['#f08a6a', '#d0604a', '#a84434', '#782e24'];
+  // walls: plaster over a stone footing, timber posts at the corners
+  s.rect(6, 30, 52, 28, s.ramp(['#fbf4e0', '#efe4c6', '#d8caa6', '#b8a882']));
+  s.rect(6, 55, 52, 5, s.ramp(['#c8c4bc', '#a8a49c', '#88847c']));
+  for (const x of [6, 55]) s.rect(x, 30, 3, 26, s.ramp(['#b88a5a', '#946a40', '#704e2c']));
+  s.rect(6, 30, 52, 2, s.ramp(['#b88a5a', '#946a40', '#704e2c']));
+  // chimney
+  s.rect(44, 4, 7, 14, s.ramp(['#d8d0c4', '#b4ac9e', '#8e867a']));
+  s.rect(43, 3, 9, 3, s.ramp(['#e8e0d4', '#c4bcae', '#9e968a']));
+  // tiled gable roof: rows of tiles with dark joints, a pale ridge cap, overhanging eaves
   const roof = s.ramp(roofR);
-  for (let y = 0; y < 22; y++) { const w = 18 + y * 2.2; s.rect(32 - w / 2, 10 + y, w, 1, roof); }
-  s.rect(2, 31, 60, 3, s.ramp([roofR[2], roofR[3]!, roofR[3]!]));
-  for (let y = 13; y < 31; y += 3) s.rect(32 - (18 + (y - 10) * 2.2) / 2 + 2, y, 18 + (y - 10) * 2.2 - 4, 1, s.ramp([roofR[1], roofR[2], roofR[3]!]));
-  // door (south face) and a window with shutters
-  s.rect(22, 42, 11, 18, s.ramp(['#8a5a34', '#6e4426', '#52301a']));
-  s.rect(22, 41, 11, 2, s.ramp(['#5a3a22', '#462c18', '#341e10']));
-  s.dot(30, 51, '#f0d070');
-  s.rect(39, 40, 12, 9, s.ramp(['#bfe4f4', '#8cc4e0', '#5a9cc4']));
-  s.rect(44, 40, 1, 9, s.ramp(['#6e4426', '#52301a', '#3a2010'])); s.rect(39, 44, 12, 1, s.ramp(['#6e4426', '#52301a', '#3a2010']));
-  s.rect(36, 40, 3, 9, s.ramp(['#4e8a5a', '#3a6e46', '#285234'])); s.rect(51, 40, 3, 9, s.ramp(['#4e8a5a', '#3a6e46', '#285234']));
-  s.rect(12, 44, 6, 6, s.ramp(['#bfe4f4', '#8cc4e0', '#5a9cc4']));
-  // a doorstep
-  s.rect(20, 59, 15, 2, s.ramp(['#c8c0b4', '#a49c90', '#80786e']));
+  for (let y = 0; y < 22; y++) { const w = 20 + y * 2.2; s.rect(32 - w / 2, 9 + y, w, 1, roof); }
+  for (let y = 12; y < 31; y += 4) { const w = 20 + (y - 9) * 2.2; s.rect(32 - w / 2 + 1, y, w - 2, 1, s.ramp([roofR[2], roofR[3]!, roofR[3]!])); for (let x = Math.ceil(32 - w / 2) + ((y >> 2) & 1) * 3; x < 32 + w / 2 - 1; x += 6) s.px(x, y + 1, s.ramp([roofR[2], roofR[3]!, roofR[3]!])); }
+  s.rect(22, 8, 20, 2, s.ramp(['#fff0e0', '#f0dcc8', '#d8c0a8']));
+  s.rect(1, 30, 62, 2, s.ramp([roofR[2], roofR[3]!, roofR[3]!]));
+  // door with a small awning and step
+  s.rect(25, 41, 12, 16, s.ramp(['#8a5a3a', '#6e4428', '#54321c']));
+  s.rect(30, 41, 1, 16, s.ramp(['#54321c', '#40240e', '#30180a']));
+  s.dot(28, 49, '#f0d070'); s.dot(33, 49, '#f0d070');
+  s.rect(23, 38, 16, 3, roof);
+  s.rect(23, 57, 16, 2, s.ramp(['#d8d0c4', '#b4ac9e', '#8e867a']));
+  // windows: white frames, sky-blue glass with a highlight, flower boxes under them
+  for (const wx of [11, 42]) {
+    s.rect(wx, 38, 11, 10, s.ramp(['#ffffff', '#f4f4f0', '#d8d8d0']));
+    s.rect(wx + 1, 39, 9, 8, s.ramp(['#cceefc', '#98d0ec', '#68a8d0']));
+    s.rect(wx + 5, 39, 1, 8, s.ramp(['#ffffff', '#f4f4f0', '#d8d8d0'])); s.rect(wx + 1, 43, 9, 1, s.ramp(['#ffffff', '#f4f4f0', '#d8d8d0']));
+    s.dot(wx + 2, 40, '#ffffff'); s.dot(wx + 3, 40, '#ffffff');
+    s.rect(wx, 48, 11, 2, s.ramp(['#a87a4c', '#86603a', '#664628']));
+    for (let k = 0; k < 4; k++) s.dot(wx + 1 + k * 3, 47, k & 1 ? '#ffd040' : '#ff7088');
+  }
+  return s.render();
+}
+
+/**
+ * A Route gatehouse, 4 × 3 tiles (original design in the Kanto/Johto gate style): a long, low checkpoint building with
+ * cream walls, a shallow slate roof with a pale cornice, a wide pair of glass sliding doors in the middle under a
+ * route plate, and square windows either side. The forest trail runs through its doors.
+ */
+function gatehouse(): ImageData {
+  const s = new Sprite(64, 58);
+  s.outline = '#262a30';
+  // body
+  s.rect(3, 22, 58, 33, s.ramp(['#fbf6e6', '#efe6cc', '#d6caa8', '#b4a682']));
+  s.rect(3, 51, 58, 5, s.ramp(['#b8b8b0', '#98988e', '#787870']));
+  // horizontal trim band under the windows
+  s.rect(3, 44, 58, 1, s.ramp(['#c8bc98', '#b0a480', '#988c68']));
+  // shallow slate roof: a low slope with tile lines and a light cornice
+  const roof = s.ramp(['#8cb0c8', '#6a8ea8', '#4c6e88', '#34506a']);
+  for (let y = 0; y < 14; y++) { const inset = Math.max(0, 8 - y); s.rect(1 + inset, 8 + y, 62 - inset * 2, 1, roof); }
+  for (let y = 11; y < 22; y += 3) s.rect(3, y, 58, 1, s.ramp(['#4c6e88', '#34506a', '#283e54']));
+  s.rect(0, 21, 64, 2, s.ramp(['#ffffff', '#e8eef2', '#c4ccd4']));
+  // route plate above the doors
+  s.rect(24, 24, 16, 5, s.ramp(['#4a5a6a', '#38485a', '#28384a']));
+  for (let x = 26; x < 38; x += 2) s.dot(x, 26, '#f0f4f8');
+  // sliding glass doors
+  s.rect(22, 31, 20, 22, s.ramp(['#7a8088', '#5e646c', '#484c54']));
+  s.rect(23, 32, 18, 21, s.ramp(['#c8ecfc', '#90cce8', '#5aa0c8']));
+  s.rect(31, 32, 2, 21, s.ramp(['#7a8088', '#5e646c', '#484c54']));
+  for (const x of [25, 35]) { s.dot(x, 34, '#ffffff'); s.dot(x + 1, 35, '#ffffff'); }
+  s.rect(21, 53, 22, 3, s.ramp(['#8a5050', '#6e3a3a', '#542a2a']));
+  // windows either side
+  for (const wx of [7, 47]) {
+    s.rect(wx, 31, 10, 10, s.ramp(['#6a7078', '#50565e', '#3c4048']));
+    s.rect(wx + 1, 32, 8, 8, s.ramp(['#c8ecfc', '#90cce8', '#5aa0c8']));
+    s.rect(wx + 1, 35, 8, 1, s.ramp(['#6a7078', '#50565e', '#3c4048']));
+    s.dot(wx + 2, 33, '#ffffff');
+  }
+  return s.render();
+}
+
+/** a Bug Catcher's tent, 2 × 2 tiles: a small canvas A-frame with a rolled flap and a bug net leaning on it */
+function tent(): ImageData {
+  const s = new Sprite(36, 32);
+  s.outline = '#3a2c18';
+  const can = s.ramp(['#fbe6a0', '#ecc870', '#c89c48', '#987030']);
+  for (let y = 0; y < 22; y++) { const w = 4 + y * 1.4; s.rect(17 - w / 2, 7 + y, w, 1, can); }
+  // stripe and the open door
+  for (let y = 9; y < 29; y++) s.px(17 - (y - 7) * 0.7, y, s.ramp(['#7ab070', '#5a9058', '#3e7044']));
+  for (let y = 15; y < 29; y++) { const w = (y - 15) * 0.9; s.rect(17 - w / 2, y, w + 1, 1, s.ramp(['#5a4428', '#46341e', '#342614'])); }
+  s.rect(3, 28, 29, 2, s.ramp(['#8a7a5a', '#6e6046', '#544834']));
+  // bug net: a pole and a white mesh hoop
+  s.line(31, 30, 26, 6, s.ramp(['#c89a60', '#a07840', '#7a5a2c']));
+  s.ellipse(25, 6, 5, 4.5, s.ramp(['#ffffff', '#eef0f4', '#c8ccd4']));
+  for (let k = -3; k <= 3; k += 2) s.dline(25 + k, 3, 25 + k, 9, '#b8bcc8');
+  return s.render();
+}
+
+/** a wooden ladder against a rock face (canon: Mt. Moon's floors are joined by ladders) */
+function ladder(): ImageData {
+  const s = new Sprite(14, 44);
+  s.outline = '#2a1e12';
+  const rail = s.ramp(['#d0a068', '#a87a44', '#80582c']);
+  s.rect(2, 0, 2, 44, rail); s.rect(10, 0, 2, 44, rail);
+  for (let y = 3; y < 44; y += 5) s.rect(4, y, 6, 1, s.ramp(['#e0b478', '#b88a50', '#8e6634']));
   return s.render();
 }
 
@@ -152,15 +348,40 @@ function elderTree(pal: A.BiomePal): ImageData {
   return s.render();
 }
 
-function boulder(r: Ramp): ImageData {
+function boulder(r: Ramp, moss?: Ramp): ImageData {
   const s = new Sprite(34, 30);
   s.outline = '#3a3830';
   s.ellipse(17, 19, 16, 10, s.ramp(r));
   s.ellipse(12, 13, 9, 7, s.ramp([r[0], r[0], r[1], r[2]]));
   s.ellipse(24, 15, 7, 6, s.ramp([r[0], r[1], r[2]]));
   s.dline(14, 20, 20, 25, r[3] ?? r[2]);
-  s.dot(9, 10, '#ffffff');
+  if (moss) {
+    // a moss cap over the crown, ragged at its lower edge
+    const mr = s.ramp(moss);
+    for (let x = 5; x < 30; x++) {
+      let top = -1;
+      for (let y = 0; y < 30; y++) if (s.get(x, y)) { top = y; break; }
+      if (top < 0) continue;
+      const len = 2 + Math.floor(h2(x, 1, 5) * 3) + (x > 9 && x < 26 ? 1 : 0);
+      for (let y = top; y < top + len; y++) s.px(x, y, mr);
+    }
+  } else s.dot(9, 10, '#ffffff');
   return s.render();
+}
+
+/** add a moss fringe to the top of an already rendered stone */
+function mossy(im: ImageData, moss?: Ramp): ImageData {
+  if (!moss) return im;
+  const d = im.data, W = im.width, cols = moss.slice(0, 3).map((c) => hex(c!));
+  for (let x = 0; x < W; x++) {
+    let top = -1;
+    for (let y = 0; y < im.height; y++) if (d[(y * W + x) * 4 + 3]) { top = y; break; }
+    if (top < 0) continue;
+    const len = 1 + Math.floor(h2(x, 2, 5) * 3);
+    // skip the outline pixel; paint the cap below it
+    for (let y = top + 1; y < Math.min(im.height, top + 1 + len); y++) { const o = (y * W + x) * 4; if (!d[o + 3]) continue; const c = cols[y === top + 1 ? 0 : y < top + len ? 1 : 2]; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; }
+  }
+  return im;
 }
 
 function stump(): ImageData {

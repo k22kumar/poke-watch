@@ -7,6 +7,7 @@ import { BTN, type SimContext } from './types';
 import { footing } from './cells';
 import { TB } from '../rules/build';
 import { logTech } from './techniques';
+import { liquidMotion, playerLiquid } from './hazards';
 
 /** release Guard; a tap that caught nothing costs a short lockout */
 export function endGuard(ctx: SimContext) {
@@ -56,8 +57,10 @@ export const playerSystem = {
     if (ml > 1) { mx /= ml; mz /= ml; }
     P.moving = ml > 0.05;
 
-    const inWater = W.waterAt(P.x, P.z) > P.y + 0.3;
-    const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * (inWater ? 0.8 : 1) * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.objectives.transport.carrySpeed : 1)
+    // a liquid underfoot (hazards on): an exposed Pokémon wades slowly and cannot jump out; a safe swimmer keeps pace
+    const liquid = playerLiquid(ctx);
+    const [swim, canJump] = W.hazards ? liquidMotion(ctx, liquid) : [W.waterAt(P.x, P.z) > P.y + 0.3 ? 0.8 : 1, true];
+    const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * swim * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.objectives.transport.carrySpeed : 1)
       * (tm & TB.heavy ? BT.heavyFooting.speed : 1) * (rooted ? 0 : 1);
 
     // Reflex: two charges shared by Dash and Guard
@@ -115,10 +118,12 @@ export const playerSystem = {
     const kd = dexp(-8 * dt);
     P.kx *= kd; P.kz *= kd;
 
-    // horizontal move with terrain step rule, axis-separated sliding
+    // horizontal move with terrain step rule, axis-separated sliding. Only solid geometry stops it (World.collides):
+    // open liquid and open air are entered, by walking or by being knocked
     const stepX = (P.vx + P.kx) * dt, stepZ = (P.vz + P.kz) * dt;
     const feet = P.y;
-    const blocked = (x: number, z: number) => W.blocks(x, z, feet, R.stepHeight);
+    const stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight; // climbing out of a liquid
+    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp);
     let nx = P.x + stepX, nz = P.z + stepZ;
     const ahead = 0.35;
     const ax = Math.sign(stepX) * ahead, az = Math.sign(stepZ) * ahead;
@@ -127,12 +132,19 @@ export const playerSystem = {
       else if (!blocked(P.x, nz + az)) nx = P.x;
       else { nx = P.x; nz = P.z; }
     }
+    // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
+    // cutting); beside a chasm that would drop the player into it, so test where the step actually lands too
+    if (W.los && blocked(nx, nz)) {
+      if (!blocked(nx, P.z)) nz = P.z;
+      else if (!blocked(P.x, nz)) nx = P.x;
+      else { nx = P.x; nz = P.z; }
+    }
     const b = W.bound;
     P.x = clamp(nx, -b, b);
     P.z = clamp(nz, -b, b);
 
     // vertical
-    if (inp.jump && P.grounded) {
+    if (inp.jump && P.grounded && canJump) {
       P.vy = R.jumpVelocity;
       P.grounded = false;
       ctx.events.push({ t: 'jump' });
@@ -140,7 +152,8 @@ export const playerSystem = {
     P.vy -= R.gravity * dt;
     if (P.species.flying && inp.jump && P.vy < -R.glideFallSpeed) P.vy = -R.glideFallSpeed;
     P.y += P.vy * dt;
-    const g = W.height(P.x, P.z);
+    // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
+    const g = W.support(P.x, P.z, P.y);
     if (P.y <= g) {
       P.y = g;
       P.vy = 0;
@@ -149,6 +162,15 @@ export const playerSystem = {
       P.y = g; P.vy = 0; // stick to slopes going down
     } else {
       P.grounded = false;
+    }
+
+    // location maps: never left inside rock (a shove or knockback through a corner): back to footing. A chasm is not
+    // rock (hazards on: World.wallAt is false there), so a real fall is never pulled back to the lip.
+    // (a walker standing on a deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so
+    // this only matters where a habitat causeway spans sealed ground)
+    if (W.los && W.wallAt(P.x, P.z) && !(W.over && W.node(P.x, P.z, P.y) >= W.w * W.h)) {
+      [P.x, P.z] = W.nearestWalkable(P.x, P.z);
+      P.y = W.height(P.x, P.z, P.y); P.vy = 0; P.grounded = true;
     }
 
     if (P.aimT > 0) P.aimT -= dt;

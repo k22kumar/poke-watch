@@ -59,6 +59,34 @@ export const ART_DIRECTION: Record<string, ArtDirection> = {
     shadeCol: hex('#14283a'), edgeShade: 1, frameDark: 0.36, frameCool: [0.82, 0.88, 1.12],
     world: [0.86, 0.9, 1.05], actor: [1.06, 1.02, 1.0], vignette: 0.24, vignetteCol: [0.03, 0.04, 0.1],
   },
+  // Viridian Forest: deep shade under the canopy, sunlit clearings, packed-earth trails
+  forest: {
+    ground: g({ grass: '#7cb662', grassD: '#5a944a', grassL: '#9ccc7e', grassEdge: '#4a8040', tallBase: '#3e8a40', tallD: '#286c34', path: '#b89a6e', pathD: '#a08256', pathL: '#ccb088', pathEdge: '#866a48', dirt: '#a88a62', dirtD: '#8e7250', lipA: '#4c8c40', lipB: '#346e36' }),
+    macro: { dark: hex('#6aa458'), light: hex('#8cc270'), scale: 6, amount: 0.16, seed: 45 },
+    shadeCol: hex('#1c3c30'), edgeShade: 1, frameDark: 0.45, frameCool: [0.82, 0.94, 1.02],
+    world: [0.9, 0.96, 0.9], actor: [1.04, 1.03, 1.0], vignette: 0.24, vignetteCol: [0.03, 0.08, 0.05],
+  },
+  // Mt. Moon: warm torchlit earth on the floors, cold grey rock overhead
+  moon: {
+    ground: g({ dirt: '#8a7660', dirtD: '#72604e', sand: '#a48c6c', sandD: '#8c7658', stone: '#6e6866', stoneD: '#5a5452', stoneL: '#86807c', mortar: '#3e3a3a', path: '#a48c6c', pathD: '#8c7658', pathL: '#b8a07e', pathEdge: '#6e5c46', grass: '#5c5a52', grassD: '#4a4842', grassL: '#6e6c62', grassEdge: '#3a3832' }),
+    macro: { dark: hex('#76665a'), light: hex('#92806a'), scale: 6, amount: 0.16, seed: 46 },
+    shadeCol: hex('#14101a'), edgeShade: 1, frameDark: 0.45, frameCool: [0.86, 0.86, 1.0],
+    world: [0.82, 0.8, 0.86], actor: [1.08, 1.04, 1.0], vignette: 0.25, vignetteCol: [0.02, 0.02, 0.04],
+  },
+  // Cinder Crater (habitat): ash floors and basalt, warm light from the lava
+  volcano: {
+    ground: g({ dirt: '#6a5650', dirtD: '#584640', sand: '#8a6e5e', sandD: '#765c4e', stone: '#54484a', stoneD: '#443a3c', stoneL: '#6a5c5c', mortar: '#2a2224', path: '#8a6e5e', pathD: '#765c4e', pathL: '#9c806e', pathEdge: '#5a463c', grass: '#5a4c48', grassD: '#4a3e3a', grassL: '#6c5c56', grassEdge: '#3a302c' }),
+    macro: { dark: hex('#5a4844'), light: hex('#76625a'), scale: 6, amount: 0.16, seed: 48 },
+    shadeCol: hex('#1a0e0c'), edgeShade: 1, frameDark: 0.42, frameCool: [1.06, 0.92, 0.86],
+    world: [0.92, 0.86, 0.84], actor: [1.06, 1.02, 0.98], vignette: 0.24, vignetteCol: [0.08, 0.03, 0.02],
+  },
+  // Chargestone Cave: blue-black slate lit by the crystals
+  chargestone: {
+    ground: g({ stone: '#4a5a70', stoneD: '#3a485c', stoneL: '#5e7088', mortar: '#26303e', dirt: '#56607a', dirtD: '#464e66', path: '#5a6a84', pathD: '#4a586e', pathL: '#6e7e98', pathEdge: '#38445a', sand: '#5a6a84', sandD: '#4a586e', grass: '#3a4658', grassD: '#2e3848', grassL: '#4a566a', grassEdge: '#222a38' }),
+    macro: { dark: hex('#425068'), light: hex('#5a6c88'), scale: 6, amount: 0.18, seed: 47 },
+    shadeCol: hex('#081020'), edgeShade: 1, frameDark: 0.45, frameCool: [0.86, 0.94, 1.12],
+    world: [0.84, 0.9, 1.04], actor: [1.06, 1.04, 1.02], vignette: 0.25, vignetteCol: [0.01, 0.03, 0.08],
+  },
 };
 export const artDirection = (biome: string) => ART_DIRECTION[biome] ?? ART_DIRECTION.meadow;
 

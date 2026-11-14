@@ -5,6 +5,8 @@
 //   Enter/Space/A confirm, Esc/Backspace/B go back); gameplay keys only apply during play.
 // - The HUD keeps HP, EXP, level, moves, status and boss information at the screen edges.
 import { capLabel, capTags, compileCaps } from '../rules/capabilities';
+import { HABITATS } from '../world/habitat/recipes';
+import { LOCATIONS } from '../world/locations';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { weightClass } from '../rules/species';
 import { debugLine, debugTag } from '../sim/caplog';
@@ -30,6 +32,7 @@ import { HEAL_LOOK, LEARN_LOOK, UPGRADE_LOOK, VITAMIN_LOOK, TECH_LOOK, EVOLVE_LO
 import { TECHNIQUE_BY_ID, TRANSFORM_BY_ID, TRANSFORMS_OF } from '../rules/build';
 import { transformSpec } from '../sim/build';
 import { WEIGHT_NAMES } from '../rules/species';
+import { loadInfo } from '../world/replay';
 
 function outlineText(g: CanvasRenderingContext2D, t: string, x: number, y: number, color: string) {
   for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [1, 1]]) drawText(g, t, x + dx, y + dy, '#1b1630');
@@ -53,7 +56,7 @@ function h(tag: string, attrs: Attrs = {}, ...kids: Kid[]): HTMLElement {
 }
 const btn = (label: Kid | Kid[], onclick: () => void, cls = 'btn', extra: Attrs = {}) => h('button', { type: 'button', class: cls, onclick, ...extra }, ...(Array.isArray(label) ? label : [label]));
 
-export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' }
+export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' | 'locations'; map: string; mapSeed: number }
 export interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
   card(action: 'pick' | 'reroll' | 'skip' | 'banish', index: number): void;
@@ -287,10 +290,11 @@ export class UI {
       H.obj,
       h('div', { class: 'box hud-tr' }, H.kills, H.live),
       H.boss, H.slots, H.vits,
-      h('div', { class: 'hint' }, h('kbd', {}, 'WASD'), ' move  ', h('kbd', {}, 'Mouse'), ' look + aim  ', h('kbd', {}, 'LMB'), h('kbd', {}, 'RMB'), ' moves  ', h('kbd', {}, 'Q'), ' tag  ', h('kbd', {}, 'E'), ' guard  ', h('kbd', {}, 'Shift'), ' dash  ', h('kbd', {}, 'Space'), ' jump  ', h('kbd', {}, 'Esc'), ' pause'),
+      h('div', { class: 'hint' }, h('kbd', {}, 'WASD'), ' move  ', h('kbd', {}, 'Mouse'), ' look + aim  ', h('kbd', {}, 'LMB'), ' attack  ', h('kbd', {}, 'RMB'), h('kbd', {}, 'R'), ' moves  ', h('kbd', {}, 'Q'), ' tag  ', h('kbd', {}, 'E'), ' guard  ', h('kbd', {}, 'Shift'), ' dash  ', h('kbd', {}, 'Space'), ' jump  ', h('kbd', {}, 'Esc'), ' pause'),
     );
     this.add('hud', hud);
     const touchControls = h('div', { id: 'touch-controls', class: 'touch-controls' },
+      h('button', { type: 'button', class: 'touch-btn basic', 'data-touch-action': 'basic', 'aria-label': 'Attack' }, 'Atk'),
       h('button', { type: 'button', class: 'touch-btn moveA', 'data-touch-action': 'moveA', 'aria-label': 'Move A' }, 'A'),
       h('button', { type: 'button', class: 'touch-btn moveB', 'data-touch-action': 'moveB', 'aria-label': 'Move B' }, 'B'),
       h('button', { type: 'button', class: 'touch-btn sig', 'data-touch-action': 'sig', 'aria-label': 'Signature / Tag' }, 'Sig'),
@@ -438,7 +442,10 @@ export class UI {
     const el = document.getElementById('plaque')!;
     el.className = 'plaque-' + b.id;
     el.innerHTML = '';
-    el.append(h('span', { class: 'pname' }, b.name), h('small', {}, ctx.loop ? `Region ${ctx.stage + 1} · Lap ${ctx.loop + 1}` : `Region ${ctx.stage + 1} of ${ctx.rules.stage.count}`));
+    const hab = ctx.world.hab;
+    const where = ctx.loop ? `Region ${ctx.stage + 1} · Lap ${ctx.loop + 1}` : `Region ${ctx.stage + 1} of ${ctx.rules.stage.count}`;
+    // habitat maps: the map seed, so a layout can be replayed (Settings → World → Map seed, or ?mapseed=)
+    el.append(h('span', { class: 'pname' }, ctx.world.map.gen?.loc ? ctx.world.map.name : b.name), h('small', {}, hab ? `${where} · ${loadInfo(hab).label}` : where));
     requestAnimationFrame(() => el.classList.add('show'));
     clearTimeout(this.plaqueT);
     this.plaqueT = setTimeout(() => el.classList.remove('show'), 3400) as unknown as number;
@@ -481,7 +488,7 @@ export class UI {
     H.timer.textContent = fmtTime(ctx.stageTime);
     const biome = BIOMES[STAGES[ctx.stage % STAGES.length].biome];
     const bossIn = ctx.rules.stage.bossAt - ctx.stageTime;
-    H.stage.textContent = ctx.portal.active ? 'Portal open!' : bossIn > 0 ? `Boss in ${fmtTime(bossIn)}` : ctx.director.finalSwarm ? 'Final swarm' : biome.name;
+    H.stage.textContent = ctx.portal.active ? 'Portal open!' : bossIn > 0 ? `Boss in ${fmtTime(bossIn)}` : ctx.director.finalSwarm ? 'Final swarm' : ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
     H.kills.textContent = `${ctx.stats.kills.toLocaleString()} KOs`;
     H.live.textContent = `${ctx.enemies.count} wild`;
 
@@ -524,9 +531,9 @@ export class UI {
       H.slots.innerHTML = '';
       this.slots = [];
       const auto = ctx.rules.combat.mode === 'auto';
-      const KEYS = auto ? ['AUTO', 'AUTO', 'AUTO', 'AUTO'] : ['AUTO', 'LMB', 'RMB', 'Q'];
+      const KEYS = auto ? ['AUTO', 'AUTO', 'AUTO', 'AUTO'] : ['LMB', 'RMB', 'R', 'Q'];
       const KEY_TITLE = auto ? ['fires on its own', 'fires on its own', 'fires on its own', 'fires on its own']
-        : ['fires on its own along your aim', 'Left mouse / J / RT, aimed', 'Right mouse / K / LT, aimed', 'Q / Y, aimed'];
+        : ['Left mouse / J / RT, hold to repeat', 'Right mouse / K / LT, aimed', 'R / RB, aimed', 'Q / Y, aimed'];
       for (let i = 0; i < Math.max(slotsMax, P.moves.length); i++) {
         const m = P.moves[i];
         if (!m) { H.slots.append(h('div', { class: 'slot empty' }, h('span', {}, '—'), h('span', { class: 'key' }, KEYS[i] ?? ''))); continue; }
@@ -538,12 +545,12 @@ export class UI {
         const el = h('div', { class: 'slot' + (xf ? ' xf' : ''), style: `--c:${ELEMENT_DEFS[m.spec.element].color}`, title: `${xf ? `${md?.name ?? m.key} → ${xf.title} (${xf.gain}; ${xf.cost})` : m.spec.name}: ${typeName(m.spec.element)} · ${CLASS_NAME[md?.cls ?? 'special']} · ${SHAPE_NAME[m.spec.archetype] ?? m.spec.archetype}${capLabel(m.spec.caps) ? ' · ' + capLabel(m.spec.caps) : ''} · ${KEY_TITLE[i] ?? ''}` },
           h('div', { class: 'band' }),
           glyphImg(m.spec.archetype, 2, 'pix glyph ico'),
-          h('div', { class: 'nm' }, m.spec.name), pips, cd, h('span', { class: 'key' + (i === 0 || auto ? ' auto' : '') }, KEYS[i] ?? ''));
+          h('div', { class: 'nm' }, m.spec.name), pips, cd, h('span', { class: 'key' + (auto ? ' auto' : '') }, KEYS[i] ?? ''));
         this.slots.push(cd);
         H.slots.append(el);
       }
-      // Reflex: two charges shared by Dash (Shift / B) and Guard (E / RB)
-      const reflex = h('div', { class: 'slot dashslot reflex', title: 'Reflex charges: Dash (Shift / B) and Guard (E / RB) each spend one. Tap Guard as a hit arrives to deflect or parry it; hold to brace.' },
+      // Reflex: two charges shared by Dash (Shift / B) and Guard (E / LB)
+      const reflex = h('div', { class: 'slot dashslot reflex', title: 'Reflex charges: Dash (Shift / B) and Guard (E / LB) each spend one. Tap Guard as a hit arrives to deflect or parry it; hold to brace.' },
         h('div', { class: 'band' }), glyphImg('dash', 2, 'pix glyph ico'),
         h('div', { class: 'nm' }, 'Reflex'), h('div', { class: 'rpips' }), h('span', { class: 'key' }, 'E · Shift'));
       const dcd = h('div', { class: 'cd' });
@@ -946,11 +953,12 @@ export class UI {
         ...seg('Look speed', [['Slow', 0.6], ['Normal', 1], ['Fast', 1.6]], () => S.sens, (v) => { S.sens = v; }),
         ...toggle('Invert look (Y)', () => S.invertY, (v) => { S.invertY = v; }),
         ...seg('Field of view', [['Narrow', -6], ['Normal', 0], ['Wide', 8]], () => S.fov, (v) => { S.fov = v; })),
-      h('p', { class: 'note' }, 'Third person: the mouse (click the game to capture it) or the right stick turns the camera and aims; Esc pauses and releases the mouse. Aimed: your basic attack follows the aim; moves fire on LMB / RMB / Q (RT / LT / Y). Assist: the basic attack picks the nearest enemy. Auto: every move fires on its own.'),
+      h('p', { class: 'note' }, 'Third person: the mouse (click the game to capture it) or the right stick turns the camera and aims; Esc pauses and releases the mouse. Aimed: left mouse / RT fires your basic attack along the aim (hold to repeat); Move A and Move B fire on RMB / R (LT / RB). Assist: the same buttons, but the basic attack picks the nearest enemy. Auto (classic): every move fires on its own.'),
       h('h3', {}, 'World'),
       h('div', { class: 'settings' },
-        ...seg('Sunpetal Meadow', [['Handcrafted', 'authored'], ['Generated each run', 'generated']], () => S.world, (v) => { S.world = v as UISettings['world']; })),
-      h('p', { class: 'note' }, 'Generated: every run builds a new Meadow from its seed (terrain, rivers, routes, a hamlet, landmarks). Same seed, same map. Takes effect on the next run.'),
+        ...seg('Regions', [['Handcrafted', 'authored'], ['Generated (classic)', 'generated'], ['Pokémon locations', 'locations']], () => S.world, (v) => { S.world = v as UISettings['world']; })),
+      h('div', { class: 'settings' }, ...this.mapPicker(S)),
+      h('p', { class: 'note' }, 'Pokémon locations: the first region is built from Viridian Forest and the last from Mt. Moon, new for every seed (tiers, ramps, bridges, overlooks, landmarks); the others use the classic generator. Generated (classic): every region is a generated meadow-style map. Same seed, same map. Takes effect on the next run.'),
       h('h3', {}, 'Display'),
       h('div', { class: 'settings' },
         ...seg('Camera', cams, () => S.camera, (v) => { S.camera = v; }),
@@ -966,6 +974,31 @@ export class UI {
     this.focusDefault('screen-settings');
   }
 
+  /** Settings → World → Map and Map seed: build every region from one Pokémon location or habitat recipe (and its
+   *  surface variants), and hold the map seed to replay a layout (docs/HABITATS.md) */
+  private mapPicker(S: UISettings): HTMLElement[] {
+    const choices: [string, string][] = [['Default rotation', '']];
+    for (const L of Object.values(LOCATIONS)) choices.push([L.name, L.id]);
+    for (const R of Object.values(HABITATS)) {
+      choices.push([`${R.name} (habitat)`, R.id]);
+      for (const [v, V] of Object.entries(R.variants)) choices.push([`${V.name} (habitat)`, `${R.id}:${v}`]);
+    }
+    const sel = h('select', { 'aria-label': 'Map' }) as HTMLSelectElement;
+    for (const [name, v] of choices) { const o = h('option', { value: v }, name) as HTMLOptionElement; o.selected = S.map === v; sel.append(o); }
+    sel.onchange = () => { S.map = sel.value; this.hooks.applySettings(); this.hooks.sound('ui'); };
+    const seed = h('input', { type: 'number', min: -1, step: 1, value: S.mapSeed, 'aria-label': 'Map seed (-1: from the run seed)' }) as HTMLInputElement;
+    seed.onchange = () => { const v = Math.floor(Number(seed.value)); S.mapSeed = Number.isFinite(v) && v >= 0 ? v : -1; seed.value = String(S.mapSeed); this.hooks.applySettings(); };
+    return [h('label', {}, 'Map'), sel, h('span', {}), h('label', {}, 'Map seed'), seed, h('small', {}, '-1 = from the run seed')];
+  }
+
+  /** a map that could not be generated (habitat recipes report why before any match starts) */
+  error(msg: string) {
+    const box = h('div', { class: 'box menu', role: 'alertdialog', style: 'position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);z-index:50;max-width:520px' },
+      h('h2', {}, 'Map not generated'), h('p', {}, msg),
+      btn('Title screen', () => { box.remove(); this.hooks.quit(); }, 'btn primary'));
+    document.body.append(box);
+  }
+
   openHelp(back: string) {
     const scr = this.screens['screen-help'];
     scr.innerHTML = '';
@@ -973,7 +1006,7 @@ export class UI {
       h('h2', {}, 'How to play'),
       h('div', { class: 'controls', html: `
         <p><b>Move</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows / left stick · <b>Jump</b> <kbd>Space</kbd> / A (onto rocks and logs; flying partners glide) · <b>Dash</b> <kbd>Shift</kbd> / B</p>
-        <p>Your Pokémon attacks on its own: it turns to the nearest wild Pokémon, winds up and strikes. Collect EXP Shards, level up, choose an upgrade.</p>
+        <p><b>Attack</b> left mouse / <kbd>J</kbd> / RT (hold to keep attacking) · <b>Move A</b> right mouse / <kbd>K</kbd> / LT · <b>Move B</b> <kbd>R</kbd> / RB · <b>Tag</b> <kbd>Q</kbd> / Y · <b>Guard</b> <kbd>E</kbd> / LB. Your Pokémon attacks where you aim; in Settings → Combat, Auto (classic) makes it attack on its own. Collect EXP Shards, level up, choose an upgrade.</p>
         <p>Upgrades stay available while combat continues. Choose directly with <kbd>1</kbd>–<kbd>3</kbd> or the D-pad left/up/right; with a card focused, arrows move focus and <kbd>Enter</kbd> confirms. <kbd>C</kbd> toggles cursor/camera control for mouse selection without pausing. <kbd>F</kbd> rerolls, <kbd>X</kbd> skips, and <kbd>Z</kbd> starts a banish (2 rerolls and 1 banish per region). Each pick shows a <b>Kit</b> card (a move to learn, or a <b>transform</b> that changes what a move does; each move has two and you keep one), a <b>Technique</b> (a rule for your whole squad, with a cost; you hold three) and a <b>Wildcard</b> (a benched Pokémon's transform, a Tag Action, an early evolution, a berry). Moves grow stronger with your level on their own.</p>
         <p>Trees, water and cliffs block the way; climb bluffs by their stairs, hop up ledges, and use groves to split a swarm. Item balls in the field hold a rare upgrade; Oran Berries heal.</p>
         <p>A boss arrives at 5:00 in each region. Defeat it and step into the portal. Partners evolve at their real levels; types and abilities follow the main games where the survival format allows.</p>
@@ -1099,6 +1132,28 @@ export class UI {
       c.translate(Math.round(ax), Math.round(ay)); c.rotate(a);
       c.fillStyle = '#20283a'; c.beginPath(); c.moveTo(9, 0); c.lineTo(-6, -8); c.lineTo(-6, 8); c.fill();
       c.fillStyle = color; c.beginPath(); c.moveTo(6, 0); c.lineTo(-4, -5); c.lineTo(-4, 5); c.fill();
+    }
+    c.restore();
+  }
+
+  /** third person: chevrons on the screen edge for hostiles near the Pokémon but out of frame (Renderer.threatRing);
+   *  `ring` is sector 0 = ahead, clockwise. Drawn after objective(), on the same overlay. */
+  threatRing(ring: Float32Array, W: number, Hh: number) {
+    const c = this.fx2d, n = ring.length, m = 16;
+    c.save();
+    c.imageSmoothingEnabled = false;
+    for (let k = 0; k < n; k++) {
+      const u = ring[k];
+      if (u < 0.12) continue;
+      const a = (k / n) * Math.PI * 2, dx = Math.sin(a), dy = -Math.cos(a);
+      const kk = Math.min((W / 2 - m) / Math.max(1e-3, Math.abs(dx)), (Hh / 2 - m - 26) / Math.max(1e-3, Math.abs(dy)));
+      const s = 1 + Math.min(1, u / 4);
+      c.globalAlpha = Math.min(1, 0.35 + u * 0.4);
+      c.save();
+      c.translate(Math.round(W / 2 + dx * kk), Math.round(Hh / 2 + dy * kk)); c.rotate(Math.atan2(dy, dx));
+      c.fillStyle = '#20283a'; c.beginPath(); c.moveTo(8 * s, 0); c.lineTo(-5 * s, -7 * s); c.lineTo(-2 * s, 0); c.lineTo(-5 * s, 7 * s); c.fill();
+      c.fillStyle = '#ff5a48'; c.beginPath(); c.moveTo(6 * s, 0); c.lineTo(-3 * s, -5 * s); c.lineTo(-1 * s, 0); c.lineTo(-3 * s, 5 * s); c.fill();
+      c.restore();
     }
     c.restore();
   }

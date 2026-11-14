@@ -57,6 +57,9 @@ export class EnemyPool {
   guardDown: Float32Array;
   /** Phase 8b Lasso: s left suspended in front of the holder, the hold's Power and the button that keeps it */
   heldT: Float32Array; heldP: Uint8Array; heldBtn: Uint8Array;
+  /** liquid exposure (sim/hazards.ts): liquid kind (0 none, 1 water, 2 lava), s exposed, damage carried below a whole
+   *  point, damage since the last cue and the cue timer, the shore it heads for; fall speed over open air */
+  hzKind: Uint8Array; hzT: Float32Array; hzAcc: Float32Array; hzCue: Float32Array; hzCueT: Float32Array; hzX: Float32Array; hzZ: Float32Array; fallV: Float32Array;
 
   constructor(cap: number) {
     this.cap = cap;
@@ -80,6 +83,7 @@ export class EnemyPool {
     this.frozen = F(); this.blind = F(); this.ccAcc = F(); this.ccImmune = F();
     this.guardDown = F();
     this.heldT = F(); this.heldP = new Uint8Array(cap); this.heldBtn = new Uint8Array(cap);
+    this.hzKind = new Uint8Array(cap); this.hzT = F(); this.hzAcc = F(); this.hzCue = F(); this.hzCueT = F(); this.hzX = F(); this.hzZ = F(); this.fallV = F();
   }
 
   spawn(): number {
@@ -98,6 +102,7 @@ export class EnemyPool {
     this.frozen[i] = 0; this.blind[i] = 0; this.ccAcc[i] = 0; this.ccImmune[i] = 0;
     this.guardDown[i] = 0;
     this.heldT[i] = 0; this.heldP[i] = 0; this.heldBtn[i] = 0;
+    this.hzKind[i] = 0; this.hzT[i] = 0; this.hzAcc[i] = 0; this.hzCue[i] = 0; this.hzCueT[i] = 0; this.fallV[i] = 0;
     return i;
   }
 

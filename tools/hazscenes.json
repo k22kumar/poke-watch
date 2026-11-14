@@ -1,0 +1,28 @@
+[
+  { "name": "haz-gorge3-rattata", "query": "go=1&species=rattata&loc=river-gorge&mapseed=3&calm=1&tp=60,56", "steps": [
+    { "advance": 0.3 },
+    { "eval": "(() => { const c = pokewatch.ctx, P = c.player, k = c.world.tile(P.x, P.z); return { map: c.world.map.id, tile: [k % c.world.w, (k / c.world.w) | 0], y: P.y, hp: P.hp, max: P.maxHp }; })()" },
+    { "advance": 0.45, "input": { "mx": 0, "mz": -1 } }, { "shot": "enter" },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { hzKind: P.hzKind, hzT: +P.hzT.toFixed(2), hp: +P.hp.toFixed(1), y: P.y }; })()" },
+    { "advance": 1.0 },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { hzKind: P.hzKind, hzT: +P.hzT.toFixed(2), hp: +P.hp.toFixed(1) }; })()" },
+    { "advance": 1.2, "input": { "mx": 0, "mz": 1 } }, { "advance": 0.3 }, { "shot": "out" },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { out: P.hzKind === 0, hzT: P.hzT, hp: +P.hp.toFixed(1), max: P.maxHp, state: pokewatch.ctx.state }; })()" } ] },
+  { "name": "haz-gorge3-rattata-stays", "query": "go=1&species=rattata&loc=river-gorge&mapseed=3&calm=1&tp=60,56", "steps": [
+    { "advance": 0.3 }, { "advance": 0.45, "input": { "mx": 0, "mz": -1 } }, { "advance": 4.2 }, { "shot": "drowning" },
+    { "advance": 1.0 }, { "shot": "ko" },
+    { "eval": "(() => { const c = pokewatch.ctx; return { state: c.state, hp: c.player.hp, recap: c.recap }; })()" } ] },
+  { "name": "haz-gorge3-totodile", "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=60,56", "steps": [
+    { "advance": 0.3 }, { "advance": 0.6, "input": { "mx": 0, "mz": -1 } }, { "advance": 2.0 }, { "shot": "swim" },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { hzSafe: P.hzSafe, hzKind: P.hzKind, hp: P.hp, max: P.maxHp, y: P.y }; })()" } ] },
+  { "name": "haz-crater7-rattata", "query": "go=1&species=rattata&loc=volcanic-ridge&mapseed=7&calm=1&tp=47,63", "steps": [
+    { "advance": 0.3 }, { "advance": 0.35, "input": { "mx": -1, "mz": 0 } }, { "shot": "lava" },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { hzKind: P.hzKind, hzT: +P.hzT.toFixed(2), hp: +P.hp.toFixed(1), max: P.maxHp }; })()" },
+    { "advance": 0.8, "input": { "mx": 1, "mz": 0 } }, { "advance": 0.3 },
+    { "eval": "(() => { const P = pokewatch.ctx.player; return { out: P.hzKind === 0, hp: +P.hp.toFixed(1), state: pokewatch.ctx.state }; })()" } ] },
+  { "name": "haz-mtmoon1-lip", "query": "go=1&species=rattata&loc=mt-moon&mapseed=1&calm=1&tp=19,81", "steps": [
+    { "advance": 0.3 },
+    { "eval": "(() => { const c = pokewatch.ctx, P = c.player, k = c.world.tile(P.x, P.z); return { map: c.world.map.id, tile: [k % c.world.w, (k / c.world.w) | 0], y: P.y, killY: c.world.killY }; })()" },
+    { "advance": 0.35, "input": { "mx": 0, "mz": 1 } }, { "shot": "falling" }, { "advance": 1.0 }, { "shot": "after" },
+    { "eval": "(() => { const c = pokewatch.ctx; return { state: c.state, y: c.player.y, recap: c.recap }; })()" } ] }
+]

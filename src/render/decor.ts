@@ -21,7 +21,7 @@ const PAL: Record<Pal, DecorPal> = {
   dusk: { clump: ['#5a9460', '#467c50', '#346442'], clumpOut: '#26463a', litter: ['#7a6e5a', '#625848', '#4c4438'], litterOut: '#2e2a26', fern: ['#5aa060', '#3e8450', '#2c6a44', '#1e5038'], fernOut: '#14303a', stone: ['#a09cb0', '#7c7890', '#5e5a72'], stoneOut: '#34304a', cloth: ['#7a8cb0', '#5e6e94', '#465478'], cloth2: ['#c8bca0', '#aa9e84', '#8a7e68'] },
 };
 
-const palOf = (b: string): Pal => (b === 'badlands' || b === 'frost' || b === 'dusk' ? b : 'meadow');
+const palOf = (b: string): Pal => (b === 'badlands' || b === 'frost' || b === 'dusk' ? b : b === 'moon' || b === 'volcano' ? 'badlands' : b === 'chargestone' ? 'frost' : 'meadow');
 
 /** decor sprite set for a biome (keys are prefixed `d.` so they never collide with prop keys) */
 export function decorSprites(biome: string): Map<string, ImageData> {
@@ -85,6 +85,18 @@ export function decorSprites(biome: string): Map<string, ImageData> {
     s.dot(6, 7, '#d8c8a0');
     out.set('d.satchel', s.render());
   }
+  // cave floors at the foot of the walls: Chargestone's fallen crystal shards (muted, never a signal cyan) and
+  // Mt. Moon's rubble
+  {
+    const s = new Sprite(12, 9); s.outline = '#2a3a58';
+    const r = s.ramp(['#e0f4ff', '#a8d4ec', '#6a9cc4']);
+    s.line(4, 8, 3, 2, r); s.line(5, 8, 5, 1, r); s.line(8, 8, 9, 3, r); s.rect(3, 7, 7, 2, s.ramp(['#7a8aa8', '#58688a', '#3e4c6a']));
+    out.set('d.shard', s.render());
+    const t = new Sprite(14, 7); t.outline = '#2e2824';
+    const rr = t.ramp(['#9a9088', '#7a7068', '#5a524c']);
+    t.ellipse(3.5, 4.5, 3, 2.2, rr); t.ellipse(8, 5, 2.5, 1.8, rr); t.ellipse(11.5, 4, 1.8, 1.5, rr); t.ellipse(6, 2.5, 1.6, 1.3, rr);
+    out.set('d.rubble', t.render());
+  }
   // habitat signs (procedural regions): a burrow mound where Sandshrew would dig, a tuft of wool where Mareep graze,
   // small prints in the mud where Poliwag come out of the water
   {
@@ -113,7 +125,8 @@ const h = (x: number, y: number, s: number) => {
  * Lay decor out over an arena. `edge` is the ground's forest-edge shade per tile (0..1), the same grid the ground
  * painter used, so decor collects where the ground already darkens toward the frame.
  */
-export function layoutDecor(m: ArenaMap, edge: Float32Array): DecorItem[] {
+export function layoutDecor(m: ArenaMap, edge: Float32Array, biome = ''): DecorItem[] {
+  const caveBit = biome === 'chargestone' ? 'd.shard' : biome === 'moon' ? 'd.rubble' : '';
   const W = m.w, H = m.h, out: DecorItem[] = [];
   const taken = new Uint8Array(W * H);
   for (const p of m.props) for (let y = p.y; y < p.y + p.h; y++) for (let x = p.x; x < p.x + p.w; x++) if (x >= 0 && y >= 0 && x < W && y < H) taken[y * W + x] = 1;
@@ -149,8 +162,9 @@ export function layoutDecor(m: ArenaMap, edge: Float32Array): DecorItem[] {
       else if (r < (0.045 + 0.2 * e) * calm) key = 'd.litter';
       else if (r < 0.055 * calm) key = 'd.pebbles';
     } else if (t === T.path || t === T.dirt || t === T.sand) {
-      // stones kicked to the edge of a trail
-      if (r < 0.03 * calm) key = 'd.pebbles';
+      // stones kicked to the edge of a trail; in caves, shards or rubble gather where the floor meets the wall
+      if (caveBit && nearWall(x, y) && r < 0.22 * calm) key = caveBit;
+      else if (r < 0.03 * calm) key = 'd.pebbles';
     }
     // habitat signs on generated regions (cosmetic; the director still spawns on its ring)
     const hab = m.gen?.habitat;

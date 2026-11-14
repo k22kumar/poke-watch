@@ -12,7 +12,7 @@ import { PK, ROLE } from '../src/sim/pools';
 import { AG } from '../src/rules/reactions';
 import { COMPOSITIONS, resolve } from '../src/rules/compositions';
 import { STAGES } from '../src/rules/stages';
-import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
+import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 function calm(species = 'totodile', seed = 3): SimContext {
   const ctx = createRun({ seed, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 }, beats: { enabled: false } } as never });
@@ -79,7 +79,7 @@ test('Hold: standing on the pad for 30 s pays an item ball', () => {
   assert.ok(O.charge <= c0, 'four Raiders out-drain one defender');
   for (const e of raiders()) damageEnemy(ctx, e, 1e9, hit('plain'));
   teleport(ctx, O.x, O.z);
-  secs(ctx, 31);
+  secs(ctx, 31, { ...NO_INPUT, btn: BTN.basic }); // defend the pad with the basic attack
   assert.equal(O.phase, 'done');
   assert.ok(ctx.cards.offer && ctx.cards.chest, 'item ball offered');
 });

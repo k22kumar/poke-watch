@@ -74,7 +74,7 @@ test('the player climbs the bluff stairs and cannot walk up a cliff face', () =>
   assert.ok(P2.y < 0.1, `stayed at the cliff foot (y=${P2.y.toFixed(2)})`);
 });
 
-test('ground enemies never finish a tick inside a wall or water', () => {
+test('ground enemies never finish a tick inside a wall, and are in water only when knocked in (the exposure rule has them)', () => {
   const ctx = createRun({ seed: 11, species: 'bulbasaur', ruleOverrides: { player: { hpBase: 5000 }, director: { spawnBase: 6 } } });
   let checked = 0;
   while (ctx.time < 90) {
@@ -84,7 +84,8 @@ test('ground enemies never finish a tick inside a wall or water', () => {
     for (let i = 0; i < E.hi; i++) {
       if (!E.alive[i] || E.hover[i] > 0) continue;
       checked++;
-      assert.ok(!W.solid(E.x[i], E.z[i]), `enemy ${i} inside a wall at ${E.x[i].toFixed(1)},${E.z[i].toFixed(1)} t=${ctx.time.toFixed(1)}`);
+      assert.ok(!W.wallAt(E.x[i], E.z[i]), `enemy ${i} inside a wall at ${E.x[i].toFixed(1)},${E.z[i].toFixed(1)} t=${ctx.time.toFixed(1)}`);
+      if (W.liquidAt(E.x[i], E.z[i], E.y[i], ctx.rules.hazards.contact)) assert.ok(E.hzKind[i] !== 0 || ctx.speciesIndex[E.species[i]].elements.includes('tide'), `enemy ${i} in water outside the exposure rule`);
     }
   }
   assert.ok(checked > 1000, `checked ${checked} enemy positions`);

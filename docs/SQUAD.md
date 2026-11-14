@@ -30,7 +30,7 @@ and what was measured. Every number lives in `src/rules/defaults.ts` (`squad`, `
 | --- | --- |
 | Squad size | 3; start with the partner |
 | Recruits | Offered after an elite or alpha falls, from 2:00 (first) and 5:00 (second): two wild species from the region, plus "Let it go". They join at squad level with their first two attacking level-up moves |
-| Tag | Q / Y. Tap: back to the last Pokémon. Hold + Move A / Move B: first / second reserve |
+| Tag | Q / Y. Tap: back to the last Pokémon. Hold + primary / secondary fire (left / right mouse, RT / LT): first / second reserve |
 | Tag cooldown | 4 s, squad-wide; not during the Guard whiff lock or a dash |
 | Arrival | Same spot, 0.15 s invulnerable; Tag Action 0.2 s later toward the aim |
 | Tag Action | One move per line (`rules/tags.ts`), ×1.8 damage, ×1.5 knockback, deep coat. Variant chosen at the first evolution (level 18 for lines that do not evolve) |

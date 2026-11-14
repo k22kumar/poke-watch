@@ -39,6 +39,55 @@ export interface GroundInput {
    *  e.g. along a forest edge so walls sit in their own shade. Off when absent. */
   shade?: Float32Array;
   shadeCol?: RGB;
+  /** optional per-tile mask (1 = paint as a natural rock top: faceted, cracked, never grass or paving). Cave
+   *  locations use it for the tops of their rock masses so a wall never reads as a lawn. */
+  rock?: Uint8Array;
+  rockPal?: RockPalette;
+  /** optional thin glowing veins through open ground (Chargestone's charged rock), ridged noise, about `scale` tiles */
+  veins?: { col: RGB; scale: number; seed: number };
+  /** optional pools of light painted around light sources (crystals), dithered in two steps: [x, y, radius] in tiles */
+  glow?: { col: RGB; at: [number, number, number][] };
+}
+
+/** natural rock top: facets of base / dark / light split by deep cracks; `glint` = rare embedded crystal pixels */
+export interface RockPalette { base: RGB; dark: RGB; light: RGB; deep: RGB; glint?: RGB; glint2?: RGB }
+
+/**
+ * Jittered-grid Voronoi: the nearest and second-nearest feature points of cells `cw` × `ch` px around (x, y).
+ * Returns [facet id, gap between the two distances (px; small = on a crack), dy from the facet's point (− = above)].
+ */
+function facet(x: number, y: number, cw: number, ch: number, seed: number): [number, number, number, number] {
+  const ci = Math.floor(x / cw), cj = Math.floor(y / ch);
+  let d1 = 1e9, d2 = 1e9, id = 0, id2 = 0, dy1 = 0;
+  for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) {
+    const px = (i + 0.1 + h2(i, j, seed) * 0.8) * cw, py = (j + 0.1 + h2(i, j, seed + 1) * 0.8) * ch;
+    const d = Math.sqrt((x + 0.5 - px) ** 2 + (y + 0.5 - py) ** 2);
+    const cid = (i * 7919 + j * 104729) | 0;
+    if (d < d1) { d2 = d1; id2 = id; d1 = d; id = cid; dy1 = y + 0.5 - py; } else if (d < d2) { d2 = d; id2 = cid; }
+  }
+  return [id, d2 - d1, dy1, id2];
+}
+
+/** does the border between facets a and b show as a crack? (about half do: neighbouring facets merge into big,
+ *  irregular masses instead of a cobbled grid) */
+const cracked = (a: number, b: number) => h2((a ^ b) & 0xffff, ((a + b) >>> 7) & 0xffff, 97) < 0.45;
+/** tone of a facet: masses (merged facets) share a tone family, so shading follows the big shapes */
+const toneOf = (id: number) => h2(id & 0xffff, id >>> 16, 31);
+
+/** natural rock at pixel (x, y): irregular facets of base / dark / light, deep cracks between them, a lit upper rim
+ *  and a shaded lower rim on each facet (light from above), and rare crystal glints. Shared by rock tops. */
+export function rockPixel(x: number, y: number, P: RockPalette): RGB {
+  const [id, gap, dy, id2] = facet(x, y, 15, 12, 91);
+  const f = toneOf(id);
+  let c = f < 0.25 ? P.dark : f < 0.85 ? P.base : mix(P.base, P.light, 0.55);
+  if (cracked(id, id2)) {
+    if (gap < 1.0) c = P.deep;
+    else if (gap < 2.0) c = dy < 0 ? mix(c, P.light, 0.6) : P.dark;
+  } else if (gap < 1.5 && toneOf(id2) < 0.25) c = mix(c, P.dark, 0.5);
+  if (h2(x, y, 33) < 0.025) c = P.dark;
+  else if (h2(x, y, 34) < 0.012) c = P.light;
+  if (P.glint && gap > 2.2 && h2(x >> 1, y >> 1, 53) < 0.008) c = (x + y) & 1 ? P.glint : (P.glint2 ?? P.glint);
+  return c;
 }
 
 /** 4x4 ordered-dither threshold (0..1) */
@@ -151,6 +200,22 @@ export function paintGround(g: GroundInput): Pix {
       cls[y * W + x] = c;
     }
   const clsAt = (x: number, y: number) => cls[Math.max(0, Math.min(H - 1, y)) * W + Math.max(0, Math.min(W - 1, x))];
+  const veinN = g.veins ? noiseField(W, H, g.veins.scale * 16, g.veins.seed) : null;
+  const veinM = g.veins ? noiseField(W, H, g.veins.scale * 16 * 1.7, g.veins.seed + 7) : null;
+  // light pools on a 4 px grid (smooth enough under the dither, 16x cheaper than per pixel)
+  let glowAt: Float32Array | null = null;
+  if (g.glow && g.glow.at.length) {
+    const GW = W >> 2, GH = H >> 2;
+    glowAt = new Float32Array(GW * GH);
+    for (const [tx, ty, r] of g.glow.at) {
+      const cx = tx * 4, cy = ty * 4, R = r * 4;
+      for (let j = Math.max(0, Math.floor(cy - R)); j < Math.min(GH, Math.ceil(cy + R)); j++)
+        for (let i = Math.max(0, Math.floor(cx - R)); i < Math.min(GW, Math.ceil(cx + R)); i++) {
+          const d = Math.hypot(i + 0.5 - cx, j + 0.5 - cy) / R;
+          if (d < 1) glowAt[j * GW + i] = Math.max(glowAt[j * GW + i], (1 - d) * (1 - d) * 1.2);
+        }
+    }
+  }
   const near = (x: number, y: number, t: number, r: number) => {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.abs(dx) + Math.abs(dy) <= r && clsAt(x + dx, y + dy) === t) return true;
     return false;
@@ -245,6 +310,17 @@ export function paintGround(g: GroundInput): Pix {
         }
         default: col = [16, 16, 24];
       }
+      if (g.veins && c !== T.water && c !== T.wood) {
+        // ridged noise: a thin bright line where the field crosses its middle, with a dim halo either side
+        // only where a second, coarser field allows: broken seams, not rivers
+        const v = Math.abs(veinN!(x, y) - 0.5);
+        if (v < 0.012 && veinM!(x, y) > 0.58) col = v < 0.005 ? g.veins.col : mix(col, g.veins.col, 0.45);
+      }
+      if (glowAt) {
+        const gv = glowAt[(y >> 2) * (W >> 2) + (x >> 2)];
+        if (gv > 0) { const step = gv + (bayer(x, y) - 0.5) * 0.3; const k = step > 0.66 ? 0.32 : step > 0.33 ? 0.16 : 0; if (k) col = mix(col, g.glow!.col, k); }
+      }
+      if (g.rock && g.rock[(y >> 4) * g.w + (x >> 4)]) col = rockPixel(x, y, g.rockPal ?? { base: hex('#6e6866'), dark: hex('#5a5452'), light: hex('#86807c'), deep: hex('#3e3a3a') });
       if (shaded && c !== T.water && shaded[(y >> 4) * g.w + (x >> 4)]) {
         // cool shade in two steps, dithered between them (pixel-art banding, never a smooth gradient)
         const sv = sampleShade(g, x, y);
@@ -299,7 +375,7 @@ function sampleShade(g: GroundInput, x: number, y: number) {
 
 /** Cliff face texture: 32x16 per unit of height, rocky strata. */
 export interface CliffPalette { base: RGB; dark: RGB; deep: RGB; light: RGB; lipA: RGB; lipB: RGB }
-export function paintCliff(kind: 'rock' | 'ledge' | 'bank' | 'snow' = 'rock', pal?: Partial<CliffPalette>): Pix {
+export function paintCliff(kind: 'rock' | 'ledge' | 'bank' | 'snow' | 'cave' = 'rock', pal?: Partial<CliffPalette>): Pix {
   const p = new Pix(32, 16);
   const base = pal?.base ?? (kind === 'bank' ? hex('#c8b88a') : hex('#b8966c'));
   const dark = pal?.dark ?? (kind === 'bank' ? hex('#a89868') : hex('#8e6e4c'));
@@ -320,8 +396,78 @@ export function paintCliff(kind: 'rock' | 'ledge' | 'bank' | 'snow' = 'rock', pa
       else if (jx % 11 === 1 && ly > 0 && ly < 3) c = mix(base, light, 0.5);
       if (kind === 'bank') { c = ly === 0 ? light : ly === 3 ? dark : base; if ((x + band * 3) % 7 === 0 && ly > 0) c = dark; }
       if (kind === 'ledge') { c = y < 2 ? lipA : y < 3 ? lipB : y === 3 ? light : (y & 3) === 3 ? dark : base; if (y > 3 && (x + (y >> 2) * 5) % 9 === 0) c = dark; }
+      if (kind === 'cave') {
+        // natural cave wall: irregular facets (lit tops, shaded undersides) split by slanting cracks, no courses
+        const fx = Math.floor((x + y * 0.5) / 6), fy = Math.floor((y + h2(fx, 3, 5) * 6) / 6);
+        const f = h2(fx, fy, 21), top = (y + Math.floor(h2(fx, 3, 5) * 6)) % 6;
+        c = f < 0.33 ? dark : f < 0.75 ? base : mix(base, light, 0.6);
+        if (top === 0) c = light; else if (top === 5) c = deep;
+        if ((x * 2 + y * 3 + Math.floor(h2(y >> 2, 1, 9) * 7)) % 19 === 0) c = deep;
+      }
       p.set(x, y, c);
     }
+  return p;
+}
+
+/** facet() on a 64 × 48 torus (cells 8 × 12 px) so the rock face texture tiles without seams */
+function facetWrap(x: number, y: number): [number, number, number, number] {
+  const cw = 11, ch = 16, NI = 6, NJ = 3, ci = Math.floor(x / cw), cj = Math.floor(y / ch);
+  let d1 = 1e9, d2 = 1e9, id = 0, id2 = 0, dy1 = 0;
+  for (let j = cj - 1; j <= cj + 1; j++) for (let i = ci - 1; i <= ci + 1; i++) {
+    const wi = ((i % NI) + NI) % NI, wj = ((j % NJ) + NJ) % NJ;
+    const px = (i + 0.1 + h2(wi, wj, 93) * 0.8) * cw, py = (j + 0.1 + h2(wi, wj, 94) * 0.8) * ch;
+    const d = Math.sqrt(((x + 0.5 - px) * 1.25) ** 2 + (y + 0.5 - py) ** 2);
+    const cid = wi * 31 + wj + 1;
+    if (d < d1) { d2 = d1; id2 = id; d1 = d; id = cid; dy1 = y + 0.5 - py; } else if (d < d2) { d2 = d; id2 = cid; }
+  }
+  return [id, d2 - d1, dy1, id2];
+}
+
+/**
+ * Natural rock face for location cliffs and cave walls: 64 × 48 px = 4 tiles × 3 m, so the pattern repeats rarely.
+ * Big slanted slabs (lit top edges, shaded undersides) split by vertical fractures, not masonry courses.
+ * `moss` hangs a ragged green fringe from each metre's top (forest bluffs); `glint` embeds crystal shards
+ * (Chargestone) that the cave's light pools pick up.
+ */
+export function paintRockFace(pal: Partial<CliffPalette>, opts: { moss?: [RGB, RGB]; glint?: [RGB, RGB, RGB] } = {}): Pix {
+  const W = 64, H = 48, p = new Pix(W, H);
+  const base = pal.base ?? hex('#8a7a62'), dark = pal.dark ?? hex('#6a5c48'), deep = pal.deep ?? hex('#4a4032'), light = pal.light ?? hex('#a8987a');
+  // fractured slabs: Voronoi facets stretched vertically, lit on their upper rim, shaded below, cracks between
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    // wrap horizontally and vertically so the 64 × 48 tile repeats seamlessly
+    const [id, gap, dy, id2] = facetWrap(x, y);
+    const f = toneOf(id * 977);
+    let c = f < 0.28 ? dark : f < 0.82 ? base : mix(base, light, 0.5);
+    if (cracked(id, id2)) {
+      if (gap < 1.1) c = deep;
+      else if (gap < 2.3) c = dy < 0 ? light : dark;
+    }
+    // vertical weathering streaks
+    if (h2(x, 0, 85) < 0.18 && h2(x, y >> 2, 86) < 0.7) c = mix(c, dark, 0.5);
+    if (h2(x, y, 80) < 0.02) c = dark;
+    p.set(x, y, c);
+  }
+  if (opts.moss) {
+    const [mA, mB] = opts.moss;
+    for (let x = 0; x < W; x++) for (let m = 0; m < 3; m++) {
+      const len = 1 + Math.floor(h2(x, m, 81) * 4) + (h2(x >> 2, m, 82) < 0.3 ? 3 : 0);
+      for (let y = 0; y < len; y++) p.set(x, m * 16 + y, y < len - 1 ? mA : mB);
+    }
+  }
+  if (opts.glint) {
+    const [g0, g1, g2] = opts.glint;
+    // crystal shards growing out of fractures: a few small clusters, pointing up
+    for (let n = 0; n < 4; n++) {
+      const sx = Math.floor(h2(n, 5, 83) * (W - 6)) + 3, sy = Math.floor(h2(n, 6, 83) * (H - 10)) + 8;
+      for (const [dx, hgt] of [[0, 6], [-2, 3], [2, 4]] as [number, number][]) {
+        for (let y = 0; y < hgt; y++) {
+          const x = sx + dx;
+          p.set(x, sy - y, y === hgt - 1 ? g0 : g1);
+          if (y < hgt - 1) p.set(x + 1, sy - y, g2);
+        }
+      }
+    }
+  }
   return p;
 }
 

@@ -84,6 +84,7 @@ const W = (w: number) => `${WEIGHT_NAMES[Math.max(0, Math.min(4, w))]} (${w})`;
 const typeName = (e: Element) => ELEMENT_DEFS[e]?.name ?? e;
 const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 const bodyName = (k: string) => cap(k);
+const TILE_SOURCE: Record<string, string> = { burn: 'Burning grass', charge: 'Charge flood', water: 'Deep water', lava: 'Lava', fall: 'A fall' };
 const n0 = (x: number) => Math.round(x);
 
 /** one line for a record that hurt (or tried to hurt) the player, naming the rule that decided it */
@@ -108,6 +109,10 @@ function hurtLine(r: CapRecord): string {
   if (r.src === 'tile') {
     if (r.srcName === 'burn') return `Burning grass scorched you${dmg}. Fire spreads through tall grass: stand on bare ground or ash.`;
     if (r.srcName === 'charge') return `A Charge flood ran through the wet ground under you${dmg}. Jump over it, or dry the ground with Heat.`;
+    // liquids drain in small steps: one line per exposure (×n), the total is in the summary line
+    if (r.srcName === 'water') return `Deep water drained you. Only Water types and Pokémon that know Surf swim safely; anyone else must reach a shore in time.`;
+    if (r.srcName === 'lava') return `Lava burned you. Nothing in your squad can stand it: get onto solid rock at once.`;
+    if (r.srcName === 'fall') return `You fell from an open edge with nothing below to land on.`;
     return `The ground hurt you${dmg}.`;
   }
   if (r.src === 'creature') {
@@ -130,7 +135,7 @@ export function buildRecap(log: CapLog, now: number, seconds: number, maxLines =
     if (r.tgt === 'player' && (r.verb === 'hit' || r.verb === 'tile')) {
       if (r.out === 'immune' || r.out === 'none') continue;
       line = hurtLine(r);
-      const key = r.src === 'body' ? bodyName(r.srcName) : r.src === 'tile' ? (r.srcName === 'burn' ? 'Burning grass' : 'Charge flood') : r.srcName || r.src;
+      const key = r.src === 'body' ? bodyName(r.srcName) : r.src === 'tile' ? TILE_SOURCE[r.srcName] ?? 'Charge flood' : r.srcName || r.src;
       bySource.set(key, (bySource.get(key) ?? 0) + r.amount);
       total += r.amount;
     } else if (r.verb === 'faint') line = `${r.srcName} fainted.`;

@@ -58,17 +58,18 @@ class Atlas {
     this.map.set(key, [this.x / s, this.y / s, (this.x + img.width) / s, (this.y + img.height) / s, img.width, img.height]);
     this.x += img.width + 1; this.row = Math.max(this.row, img.height);
   }
+  has(key: string) { return this.map.has(key); }
 }
 
 interface FxP { x: number; y: number; z: number; vx: number; vy: number; vz: number; life: number; max: number; kind: string; scale: number; grav: number; rot: number; spin: number }
 
-const AMBIENT_KINDS = new Set(['petal', 'ember', 'snow', 'wisp', 'drop']);
+const AMBIENT_KINDS = new Set(['petal', 'ember', 'snow', 'wisp', 'drop', 'spark', 'dust']);
 
 export class PixelLayer {
   fxProg: WebGLProgram;
   fx: InstanceBatch;
   fxTex: WebGLTexture;
-  fxAtlas = new Atlas(256);
+  fxAtlas = new Atlas(512);
   parts: FxP[] = [];
   private uF = new Map<string, WebGLUniformLocation | null>();
 
@@ -80,6 +81,16 @@ export class PixelLayer {
     this.fxAtlas.add('bodyBoulder', square(A.rock(1.6, ['#e4d4b4', '#c0a882', '#94805e', '#6a5a42']), 32));
     this.fxAtlas.add('bodyRock', square(A.rock(1.2, ['#e4d4b4', '#c0a882', '#94805e', '#6a5a42']), 24));
     this.fxAtlas.add('bodyEgg', square(A.egg(), 18));
+    // location stones (render/renderer.ts picks `<sprite>.<art>` when present): Viridian's grey field stones,
+    // Mt. Moon's brown cave rock, Chargestone's charged stones (slate with glowing cyan veins; they hover)
+    const LOC: Record<string, [string, string, string, string]> = { forest: ['#c4c8b4', '#969e8a', '#6e7866', '#4c5448'], moon: ['#a89e94', '#82786e', '#5e564e', '#403a34'], chargestone: ['#6a7a98', '#4a5874', '#343e56', '#222a3c'], volcano: ['#7a6a66', '#5a4c4a', '#423634', '#2c2222'] };
+    for (const [art, tone] of Object.entries(LOC)) {
+      for (const [key, k, pad] of [['bodyBoulder', 1.6, 32], ['bodyRock', 1.2, 24]] as [string, number, number][]) {
+        const im = square(A.rock(k, tone), pad);
+        if (art === 'chargestone') shards(im);
+        this.fxAtlas.add(key + '.' + art, im);
+      }
+    }
     this.fxTex = this.tex(this.fxAtlas.canvas);
   }
 
@@ -146,5 +157,19 @@ export class PixelLayer {
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.fxTex);
     this.fx.draw();
+  }
+}
+
+/** Chargestone's charged stones: small glowing crystal shards growing out of the top of a rendered stone */
+function shards(im: ImageData) {
+  const W = im.width, H = im.height, d = im.data;
+  const top = (x: number) => { for (let y = 0; y < H; y++) if (d[(y * W + x) * 4 + 3]) return y; return -1; };
+  const set = (x: number, y: number, c: [number, number, number]) => { if (x < 0 || y < 0 || x >= W || y >= H) return; const o = (y * W + x) * 4; d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255; };
+  const hi: [number, number, number] = [240, 252, 255], mid: [number, number, number] = [120, 224, 255], lo: [number, number, number] = [40, 144, 216], out: [number, number, number] = [26, 40, 72];
+  for (const [fx, len] of [[0.38, 5], [0.55, 7], [0.7, 4]] as [number, number][]) {
+    const x = Math.floor(W * fx), t = top(x);
+    if (t < 0) continue;
+    for (let y = 0; y < len; y++) { const yy = t + 2 - y; set(x - 1, yy, out); set(x, yy, y === len - 1 ? hi : mid); set(x + 1, yy, lo); set(x + 2, yy, out); }
+    set(x, t + 2 - len, out); set(x + 1, t + 2 - len, out);
   }
 }

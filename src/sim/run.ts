@@ -19,6 +19,7 @@ import { playerSystem } from './player';
 import { EnemyPool, PickupPool, ProjectilePool, ZonePool } from './pools';
 import { BodyPool, bodySystem, seedBodies } from './bodies';
 import { cellSystem } from './cells';
+import { exposureSystem, hazardSystem } from './hazards';
 import { coatSystem } from './coats';
 import { reviveFainted, squadSystem } from './squad';
 import { finishEvolution, handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
@@ -42,7 +43,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, directorSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, pickupSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, directorSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, exposureSystem, pickupSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];
@@ -118,6 +119,7 @@ export function startStage(ctx: SimContext, stage: number) {
   const P = ctx.player;
   const [sx, sz] = ctx.world.spawn;
   P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = ctx.world.height(sx, sz); P.vx = P.vz = P.vy = 0; P.facing = Math.PI;
+  P.safeX = sx; P.safeY = P.y; P.safeZ = sz; P.hzKind = 0; P.hzT = 0; P.hzAcc = 0; P.hzCue = 0; P.hzCueT = 0; P.hzSafe = 0; P.hzRecover = '';
   ctx.world.updateFlow(sx, sz);
   seedBodies(ctx);
   for (const m of P.squad) m.sturdyUsed = false;

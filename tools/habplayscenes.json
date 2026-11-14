@@ -1,0 +1,458 @@
+[
+ {
+  "name": "cam-G3-direct-ramp-ahead",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=54,93",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=2.128;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G3-direct-ramp-fixed",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=53,93",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G3-flank-deck-ahead",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=70,84",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.167;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G3-flank-deck-fixed",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=70,84",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G7-flank-ramp-ahead",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=7&calm=1&tp=46,95",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=-4.318;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G7-flank-ramp-fixed",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=7&calm=1&tp=48,94",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-G25-direct-deck-ahead",
+  "query": "go=1&species=totodile&loc=river-gorge&mapseed=25&calm=1&tp=60,50",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=0.057;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C3-direct-tunnel-ahead",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=92,62",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=5.18;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C3-direct-tunnel-fixed",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=92,62",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C7-direct-tunnel-ahead",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=67,92",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=4.46;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C7-direct-tunnel-fixed",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=67,92",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C7-flank-ramp-ahead",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=48,78",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=2.864;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "cam-C7-flank-ramp-fixed",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=48,78",
+  "steps": [
+   {
+    "advance": 0.6
+   },
+   {
+    "eval": "(()=>{pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.6,
+    "frames": 96
+   },
+   {
+    "shot": "view"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-3tiles-dormant",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,78",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=1.6;pokewatch.ctx.time=1.6;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,78',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-3tiles-warn-early",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,78",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=4.699999999999999;pokewatch.ctx.time=4.699999999999999;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,78',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-3tiles-warn-late",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,78",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=5.9;pokewatch.ctx.time=5.9;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,78',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-3tiles-erupt",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,78",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=6.799999999999999;pokewatch.ctx.time=6.799999999999999;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,78',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-8tiles-dormant",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,83",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=1.6;pokewatch.ctx.time=1.6;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,83',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-8tiles-warn-early",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,83",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=4.699999999999999;pokewatch.ctx.time=4.699999999999999;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,83',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-8tiles-warn-late",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,83",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=5.9;pokewatch.ctx.time=5.9;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,83',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C7-8tiles-erupt",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=39,83",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=6.799999999999999;pokewatch.ctx.time=6.799999999999999;pokewatch.renderer.rig.yaw=3.141592653589793;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'39,83',field:'39,75'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C3-3tiles-dormant",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=79,85",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=1.6;pokewatch.ctx.time=1.6;pokewatch.renderer.rig.yaw=-1.5707963267948966;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'79,85',field:'76,85'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C3-3tiles-warn-early",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=79,85",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=4.699999999999999;pokewatch.ctx.time=4.699999999999999;pokewatch.renderer.rig.yaw=-1.5707963267948966;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'79,85',field:'76,85'})"
+   }
+  ]
+ },
+ {
+  "name": "vent-C3-3tiles-erupt",
+  "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=79,85",
+  "steps": [
+   {
+    "eval": "(()=>{pokewatch.ctx.stageTime=6.799999999999999;pokewatch.ctx.time=6.799999999999999;pokewatch.renderer.rig.yaw=-1.5707963267948966;return 1})()"
+   },
+   {
+    "advance": 1.4,
+    "frames": 84
+   },
+   {
+    "shot": "view"
+   },
+   {
+    "eval": "({stage:+pokewatch.ctx.stageTime.toFixed(2),vents:pokewatch.ctx.world.hab.hazard.length,tile:'79,85',field:'76,85'})"
+   }
+  ]
+ }
+]

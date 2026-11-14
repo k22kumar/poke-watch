@@ -18,10 +18,16 @@ import { InstanceBatch, QUAD_CENTER, QUAD_FEET } from './batches';
 import { hexToRgb, mat4, Program, type GL } from './gl';
 import { DECAL_FS, DECAL_VS, GLOW_FS, GLOW_VS, RIBBON_FS, RIBBON_VS } from './shaders';
 import { TileStage, FOG_GLSL, NO_FOG, type Fog } from './tilestage';
+import { chaseViewR, type StageView } from './view';
 import { PixelLayer } from './pixelfx';
 import { ELEMENT_FX } from './pixelart';
 import { skyFor } from './sky';
-import { cameraPreset, ChaseRig, chaseAim, NO_THREAT, type CameraPreset, type ChaseThreat } from './camera';
+
+/** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
+const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
+import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, RING, ringAdd, wobble, type CameraPreset } from './camera';
+import { chaseFrameFor } from './chaseinput';
+import { SPRITE_SAMPLE_GLSL } from './spritesample';
 
 // creature billboard: per-frame rect + anchor, stretched like the props so texels stay square on screen
 const CREATURE_VS = `
@@ -32,7 +38,7 @@ layout(location=3) in vec4 iUV; // u0 v0 u1 v1
 layout(location=4) in vec4 iC; // flash dissolve dx(m, along right) bias
 layout(location=5) in vec4 iD; // tint rgb, dy (m)
 uniform mat4 uVP; uniform vec3 uRight; uniform vec3 uFwd; uniform float uStretch; uniform vec3 uFogCam;
-out vec2 vUV; out float vFlash; out float vDis; out vec3 vTint; out vec3 vW;
+out vec2 vUV; flat out vec4 vRect; out float vFlash; out float vDis; out vec3 vTint; out vec3 vW;
 void main(){
   float tx = (aCorner.x + 0.5) * iB.x;
   float ty = aCorner.y * iB.y;
@@ -42,16 +48,17 @@ void main(){
   float lx = (tx - iB.z) / ${TEXELS_PER_METRE}.0 * iA.w + iC.z;
   float ly = (ty - (iB.y - iB.w)) / ${TEXELS_PER_METRE}.0 * iA.w * st + iD.w;
   vec3 w = iA.xyz + uRight * lx + vec3(0.0, ly, 0.0) - uFwd * iC.w;
-  vUV = vec2(mix(iUV.x, iUV.z, aCorner.x + 0.5), mix(iUV.w, iUV.y, aCorner.y));
+  vUV = vec2(mix(iUV.x, iUV.z, aCorner.x + 0.5), mix(iUV.w, iUV.y, aCorner.y)); vRect = iUV;
   vFlash = iC.x; vDis = iC.y; vTint = iD.xyz; vW = w;
   gl_Position = uVP * vec4(w, 1.0);
 }`;
 const CREATURE_FS = `
-in vec2 vUV; in float vFlash; in float vDis; in vec3 vTint; in vec3 vW;
+in vec2 vUV; flat in vec4 vRect; in float vFlash; in float vDis; in vec3 vTint; in vec3 vW;
 uniform sampler2D uTex; uniform vec3 uLight; uniform vec4 uSil; out vec4 o;
 ${FOG_GLSL}
+${SPRITE_SAMPLE_GLSL}
 void main(){
-  vec4 c = texture(uTex, vUV);
+  vec4 c = spriteTex(uTex, vUV, vRect);
   if (c.a < 0.5) discard;
   // x-ray silhouette of the active Pokémon where something stands in front of it (drawn with depth GREATER)
   // the sprite's own dark outline stays dark, the body becomes a cyan/white checker: reads over any crowd or canopy
@@ -250,6 +257,13 @@ export class Renderer {
     this.rig.snapTo(ctx.player.x, ctx.player.y, ctx.player.z, this.chase ? this.rig.yaw : Math.PI);
   }
 
+  /** The trainer was put somewhere else in the same stage (the next Pokémon after a hazard knockout): the camera cuts there. */
+  snapCamera(ctx: SimContext) {
+    this.camX = ctx.player.x; this.camY = ctx.player.y; this.camZ = ctx.player.z;
+    this.leadX = this.leadZ = 0;
+    this.rig.snapTo(ctx.player.x, ctx.player.y, ctx.player.z, this.chase ? this.rig.yaw : this.yaw);
+  }
+
   /** Pre-build a biome's stage (painting the ground takes a moment) so stage changes don't hitch. */
   prepareStage(ctx: SimContext) { this.stageFor(ctx); }
 
@@ -259,7 +273,7 @@ export class Renderer {
     const id = ctx.world.map.id;
     let st = this.stages.get(id);
     if (st) { this.stages.delete(id); this.stages.set(id, st); return st; }
-    st = new TileStage(this.gl, ctx.world.map, ctx.world.biome.id);
+    st = new TileStage(this.gl, ctx.world.map, artKey(ctx));
     this.stages.set(id, st);
     const generated = [...this.stages.keys()].filter((k) => k.includes('@'));
     while (generated.length > 3) { const old = generated.shift()!; const o = this.stages.get(old)!; if (o !== this.stage) { o.dispose(); this.stages.delete(old); } }
@@ -279,20 +293,34 @@ export class Renderer {
     this.width = iw * scale; this.height = ih * scale;
   }
 
-  /** what the camera needs to know about hostiles near (x, z): nearest, weighted crowd within 12 m, nearest boss */
-  private threatOf(ctx: SimContext, x: number, z: number): ChaseThreat {
-    const E = ctx.enemies;
-    let nearest = Infinity, boss = Infinity, weight = 0;
+  /** hostiles within RING.range that are outside the frame, summed per sector around the screen (ahead first, clockwise);
+   *  fixed views see the whole arena, so their ring stays empty */
+  readonly ring = new Float32Array(RING.sectors);
+  threatRing(ctx: SimContext): Float32Array {
+    const ring = this.ring, E = ctx.enemies, P = ctx.player;
+    ring.fill(0);
+    if (!this.chase) return ring;
+    const r2 = RING.range * RING.range, W = this.width, H = this.height;
     for (let i = 0; i < E.hi; i++) {
-      if (!E.alive[i]) continue;
-      const dx = E.x[i] - x, dz = E.z[i] - z, d2 = dx * dx + dz * dz;
-      if (d2 > 900) continue;
-      const d = Math.sqrt(d2), r = E.roles[i];
-      if (d < nearest) nearest = d;
-      if (r & ROLE.boss) { if (d < boss) boss = d; }
-      if (d < 12) weight += r & ROLE.boss ? 8 : r & ROLE.alpha ? 4 : r & ROLE.elite ? 3 : 1;
+      if (!E.alive[i] || E.spawnT[i] < 0.25) continue;
+      const dx = E.x[i] - P.x, dz = E.z[i] - P.z;
+      if (dx * dx + dz * dz >= r2) continue;
+      const p = this.project(E.x[i], E.y[i] + 0.5, E.z[i]);
+      if (p && p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H) continue; // in frame: it is already seen
+      const [ang, d] = bearingOf(this.rig.yaw, P.x, P.z, E.x[i], E.z[i]);
+      const r = E.roles[i];
+      ringAdd(ring, ang, d, r & ROLE.boss ? 8 : r & ROLE.alpha ? 4 : r & ROLE.elite ? 3 : 1);
     }
-    return nearest === Infinity && boss === Infinity ? NO_THREAT : { nearest, weight, boss };
+    return ring;
+  }
+
+  /** project() for markers that must always point somewhere: a point behind the lens is placed far off-screen in its
+   *  bearing, so the HUD's edge arrow shows it (straight behind = the bottom edge) */
+  projectEdge(x: number, y: number, z: number): [number, number] | null {
+    const p = this.project(x, y, z);
+    if (p || !this.chase) return p;
+    const [ang] = bearingOf(this.rig.yaw, this.rig.px, this.rig.pz, x, z);
+    return [this.width / 2 + Math.sin(ang) * 1e4, this.height / 2 - Math.cos(ang) * 1e4];
   }
 
   /** turn the third-person camera: dyaw > 0 turns right, dpitch > 0 looks further down (radians) */
@@ -508,6 +536,10 @@ export class Renderer {
     const P = ctx.player;
     const C = ctx.rules.camera;
     const px = P.px + (P.x - P.px) * alpha, py = P.py + (P.y - P.py) * alpha, pz = P.pz + (P.z - P.pz) * alpha;
+    // over open air (a chasm: sim/hazards.ts) the camera stays at the height of the last safe ground and watches the fall,
+    // instead of diving into the chasm after the Pokémon
+    const overVoid = ctx.world.hazards && ctx.world.support(px, pz, py) === -Infinity;
+    const cy = overVoid ? Math.max(py, P.safeY) : py;
     // camera: follow with a small lead in the movement direction, settle on the ground height
     const sp = Math.hypot(P.vx, P.vz);
     const lk = 1 - Math.exp(-3 * dt);
@@ -515,7 +547,7 @@ export class Renderer {
     this.leadZ += ((sp > 0.5 ? (P.vz / sp) * C.lead : 0) - this.leadZ) * lk;
     const follow = 1 - Math.exp(-10 * dt);
     this.camX += (px + this.leadX - this.camX) * follow; this.camZ += (pz + this.leadZ - this.camZ) * follow;
-    this.camY += (ctx.world.height(px, pz) - this.camY) * (1 - Math.exp(-5 * dt));
+    this.camY += ((overVoid ? P.safeY : ctx.world.height(px, pz, py)) - this.camY) * (1 - Math.exp(-5 * dt));
     this.trauma = Math.max(0, this.trauma - dt * C.shakeDecay);
     const sh = this.trauma * this.trauma;
     let fov: number, tx: number, ty: number, tz: number, fx: number, fz: number, near = 1, far: number;
@@ -539,11 +571,14 @@ export class Renderer {
       // third person: the rig orbits the Pokémon (mouse / right stick), nothing is snapped to a texel grid
       const rig = this.rig;
       const f0 = this.sheets.get(P.species.id)?.art.clips.idle?.frames[0]?.[0];
-      const sx = rnd(-1, 1) * sh * 0.45, sy = rnd(-1, 1) * sh * 0.45, sz = rnd(-1, 1) * sh * 0.45;
-      rig.update({
-        dt, x: px, y: py, z: pz, height: f0 ? f0.h / TEXELS_PER_METRE : 1.1, threat: this.threatOf(ctx, px, pz),
-        lookYaw: 0, lookPitch: this.lookPitch, ground: (x, z) => ctx.world.height(x, z), shake: [sx, sy, sz],
-      }, { pitchRange: [-8, 12], fovOffset: this.fovOffset });
+      // shake: smooth noise sized for a lens ~4 m from the Pokémon (a new random 0.45 m offset every frame was ~8x the
+      // fixed views' angular shake, and shook harder the higher the frame rate)
+      const SK = CHASE_CONFIG.shake, sa = sh * SK.amp, st = this.time * SK.freq;
+      const sx = sa * wobble(st, 0.3), sy = sa * wobble(st, 2.1) * 0.6, sz = sa * wobble(st, 4.7);
+      rig.update(chaseFrameFor(ctx, {
+        dt, x: px, y: cy, z: pz, height: f0 ? f0.h / TEXELS_PER_METRE : 1.1, width: f0 ? f0.w / TEXELS_PER_METRE : undefined,
+        lookPitch: this.lookPitch, shake: [sx, sy, sz],
+      }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: this.fovOffset });
       this.lookPitch = 0;
       this.yaw = rig.yaw; this.pitch = rig.viewPitch; this.dist = rig.boomUsed;
       fov = rig.fov; [tx, ty, tz] = rig.target;
@@ -573,9 +608,9 @@ export class Renderer {
 
     let fog: Fog = NO_FOG;
     // view radius for culling: the visible ground is about 30 x 22 m; keep a margin for tall props
-    let view = { x: tx, z: tz - 2, r: Math.max(26, (this.canvas.width / C.pxPerMetre) * 0.75) };
+    let view: StageView = { x: tx, z: tz - 2, r: Math.max(26, (this.canvas.width / C.pxPerMetre) * 0.75) };
     if (chase) {
-      const sk = skyFor(ctx.world.biome.id);
+      const sk = skyFor(artKey(ctx));
       // horizon height in NDC (y up): the horizon sits above the screen centre by tan(view pitch) / tan(fov / 2)
       const hz = Math.tan(this.pitch) / Math.tan(fov / 2);
       gl.disable(gl.DEPTH_TEST); gl.depthMask(false);
@@ -587,7 +622,10 @@ export class Renderer {
       gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
       const bx = this.eye[0] - px, bz = this.eye[2] - pz, bl = Math.hypot(bx, bz) || 1;
       fog = { col: sk.hor, near: sk.fogNear, far: sk.fogFar, k: sk.fog, behind: [bx / bl, 0, bz / bl] };
-      view = { x: this.rig.px + fx * 20, z: this.rig.pz + fz * 20, r: 74 };
+      // cull around the lens, not a point ahead of it: the old disc (74 m around a point 20 m ahead) swung with the yaw
+      // and dropped props that were still on screen and only ~30 % fogged, so turning on the spot popped hundreds of
+      // trees in and out on the horizon. Past chaseViewR the fog is complete, so distance never culls anything visible.
+      view = { x: this.eye[0], z: this.eye[2], r: chaseViewR(sk.fogFar), fx, fz };
     }
     this.fog = fog;
     if (S) {
@@ -691,7 +729,7 @@ export class Renderer {
   }
   private playerId = '';
 
-  private drawSprites(ctx: SimContext, alpha: number, px: number, py: number, pz: number, dt: number, view: { x: number; z: number; r: number }) {
+  private drawSprites(ctx: SimContext, alpha: number, px: number, py: number, pz: number, dt: number, view: StageView) {
     for (const s of this.sheets.values()) s.batch.begin();
     const E = ctx.enemies;
     const r2 = (view.r + 4) * (view.r + 4);
@@ -791,7 +829,13 @@ export class Renderer {
     }
     const inGrass = ctx.world.inTallGrass(px, pz);
     this.silSheet = null;
-    if (!blink && !this.debugHide.actors && !this.debugHide.player) { push(id, px, py, pz, 1, P.facing, state, t, flash, 0, [1, 1, 1], inGrass ? -0.12 : 0); const ps = this.sheets.get(id); if (ps && ps.batch.count) { this.silSheet = ps; this.silData.set(ps.batch.data.subarray((ps.batch.count - 1) * 20, ps.batch.count * 20)); } }
+    // third person: with the lens right at the Pokémon's back (a wall or a deck behind it) the sprite would fill the
+    // screen; it dissolves instead (ordered dither, like props near the lens): 75 % by 0.45 m, and nearly all of it as the
+    // lens reaches the near plane (a Pokémon backed into a wall, the lens slid in right behind it). The x-ray silhouette
+    // is not drawn then: with the sprite at the near plane it filled the screen with cyan stipple
+    const gap = this.rig.lensGap;
+    const close = !this.chase ? 0 : gap >= 0.45 ? Math.min(0.75, Math.max(0, (0.95 - gap) / 0.5)) : Math.min(0.95, 0.75 + (0.45 - gap) / 0.15 * 0.2);
+    if (!blink && !this.debugHide.actors && !this.debugHide.player) { push(id, px, py, pz, 1, P.facing, state, t, flash, close, [1, 1, 1], inGrass ? -0.12 : 0); const ps = this.sheets.get(id); if (ps && ps.batch.count && close <= 0) { this.silSheet = ps; this.silData.set(ps.batch.data.subarray((ps.batch.count - 1) * 20, ps.batch.count * 20)); } }
 
     const gl = this.gl;
     const p = this.creature.use();
@@ -828,9 +872,11 @@ export class Renderer {
     const D = this.decals, T = this.decalsTop;
     D.begin(); T.begin();
     const W = ctx.world;
+    // layered maps: decals land on the surface at `ref` (the owner's feet: a deck above, or the ground under it)
+    let ref: number | undefined;
     const put = (b: InstanceBatch, x: number, z: number, r: number, c: number[], a: number, kind: number, th = 0.2, prog = 0, rot = 0, y?: number) => {
       const o = b.push();
-      b.data.set([x, (y ?? W.height(x, z)) + 0.06, z, r, c[0], c[1], c[2], a, kind, th, prog, rot], o);
+      b.data.set([x, (y ?? W.height(x, z, ref)) + 0.06, z, r, c[0], c[1], c[2], a, kind, th, prog, rot], o);
     };
     const hideO = this.debugHide.overlays;
     // surface states: wet puddles, fire, ice, ash, rubble, charge
@@ -863,6 +909,7 @@ export class Renderer {
       const x = E.px[i] + (E.x[i] - E.px[i]) * alpha, z = E.pz[i] + (E.z[i] - E.pz[i]) * alpha;
       const dx = x - this.eye[0], dz = z - this.eye[2];
       if (dx * dx + dz * dz > 90 * 90) continue;
+      ref = W.over ? E.y[i] - E.hover[i] : undefined;
       put(D, x, z, E.radius[i] * 1.25, [0, 0, 0], 1, 0);
       if (hideO) continue;
       if (E.roles[i] & (ROLE.elite | ROLE.alpha)) put(D, x, z, E.radius[i] * 1.6, E.roles[i] & ROLE.alpha ? [1, 0.3, 0.2] : [1, 0.8, 0.2], 0.8, 1, 0.12, 0, 0);
@@ -876,11 +923,13 @@ export class Renderer {
         if (!B.alive[b]) continue;
         const T = BODY_TEMPLATES[BODY_KINDS[B.kind[b]]];
         const x = B.px[b] + (B.x[b] - B.px[b]) * alpha, z = B.pz[b] + (B.z[b] - B.pz[b]) * alpha;
+        ref = W.over ? B.y[b] : undefined;
         put(D, x, z, T.radius * 1.1, [0, 0, 0], 1, 0);
         // thrown at you: a red ring under it; yours: a white one
         if (!hideO && B.team[b] !== 0 && Math.hypot(B.vx[b], B.vz[b]) > 4) put(D, x, z, T.radius * 1.45, B.team[b] === 2 ? [1, 0.3, 0.25] : [1, 1, 1], 0.75, 1, 0.14, 0, 0);
       } }
-    if (hideO) { const pArt0 = this.sheets.get(ctx.player.species.id)?.art; put(D, px, pz, [0.42, 0.55, 0.8][pArt0?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz)); return; }
+    ref = W.over ? py : undefined;
+    if (hideO) { const pArt0 = this.sheets.get(ctx.player.species.id)?.art; put(D, px, pz, [0.42, 0.55, 0.8][pArt0?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz, ref)); return; }
     // objectives (blueprint section 9): the Hold pad fills as it charges, the goal and the egg pulse, the
     // Hunt target wears a red ring and its Mender a green one
     { const O = ctx.objective, E = ctx.enemies, R = ctx.rules.objectives;
@@ -904,28 +953,28 @@ export class Renderer {
         put(D, E.x[i], E.z[i], E.radius[i] * 1.5, E.roles[i] & ROLE.hexer ? ELC[sp.elements.find((el) => el === 'blaze' || el === 'tide' || el === 'frost' || el === 'volt') ?? sp.elements[0]] : [1, 0.6, 0.15], 0.85, 1, 0.14);
       } }
     const pArt = this.sheets.get(ctx.player.species.id)?.art;
-    put(D, px, pz, [0.42, 0.55, 0.8][pArt?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz));
-    { const m = ctx.player.m; if (m && m.coat) put(T, px, pz, 0.8, COAT_RING[m.coat], 0.9, 1, 0.16, 0, 0, W.height(px, pz)); }
+    put(D, px, pz, [0.42, 0.55, 0.8][pArt?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz, ref));
+    { const m = ctx.player.m; if (m && m.coat) put(T, px, pz, 0.8, COAT_RING[m.coat], 0.9, 1, 0.16, 0, 0, W.height(px, pz, ref)); }
     // the active Pokémon's marker (art direction: own = cyan-white, never used by hostile signals): a ring at its
     // feet and a pip toward its facing, so it can be found in a swarm at a glance
-    { const gy = W.height(px, pz), f = ctx.player.facing, OWN = [0.55, 0.95, 1];
+    { const gy = W.height(px, pz, ref), f = ctx.player.facing, OWN = [0.55, 0.95, 1];
       put(D, px, pz, 0.72, OWN, 0.95, 1, 0.2, 0, 0, gy);
       put(D, px + Math.sin(f) * 0.86, pz + Math.cos(f) * 0.86, 0.13, OWN, 1, 4, 0, 0, 0, gy); }
     // pickup radius hint
-    put(D, px, pz, ctx.player.derived.magnet, [0.6, 0.85, 1], 0.1, 1, 0.03, 0, 0, W.height(px, pz));
+    put(D, px, pz, ctx.player.derived.magnet, [0.6, 0.85, 1], 0.1, 1, 0.03, 0, 0, W.height(px, pz, ref));
     // aim reticle on the ground, and three dots from the Pokémon toward it
     if (this.aim.on) {
       const ax = this.aim.x, az = this.aim.z;
-      put(T, ax, az, 0.55, [1, 1, 1], 0.85, 1, 0.22, 0, 0, W.height(ax, az));
-      put(T, ax, az, 0.12, [1, 1, 1], 0.9, 4, 0.2, 0, 0, W.height(ax, az));
+      put(T, ax, az, 0.55, [1, 1, 1], 0.85, 1, 0.22, 0, 0, W.height(ax, az, ref));
+      put(T, ax, az, 0.12, [1, 1, 1], 0.9, 4, 0.2, 0, 0, W.height(ax, az, ref));
       const dx = ax - px, dz = az - pz, L = Math.hypot(dx, dz);
-      if (L > 1.6) for (const d of [1.3, 1.9, 2.5]) { const x = px + (dx / L) * d, z = pz + (dz / L) * d; put(D, x, z, 0.1, [1, 1, 1], 0.7, 4, 0.2, 0, 0, W.height(x, z)); }
+      if (L > 1.6) for (const d of [1.3, 1.9, 2.5]) { const x = px + (dx / L) * d, z = pz + (dz / L) * d; put(D, x, z, 0.1, [1, 1, 1], 0.7, 4, 0.2, 0, 0, W.height(x, z, ref)); }
     }
     // Guard: a bright ring during the deflect window, a steady one while bracing
     { const Pl = ctx.player, G = ctx.rules.combat;
       if (Pl.guardT >= 0) {
         const win = Pl.guardT <= G.guardWindow;
-        put(T, px, pz, win ? 1.5 : 1.15, win ? [1, 1, 1] : [0.55, 0.8, 1], win ? 0.95 : 0.7, 1, win ? 0.2 : 0.14, 0, 0, W.height(px, pz));
+        put(T, px, pz, win ? 1.5 : 1.15, win ? [1, 1, 1] : [0.55, 0.8, 1], win ? 0.95 : 0.7, 1, win ? 0.2 : 0.14, 0, 0, W.height(px, pz, ref));
       } }
     // zones
     const Z = ctx.zones;
@@ -979,7 +1028,11 @@ export class Renderer {
       const rot = sp > 0.3 ? Math.sin(B.roll[b] / T.radius) * 0.35 : 0;
       const hurt = B.hp[b] < B.maxHp[b] * 0.4 ? 0.15 : 0;
       const fading = T.life < 1e9 && B.age[b] > T.life - 1 ? Math.max(0.2, T.life - B.age[b]) : 1;
-      this.px.sprite(T.sprite, x, ctx.world.height(x, z) + T.radius * 0.95, z, T.scale, rot, fading, hurt + (B.team[b] === 2 ? 0.12 + 0.12 * Math.sin(this.time * 18) : 0));
+      // location stones: a per-location sprite when there is one; Chargestone's charged stones hover and bob
+      const art = artKey(ctx), locSprite = T.sprite + '.' + art, hasLoc = this.px.fxAtlas.has(locSprite);
+      const lift = hasLoc && art === 'chargestone' ? 0.35 + Math.sin(this.time * 2.1 + b * 1.7) * 0.1 : 0;
+      this.px.sprite(hasLoc ? locSprite : T.sprite, x, ctx.world.height(x, z, B.y[b]) + T.radius * 0.95 + lift, z, T.scale, rot, fading, hurt + (B.team[b] === 2 ? 0.12 + 0.12 * Math.sin(this.time * 18) : 0));
+      if (lift && Math.random() < 0.04) this.px.spawn('spark', x + rnd(-0.4, 0.4), ctx.world.height(x, z, B.y[b]) + 0.15, z + rnd(-0.4, 0.4), 0, rnd(0.2, 0.6), 0, 0.3, 1);
       if (sp > 4 && Math.random() < 0.35) this.px.spawn('dust', x, ctx.world.height(x, z) + 0.2, z, rnd(-0.5, 0.5), rnd(0.3, 0.8), rnd(-0.5, 0.5), 0.4, 1);
     }
     const Pr = ctx.projectiles;
@@ -1063,7 +1116,7 @@ export class Renderer {
 
   /** biome ambience: petals / embers / snow / motes drifting around the camera */
   private ambient(ctx: SimContext, dt: number) {
-    const kind = ctx.world.biome.particles;
+    const kind = ctx.world.map.gen?.loc?.particles ?? ctx.world.biome.particles;
     if (!kind) return;
     this.ambientAcc += dt * 5 * this.quality;
     const P = ctx.player;
@@ -1076,6 +1129,8 @@ export class Renderer {
         case 'embers': this.px.spawn('ember', x, y + rnd(0, 2), z, rnd(-0.3, 0.3), rnd(1, 2.5), rnd(-0.3, 0.3), 3, 1); break;
         case 'snow': this.px.spawn('snow', x, y + rnd(2, 5), z, rnd(0.3, 0.8), -rnd(1, 2), rnd(-0.3, 0.3), 6, 1, 0, rnd(-2, 2)); break;
         case 'motes': this.px.spawn('wisp', x, y + rnd(0.5, 3), z, rnd(-0.3, 0.3), rnd(-0.2, 0.4), rnd(-0.3, 0.3), 4, 1); break;
+        case 'sparks': this.px.spawn('spark', x, y + rnd(0.3, 4), z, rnd(-0.6, 0.6), rnd(0.2, 0.9), rnd(-0.6, 0.6), 1.2, 0.45, 0, rnd(-4, 4)); break;
+        case 'dust': this.px.spawn('dust', x, y + rnd(1, 5), z, rnd(-0.2, 0.2), -rnd(0.1, 0.4), rnd(-0.2, 0.2), 6, 0.6); break;
       }
     }
   }

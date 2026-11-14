@@ -220,7 +220,7 @@ test('scenario: a Water Gun push deflects an incoming Oddish shot (interception)
     shootHostile(ctx, P.x + 7, P.z, -1, 0, 11, 20, 'venom', 0.45, osp);
     let hurt = 0, deflects = 0;
     for (let t = 0; t < 70; t++) {
-      const ev = step(ctx, { ...NONE, aimX: P.x + 12, aimZ: P.z });
+      const ev = step(ctx, { ...NONE, aimX: P.x + 12, aimZ: P.z, btn: BTN.basic });
       hurt += ev.filter((e) => e.t === 'playerHurt').length;
       deflects += ev.filter((e) => e.t === 'deflect').length;
     }
@@ -359,7 +359,7 @@ test('scenario: Lasso the rubble of a broken boulder and throw it into an enemy'
   assert.ok(piece >= 0, 'rubble on the ground');
   const e = dummy(ctx, 'rattata', x + 3, z + 13);
   const hp0 = ctx.enemies.hp[e];
-  const aim = { aimX: x + 3, aimZ: z + 13 };
+  const aim = { aimX: x + 3, aimZ: z + 13, btn: BTN.basic }; // the basic attack (Vine Whip) throws what it holds
   assert.ok(holdBody(ctx, piece, 1, P.x - ctx.bodies.x[piece], P.z - ctx.bodies.z[piece], TEAM.player, 0));
   let hit = false;
   for (let t = 0; t < 140 && !hit; t++) hit = steps(ctx, 1, aim).some((ev) => ev.t === 'hit' && ev.enemy === e);
@@ -486,8 +486,9 @@ test('regression: with the capability layer off, replay hashes equal the v10 bui
     ['totodile', 7, 'classic', 120, ['7c7a03ab', 'd8b8f631', '74f3c09c', '4e7ad570']],
   ];
   for (const [species, seed, mode, seconds, want] of V10) {
-    // v10 had neither the capability layer nor the Phase 8b build layer
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false } } as never });
+    // v10 had neither the capability layer nor the Phase 8b build layer (nor liquid exposure and falls), and its basic
+    // attack cast only at a target
+    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);

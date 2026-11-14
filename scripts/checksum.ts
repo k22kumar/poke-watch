@@ -32,13 +32,19 @@ const CONFIGS: [string, number, string, number][] = [
 // current game. Pass `off`, `build-off` or `on` to print only one set.
 const which = process.argv[2] ?? 'all';
 // W0/W4: `world-off` (materials off) and `on` (materials apply to generated regions only, by default) must both print
-// the pre-worldgen `on` hashes exactly; `gen` plays the generated Meadow (region seeds from the run seed).
+// the pre-worldgen `on` hashes exactly; `gen` plays the default generated regions (Viridian Forest and Mt. Moon
+// from Pokémon locations, the classic generator elsewhere); `gen-classic` turns locations off.
+// Hazards (liquid exposure and falls, docs/HAZARDS.md): `hazards-off` must print the `on` hashes from before that layer;
+// every older set turns it off too.
 const SETS: Record<string, object | undefined> = {
-  off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false } },
-  'build-off': { build: { enabled: false }, surfaces: { enabled: false } },
-  'world-off': { surfaces: { enabled: false } },
+  off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false } },
+  'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false } },
+  'world-off': { surfaces: { enabled: false }, hazards: { enabled: false } },
+  'hazards-off': { hazards: { enabled: false } },
   on: undefined,
   gen: { worldgen: { mode: 'generated' } },
+  // the classic generator everywhere (Pokémon locations off): must print the pre-location `gen` hashes exactly
+  'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } },
 };
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of CONFIGS) {

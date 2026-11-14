@@ -22,10 +22,16 @@ import { COMPOSITIONS } from './rules/compositions';
 import { createRun, startStage, step } from './sim/run';
 import { TRANSFORM_BY_ID } from './rules/build';
 import { artMetrics } from './render/metrics';
+import { LOCATIONS } from './world/locations';
+import { HABITATS } from './world/habitat/recipes';
+import { HabitatError } from './world/habitat';
+import { mapChecksum } from './world/maps';
+import { loadInfo, mapErrorMessage, worldgenFromQuery } from './world/replay';
 const TRANSFORM_MOVE = (id: string) => TRANSFORM_BY_ID[id]?.move;
 import type { InputFrame, SimContext, SimEvent } from './sim/types';
 import { UI } from './ui/ui';
-import { CAMERA_DEFAULT, cameraPreset } from './render/camera';
+import { RETICLE_Y, cameraPreset } from './render/camera';
+import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
 import { MOVE_SFX } from './audio/sfx';
 import { TRACKS } from './audio/music';
@@ -38,16 +44,10 @@ const canvas = document.getElementById('game') as HTMLCanvasElement;
 const audio = new Audio();
 const input = new Input(canvas);
 
-const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: CAMERA_DEFAULT, shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'generated' as 'authored' | 'generated', worldV: 1 };
-const settings = { ...SETTINGS_DEFAULT };
-try {
-  const saved = JSON.parse(localStorage.getItem('poke-watch.settings') ?? localStorage.getItem('bonklab.settings') ?? '{}');
-  Object.assign(settings, saved);
-  if (saved.worldV !== 1) settings.world = 'generated';
-} catch { /* storage unavailable */ }
-settings.worldV = 1;
-// settings saved before the third-person camera existed keep their other choices but move to the new default view once
-if (settings.camV !== 2) { settings.camera = 'chase'; settings.camV = 2; }
+// defaults and the migration of a saved copy (third person for new players; a camera the player picked is kept): ui/settings.ts
+let savedSettings: unknown = {};
+try { savedSettings = JSON.parse(localStorage.getItem('poke-watch.settings') ?? localStorage.getItem('bonklab.settings') ?? '{}'); } catch { /* storage unavailable */ }
+const settings = loadSettings(savedSettings);
 
 let renderer: Renderer;
 let ctx: SimContext | null = null;
@@ -124,7 +124,7 @@ window.addEventListener('pointerdown', () => audio.unlock());
 function setPaused(p: boolean) {
   paused = p;
   audio.setPaused(p);
-  if (p) { ui.pause(ctx); input.releaseLock(); } else { ui.unpause(); input.context = 'play'; input.capture(); }
+  if (p) { ui.pause(ctx); input.releaseLock(); input.clearButtons(); } else { ui.unpause(); input.context = 'play'; input.capture(); }
 }
 
 function resize() {
@@ -132,13 +132,45 @@ function resize() {
   renderer.resize(window.innerWidth, window.innerHeight, dpr);
 }
 
+/** World setting and ?loc= → worldgen rules. ?loc=chargestone-cave builds every region from that location;
+ *  ?loc=meadow:viridian-forest,dusk:mt-moon sets them per stage biome; ?loc=river-gorge (or volcanic-ridge,
+ *  river-gorge/snow) builds every region from a habitat recipe. 'generated' is the classic generator. ?mapseed=N
+ *  (or Settings → World → Map seed) holds the map seed for every region, so a layout can be replayed. */
+function worldgenOverrides(world: 'authored' | 'generated' | 'locations', loc: string | null) {
+  const ms = params.get('mapseed') ?? (settings.mapSeed >= 0 ? String(settings.mapSeed) : null);
+  return worldgenFromQuery({ world, loc, mapseed: ms, hv: params.get('hv'), biomes: Object.keys(BIOMES) }, (m) => console.warn(m.startsWith('unknown map') ? `${m}; known maps: ${[...Object.keys(LOCATIONS), ...Object.keys(HABITATS)].join(', ')}` : m));
+}
+
+/** the map (or a later region's map) could not be generated: nothing is left half-started, the player is told why */
+let mapSum = 0;
+function failMap(e: unknown) {
+  console.error(e);
+  cancelEnd();
+  ctx = null; current = null; paused = false; pendingCard = undefined;
+  (window as any).pokewatch.ctx = null;
+  audio.setPaused(false); input.releaseLock();
+  ui.error(mapErrorMessage(e));
+}
+
 function startRun(mode: Mode, species: string, seed: number) {
   audio.unlock();
   cancelEnd();
   audio.setPaused(false); // restarting from the pause menu must not keep the muffled pause mix
   current = { mode, species, seed };
-  const world = params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
-  ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: { mode: world } } });
+  // the URL beats the saved settings: ?loc= names the map, and ?world= asks for handcrafted or classic regions, so the
+  // saved Map (Settings → World → Map) applies only when the URL says neither
+  const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
+  const world = loc ? 'locations' : params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
+  try {
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: worldgenOverrides(world, loc) } });
+  } catch (e) {
+    // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
+    failMap(e);
+    return;
+  }
+  const H = ctx.world.hab;
+  mapSum = H ? mapChecksum(ctx.world.map) : 0;
+  if (H) console.info(`${loadInfo(H).note} checksum ${mapSum.toString(16)}`);
   renderer.setStage(ctx);
   renderer.yaw = Math.PI; // fixed views look north (-z); the third-person rig starts there too and is then turned by the player
   renderer.resetView(ctx);
@@ -199,7 +231,7 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'bodyHit': audio.impact('stone', false, e.eff); break;
       case 'break': audio.impact('stone', true, 2); break;
       case 'throw': audio.enemyShot(); break;
-      case 'cell': audio.impact(e.change === 'ignite' ? 'blaze' : e.change === 'freeze' ? 'frost' : e.change === 'charge' ? 'volt' : 'tide', e.change === 'charge', 1); break;
+      case 'cell': audio.impact(e.change === 'ignite' ? 'blaze' : e.change === 'freeze' || e.change === 'crack' ? 'frost' : e.change === 'charge' ? 'volt' : 'tide', e.change === 'charge', 1); break;
       case 'spark': audio.enemyShot(); break;
       case 'enemyShot': audio.enemyShot(); break;
       case 'portal': audio.portal(); break;
@@ -224,6 +256,14 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       }
       case 'weatherEvent': ui.banner(e.kind === 'rain' ? 'It started to rain!' : 'The sunlight turned harsh!', e.kind === 'rain' ? 'Water soaks the ground · Fire weakens' : 'Fire is stronger · the grass may catch', 2.2); break;
       case 'block': audio.guard(); break;
+      case 'hazard':
+        if (e.who === 'player') {
+          if (e.phase === 'enter') { audio.impact(e.kind === 'lava' ? 'blaze' : 'tide', true, 2); ui.banner(e.kind === 'lava' ? 'Lava!' : 'Deep water!', `${c.player.species.name} can't ${e.kind === 'lava' ? 'stand it' : 'swim'}: reach solid ground within ${e.lethal} s`, Math.min(2, e.lethal)); }
+          else if (e.phase === 'safe') audio.impact('tide', false, 1);
+          else if (e.phase === 'ko' && e.kind === 'fall') audio.impact('stone', true, 2);
+          else if (e.phase === 'recover') renderer.snapCamera(c);
+        }
+        break;
       case 'benchEvolve': audio.evolveDone(); ui.banner(`${SPECIES_BY_ID[e.from].name} evolved into ${SPECIES_BY_ID[e.to].name}!`, 'On the bench', 2); break;
     }
   }
@@ -247,10 +287,26 @@ lockHint.setAttribute('role', 'status');
 lockHint.style.cssText = 'border-radius:10px;background:rgba(20,28,44,.82);color:#fff;font:600 14px system-ui,sans-serif;pointer-events:none;z-index:5;display:none';
 lockHint.textContent = 'Click the game to aim with the mouse · Esc pauses';
 document.body.appendChild(lockHint);
+// third person: a crosshair where the aim ray leaves the view (the Pokémon's shots converge on it)
+const xhair = document.createElement('div');
+xhair.setAttribute('aria-hidden', 'true');
+xhair.style.cssText = `position:fixed;left:50%;top:${RETICLE_Y * 100}%;width:28px;height:28px;margin:-14px 0 0 -14px;pointer-events:none;z-index:4;display:none`;
+xhair.innerHTML = '<svg width="28" height="28" viewBox="-14 -14 28 28" fill="none" stroke-linecap="round"><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#20283a" stroke-width="4.5"/><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#fff" stroke-width="2"/><circle r="1.5" fill="#fff" stroke="#20283a" stroke-width="1"/></svg>';
+document.body.appendChild(xhair);
 function updateLockHint(c: SimContext | null) {
   const show = !!c && renderer.chase && !paused && c.state === 'play' && !ui.trayOpen() && !input.locked && input.context === 'play' && !input.pad();
   const want = show ? 'block' : 'none';
   if (lockHint.style.display !== want) lockHint.style.display = want;
+  const xh = !!c && renderer.chase && renderer.aim.on && !paused && c.state === 'play' && !ui.trayOpen() && !ui.menuOpen() ? 'block' : 'none';
+  if (xhair.style.display !== xh) xhair.style.display = xh;
+}
+
+/** HUD markers that tell where things are when the low camera cannot see them: the objective arrow (also when it is
+ *  behind the lens) and, in third person, chevrons on the screen edge for hostiles close by but out of frame */
+function drawAwareness(c: SimContext) {
+  const W = renderer.canvas.width, H = renderer.canvas.height;
+  ui.objective(c, (x, y, z) => renderer.projectEdge(x, y, z), W, H, renderer.pixelScale);
+  if (renderer.chase && !paused && c.state === 'play') ui.threatRing(renderer.threatRing(c), W, H);
 }
 
 let startPrev = false;
@@ -270,7 +326,7 @@ function trayPad() {
 function frame(now: number) {
   requestAnimationFrame(frame);
   // input context: menus own the keyboard/gamepad while open; gameplay keys apply only in play
-  input.context = ui.menuOpen() ? 'menu' : 'play';
+  { const next = ui.menuOpen() ? 'menu' : 'play'; if (next === 'menu' && input.context === 'play') input.clearButtons(); input.context = next; }
   ui.padTick(1 / 60);
   trayPad();
   { const pd = input.pad(); const st = !!pd?.start; if (st && !startPrev && ctx && ctx.state !== 'over' && ctx.state !== 'victory' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
@@ -310,7 +366,8 @@ function frame(now: number) {
     while (acc >= c.dt && steps < maxSteps) {
       const inp = autoplay ? botInput(c) : sampleInput(c);
       if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
-      const ev = step(c, inp);
+      let ev: SimEvent[];
+      try { ev = step(c, inp); } catch (e) { if (e instanceof HabitatError) { failMap(e); return; } throw e; }
       onEvents(c, ev);
       acc -= c.dt;
       steps++;
@@ -335,7 +392,7 @@ function frame(now: number) {
   perf.sim = perf.sim * 0.9 + (tSim1 - tSim0) * 0.1; perf.render = perf.render * 0.9 + (tR - tSim1) * 0.1;
   ui.update(c, real, fps);
   ui.drawNumbers(renderer.nums, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale);
-  if (ctx) ui.objective(ctx, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale);
+  if (ctx) drawAwareness(ctx);
   if (ctx && debugCaps) ui.capsDebug(ctx, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale);
 }
 
@@ -390,7 +447,7 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
     }
     audioTick(per);
     renderer.render(c, 1, per, ctx ? per : 0);
-    if (ctx) { ui.update(c, per, 60); ui.drawNumbers(renderer.nums, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); ui.objective(c, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); if (debugCaps) ui.capsDebug(c, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); }
+    if (ctx) { ui.update(c, per, 60); ui.drawNumbers(renderer.nums, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); drawAwareness(c); if (debugCaps) ui.capsDebug(c, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); }
   }
 }
 
@@ -415,6 +472,21 @@ async function boot() {
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
     cries, MOVE_SFX, TRACKS, advance, damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
     objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
+    // Pokémon locations (docs/LOCATIONS.md): pokewatch.loc() prints the current map's location, gates, metrics and zone
+    // graph; pokewatch.locations lists what ?loc= accepts
+    loc: () => {
+      const g = ctx?.world.map.gen, L = g?.loc;
+      if (!g || !L) return 'not a location map (?loc=' + Object.keys(LOCATIONS).join(' | ') + ')';
+      return { location: L.id, map: ctx!.world.map.id, layout: g.archetype, attempts: g.attempts, ms: Math.round(g.ms), gates: g.gates.map((x) => `${x.ok ? 'ok ' : 'FAIL'} ${x.id}: ${x.value}`), metrics: L.metrics, zones: L.zones.map((z) => `${z.kind} t${z.tier} @${z.x},${z.y}${z.name ? ' ' + z.name : ''}`), links: L.links.map((l) => `${l.a}-${l.b} ${l.kind}`) };
+    },
+    locations: [...Object.keys(LOCATIONS), ...Object.keys(HABITATS)],
+    // habitat maps (docs/HABITATS.md): recipe, seed, version, gates, metrics, rejections and the replay URL
+    hab: () => {
+      const H = ctx?.world.map.gen?.hab;
+      if (!H) return 'not a habitat map (?loc=' + Object.keys(HABITATS).join(' | ') + ')';
+      const L = loadInfo(H);
+      return { map: ctx!.world.map.id, recipe: L.source, kind: L.kind, requestedSeed: L.requested, loadedSeed: L.loaded, version: L.version, attempts: L.attempts, checksum: mapSum.toString(16), replay: L.replay, layoutOnly: L.layout, fallback: H.fallback, gates: H.gates.map((x) => `${x.ok ? 'ok ' : 'FAIL'} ${x.id}: ${x.value}`), metrics: H.metrics, repairs: H.repairs, rejections: H.rejections, optional: H.optional, approaches: H.approaches };
+    },
     // Phase 8b: pokewatch.tech('undertow') gives the trainer a technique; pokewatch.xf('pressure_jet') transforms the field
     // Pokémon's move that has it; pokewatch.build() lists the build (testing and playtest setups)
     tech: (id: string) => !!ctx && addTechnique(ctx, id),

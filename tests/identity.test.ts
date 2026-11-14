@@ -8,9 +8,11 @@ import { generateCards } from '../src/sim/progression';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { abilityOf, ABILITIES } from '../src/rules/abilities';
-import type { SimEvent } from '../src/sim/types';
+import { BTN, type SimEvent } from '../src/sim/types';
 
 const idle = { mx: 0, mz: 0, jump: false, dash: false };
+/** holding the basic attack (slot 0 casts only while its button is held) */
+const firing = { ...idle, btn: BTN.basic };
 const spec = (element: any, extra = {}) => ({ element, cls: 'special' as const, ailment: 'knock' as const, chance: 0, knock: 0, kx: 0, kz: 0, drain: 0, source: 'test', ...extra });
 
 test('moves wind up, face the target, release when the wind-up ends, and keep their cadence', () => {
@@ -19,7 +21,7 @@ test('moves wind up, face the target, release when the wind-up ends, and keep th
   const e = spawnEnemy(ctx, 'geodude', ctx.player.x + 4, ctx.player.z, 0);
   ctx.enemies.hp[e] = ctx.enemies.maxHp[e] = 1e9;
   const ev: { t: number; e: SimEvent }[] = [];
-  for (let i = 0; i < 60 * 6; i++) for (const x of step(ctx, idle)) if (x.t === 'windup' || x.t === 'cast') ev.push({ t: ctx.time, e: x });
+  for (let i = 0; i < 60 * 6; i++) for (const x of step(ctx, firing)) if (x.t === 'windup' || x.t === 'cast') ev.push({ t: ctx.time, e: x });
   const w = ev.find((x) => x.e.t === 'windup')!;
   const c = ev.find((x) => x.e.t === 'cast' && x.t >= w.t)!;
   assert.ok(w && c, 'wind-up then cast');

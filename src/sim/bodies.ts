@@ -373,7 +373,7 @@ export const bodySystem = {
       }
       if (sp > 0) {
         const nx = B.x[b] + B.vx[b] * dt, nz = B.z[b] + B.vz[b] * dt;
-        const feet = W.height(B.x[b], B.z[b]);
+        const feet = W.height(B.x[b], B.z[b], B.y[b]);
         const ax = Math.sign(B.vx[b]) * T.radius, az = Math.sign(B.vz[b]) * T.radius;
         const blockX = W.blocks(nx + ax, B.z[b], feet, 0.6), blockZ = W.blocks(B.x[b], nz + az, feet, 0.6);
         if (blockX || blockZ) {
@@ -389,7 +389,7 @@ export const bodySystem = {
         B.roll[b] += sp * dt;
         sp = dhypot(B.vx[b], B.vz[b]);
       }
-      B.y[b] = W.height(B.x[b], B.z[b]);
+      B.y[b] = W.height(B.x[b], B.z[b], B.y[b]);
       const x = B.x[b], z = B.z[b], R = T.radius, wgt = T.weight;
 
       // impacts on enemies (player-owned or loose bodies only; enemy throws pass through their side)
@@ -440,7 +440,7 @@ export const bodySystem = {
         // resting bodies are solid: push the player out
         const d = Math.sqrt(dp2), push = rp - d;
         const qx = P.x + (dxp / d) * push, qz = P.z + (dzp / d) * push;
-        if (!W.blocks(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
       }
     }
   },
@@ -487,6 +487,12 @@ export function seedBodies(ctx: SimContext) {
     if (!clear) continue;
     spawnBody(ctx, 'rock', x, z);
     k++;
+  }
+  // location maps: designed loose stones (Chargestone Cave's floating stones beside their magnetic crystals)
+  for (const [tx, ty] of W.map.gen?.loc?.bodySpots ?? []) {
+    const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
+    if (!W.walkable(x, z)) continue;
+    spawnBody(ctx, 'rock', x, z);
   }
 }
 

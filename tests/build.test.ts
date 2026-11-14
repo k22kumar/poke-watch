@@ -361,7 +361,7 @@ test('Searing: the basic attack leaves a deep Heat coat, even on an elite (base 
     const a = arena(ctx);
     kit(ctx, xf ? ['ember', xf] : ['ember']);
     const e = dummy(ctx, 'sandshrew', a.x + 5, a.z, ROLE.elite);
-    steps(ctx, 90, east(ctx));
+    steps(ctx, 90, { ...east(ctx), btn: BTN.basic }); // fire the basic attack along the aim
     return [ctx.enemies.coat[e], ctx.enemies.coatDeep[e]];
   };
   assert.deepEqual(coat('searing'), [AG.heat, 2]);
@@ -551,7 +551,7 @@ test('Catalyst: a reaction your hit triggers takes 1 s off Move A and B; your ba
   coatEnemy(ctx, e, AG.wet, 2, 0); coatEnemy(ctx, e, AG.heat, 2, 0);
   assert.equal(ctx.player.moves[1].cd, 4);
   // Ember on bare ground (Heat does nothing to plain tiles, so any coat comes from the hit)
-  const lightCoat = (tech: boolean) => { const c = calm('cyndaquil'); const a2 = arena(c); kit(c, ['ember']); if (tech) addTechnique(c, 'catalyst'); const f = dummy(c, 'rattata', a2.x + 5, a2.z); steps(c, 60, east(c)); assert.ok(c.enemies.hp[f] < c.enemies.maxHp[f], 'hit'); return c.enemies.coat[f]; };
+  const lightCoat = (tech: boolean) => { const c = calm('cyndaquil'); const a2 = arena(c); kit(c, ['ember']); if (tech) addTechnique(c, 'catalyst'); const f = dummy(c, 'rattata', a2.x + 5, a2.z); steps(c, 60, { ...east(c), btn: BTN.basic }); assert.ok(c.enemies.hp[f] < c.enemies.maxHp[f], 'hit'); return c.enemies.coat[f]; };
   assert.equal(lightCoat(false), AG.heat);
   assert.equal(lightCoat(true), 0);
 });
@@ -705,7 +705,7 @@ test('determinism: the same seed and inputs give the same offers, picks and stat
       const offer = ctx.cards.offer;
       if (offer && t % 7 === 0) seen.push(offer.map((c) => c.id).join(','));
       step(ctx, { mx: Math.sin(a * 0.7), mz: Math.cos(a * 0.5), jump: false, dash: t % 170 === 0, aimX: P.x + Math.sin(a) * 8, aimZ: P.z + Math.cos(a) * 8,
-        btn: (t % 90 < 50 ? BTN.a : 0) | (t % 75 < 6 ? BTN.guard : 0), card: offer && t % 7 === 0 ? { action: 'pick', index: t % offer.length } : undefined });
+        btn: BTN.basic | (t % 90 < 50 ? BTN.a : 0) | (t % 75 < 6 ? BTN.guard : 0), card: offer && t % 7 === 0 ? { action: 'pick', index: t % offer.length } : undefined });
       if (t % 600 === 0) hashes.push(stateHash(ctx));
     }
     return { hashes, seen, techs: ctx.player.techs.join(), history: ctx.build.history.join() };
@@ -736,7 +736,7 @@ test('regression: with the build layer off, replay hashes equal the Phase 8a bui
     ['totodile', 7, 'classic', 120, ['e5e2b8d4', '6f44f52c']],
   ];
   for (const [species, seed, mode, seconds, want] of P8A) {
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { build: { enabled: false }, surfaces: { enabled: false } } as never });
+    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);

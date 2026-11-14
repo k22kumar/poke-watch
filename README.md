@@ -28,10 +28,11 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Action | Keys |
 |---|---|
 | Move | WASD / arrows / left stick |
-| Aim | Mouse / right stick (the basic attack autofires along it) |
-| Move A / Move B | Left / right mouse (J / K) · RT / LT, hold to repeat |
-| Tag (tap: swap to the last Pokémon; hold + LMB / RMB: pick the first / second reserve) | Q · Y |
-| Guard (tap: deflect or parry; hold: brace) | E · RB / LB |
+| Aim | Mouse / right stick |
+| Basic attack (primary fire; hold to repeat) | Left mouse (J) · RT |
+| Move A / Move B (hold to repeat) | Right mouse (K) / R · LT / RB |
+| Tag (tap: swap to the last Pokémon; hold + LMB / RMB: pick the first / second reserve) | Q · Y (hold + RT / LT) |
+| Guard (tap: deflect or parry; hold: brace) | E (L) · LB |
 | Dash (brief invulnerability) | Shift / B |
 | Jump (onto rocks, logs, bushes; flyers glide while holding) | Space / A |
 | Level-up cards (compact top tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
@@ -40,7 +41,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Tuning panel | ` (backtick) |
 | Mute | M |
 
-Runs default to a generated Sunpetal Meadow (seeded, so the same seed produces the same map) and a third-person camera. Settings can switch to the handcrafted Meadow or choose the Classic, Overhead or Wide camera presets; reduced or no screen shake is also available (`docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees, water and cliffs block the way; bluffs have stairs, ledges can be hopped. A boss arrives at 5:00 in each region; defeat it and step into the portal.
+Runs default to generated regions (seeded, so the same seed produces the same map) and a third-person camera: the first region is built from **Viridian Forest** and the last from **Mt. Moon** by the Pokémon-location generator, the others by the classic generator (`docs/LOCATIONS.md`). Settings → World → Regions can switch to the handcrafted arenas or the classic generator everywhere; Settings can also choose the Classic, Overhead or Wide camera presets; reduced or no screen shake is also available (`docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`). A boss arrives at 5:00 in each region; defeat it and step into the portal.
 
 ### Changing the roster
 
@@ -56,11 +57,11 @@ npm run build
 
 ### URL parameters (testing)
 
-`index.html?go=1&species=totodile&mode=survival&seed=42` starts a run immediately. Also: `world=gen` (a generated Sunpetal Meadow, see `docs/WORLDGEN.md`), `autoplay=1` (bot), `autopick=1`, `speed=4`, `stage=2&stageTime=290&level=15`, `tp=56,84` (teleport to a tile), `calm=1` (no spawns), `squad=mareep,geodude` (recruits join at once), `cam=classic|steep|wide`, `capture=1` (the sim only advances through `pokewatch.advance(seconds)`, for deterministic screenshots; see `tools/` in the working folder).
+`index.html?go=1&species=totodile&mode=survival&seed=42` starts a run immediately. Also: `loc=chargestone-cave` (every region built from that Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per stage; see `docs/LOCATIONS.md`), `world=gen` (generated regions, see `docs/WORLDGEN.md`), `autoplay=1` (bot), `autopick=1`, `speed=4`, `stage=2&stageTime=290&level=15`, `tp=56,84` (teleport to a tile), `calm=1` (no spawns), `squad=mareep,geodude` (recruits join at once), `cam=classic|steep|wide`, `capture=1` (the sim only advances through `pokewatch.advance(seconds)`, for deterministic screenshots; see `tools/` in the working folder).
 
 ## Systemic combat (blueprint phases 0–3)
 
-- **Aimed combat.** Slot 0 autofires along your aim with light magnetism; slots 1–3 are cast with their buttons. Manual moves hit 1.5× harder on a 1.5× cooldown, so damage per second matches autofire.
+- **Aimed combat.** Every slot fires on its button, hero-shooter style: slot 0, the basic attack, is primary fire (left mouse / RT) and shoots along your aim with light magnetism, even with nothing there; holding repeats it on its cooldown and releasing starts nothing new (a wind-up already under way still lands). Slots 1–3 are Move A, Move B and the Signature; they hit 1.5× harder on a 1.5× cooldown. Settings → Combat → Assist keeps the buttons but aims the basic attack at the nearest enemy; Auto (classic) fires every move on its own.
 - **Reflex charges.** Two charges, 1.8 s each, shared by Dash and Guard. Guard's first 0.15 s deflects shots back along your aim and parries attackers no heavier than you; holding it braces (half damage, no knockback, 40% speed, a charge every 2 s). A tap that catches nothing locks Guard and Dash for 0.35 s.
 - **Weight and Power.** Every creature and body has a Weight class from PokéAPI kilograms (under 10 kg Light, under 50 Medium, under 200 Heavy; bosses one heavier). Water moves, physical Fighting/Rock/Ground moves, special Flying moves and dash moves Push with Power 1–3 by base power; Vine Whip, Wrap, Confusion and Psychic Hold instead (a suspend since phase 8a). Power ≥ Weight moves it; less only slows it; two pushes within 0.2 s and 45° add one Power.
 - **Bodies** (`sim/bodies.ts`, `rules/materials.ts`): loose Medium rocks on every route, Heavy boulders thrown by Sudowoodo and Magcargo, Light rubble. They take type-chart damage, break into rubble, hit enemies when moving, block enemy shots, and can be deflected by a Guard heavy enough.
@@ -100,6 +101,15 @@ The Pokémon-first content process is in [`docs/POKEMON_FIRST.md`](docs/POKEMON_
 - **8 techniques**, at most 3 held (a fourth means discarding one): Undertow, Riposte, Lodestone, Heavy Footing, Catalyst, Slipstream, Quarry, Second Wind. Each states a gain and a cost and applies to whichever Pokémon is on the field.
 - **Raw power from levels.** Move levels follow the squad level; vitamins and move power-up cards are retired behind `rules.build.legacyNumeric` (off). `rules.build.enabled: false` restores the Phase 8a cards exactly (replay checksums unchanged).
 - Test hooks: `?techs=undertow,lodestone&xf=lasso`, `pokewatch.tech(id)`, `pokewatch.xf(id)`, `pokewatch.build()`.
+
+## Water, lava and open edges
+
+`docs/HAZARDS.md` has the rules, the numbers, the tested map seeds and the known gaps.
+
+- **Liquids can be entered.** Water and lava are no longer walls. Water types (and a Pokémon that knows Surf) swim safely. Any other Pokémon loses 20 % of its max HP per second in water and is knocked out after 5 s. Lava drains 33⅓ % per second and knocks out after 3 s, and nothing is immune by default. Reaching dry ground ends the exposure; healing does not stop the clock. An exposed Pokémon wades slowly and cannot jump.
+- **Edges are real.** On the Pokémon-location maps, a chasm beside a bridge or ledge is open air. Walk, dash or get knocked over the lip and you fall. A fall onto a lower floor lands normally; a fall into a liquid starts its exposure; a fall with nothing below is a knockout. Your next Pokémon comes in on the last safe ground you stood on.
+- **Creatures** stop at a lip by themselves but can be knocked over it. In a liquid they head for the shore, on the same clock. Required routes and the Raiders' paths never use liquids or chasms.
+- `rules.hazards.enabled: false` restores the earlier rules (`npx tsx scripts/checksum.ts hazards-off`). `npx tsx scripts/hazplay.ts` replays every case through the sim.
 
 ## Roles, objectives and the beat director (phase 7)
 
@@ -141,8 +151,9 @@ src/
              moves.ts (move rows + classifier rules), capabilities.ts (capability tags),
              build.ts (transforms and techniques), species.ts (the roster), stages.ts,
              originals.ts (Maplebrook's original creatures)
-  world/     renderer-free tile vocabulary (tiles.ts), arena builder (builder.ts) and the four
-             handcrafted arenas (arenas.ts)
+  world/     renderer-free tile vocabulary (tiles.ts), arena builder (builder.ts), the four
+             handcrafted arenas (arenas.ts), the classic generator (gen/), Pokémon locations as data
+             (locations/) and the location generator (locgen/)
   sim/       renderer-free deterministic simulation: world.ts (tile collision, platforms,
              stairs, BFS / fire-weighted flow field), run.ts, pools.ts, player.ts, enemies.ts
              (director, AI, flow-field navigation, bosses), moves.ts (classifier + 23 archetypes),
@@ -226,10 +237,37 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/SPECIES.md`: abilities, curated learnsets, unmodelled move mechanics and cross-game canon.
 - `docs/PIPELINE.md`: how PokéAPI, SpriteCollab and cries become the built-in roster.
 - `docs/MAPLEBROOK.md`: the overworld visual spec, reference comparison and feature list.
+- `docs/LOCATIONS.md`: the Pokémon-location generator: audit of the old maps, pipeline, engine rules, gates, measurements, canon vs interpretation, how to add a location.
 
 - `docs/ANALYSIS.md`: what was verified about PokéBonk, with each finding tagged confirmed / observed / inferred / unknown.
 - `docs/FIDELITY.md`: side-by-side comparison with the original, test results and known limitations.
 - `docs/ASSETS.md`: asset inventory and licensing.
+
+## Pokémon locations (lore-driven world generation)
+
+`src/world/locations/` holds Pokémon locations as data — canonical facts with references, the identity every seed must
+keep, gameplay constraints, what may vary per seed, and clearly labelled interpretations — and `src/world/locgen/`
+builds a region from any of them: a zone graph with loops and tiers (Layer A), terraces, ramps, log or rock bridges over
+chasms and hop shortcuts (Layer B), then landmarks, cover rings, parapets and enemy entry anchors (Layer C), validated
+for strong connectivity (enemies drop down ledges), no player-only perches, two ways onto every raised space, a loop to
+the boss and more. On these maps terrain and walls are cover (shots respect line of sight) and enemies enter from cave
+mouths, gates and side trails. Three locations ship: **Viridian Forest**, **Mt. Moon**, **Chargestone Cave**.
+`?loc=chargestone-cave`, `pokewatch.loc()`, `npx tsx scripts/locstats.ts all 30`, `npx tsx scripts/locsheet.ts mt-moon 8`;
+everything is in `docs/LOCATIONS.md`.
+
+## Habitat recipes (procedural match maps)
+
+`src/world/habitat/` builds a match map from a **habitat recipe** (landform, medium, anchors tagged canon /
+reinterpretation / original, vegetation and landmark rules, surface variants) with a scenery-free **mode graph** embedded
+in it: two sides, two independent approaches each, one shared control point (the Hold objective on a generated contest
+floor; the Hold's raid party leaves team B's staging). Every map is proved playable on its final collision for the
+roster's real body sizes and in every environment state (frozen water, erupting vents, all destructible cover gone),
+with bounded repairs and a known-valid fallback. Two recipes share the generator: **Shrine Gorge** (`river-gorge`,
+after Route 119 and Ilex Forest: a river falling into a plunge pool around a shrine island) and **Cinder Crater**
+(`volcanic-ridge`, after Mt. Chimney, Fiery Path and Firespit Island: a breached crater with a lava lake, switchbacks
+and dry caves under the rim). `?loc=river-gorge&mapseed=3`, `?loc=volcanic-ridge/ash`, Settings → World → Map / Map
+seed, `pokewatch.hab()`, `npx tsx scripts/habstats.ts all 30`, `scripts/habsheet.ts`, `scripts/habplay.ts`;
+everything is in `docs/HABITATS.md`.
 
 ## Procedural world (slice W0–W4)
 
@@ -250,7 +288,7 @@ The game is one static file (`dist/index.html`, about 2 MB, all sprites, cries a
 ## Checks
 
 ```bash
-npm test          # 171 deterministic tests (sim, worlds, build, audio)
+npm test          # 186 deterministic tests (sim, worlds, locations, build, audio)
 npm run typecheck
 npm audit
 ```

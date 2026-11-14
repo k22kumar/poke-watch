@@ -33,8 +33,9 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #182030; fon
 .touch-controls { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 6; }
 .touch-btn { pointer-events: auto; position: absolute; border: 0; border-radius: 14px; min-width: 62px; min-height: 62px; padding: 0 10px; background: rgba(31,42,58,.72); color: #fff; font: inherit; font-weight: 700; letter-spacing: .04em; box-shadow: 0 0 0 2px rgba(255,255,255,.5), 0 10px 20px rgba(8,12,20,.35); }
 .touch-btn:active { transform: scale(.98); }
-.touch-btn.moveA { right: 18px; bottom: 98px; }
-.touch-btn.moveB { right: 92px; bottom: 98px; }
+.touch-btn.basic { right: 18px; bottom: 98px; }
+.touch-btn.moveA { right: 92px; bottom: 98px; }
+.touch-btn.moveB { right: 166px; bottom: 98px; }
 .touch-btn.sig { right: 18px; bottom: 180px; }
 .touch-btn.guard { right: 92px; bottom: 180px; }
 .touch-btn.jump { right: 20px; bottom: 22px; }

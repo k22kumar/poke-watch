@@ -43,6 +43,8 @@ export function objectiveDue(ctx: SimContext): ObjectiveKind | null {
   if (n >= 2 || ctx.stageTime < (n === 0 ? O.firstAfter : O.secondAfter)) return null;
   const first = ctx.loop === 0 && ctx.stage < SCHEDULE.length;
   let kind: ObjectiveKind = first ? SCHEDULE[ctx.stage][n] : ctx.rng.spawn.pick(['hold', 'hunt', 'transport'] as ObjectiveKind[]);
+  // habitat maps are built around one shared control point: every objective is a Hold on it (docs/HABITATS.md)
+  if (ctx.world.hab) return 'hold';
   if (kind === 'hunt' && (ctx.player.squad.length >= ctx.rules.squad.max || !recruitables(ctx).length)) kind = n === 0 ? 'transport' : 'hold';
   return kind;
 }
@@ -69,8 +71,10 @@ export function startObjective(ctx: SimContext, kind: ObjectiveKind): boolean {
   const O = ctx.rules.objectives;
   let obj: Objective;
   if (kind === 'hold') {
-    const [x, z] = site(ctx, 12, 20);
-    obj = blank('hold', x, z, O.offerTime);
+    const H = ctx.world.hab;
+    // habitat maps: the generated contest floor (tile coords → world)
+    const [x, z] = H ? [H.contest.x - ctx.world.half, H.contest.y - ctx.world.half] : site(ctx, 12, 20);
+    obj = blank('hold', x, z, H ? O.offerTime + 30 : O.offerTime);
   } else if (kind === 'hunt') {
     const pool = recruitables(ctx);
     if (!pool.length) return false;
@@ -114,7 +118,10 @@ function activate(ctx: SimContext, O: Objective) {
   // a raid party comes for it (Hunts bring their own escort)
   if (O.kind !== 'hunt') {
     const opts = compositionsFor(ctx, 'objective');
-    if (opts.length) spawnComposition(ctx, ctx.rng.spawn.weighted(opts, (c) => c.weight));
+    // habitat maps: the raid party leaves team B's staging and takes its approaches to the point
+    const H = ctx.world.hab;
+    const near: [number, number] | undefined = H ? [H.stage.B[0] - ctx.world.half, H.stage.B[1] - ctx.world.half] : undefined;
+    if (opts.length) spawnComposition(ctx, ctx.rng.spawn.weighted(opts, (c) => c.weight), near);
   }
 }
 

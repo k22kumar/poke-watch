@@ -20,6 +20,7 @@ import { agentIndex } from '../rules/reactions';
 import type { SimContext } from './types';
 import { shotWeight } from '../rules/capabilities';
 import { tickHeldEnemy } from './capabilities';
+import { avoidsStep } from './hazards';
 
 export function stageIndex(ctx: SimContext) {
   return Math.min(ctx.stage, ctx.rules.director.hpN.length - 1);
@@ -95,6 +96,27 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
 export function ringPoint(ctx: SimContext, rMin: number, rMax: number): [number, number] {
   const P = ctx.player;
   const b = ctx.world.bound;
+  // location maps: most enemies enter from the map's approach anchors (cave mouths, forest gates, side passages)
+  // that lie in a band around the player, so pressure comes from places, not from thin air
+  const W = ctx.world;
+  if (W.anchors.length && ctx.rng.spawn.chance(0.6)) {
+    let pick = -1, seen = 0;
+    for (let k = 0; k < W.anchors.length; k++) {
+      const [ax, az] = W.anchors[k];
+      const d = dhypot(ax - P.x, az - P.z);
+      if (d < rMin - 3 || d > rMax + 16 || !W.walkable(ax, az)) continue;
+      seen++;
+      if (ctx.rng.spawn.next() * seen < 1) pick = k;
+    }
+    if (pick >= 0) {
+      const [ax, az] = W.anchors[pick];
+      for (let t = 0; t < 4; t++) {
+        const x = ax + ctx.rng.spawn.range(-2, 2), z = az + ctx.rng.spawn.range(-2, 2);
+        if (W.walkable(x, z)) return [x, z];
+      }
+      return [ax, az];
+    }
+  }
   for (let k = 0; k < 10; k++) {
     const a = ctx.rng.spawn.range(0, Math.PI * 2);
     const r = ctx.rng.spawn.range(rMin, rMax);
@@ -105,13 +127,22 @@ export function ringPoint(ctx: SimContext, rMin: number, rMax: number): [number,
   return [clamp(P.x + dcos(a) * rMin, -b, b), clamp(P.z + dsin(a) * rMin, -b, b)];
 }
 
-export function shootHostile(ctx: SimContext, x: number, z: number, dx: number, dz: number, speed: number, dmg: number, element: Element, radius = 0.45, srcSp = -1) {
+export function shootHostile(ctx: SimContext, x: number, z: number, dx: number, dz: number, speed: number, dmg: number, element: Element, radius = 0.45, srcSp = -1, fromY?: number) {
   const Pr = ctx.projectiles;
   const i = Pr.spawn();
   if (i < 0) return;
   const L = dhypot(dx, dz) || 1;
   Pr.kind[i] = PK.hostile;
   Pr.x[i] = x; Pr.z[i] = z; Pr.y[i] = ctx.world.height(x, z) + 0.9;
+  if (ctx.world.los) {
+    // location maps: the shot keeps its own altitude and climbs or dips toward the player's chest, so a cliff lip,
+    // a tree or a rock between them stops it (effects.ts)
+    const P = ctx.player;
+    const y0 = fromY !== undefined ? Math.max(fromY + 0.5, Pr.y[i]) : Pr.y[i];
+    const t = Math.max(0.15, dhypot(P.x - x, P.z - z) / speed);
+    Pr.y[i] = y0;
+    Pr.vy[i] = clamp((P.y + 0.6 - y0) / t, -speed * 0.7, speed * 0.7);
+  }
   Pr.vx[i] = (dx / L) * speed; Pr.vz[i] = (dz / L) * speed;
   Pr.life[i] = Pr.maxLife[i] = 4.5;
   Pr.dmg[i] = dmg; Pr.radius[i] = radius; Pr.pierce[i] = 0;
@@ -144,7 +175,7 @@ export const enemySystem = {
     const RR = ctx.rules.roles, O = ctx.objective;
     const bulwarks = ctx.director.bulwarks;
     bulwarks.length = 0;
-    W.updateFlow(P.x, P.z);
+    W.updateFlow(P.x, P.z, P.y);
     const burning = W.burnCost > 1 && W.cells.burning > 0;
     for (let i = 0; i < E.hi; i++) {
       if (!E.alive[i]) continue;
@@ -178,7 +209,12 @@ export const enemySystem = {
       if (roles & ROLE.shielder && E.guardDown[i] <= 0 && bulwarks.length < 16) bulwarks.push(i);
 
       // far behind -> relocate in front (keeps pressure; bosses excluded)
-      const pinned = O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active');
+      // habitat maps: the Raid party of an active Hold walks team B's approaches from its staging (docs/HABITATS.md). B's
+      // staging is 33-47 m from the point, so with the trainer on the far side of it the party starts past despawnDistance
+      // and the relocation below would put it on a ring ahead of the trainer, skipping the approaches (and sometimes in
+      // ground nothing connects to the point). It stays where it is until it is killed or the Hold ends.
+      const raiding = !!W.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
+      const pinned = raiding || (O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active'));
       if (dist > R.despawnDistance && !(roles & ROLE.boss) && !pinned) {
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
@@ -194,14 +230,16 @@ export const enemySystem = {
       const frozen = E.sleep[i] > 0 || E.stun[i] > 0 || E.root[i] > 0 || E.spawnT[i] < 0.25;
       let ux = dx / dist, uz = dz / dist;
       const ground = E.hover[i] === 0;
-      if (ground && dist > 1.5) {
+      // layered maps: the player on a deck above (or on the ground below) is not reached by walking straight at them
+      const layerGap = W.over !== null && ground && Math.abs(P.y - E.y[i]) > 2.4 && (W.over[W.tile(P.x, P.z)] > 0 || W.over[W.tile(E.x[i], E.z[i])] > 0);
+      if (ground && (dist > 1.5 || layerGap)) {
         // straight at the player unless a wall, water or cliff is in the way; then follow the flow field
         const feet = E.y[i];
-        if (W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, feet, 0.6) || W.blocks(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4, feet, 0.6)) {
-          if (W.flowDir(E.x[i], E.z[i], NAV)) { ux = NAV[0]; uz = NAV[1]; }
+        if (layerGap || W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, feet, 0.6) || W.blocks(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4, feet, 0.6)) {
+          if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
         } else if (burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4))) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
-          if (W.flowDir(E.x[i], E.z[i], NAV)) { ux = NAV[0]; uz = NAV[1]; }
+          if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
         }
       }
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }
@@ -224,8 +262,20 @@ export const enemySystem = {
       } else if (goal) {
         const gx = goal[0] - E.x[i], gz = goal[1] - E.z[i], gl = dhypot(gx, gz);
         if (gl < 1.4) speed *= 0.15; else { ux = gx / gl; uz = gz / gl; }
+        // habitat maps: a Raider bound for the point walks the contest's flow field (bridges, causeways, caves); the
+        // field already steers around walls, so the look-ahead slide below (which turns at every hairpin) is skipped
+        let flowed = false;
+        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && W.goalDir(E.x[i], E.z[i], NAV, E.y[i])) {
+          ux = NAV[0]; uz = NAV[1]; flowed = true;
+          // a diagonal step clipping an inner corner (a hairpin, a cave mouth): take one axis, the larger if it is free
+          if (ux && uz && W.blocks(E.x[i] + ux * 0.8, E.z[i] + uz * 0.8, E.y[i], 0.6)) {
+            const sx = Math.sign(ux), sz = Math.sign(uz), xFree = !W.blocks(E.x[i] + sx * 0.8, E.z[i], E.y[i], 0.6), zFree = !W.blocks(E.x[i], E.z[i] + sz * 0.8, E.y[i], 0.6);
+            const xFirst = Math.abs(ux) >= Math.abs(uz);
+            if (xFirst ? xFree || !zFree : xFree && !zFree) { ux = sx; uz = 0; } else { ux = 0; uz = sz; }
+          }
+        }
         // around walls: slide along the blocked axis
-        if (ground && W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, E.y[i], 0.6)) { const t = ux; ux = -uz; uz = t; }
+        if (!flowed && ground && W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, E.y[i], 0.6)) { const t = ux; ux = -uz; uz = t; }
       } else if (roles & ROLE.hexer) {
         // a Hexer keeps its distance and lays a deep agent where you are heading (0.8 s warning)
         const el = agentElement(sp) ?? 'tide';
@@ -263,9 +313,13 @@ export const enemySystem = {
         if (dist < 7) { ux = -ux; uz = -uz; speed *= 0.6; }
       } else if (roles & ROLE.ranged) {
         if (dist < R.rangedRange * 0.65) { const s = (i & 1) ? 1 : -1; const tx = -uz * s, tz = ux * s; ux = tx * 0.8 - ux * 0.4; uz = tz * 0.8 - uz * 0.4; }
-        if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0) {
+        if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0 && W.los && !W.sight(E.x[i], E.y[i] + 0.9, E.z[i], P.x, P.y + 0.6, P.z)) {
+          // location maps: no line of fire (a cliff lip, trees, a rock) — hold fire and work around along the flow field
+          E.attackCd[i] = 0.35;
+          if (W.flowDir(E.x[i], E.z[i], NAV, E.y[i] - E.hover[i])) { ux = NAV[0]; uz = NAV[1]; }
+        } else if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0) {
           E.attackCd[i] = R.rangedCooldown * ctx.rng.ai.range(0.8, 1.2);
-          shootHostile(ctx, E.x[i], E.z[i], dx, dz, R.rangedShotSpeed, E.dmg[i] * 0.8, sp.shot ?? sp.elements[0], 0.45, E.species[i]);
+          shootHostile(ctx, E.x[i], E.z[i], dx, dz, R.rangedShotSpeed, E.dmg[i] * 0.8, sp.shot ?? sp.elements[0], 0.45, E.species[i], E.y[i]);
           ctx.events.push({ t: 'enemyShot', x: E.x[i], z: E.z[i], element: sp.shot ?? sp.elements[0] });
         }
       } else if (sp.behaviour === 'charger') {
@@ -278,6 +332,14 @@ export const enemySystem = {
         ux = tx; uz = tz;
       }
 
+      // in a liquid it is not safe in (sim/hazards.ts): head for the shore picked on entry, wading slowly; over open air
+      // (falling) it has nothing to push against
+      if (E.hzKind[i] && ground && !(roles & ROLE.boss)) {
+        const gx = E.hzX[i] - E.x[i], gz = E.hzZ[i] - E.z[i], gl = dhypot(gx, gz) || 1;
+        ux = gx / gl; uz = gz / gl;
+        speed *= E.hzKind[i] === 2 ? ctx.rules.hazards.lava.speed : ctx.rules.hazards.water.speed;
+      }
+      if (E.fallV[i] > 0) speed = 0;
       if (frozen || (roles & ROLE.boss && E.state[i] === 99)) speed = 0;
       if (!(roles & ROLE.boss)) {
         const [fs, grip] = E.hover[i] > 0 ? [1, 1] : footing(ctx, E.x[i], E.z[i], sp.elements, true);
@@ -309,15 +371,32 @@ export const enemySystem = {
       E.kx[i] *= kdecay; E.kz[i] *= kdecay;
       if (ground && !(roles & ROLE.boss && E.state[i] === 5)) {
         const feet = E.py[i];
-        if (W.blocks(nx, nz, feet, 0.6)) {
-          if (!W.blocks(nx, oz, feet, 0.6)) nz = oz;
-          else if (!W.blocks(ox, nz, feet, 0.6)) nx = ox;
+        // solid geometry stops anything; a lethal liquid or open air only stops a creature walking there on its own
+        // (knockback past rules.hazards.forcedKnock carries it over the lip)
+        const forced = W.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
+        const up = W.hazards && W.liquidAt(ox, oz, feet, ctx.rules.hazards.contact) ? Math.max(0.6, ctx.rules.hazards.climbOut) : 0.6; // climbing out of a liquid
+        const stop = W.hazards
+          ? (x: number, z: number) => W.collides(x, z, feet, up) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
+          : (x: number, z: number) => W.blocks(x, z, feet, 0.6);
+        if (stop(nx, nz)) {
+          if (!stop(nx, oz)) nz = oz;
+          else if (!stop(ox, nz)) nx = ox;
           else { nx = ox; nz = oz; }
         }
       }
       E.x[i] = nx; E.z[i] = nz;
-      const g = W.height(E.x[i], E.z[i]);
-      if (!(roles & ROLE.boss && E.state[i] === 5)) E.y[i] = g + E.hover[i] + (E.hover[i] > 0 ? dsin(ctx.time * 3 + i) * 0.15 : 0);
+      if (W.hazards && ground && !(roles & ROLE.boss && E.state[i] === 5)) {
+        // support ends over open air: it falls (sim/hazards.ts knocks it out below the map's floor)
+        const sg = W.support(E.x[i], E.z[i], E.y[i]);
+        if (sg === -Infinity || E.y[i] - sg > 0.65 + E.fallV[i] * dt) {
+          E.fallV[i] += ctx.rules.player.gravity * dt;
+          E.y[i] = Math.max(sg, E.y[i] - E.fallV[i] * dt);
+          if (E.y[i] <= sg) E.fallV[i] = 0;
+        } else { E.fallV[i] = 0; E.y[i] = sg; }
+      } else {
+        const g = W.over ? W.height(E.x[i], E.z[i], E.y[i] - E.hover[i]) : W.height(E.x[i], E.z[i]);
+        if (!(roles & ROLE.boss && E.state[i] === 5)) E.y[i] = g + E.hover[i] + (E.hover[i] > 0 ? dsin(ctx.time * 3 + i) * 0.15 : 0);
+      }
 
       const vlen = dhypot(E.vx[i], E.vz[i]);
       if (vlen > 0.3) E.facing[i] = datan2(E.vx[i], E.vz[i]);
@@ -330,7 +409,7 @@ export const enemySystem = {
         const push = (cr - dist) / cr;
         const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
         const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
-        if (!W.blocks(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen) {
           E.contactCd[i] = R.contactCooldown;
           const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);

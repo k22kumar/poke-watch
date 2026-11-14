@@ -15,7 +15,9 @@ export type ArenaPropKind =
   | 'bush' | 'bushR' | 'bushB' | 'rock' | 'boulder' | 'stump' | 'log' // low obstacles (standable)
   | 'sign' | 'lantern' | 'pillar' | 'pillarBroken' | 'statue' | 'shrine' | 'berry' | 'crystal' | 'vent' | 'mushroom' | 'deadtree' | 'icepine'
   | 'cabin' | 'hedge' | 'fence' | 'well' | 'lamp' | 'bench' // hamlet kit (procedural regions)
-  | 'flowerR' | 'flowerW' | 'flowerY' | 'flowerB' | 'tall' | 'reeds' | 'lily'; // walkable decoration
+  | 'flowerR' | 'flowerW' | 'flowerY' | 'flowerB' | 'tall' | 'reeds' | 'lily' // walkable decoration
+  | 'thicket' | 'stalagmite' | 'moonstone' | 'magnetite' | 'fossil' | 'crate' // location kit (src/world/locgen)
+  | 'gatehouse' | 'tent' | 'ladder';
 
 export interface PropRule {
   /** footprint in tiles */
@@ -38,6 +40,9 @@ export const PROP_RULES: Record<ArenaPropKind, PropRule> = {
   lamp: { w: 1, h: 1, wall: true }, bench: { w: 2, h: 1, platform: 0.5 },
   flowerR: { w: 1, h: 1 }, flowerW: { w: 1, h: 1 }, flowerY: { w: 1, h: 1 }, flowerB: { w: 1, h: 1 },
   tall: { w: 1, h: 1 }, reeds: { w: 1, h: 1 }, lily: { w: 1, h: 1 },
+  thicket: { w: 1, h: 1, wall: true }, stalagmite: { w: 1, h: 1, wall: true }, moonstone: { w: 2, h: 2, wall: true },
+  magnetite: { w: 2, h: 2, wall: true }, fossil: { w: 1, h: 1, platform: 0.45 }, crate: { w: 1, h: 1, platform: 0.8 },
+  gatehouse: { w: 4, h: 3, wall: true }, tent: { w: 2, h: 2, wall: true }, ladder: { w: 1, h: 1 },
 };
 
 export interface ArenaProp { kind: ArenaPropKind; x: number; y: number; w: number; h: number; variant: number; text?: string }
@@ -57,11 +62,22 @@ export interface ArenaMap {
   bossSpot: [number, number];
   chestSpots: [number, number][];
   landmarks: { x: number; y: number; name: string }[];
+  /** location maps only: a second, walkable surface above the ground (m; 0 = none), e.g. a log bridge or a rock
+   *  shelf with open ground beneath it. The ground layer keeps elev/terrain/wall; the deck is never a wall. */
+  over?: Float32Array;
+  /** habitat maps only (src/world/habitat): the fluid surface height per water tile (m), so a river can run on a
+   *  plateau and fall into a pool, or a lava lake sit in a crater. Absent = every water surface at WATER_Y. */
+  wlevel?: Float32Array;
   /** procedural regions only (src/world/gen): how the map was made, its habitat and encounter spaces */
   gen?: import('./gen/context').GenMeta;
 }
 
 export const WATER_Y = -0.25;
+/** a frozen water tile's surface sits this far above the water it covers (sim: World.height; the validator's frozen state) */
+export const ICE_LIFT = 0.25;
+
+/** Standing height of a bridge (wood) tile: river bridges sit at 0.05 m; elevated decks (location maps) at their elev. */
+export const deckTop = (elev: number) => (elev > 0.05 ? elev : 0.05);
 
 /**
  * Heights at the north and south edges of a stairs tile. A flight may span several rows;

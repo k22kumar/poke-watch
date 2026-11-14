@@ -185,16 +185,20 @@ export const defaultRules = {
     finalSwarmAt: 480, // [B] s (if the boss is still alive the swarm begins)
     portalRadius: 2.2,
   },
-  // Aimed combat (blueprint section 4). The basic attack (slot 0) autofires; slots 1-3 are Move A,
-  // Move B and the Signature, cast while their button is held. Dash and Guard share Reflex charges.
+  // Aimed combat (blueprint section 4). Every slot casts while its button is held (hold repeats on cooldown):
+  // slot 0, the basic attack, is primary fire; slots 1-3 are Move A, Move B and the Signature. Dash and Guard share
+  // Reflex charges.
   combat: {
-    /** 'aimed' = basic attack follows your aim; 'assist' = basic attack targets the nearest enemy;
-     *  'auto' = every move fires on its own at the nearest enemy (the original survivor controls) */
+    /** 'aimed' = the basic attack fires on its button along your aim; 'assist' = it fires on its button at the
+     *  nearest enemy; 'auto' = every move fires on its own at the nearest enemy (the original survivor controls) */
     mode: 'aimed' as 'aimed' | 'assist' | 'auto',
+    /** true = the basic attack, even while its button is held, casts only at an enemy in reach (the rule before
+     *  primary fire; the replay-hash regression tests use it to match older builds). false = it fires along the aim */
+    basicNeedsTarget: false,
     magnetDeg: 12, // shots bend toward an enemy this close to the aim line
     meleeMagnetDeg: 28, // strikes, cones and spins
-    manualCdMult: 1.5, // manual moves: longer cooldown...
-    manualDmgMult: 1.5, // ...and harder hits, so damage per second matches the autofire tuning
+    manualCdMult: 1.5, // Move A / B / Signature on their buttons: longer cooldown... (never the basic attack)
+    manualDmgMult: 1.5, // ...and harder hits, so damage per second matches the automatic tuning
     reflexCharges: 2,
     reflexRecharge: 1.8, // s per charge
     guardWindow: 0.15, // s: deflect / parry window at the start of a Guard
@@ -278,9 +282,54 @@ export const defaultRules = {
     size: 128, // tiles (m) per side of a generated region
     version: 2, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
     regionSeed: -1, // ≥ 0: use this region seed for every stage instead of the run's (experiments: hold the map, vary the run)
+    /** Pokémon locations (src/world/locations, docs/LOCATIONS.md): a stage biome listed here is built by the location
+     *  generator (src/world/locgen) from that location's data instead of the classic generator. '' = classic. Chosen
+     *  where the stage's spawn table fits the place's canonical ecology; any location can be forced with ?loc=. */
+    locations: { meadow: 'viridian-forest', dusk: 'mt-moon', badlands: '', frost: '' } as Record<string, string>,
   },
   // [I] W4 materials (rules/surfaces.ts): trees, bushes and rocks have a material, burn, break and leave stumps or
   // rubble; wall and platform become a mutable overlay; a watchdog keeps the map reachable. false = today's rules.
+  // [I] Habitat maps (src/world/habitat, docs/HABITATS.md): vent fields erupt on a fixed cycle of stage time, so the
+  // hazard state is a pure function of time (the validator checks the dormant and venting states; the warning is the
+  // escape window for anyone already in the field: 1.5 s at a walk covers more than the 4-tile exit bound).
+  // `pct` is the share of an actor's maximum HP one damage tick takes (5 ticks per eruption = 10 %), the same for the
+  // trainer and every creature; `bossMult` scales it for bosses and alphas. `ice` is the lifecycle of a frozen water
+  // tile (docs/HABITAT_STATES.md): it cracks `crack` s before it thaws (a cue), and an actor still on it when it opens
+  // is put on the nearest dry shore and loses `dunk` of its maximum HP (never its last HP).
+  habitat: {
+    vent: { period: 10, warn: 1.5, active: 2.5, pct: 0.02, bossMult: 0.3, tick: 0.5 },
+    ice: { crack: 2, dunk: 0.1 },
+  },
+  // [I] Liquid exposure and exposed falls (sim/hazards.ts, docs/HAZARDS.md). Every Pokémon can walk into open water
+  // or lava and back out; only actual geometry (walls, faces higher than a step, decks) stops movement. A Pokémon in
+  // contact with a liquid it is not safe in loses maxHp / `lethal` per second of simulation time (whole HP points,
+  // the fraction carried between ticks), and is knocked out when its exposure reaches `lethal` s, whatever healing it
+  // got meanwhile. Reaching supported dry ground (or becoming compatible) ends the exposure; crossing between cells of
+  // the same liquid, or a hop above it, does not. Overlapping liquids: the shorter `lethal` wins.
+  //   water  safe for the Water type (any slot of a dual type) or a Pokémon whose move set holds a `safeMoves` move
+  //   lava   safe only for species listed in `safeSpecies` (an explicit flag: nothing is configured, so every
+  //          Pokémon is vulnerable; a Fire-type rule would be a design decision, not a default)
+  // `speed` multiplies an exposed Pokémon's walking speed (a safe swimmer keeps `safeSpeed`); `jump`: whether an
+  // exposed Pokémon can jump out of the liquid. A ground actor whose centre is over a void tile (a location map's
+  // chasm) has no support and falls; below the map's floor minus `killDepth` m it is knocked out (once). After a
+  // hazard knockout the next Pokémon comes in on the last supported dry ground the trainer stood on (`recover`).
+  // `enabled: false` restores the earlier rules (liquids and chasms block as walls): replay checksums unchanged.
+  hazards: {
+    enabled: true,
+    water: { lethal: 5, speed: 0.75, safeSpeed: 0.95, jump: false, safeTypes: ['tide'] as string[], safeMoves: ['surf'] as string[] },
+    lava: { lethal: 3, speed: 0.7, safeSpeed: 0.9, jump: false, safeSpecies: [] as string[] },
+    /** m: feet within this of a liquid's surface are in contact with it (the volume's top) */
+    contact: 0.3,
+    /** m: the highest bank a body in a liquid can climb out onto (a dry step is rules.player.stepHeight); some banks
+     *  stand 0.75 m above the water on classic regions */
+    climbOut: 0.8,
+    killDepth: 3,
+    /** knockback (m/s) above which an enemy at a lip is carried over it rather than holding its footing */
+    forcedKnock: 2,
+    /** s between damage-number cues while exposed */
+    cueEvery: 0.25,
+    recover: 'lastSafe' as 'lastSafe',
+  },
   surfaces: {
     enabled: true,
     /** materials on the handcrafted arenas too (off: they apply to generated regions only, so the default game is
