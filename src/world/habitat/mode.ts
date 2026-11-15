@@ -11,6 +11,7 @@
 // Movement profiles come from the sim's rules and the roster's real dimensions (profilesFor).
 import { defaultRules, type Rules } from '../../rules/defaults';
 import { SPECIES, type SpeciesDef } from '../../rules/species';
+import { STAGE_TABLES } from '../../content/pokedex';
 import type { BodyProfile, EdgeReq, ModeGraph } from './types';
 
 const approach = (group: string, exposure: EdgeReq['exposure']): EdgeReq => ({ width: 5, clearance: 2.9, grade: 0.5, step: 0.6, rise: 8, exposure, group });
@@ -64,14 +65,30 @@ export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfi
   const wild = SPECIES.filter((s) => !s.boss && !s.flying);
   const bosses = SPECIES.filter((s) => s.boss && !s.flying);
   const eliteSize = rules.enemy.roles.elite.size;
-  const wMin = Math.min(...wild.map(rad)), wMax = Math.max(...wild.map(rad));
+  // The biggest ground body the director actually spawns. Only a species listed in a region's
+  // `elites` is ever spawned at elite or alpha scale (sim/director.ts), so the elite multiplier
+  // belongs to those species alone; every other ground wild Pokémon appears at ×1. Multiplying the
+  // tallest wild Pokémon instead would model a body that is never spawned: Onix is an ordinary
+  // Badlands encounter (3.02 m, r 1.21), and at ×2 it would ask every approach to carry a 2.42 m
+  // radius, which no recipe validates.
+  //
+  // VALIDATED_ELITE_R is the headroom every shipped map and `docs/habaudit/baseline.json` was
+  // accepted against (Bayleef's 0.71 m body at ×2, from when this took max over the whole set,
+  // partner forms included). The gate keeps it as a floor so adding or removing a roster entry
+  // cannot quietly loosen the approaches; raising it is a deliberate act that needs a HAB_VERSION
+  // bump and a new baseline.
+  const VALIDATED_ELITE_R = 1.42;
+  const eliteIds = new Set(STAGE_TABLES.flatMap((t) => t.elites));
+  const elites = wild.filter((s) => eliteIds.has(s.id));
+  const wMin = Math.min(...wild.map(rad));
+  const wBig = Math.max(VALIDATED_ELITE_R, ...wild.map(rad), ...elites.map((s) => rad(s) * eliteSize));
   const bMax = Math.max(...bosses.map((s) => rad(s) * (rules.enemy.roles.boss.size)));
   // shots leave the player at +0.7 m (sim/effects.ts) and enemies aim at the chest (+0.9 m); eyes sit near the top
   return [
     { id: 'trainer', radius: R.radius, step: R.stepHeight, climb: R.stepHeight, drop: dropNav, eye: [0.7, +(hMax * 0.8).toFixed(2)], speed: R.baseSpeed, essential: true, note: `every playable Pokémon (${line.length} species, ${hMin}–${hMax} m tall), jump and glide disabled` },
     { id: 'trainer-jump', radius: R.radius, step: R.stepHeight, climb: +(jumpApex + R.stepHeight).toFixed(2), drop: Infinity, eye: [0.7, +(hMax * 0.8).toFixed(2)], speed: R.baseSpeed, essential: false, note: `ordinary jump (apex ${jumpApex.toFixed(2)} m) and any drop: only used to prove there is no player-only perch` },
     { id: 'wild-small', radius: +wMin.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [0.5, 0.9], speed: 3.5, essential: true, note: 'smallest ground wild Pokémon' },
-    { id: 'wild-elite', radius: +(wMax * eliteSize).toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [0.9, 1.4], speed: 3.5, essential: true, note: `largest ground wild Pokémon at elite scale ×${eliteSize}` },
+    { id: 'wild-elite', radius: +wBig.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [0.9, 1.4], speed: 3.5, essential: true, note: `largest ground body the director spawns (elite-capable at ×${eliteSize}, any other ground wild Pokémon at ×1), never under the validated ${VALIDATED_ELITE_R} m headroom` },
     { id: 'boss', radius: +bMax.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [1.2, 2.5], speed: 3, essential: false, note: 'largest ground boss (bosses arrive after the objectives close; reported, not gated)' },
   ];
 }

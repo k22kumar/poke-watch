@@ -7,7 +7,7 @@ import path from 'node:path';
 const overworld = process.argv.includes('--overworld');
 const tool = process.argv.includes('--tool') ? process.argv[process.argv.indexOf('--tool') + 1] : null;
 const entry = tool ? `src/tools/${tool}.ts` : overworld ? 'src/overworld/main.ts' : 'src/main.ts';
-const out = await esbuild.build({ entryPoints: [entry], bundle: true, format: 'iife', target: 'es2022', minify: !tool && !process.argv.includes('--dev'), write: false, sourcemap: false, legalComments: 'none' });
+const out = await esbuild.build({ entryPoints: [entry], bundle: true, loader: { '.mp3': 'dataurl' }, format: 'iife', target: 'es2022', minify: !tool && !process.argv.includes('--dev'), write: false, sourcemap: false, legalComments: 'none' });
 const js = out.outputFiles[0].text;
 fs.mkdirSync('dist', { recursive: true });
 if (tool) {

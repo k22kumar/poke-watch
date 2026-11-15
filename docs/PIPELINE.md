@@ -7,6 +7,10 @@ How species data, sprites, portraits and cries get into Poke-Watch. Every Pokém
 - **PokeAPI/cries**: `cries/pokemon/latest/<id>.ogg` (with fallback to `legacy` when needed).
 - **PokeAPI/sprites**: type badges and item icons listed in `content/icons.json`.
 
+The reference catalogue (below) adds one more, read only for canonical facts:
+
+- **PokéAPI's published CSV tables** (`PokeAPI/pokeapi`, `data/v2/csv` at the revision pinned in `content/catalogue.json`): record identities, type slots, listed measurements, form rows and species family edges.
+
 The content is generated at build time and shipped inside the game; nothing is downloaded while playing.
 
 ## Architecture
@@ -22,6 +26,12 @@ The content is generated at build time and shipped inside the game; nothing is d
         ├─ src/content/art.json     atlases, frames, anchors, portraits, cries, credits  (loaded at boot)
         └─ content/report.json      every source file with URL + SHA-256; content/preview/ contact sheets
 
+ content/catalogue.json         which PokéAPI identities the reference catalogue covers (269 records)
+        │
+ scripts/catalogue-pack.mjs     the reference lane: the pinned CSV tables -> validated records,
+        │                       canonical families and form/region conditions (no art, cries, moves)
+        └─ src/content/catalogue.ts  read only through src/rules/catalogue.ts; not game species
+
  runtime: src/assets/builtin.ts  art.json -> buildArt -> resolveClips (fallback table) -> registry,
                                  renderer textures, CryBank samples (synth fallback)
           src/rules/*            SPECIES, MOVES, element chart and stages read pokedex.ts
@@ -30,6 +40,7 @@ The content is generated at build time and shipped inside the game; nothing is d
 | Responsibility | Module |
 |---|---|
 | Roster and roles | `content/roster.json` |
+| Reference catalogue | `content/catalogue.json` → `catalogue-pack.mjs` (`defaultForm`, families, conditions) → `build-content.mjs --catalogue-only` → `src/content/catalogue.ts` → `rules/catalogue.ts` |
 | Species data provider | importer (`importOne`, `toMoveRow`, `evolutionInfo`) → `build-content.mjs` → `src/content/pokedex.ts` → `rules/species.ts` |
 | Visual asset provider | importer `importSprites` (PMD) → `art.json` → `src/assets/builtin.ts` / `pack.ts buildArt` |
 | Audio provider | `src/assets/cries.ts` (`CryBank`: samples with loudness normalisation, synthesised calls as fallback) |
@@ -49,6 +60,21 @@ npm run build
 ```
 
 `npm run content:net` fetches the same files over HTTPS (pokeapi.co, raw.githubusercontent.com) instead of from checkouts; responses are cached in `.import-cache/`. Open `content/preview/index.html` to check every animation in 8 directions with anchors marked.
+
+### The reference catalogue
+
+`content/catalogue.json` pins 269 PokéAPI `pokemon` identities by numeric id (210 species defaults plus 59 varieties) and adds the two fields the source cannot supply: the research report's `formStatus` and `inclusion`. `scripts/catalogue-pack.mjs` derives everything else from the pinned CSV tables and refuses to write if any identity, type slot, measurement, form row or family edge fails validation.
+
+```bash
+node scripts/build-content.mjs --catalogue-only                      # -> src/content/catalogue.ts
+node scripts/build-content.mjs --catalogue-only --catalogue-out DIR   # isolated copy
+```
+
+- Identity is pinned by number, then confirmed by name. Nine species defaults have a slug that is not the species slug (`aegislash` → `aegislash-shield`, `tatsugiri` → `tatsugiri-curly`, …) and have no record at the species slug at all, so a name lookup cannot resolve them.
+- Type order is the source's slot order and is display-visible; it is never sorted.
+- Measurements stay in their raw units (decimetres, hectograms) with a qualifier each. A Gigantamax height is a published *minimum* and its 10,000 hg mass means "unknown"; Eternamax's 0 hg means "unknown". Read them through `heightMeters` and `weightKilograms`, which return the qualifier and `null` respectively, so a placeholder can never be read as a real mass.
+- Families are complete chains walked from the root, keeping every branch (Tyrogue's three children, Applin's three plus Dipplin → Hydrapple, Nincada's Shedinja by-product). They are **canonical relationships only**: the game's paced progression stays in `evolvesTo` / `evolveLevel`, and a canonical edge never becomes an in-run evolution.
+- Catalogue records are not game species. They get no sprite, cry, learnset, move row, spawn entry or role, nothing in `src/sim/`, `src/world/`, `src/render/` or `src/ui/` imports them, and they are tree-shaken out of the production bundle. `profilesFor()` (`src/world/habitat/mode.ts`) derives habitat navigation radii from min/max over the whole of `SPECIES`, so a record that leaked into that set would change which habitat layouts are accepted and every replay hash. `tests/catalogue.test.ts` asserts both the exact inventory and that isolation.
 
 ### Roles
 

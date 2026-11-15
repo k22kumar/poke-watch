@@ -1,0 +1,2173 @@
+{
+ "comment": "Canonical reference catalogue: which PokeAPI identities the Pokedex catalogue covers. Reference records only - no sprite, cry, learnset, spawn or role. Gameplay roles live in content/roster.json; this file never grants one. Identities are pinned by numeric id because 9 species defaults have a slug that differs from the species slug and cannot be resolved by name. formStatus and inclusion are the research report's own classifications and are not derivable from the source CSVs; every other field is derived by scripts/catalogue-pack.mjs from the pinned snapshot below.",
+ "source": {
+  "repo": "PokeAPI/pokeapi",
+  "revision": "8a92bfa7dab2f12b84b5d151562f9857c133ff30",
+  "csv": [
+   "pokemon",
+   "pokemon_species",
+   "pokemon_species_names",
+   "pokemon_types",
+   "types",
+   "pokemon_forms",
+   "pokemon_form_names",
+   "pokemon_evolution",
+   "version_groups",
+   "regions"
+  ]
+ },
+ "records": [
+  {
+   "pokemon": "aegislash-shield",
+   "pokemonId": 681,
+   "species": "aegislash",
+   "speciesId": 681,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "amoonguss",
+   "pokemonId": 591,
+   "species": "amoonguss",
+   "speciesId": 591,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "appletun",
+   "pokemonId": 842,
+   "species": "appletun",
+   "speciesId": 842,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "applin",
+   "pokemonId": 840,
+   "species": "applin",
+   "speciesId": 840,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "arbok",
+   "pokemonId": 24,
+   "species": "arbok",
+   "speciesId": 24,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "archaludon",
+   "pokemonId": 1018,
+   "species": "archaludon",
+   "speciesId": 1018,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "avalugg",
+   "pokemonId": 713,
+   "species": "avalugg",
+   "speciesId": 713,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "azumarill",
+   "pokemonId": 184,
+   "species": "azumarill",
+   "speciesId": 184,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "azurill",
+   "pokemonId": 298,
+   "species": "azurill",
+   "speciesId": 298,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "bergmite",
+   "pokemonId": 712,
+   "species": "bergmite",
+   "speciesId": 712,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "budew",
+   "pokemonId": 406,
+   "species": "budew",
+   "speciesId": 406,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "buzzwole",
+   "pokemonId": 794,
+   "species": "buzzwole",
+   "speciesId": 794,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "calyrex",
+   "pokemonId": 898,
+   "species": "calyrex",
+   "speciesId": 898,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "calyrex-ice",
+   "pokemonId": 10193,
+   "species": "calyrex",
+   "speciesId": 898,
+   "formStatus": "persistent-fusion",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "carbink",
+   "pokemonId": 703,
+   "species": "carbink",
+   "speciesId": 703,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "carkol",
+   "pokemonId": 838,
+   "species": "carkol",
+   "speciesId": 838,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "castform",
+   "pokemonId": 351,
+   "species": "castform",
+   "speciesId": 351,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "castform-sunny",
+   "pokemonId": 10013,
+   "species": "castform",
+   "speciesId": 351,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "castform-snowy",
+   "pokemonId": 10015,
+   "species": "castform",
+   "speciesId": 351,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "celesteela",
+   "pokemonId": 797,
+   "species": "celesteela",
+   "speciesId": 797,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "centiskorch",
+   "pokemonId": 851,
+   "species": "centiskorch",
+   "speciesId": 851,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "centiskorch-gmax",
+   "pokemonId": 10220,
+   "species": "centiskorch",
+   "speciesId": 851,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "cetitan",
+   "pokemonId": 975,
+   "species": "cetitan",
+   "speciesId": 975,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "cetoddle",
+   "pokemonId": 974,
+   "species": "cetoddle",
+   "speciesId": 974,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "chandelure",
+   "pokemonId": 609,
+   "species": "chandelure",
+   "speciesId": 609,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "charizard",
+   "pokemonId": 6,
+   "species": "charizard",
+   "speciesId": 6,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "charizard-gmax",
+   "pokemonId": 10196,
+   "species": "charizard",
+   "speciesId": 6,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "charmander",
+   "pokemonId": 4,
+   "species": "charmander",
+   "speciesId": 4,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "charmeleon",
+   "pokemonId": 5,
+   "species": "charmeleon",
+   "speciesId": 5,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "cinderace",
+   "pokemonId": 815,
+   "species": "cinderace",
+   "speciesId": 815,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "clobbopus",
+   "pokemonId": 852,
+   "species": "clobbopus",
+   "speciesId": 852,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "coalossal",
+   "pokemonId": 839,
+   "species": "coalossal",
+   "speciesId": 839,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "coalossal-gmax",
+   "pokemonId": 10215,
+   "species": "coalossal",
+   "speciesId": 839,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "comfey",
+   "pokemonId": 764,
+   "species": "comfey",
+   "speciesId": 764,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "corviknight",
+   "pokemonId": 823,
+   "species": "corviknight",
+   "speciesId": 823,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "corvisquire",
+   "pokemonId": 822,
+   "species": "corvisquire",
+   "speciesId": 822,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "cosmoem",
+   "pokemonId": 790,
+   "species": "cosmoem",
+   "speciesId": 790,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "cosmog",
+   "pokemonId": 789,
+   "species": "cosmog",
+   "speciesId": 789,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "crustle",
+   "pokemonId": 558,
+   "species": "crustle",
+   "speciesId": 558,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "cutiefly",
+   "pokemonId": 742,
+   "species": "cutiefly",
+   "speciesId": 742,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dhelmise",
+   "pokemonId": 781,
+   "species": "dhelmise",
+   "speciesId": 781,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "diglett",
+   "pokemonId": 50,
+   "species": "diglett",
+   "speciesId": 50,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "diglett-alola",
+   "pokemonId": 10105,
+   "species": "diglett",
+   "speciesId": 50,
+   "formStatus": "regional",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dipplin",
+   "pokemonId": 1011,
+   "species": "dipplin",
+   "speciesId": 1011,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dodrio",
+   "pokemonId": 85,
+   "species": "dodrio",
+   "speciesId": 85,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "doduo",
+   "pokemonId": 84,
+   "species": "doduo",
+   "speciesId": 84,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "doublade",
+   "pokemonId": 680,
+   "species": "doublade",
+   "speciesId": 680,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dragapult",
+   "pokemonId": 887,
+   "species": "dragapult",
+   "speciesId": 887,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dragonair",
+   "pokemonId": 148,
+   "species": "dragonair",
+   "speciesId": 148,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dragonite",
+   "pokemonId": 149,
+   "species": "dragonite",
+   "speciesId": 149,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "drakloak",
+   "pokemonId": 886,
+   "species": "drakloak",
+   "speciesId": 886,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dratini",
+   "pokemonId": 147,
+   "species": "dratini",
+   "speciesId": 147,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dreepy",
+   "pokemonId": 885,
+   "species": "dreepy",
+   "speciesId": 885,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "drizzile",
+   "pokemonId": 817,
+   "species": "drizzile",
+   "speciesId": 817,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dudunsparce-two-segment",
+   "pokemonId": 982,
+   "species": "dudunsparce",
+   "speciesId": 982,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dudunsparce-three-segment",
+   "pokemonId": 10255,
+   "species": "dudunsparce",
+   "speciesId": 982,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dugtrio",
+   "pokemonId": 51,
+   "species": "dugtrio",
+   "speciesId": 51,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dugtrio-alola",
+   "pokemonId": 10106,
+   "species": "dugtrio",
+   "speciesId": 51,
+   "formStatus": "regional",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "dunsparce",
+   "pokemonId": 206,
+   "species": "dunsparce",
+   "speciesId": 206,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "duraludon",
+   "pokemonId": 884,
+   "species": "duraludon",
+   "speciesId": 884,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "duraludon-gmax",
+   "pokemonId": 10225,
+   "species": "duraludon",
+   "speciesId": 884,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "dwebble",
+   "pokemonId": 557,
+   "species": "dwebble",
+   "speciesId": 557,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "eelektrik",
+   "pokemonId": 603,
+   "species": "eelektrik",
+   "speciesId": 603,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "eelektross",
+   "pokemonId": 604,
+   "species": "eelektross",
+   "speciesId": 604,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "ekans",
+   "pokemonId": 23,
+   "species": "ekans",
+   "speciesId": 23,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "eternatus",
+   "pokemonId": 890,
+   "species": "eternatus",
+   "speciesId": 890,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "eternatus-eternamax",
+   "pokemonId": 10190,
+   "species": "eternatus",
+   "speciesId": 890,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "exeggcute",
+   "pokemonId": 102,
+   "species": "exeggcute",
+   "speciesId": 102,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "exeggutor",
+   "pokemonId": 103,
+   "species": "exeggutor",
+   "speciesId": 103,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "exeggutor-alola",
+   "pokemonId": 10114,
+   "species": "exeggutor",
+   "speciesId": 103,
+   "formStatus": "regional",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "falinks",
+   "pokemonId": 870,
+   "species": "falinks",
+   "speciesId": 870,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "flabebe",
+   "pokemonId": 669,
+   "species": "flabebe",
+   "speciesId": 669,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "flapple",
+   "pokemonId": 841,
+   "species": "flapple",
+   "speciesId": 841,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "floette",
+   "pokemonId": 670,
+   "species": "floette",
+   "speciesId": 670,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "florges",
+   "pokemonId": 671,
+   "species": "florges",
+   "speciesId": 671,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "foongus",
+   "pokemonId": 590,
+   "species": "foongus",
+   "speciesId": 590,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "froslass",
+   "pokemonId": 478,
+   "species": "froslass",
+   "speciesId": 478,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "frosmoth",
+   "pokemonId": 873,
+   "species": "frosmoth",
+   "speciesId": 873,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "furret",
+   "pokemonId": 162,
+   "species": "furret",
+   "speciesId": 162,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "galvantula",
+   "pokemonId": 596,
+   "species": "galvantula",
+   "speciesId": 596,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "gastly",
+   "pokemonId": 92,
+   "species": "gastly",
+   "speciesId": 92,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "gengar",
+   "pokemonId": 94,
+   "species": "gengar",
+   "speciesId": 94,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "gengar-gmax",
+   "pokemonId": 10202,
+   "species": "gengar",
+   "speciesId": 94,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "gholdengo",
+   "pokemonId": 1000,
+   "species": "gholdengo",
+   "speciesId": 1000,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "gimmighoul",
+   "pokemonId": 999,
+   "species": "gimmighoul",
+   "speciesId": 999,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "gimmighoul-roaming",
+   "pokemonId": 10263,
+   "species": "gimmighoul",
+   "speciesId": 999,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "giratina-altered",
+   "pokemonId": 487,
+   "species": "giratina",
+   "speciesId": 487,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "giratina-origin",
+   "pokemonId": 10007,
+   "species": "giratina",
+   "speciesId": 487,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "glalie",
+   "pokemonId": 362,
+   "species": "glalie",
+   "speciesId": 362,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "gouging-fire",
+   "pokemonId": 1020,
+   "species": "gouging-fire",
+   "speciesId": 1020,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "grafaiai",
+   "pokemonId": 945,
+   "species": "grafaiai",
+   "speciesId": 945,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "grapploct",
+   "pokemonId": 853,
+   "species": "grapploct",
+   "speciesId": 853,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "grimmsnarl",
+   "pokemonId": 861,
+   "species": "grimmsnarl",
+   "speciesId": 861,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "grimmsnarl-gmax",
+   "pokemonId": 10222,
+   "species": "grimmsnarl",
+   "speciesId": 861,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "grookey",
+   "pokemonId": 810,
+   "species": "grookey",
+   "speciesId": 810,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "grotle",
+   "pokemonId": 388,
+   "species": "grotle",
+   "speciesId": 388,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "groudon",
+   "pokemonId": 383,
+   "species": "groudon",
+   "speciesId": 383,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "groudon-primal",
+   "pokemonId": 10078,
+   "species": "groudon",
+   "speciesId": 383,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "guzzlord",
+   "pokemonId": 799,
+   "species": "guzzlord",
+   "speciesId": 799,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hariyama",
+   "pokemonId": 297,
+   "species": "hariyama",
+   "speciesId": 297,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hatenna",
+   "pokemonId": 856,
+   "species": "hatenna",
+   "speciesId": 856,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "hatterene",
+   "pokemonId": 858,
+   "species": "hatterene",
+   "speciesId": 858,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "hatterene-gmax",
+   "pokemonId": 10221,
+   "species": "hatterene",
+   "speciesId": 858,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hattrem",
+   "pokemonId": 857,
+   "species": "hattrem",
+   "speciesId": 857,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "haunter",
+   "pokemonId": 93,
+   "species": "haunter",
+   "speciesId": 93,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hitmonchan",
+   "pokemonId": 107,
+   "species": "hitmonchan",
+   "speciesId": 107,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "hitmonlee",
+   "pokemonId": 106,
+   "species": "hitmonlee",
+   "speciesId": 106,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hitmontop",
+   "pokemonId": 237,
+   "species": "hitmontop",
+   "speciesId": 237,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "ho-oh",
+   "pokemonId": 250,
+   "species": "ho-oh",
+   "speciesId": 250,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "honchkrow",
+   "pokemonId": 430,
+   "species": "honchkrow",
+   "speciesId": 430,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "honedge",
+   "pokemonId": 679,
+   "species": "honedge",
+   "speciesId": 679,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hoopa",
+   "pokemonId": 720,
+   "species": "hoopa",
+   "speciesId": 720,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "hoopa-unbound",
+   "pokemonId": 10086,
+   "species": "hoopa",
+   "speciesId": 720,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "hydrapple",
+   "pokemonId": 1019,
+   "species": "hydrapple",
+   "speciesId": 1019,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "impidimp",
+   "pokemonId": 859,
+   "species": "impidimp",
+   "speciesId": 859,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "inkay",
+   "pokemonId": 686,
+   "species": "inkay",
+   "speciesId": 686,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "inteleon",
+   "pokemonId": 818,
+   "species": "inteleon",
+   "speciesId": 818,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "inteleon-gmax",
+   "pokemonId": 10211,
+   "species": "inteleon",
+   "speciesId": 818,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "iron-hands",
+   "pokemonId": 992,
+   "species": "iron-hands",
+   "speciesId": 992,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "joltik",
+   "pokemonId": 595,
+   "species": "joltik",
+   "speciesId": 595,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "kartana",
+   "pokemonId": 798,
+   "species": "kartana",
+   "speciesId": 798,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "klefki",
+   "pokemonId": 707,
+   "species": "klefki",
+   "speciesId": 707,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "koffing",
+   "pokemonId": 109,
+   "species": "koffing",
+   "speciesId": 109,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "koraidon",
+   "pokemonId": 1007,
+   "species": "koraidon",
+   "speciesId": 1007,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "koraidon-limited-build",
+   "pokemonId": 10264,
+   "species": "koraidon",
+   "speciesId": 1007,
+   "formStatus": "out-of-battle-build",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "koraidon-sprinting-build",
+   "pokemonId": 10265,
+   "species": "koraidon",
+   "speciesId": 1007,
+   "formStatus": "out-of-battle-build",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "koraidon-swimming-build",
+   "pokemonId": 10266,
+   "species": "koraidon",
+   "speciesId": 1007,
+   "formStatus": "out-of-battle-build",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "koraidon-gliding-build",
+   "pokemonId": 10267,
+   "species": "koraidon",
+   "speciesId": 1007,
+   "formStatus": "out-of-battle-build",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "kubfu",
+   "pokemonId": 891,
+   "species": "kubfu",
+   "speciesId": 891,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "lampent",
+   "pokemonId": 608,
+   "species": "lampent",
+   "speciesId": 608,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "lapras",
+   "pokemonId": 131,
+   "species": "lapras",
+   "speciesId": 131,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "lapras-gmax",
+   "pokemonId": 10204,
+   "species": "lapras",
+   "speciesId": 131,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "litwick",
+   "pokemonId": 607,
+   "species": "litwick",
+   "speciesId": 607,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "lugia",
+   "pokemonId": 249,
+   "species": "lugia",
+   "speciesId": 249,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "lunala",
+   "pokemonId": 792,
+   "species": "lunala",
+   "speciesId": 792,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "magcargo",
+   "pokemonId": 219,
+   "species": "magcargo",
+   "speciesId": 219,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "magnemite",
+   "pokemonId": 81,
+   "species": "magnemite",
+   "speciesId": 81,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "magneton",
+   "pokemonId": 82,
+   "species": "magneton",
+   "speciesId": 82,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "magnezone",
+   "pokemonId": 462,
+   "species": "magnezone",
+   "speciesId": 462,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "makuhita",
+   "pokemonId": 296,
+   "species": "makuhita",
+   "speciesId": 296,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "malamar",
+   "pokemonId": 687,
+   "species": "malamar",
+   "speciesId": 687,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "mantine",
+   "pokemonId": 226,
+   "species": "mantine",
+   "speciesId": 226,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "mantyke",
+   "pokemonId": 458,
+   "species": "mantyke",
+   "speciesId": 458,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "marill",
+   "pokemonId": 183,
+   "species": "marill",
+   "speciesId": 183,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "melmetal",
+   "pokemonId": 809,
+   "species": "melmetal",
+   "speciesId": 809,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "meltan",
+   "pokemonId": 808,
+   "species": "meltan",
+   "speciesId": 808,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "mienfoo",
+   "pokemonId": 619,
+   "species": "mienfoo",
+   "speciesId": 619,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "mienshao",
+   "pokemonId": 620,
+   "species": "mienshao",
+   "speciesId": 620,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-red-meteor",
+   "pokemonId": 774,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-orange-meteor",
+   "pokemonId": 10130,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-yellow-meteor",
+   "pokemonId": 10131,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-green-meteor",
+   "pokemonId": 10132,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-blue-meteor",
+   "pokemonId": 10133,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-indigo-meteor",
+   "pokemonId": 10134,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-violet-meteor",
+   "pokemonId": 10135,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-red",
+   "pokemonId": 10136,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-orange",
+   "pokemonId": 10137,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-yellow",
+   "pokemonId": 10138,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-green",
+   "pokemonId": 10139,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-blue",
+   "pokemonId": 10140,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-indigo",
+   "pokemonId": 10141,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "minior-violet",
+   "pokemonId": 10142,
+   "species": "minior",
+   "speciesId": 774,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "morgrem",
+   "pokemonId": 860,
+   "species": "morgrem",
+   "speciesId": 860,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "morpeko-full-belly",
+   "pokemonId": 877,
+   "species": "morpeko",
+   "speciesId": 877,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "morpeko-hangry",
+   "pokemonId": 10187,
+   "species": "morpeko",
+   "speciesId": 877,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "munchlax",
+   "pokemonId": 446,
+   "species": "munchlax",
+   "speciesId": 446,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "murkrow",
+   "pokemonId": 198,
+   "species": "murkrow",
+   "speciesId": 198,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "natu",
+   "pokemonId": 177,
+   "species": "natu",
+   "speciesId": 177,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "nincada",
+   "pokemonId": 290,
+   "species": "nincada",
+   "speciesId": 290,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "ninjask",
+   "pokemonId": 291,
+   "species": "ninjask",
+   "speciesId": 291,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "noibat",
+   "pokemonId": 714,
+   "species": "noibat",
+   "speciesId": 714,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "noivern",
+   "pokemonId": 715,
+   "species": "noivern",
+   "speciesId": 715,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "onix",
+   "pokemonId": 95,
+   "species": "onix",
+   "speciesId": 95,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "orthworm",
+   "pokemonId": 968,
+   "species": "orthworm",
+   "speciesId": 968,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "palkia",
+   "pokemonId": 484,
+   "species": "palkia",
+   "speciesId": 484,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "palkia-origin",
+   "pokemonId": 10246,
+   "species": "palkia",
+   "speciesId": 484,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "pawmi",
+   "pokemonId": 921,
+   "species": "pawmi",
+   "speciesId": 921,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "pawmo",
+   "pokemonId": 922,
+   "species": "pawmo",
+   "speciesId": 922,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "pawmot",
+   "pokemonId": 923,
+   "species": "pawmot",
+   "speciesId": 923,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "pichu",
+   "pokemonId": 172,
+   "species": "pichu",
+   "speciesId": 172,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "pikachu",
+   "pokemonId": 25,
+   "species": "pikachu",
+   "speciesId": 25,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "poltchageist",
+   "pokemonId": 1012,
+   "species": "poltchageist",
+   "speciesId": 1012,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "polteageist",
+   "pokemonId": 855,
+   "species": "polteageist",
+   "speciesId": 855,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "porygon",
+   "pokemonId": 137,
+   "species": "porygon",
+   "speciesId": 137,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "porygon-z",
+   "pokemonId": 474,
+   "species": "porygon-z",
+   "speciesId": 474,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "porygon2",
+   "pokemonId": 233,
+   "species": "porygon2",
+   "speciesId": 233,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "raboot",
+   "pokemonId": 814,
+   "species": "raboot",
+   "speciesId": 814,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "raging-bolt",
+   "pokemonId": 1021,
+   "species": "raging-bolt",
+   "speciesId": 1021,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "raichu",
+   "pokemonId": 26,
+   "species": "raichu",
+   "speciesId": 26,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "raichu-alola",
+   "pokemonId": 10100,
+   "species": "raichu",
+   "speciesId": 26,
+   "formStatus": "regional",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "raticate",
+   "pokemonId": 20,
+   "species": "raticate",
+   "speciesId": 20,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "raticate-alola",
+   "pokemonId": 10092,
+   "species": "raticate",
+   "speciesId": 20,
+   "formStatus": "regional",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "rattata",
+   "pokemonId": 19,
+   "species": "rattata",
+   "speciesId": 19,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "rattata-alola",
+   "pokemonId": 10091,
+   "species": "rattata",
+   "speciesId": 19,
+   "formStatus": "regional",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rayquaza",
+   "pokemonId": 384,
+   "species": "rayquaza",
+   "speciesId": 384,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "ribombee",
+   "pokemonId": 743,
+   "species": "ribombee",
+   "speciesId": 743,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "rillaboom",
+   "pokemonId": 812,
+   "species": "rillaboom",
+   "speciesId": 812,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "rillaboom-gmax",
+   "pokemonId": 10209,
+   "species": "rillaboom",
+   "speciesId": 812,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rolycoly",
+   "pokemonId": 837,
+   "species": "rolycoly",
+   "speciesId": 837,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rookidee",
+   "pokemonId": 821,
+   "species": "rookidee",
+   "speciesId": 821,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "roselia",
+   "pokemonId": 315,
+   "species": "roselia",
+   "speciesId": 315,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "roserade",
+   "pokemonId": 407,
+   "species": "roserade",
+   "speciesId": 407,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "rotom",
+   "pokemonId": 479,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rotom-heat",
+   "pokemonId": 10008,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rotom-wash",
+   "pokemonId": 10009,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rotom-frost",
+   "pokemonId": 10010,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rotom-fan",
+   "pokemonId": 10011,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "rotom-mow",
+   "pokemonId": 10012,
+   "species": "rotom",
+   "speciesId": 479,
+   "formStatus": "persistent-alternate",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "sandaconda",
+   "pokemonId": 844,
+   "species": "sandaconda",
+   "speciesId": 844,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sandaconda-gmax",
+   "pokemonId": 10218,
+   "species": "sandaconda",
+   "speciesId": 844,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "scorbunny",
+   "pokemonId": 813,
+   "species": "scorbunny",
+   "speciesId": 813,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "sentret",
+   "pokemonId": 161,
+   "species": "sentret",
+   "speciesId": 161,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "shedinja",
+   "pokemonId": 292,
+   "species": "shedinja",
+   "speciesId": 292,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "shroodle",
+   "pokemonId": 944,
+   "species": "shroodle",
+   "speciesId": 944,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "silicobra",
+   "pokemonId": 843,
+   "species": "silicobra",
+   "speciesId": 843,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sinistcha",
+   "pokemonId": 1013,
+   "species": "sinistcha",
+   "speciesId": 1013,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sinistea",
+   "pokemonId": 854,
+   "species": "sinistea",
+   "speciesId": 854,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "sizzlipede",
+   "pokemonId": 850,
+   "species": "sizzlipede",
+   "speciesId": 850,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "slither-wing",
+   "pokemonId": 988,
+   "species": "slither-wing",
+   "speciesId": 988,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "slugma",
+   "pokemonId": 218,
+   "species": "slugma",
+   "speciesId": 218,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sneasel",
+   "pokemonId": 215,
+   "species": "sneasel",
+   "speciesId": 215,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "sneasel-hisui",
+   "pokemonId": 10235,
+   "species": "sneasel",
+   "speciesId": 215,
+   "formStatus": "regional",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sneasler",
+   "pokemonId": 903,
+   "species": "sneasler",
+   "speciesId": 903,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "snom",
+   "pokemonId": 872,
+   "species": "snom",
+   "speciesId": 872,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "snorlax",
+   "pokemonId": 143,
+   "species": "snorlax",
+   "speciesId": 143,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "snorlax-gmax",
+   "pokemonId": 10206,
+   "species": "snorlax",
+   "speciesId": 143,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "snorunt",
+   "pokemonId": 361,
+   "species": "snorunt",
+   "speciesId": 361,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "sobble",
+   "pokemonId": 816,
+   "species": "sobble",
+   "speciesId": 816,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "solgaleo",
+   "pokemonId": 791,
+   "species": "solgaleo",
+   "speciesId": 791,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "stakataka",
+   "pokemonId": 805,
+   "species": "stakataka",
+   "speciesId": 805,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "steelix",
+   "pokemonId": 208,
+   "species": "steelix",
+   "speciesId": 208,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "tatsugiri-curly",
+   "pokemonId": 978,
+   "species": "tatsugiri",
+   "speciesId": 978,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "tentacool",
+   "pokemonId": 72,
+   "species": "tentacool",
+   "speciesId": 72,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "tentacruel",
+   "pokemonId": 73,
+   "species": "tentacruel",
+   "speciesId": 73,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "terapagos",
+   "pokemonId": 1024,
+   "species": "terapagos",
+   "speciesId": 1024,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "thwackey",
+   "pokemonId": 811,
+   "species": "thwackey",
+   "speciesId": 811,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "toedscool",
+   "pokemonId": 948,
+   "species": "toedscool",
+   "speciesId": 948,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "toedscruel",
+   "pokemonId": 949,
+   "species": "toedscruel",
+   "speciesId": 949,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "togekiss",
+   "pokemonId": 468,
+   "species": "togekiss",
+   "speciesId": 468,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "togepi",
+   "pokemonId": 175,
+   "species": "togepi",
+   "speciesId": 175,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "togetic",
+   "pokemonId": 176,
+   "species": "togetic",
+   "speciesId": 176,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "torterra",
+   "pokemonId": 389,
+   "species": "torterra",
+   "speciesId": 389,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "toxel",
+   "pokemonId": 848,
+   "species": "toxel",
+   "speciesId": 848,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "toxtricity-amped",
+   "pokemonId": 849,
+   "species": "toxtricity",
+   "speciesId": 849,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "toxtricity-amped-gmax",
+   "pokemonId": 10219,
+   "species": "toxtricity",
+   "speciesId": 849,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "toxtricity-low-key-gmax",
+   "pokemonId": 10228,
+   "species": "toxtricity",
+   "speciesId": 849,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "tropius",
+   "pokemonId": 357,
+   "species": "tropius",
+   "speciesId": 357,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "turtwig",
+   "pokemonId": 387,
+   "species": "turtwig",
+   "speciesId": 387,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "tynamo",
+   "pokemonId": 602,
+   "species": "tynamo",
+   "speciesId": 602,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "tyrogue",
+   "pokemonId": 236,
+   "species": "tyrogue",
+   "speciesId": 236,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "unown",
+   "pokemonId": 201,
+   "species": "unown",
+   "speciesId": 201,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "urshifu-single-strike",
+   "pokemonId": 892,
+   "species": "urshifu",
+   "speciesId": 892,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "urshifu-rapid-strike",
+   "pokemonId": 10191,
+   "species": "urshifu",
+   "speciesId": 892,
+   "formStatus": "persistent-alternate",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "urshifu-single-strike-gmax",
+   "pokemonId": 10226,
+   "species": "urshifu",
+   "speciesId": 892,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "wailmer",
+   "pokemonId": 320,
+   "species": "wailmer",
+   "speciesId": 320,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "wailord",
+   "pokemonId": 321,
+   "species": "wailord",
+   "speciesId": 321,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "weavile",
+   "pokemonId": 461,
+   "species": "weavile",
+   "speciesId": 461,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "weezing",
+   "pokemonId": 110,
+   "species": "weezing",
+   "speciesId": 110,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "weezing-galar",
+   "pokemonId": 10167,
+   "species": "weezing",
+   "speciesId": 110,
+   "formStatus": "regional",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "wiglett",
+   "pokemonId": 960,
+   "species": "wiglett",
+   "speciesId": 960,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "wishiwashi-solo",
+   "pokemonId": 746,
+   "species": "wishiwashi",
+   "speciesId": 746,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "wugtrio",
+   "pokemonId": 961,
+   "species": "wugtrio",
+   "speciesId": 961,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "xatu",
+   "pokemonId": 178,
+   "species": "xatu",
+   "speciesId": 178,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "xerneas",
+   "pokemonId": 716,
+   "species": "xerneas",
+   "speciesId": 716,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "yveltal",
+   "pokemonId": 717,
+   "species": "yveltal",
+   "speciesId": 717,
+   "formStatus": "species-default",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "zacian",
+   "pokemonId": 888,
+   "species": "zacian",
+   "speciesId": 888,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "zacian-crowned",
+   "pokemonId": 10188,
+   "species": "zacian",
+   "speciesId": 888,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  },
+  {
+   "pokemon": "zamazenta",
+   "pokemonId": 889,
+   "species": "zamazenta",
+   "speciesId": 889,
+   "formStatus": "species-default",
+   "inclusion": "family-or-form"
+  },
+  {
+   "pokemon": "zamazenta-crowned",
+   "pokemonId": 10189,
+   "species": "zamazenta",
+   "speciesId": 889,
+   "formStatus": "temporary",
+   "inclusion": "selected"
+  }
+ ]
+}

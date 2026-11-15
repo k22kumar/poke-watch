@@ -1,0 +1,187 @@
+[
+  {
+    "name": "size-rattata",
+    "query": "go=1&seed=1&species=rattata&calm=1&tp=64,64&cam=classic",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['rattata','charmander','charmeleon','venusaur','sudowoodo'].includes(s.id))"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-charmander",
+    "query": "go=1&seed=1&species=charmander&calm=1&tp=64,64&cam=classic",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-charmeleon",
+    "query": "go=1&seed=1&species=charmeleon&calm=1&tp=64,64&cam=classic",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-venusaur",
+    "query": "go=1&seed=1&species=venusaur&calm=1&tp=64,64&cam=classic",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-wild-row",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['rattata',-4.5],['charmander',-1.5],['charmeleon',1.5],['venusaur',4.5]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3))"
+      },
+      {
+        "eval": "(() => { const E = window.pokewatch.ctx.enemies; const out = []; for (let i = 0; i < E.hi; i++) if (E.alive[i]) out.push([i, E.x[i].toFixed(2), E.z[i].toFixed(2), E.size[i], E.radius[i].toFixed(2)]); return out; })()"
+      },
+      {
+        "advance": 0.4,
+        "frames": 24
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-boss-sudowoodo",
+    "query": "go=1&seed=1&species=charmander&calm=1&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "window.pokewatch.spawn('sudowoodo', 0, -9, 4)"
+      },
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => s.authored)"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-evolve-charmander",
+    "query": "go=1&seed=1&species=charmander&calm=1&tp=64,64&cam=classic",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "raw": "before"
+      },
+      {
+        "eval": "(() => { for (let i = 0; i < 20; i++) window.pokewatch.addLevel(); return [window.pokewatch.ctx.player.level, window.pokewatch.ctx.state]; })()"
+      },
+      {
+        "advance": 0.2,
+        "frames": 12
+      },
+      {
+        "eval": "[window.pokewatch.ctx.state, window.pokewatch.ctx.player.species.id]"
+      },
+      {
+        "raw": "flicker"
+      },
+      {
+        "advance": 3,
+        "frames": 180
+      },
+      {
+        "eval": "[window.pokewatch.ctx.state, window.pokewatch.ctx.player.species.id, window.pokewatch.ctx.player.level]"
+      },
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "raw": "after"
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['charmander','charmeleon','charizard'].includes(s.id))"
+      }
+    ]
+  },
+  {
+    "name": "size-boss-fixed",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "window.pokewatch.spawn('sudowoodo', 3, -4, 4)"
+      },
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  }
+]

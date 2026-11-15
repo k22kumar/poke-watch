@@ -41,8 +41,36 @@ Everything that stands up (trees, rocks, flowers, tall grass, creatures) is an u
 | Anchor | Every frame carries its own feet anchor. PMD: centroid of the frame's Shadow-sheet marker; fallback: lowest opaque row, horizontal centre | `importSprites`, `FrameRect.ax/ay` |
 | Outline | 1 px dark outline (#201c28 family). Baked designs get it from the baker; PMD art already has it | `baker.ts outline()` |
 | Light | From the upper left. The baker's light vector and PMD's shading agree | `baker.ts` |
-| Size classes | Elites ×1.5, alphas ×2 (rules); bosses drawn at a whole-number 2–3× so pixels stay square | `rules.enemy.roles`, `SpeciesDef.scale` |
+| Visible size | One multiplier per species from its researched extent (see below). Elites ×1.5, alphas ×2 (rules); bosses drawn at a whole-number 2–3× so pixels stay square, and the species multiplier stays out of their way | `rules/sizing.ts`, `rules.enemy.roles`, `SpeciesDef.scale` |
 | Shadows | Flat two-tone blob, hard edge: 0.42 m / 0.55 m / 0.8 m radius for PMD shadow size 0/1/2 | `DECAL_FS` kind 0, `fillDecals` |
+
+### Visible size (`src/rules/sizing.ts`)
+
+A PMD sheet is drawn at roughly one sprite height whatever the Pokémon is, so used raw it put a 0.3 m
+Rattata and a 2.0 m Venusaur within 6 % of each other. The renderer therefore scales every species by
+one number, derived from its real extent:
+
+1. **Source extent `S` (m)** — an approved neutral core extent (`NEUTRAL_CORE_EXTENT_M`) when one has
+   been reviewed for that species, else the active species' ordinary canonical listed extent
+   (`SpeciesDef.canon.heightM`, the species-default form's published figure). `SpeciesDef.height` is
+   the last resort, for a species with no canonical record at all.
+2. **Class** — Tiny < 0.35 ≤ Small < 0.65 ≤ Medium < 1.15 ≤ Large < 2.05 ≤ Extra Large. A cutoff
+   belongs to the class above it. The class is a label for reports and tuning; it never gates the curve.
+3. **Visible core** — `clamp(1.25 × S^0.45, 0.78, 2.55)` metres, continuous: canonical order is kept
+   (an evolution always grows) while the canonical range is compressed, so a Tiny species stays legible
+   and an Extra Large one still fits the frame.
+4. **Scale** — `core / neutralCore`, where the neutral core is the asset's own idle pose facing the
+   camera, frame 0 (`CreatureArt.heightPx / 16`). It is a stable reference, never the frame being drawn,
+   so proportions and the per-frame feet anchor survive animation, an evolution swap and a faint.
+
+The multiplier is applied once, in `Renderer.drawSprites`'s `push`, so player, wild, fainting and
+silhouette draws all get it, and the scaled sprite height and width are what the chase rig is framed
+against. A species with an authored `scale` (bosses) returns 1 from the curve: the authored multiplier
+is applied by the draw call on top and the two never compound.
+
+This is presentation only. Collision radii, hitboxes, navigation profiles and roster membership keep
+reading `SpeciesDef.height`, so no sim state and no replay hash moves with it. `pokewatch.renderer.sizes()`
+prints what the renderer submits; `tools/sizescenes.json` captures it.
 
 ### Animation states and timing
 
@@ -61,7 +89,7 @@ Gameplay asks for one of eight states; each source maps onto them through `ANIM_
 
 PMD durations are kept exactly (ticks of 1/60 s). Attacks follow a timeline: each attack shape has a short wind-up (`rules.feel.windup`, 0.06–0.14 s, refunded from the cooldown), the frames before the clip's HitFrame are fitted into it, and the move releases on the HitFrame. The Pokémon turns to face its target for the cast, and the attack clip plays even while walking (before, moving casts kept the walk cycle).
 
-Native and substitute clips: 16 of 38 Pokémon have a native Faint; the other 22 use the sinking Sleep-frame substitute. The Animation notes column on the Credits screen lists every substitution.
+Native and substitute clips: 16 of 40 Pokémon have a native Faint; the other 24 (Joltik and Onix among them) use the sinking Sleep-frame substitute. The Animation notes column on the Credits screen lists every substitution.
 
 ## 5. Palettes
 

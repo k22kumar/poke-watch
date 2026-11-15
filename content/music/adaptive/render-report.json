@@ -1,0 +1,35 @@
+{
+  "status": "adaptive reference remix prototype \u2014 not a complete reorchestration",
+  "source": "https://www.youtube.com/watch?v=4ZrdWpWqVpQ",
+  "sourceTitle": "Pok\u00e9mon Anime BGM - Trainer Battle (1997~1998-M56B)",
+  "duration": 119.8,
+  "sampleRate": 44100,
+  "samples": 5283180,
+  "estimatedTempo": 161.4990234375,
+  "melodyTreatment": "Original full mix retained; gain and 20 ms edge fades only. No pitch or timing changes.",
+  "interiorMelodyMaxError": 5.551115123125783e-17,
+  "needsReview": [
+    "Perceptual listening and loop/phrase approval",
+    "Exact lead transcription and isolated melody",
+    "Full Tamil cinematic reorchestration with recorded instruments",
+    "Final mix/master approval"
+  ],
+  "levels": {
+    "anticipation": {
+      "peakDbFS": -12.30667752703795,
+      "rmsDbFS": -24.53494989177443
+    },
+    "combat": {
+      "peakDbFS": -5.375874777301778,
+      "rmsDbFS": -19.2043887216222
+    },
+    "surge": {
+      "peakDbFS": -2.883110249347715,
+      "rmsDbFS": -18.379949915175338
+    },
+    "climax": {
+      "peakDbFS": -1.37890847035324,
+      "rmsDbFS": -17.576169956071514
+    }
+  }
+}

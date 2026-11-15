@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# Sparse git checkouts of the three content sources, limited to the Pokémon in content/roster.json:
+# Sparse git checkouts of the content sources, limited to the Pokémon in content/roster.json:
 #   DIR/api-data      PokeAPI/api-data   (static PokéAPI JSON: pokemon, species, evolution chains, moves, types)
 #   DIR/spritecollab  PMDCollab/SpriteCollab (sprite/<dex4>/ sheets + AnimData.xml, portrait/<dex4>/Normal.png)
 #   DIR/cries         PokeAPI/cries      (cries/pokemon/latest/<id>.ogg)
+# ... plus the source for the reference catalogue (content/catalogue.json), which is roster-independent:
+#   DIR/pokeapi-csv   PokeAPI/pokeapi    (data/v2/csv at the revision pinned in content/catalogue.json)
+# The catalogue needs no sprites or cries, so the roster-driven sets above are left alone: its ten
+# CSV files already carry every identity, type slot, measurement, form row and family edge it stores.
 # usage: scripts/fetch-sources.sh ../src-data   then   node scripts/build-content.mjs --clones ../src-data
 set -euo pipefail
 DIR=${1:-../src-data}
@@ -36,6 +40,14 @@ console.log([...s].join(' '));")
 # latest available cry recordings
 (cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; done) /LICENSE)
 # UI icons: Pokémon type badges and bag icons for the items the game maps upgrades to
+# reference catalogue: PokéAPI's published CSV tables, pinned to the revision in content/catalogue.json
+CAT_REV=$(node -e "console.log(require('./content/catalogue.json').source.revision)")
+if [ ! -d "$DIR/pokeapi-csv/.git" ]; then
+  git init -q "$DIR/pokeapi-csv"
+  (cd "$DIR/pokeapi-csv" && git remote add origin https://github.com/PokeAPI/pokeapi 2>/dev/null || true)
+fi
+(cd "$DIR/pokeapi-csv" && git sparse-checkout init --no-cone && git sparse-checkout set /data/v2/csv/ \
+  && git fetch -q --depth 1 --filter=blob:none origin "$CAT_REV" && git checkout -q "$CAT_REV")
 clone PokeAPI/sprites sprites
 (cd "$DIR/sprites" && git sparse-checkout set --no-cone '/sprites/types/generation-viii/sword-shield/*' $(node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))" 2>/dev/null || (cd - >/dev/null; node -e "console.log(require('./content/icons.json').items.map(i=>'/sprites/items/'+i+'.png').join(' '))")) /LICENCE.txt)
-echo "sources ready in $DIR (species: $(echo $IDS | wc -w), moves: $(echo $MOVES | wc -w))"
+echo "sources ready in $DIR (species: $(echo $IDS | wc -w), moves: $(echo $MOVES | wc -w), catalogue CSVs at ${CAT_REV:0:8})"

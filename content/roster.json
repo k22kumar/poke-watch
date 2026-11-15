@@ -306,6 +306,13 @@
     },
     "heracross": {
       "behaviour": "tank"
+    },
+    "joltik": {
+      "behaviour": "ranged",
+      "shot": "hive"
+    },
+    "onix": {
+      "behaviour": "tank"
     }
   },
   "bosses": {
@@ -394,6 +401,10 @@
         [
           "mareep",
           1.2
+        ],
+        [
+          "joltik",
+          1.4
         ]
       ],
       "elites": [
@@ -424,6 +435,10 @@
         [
           "sandshrew",
           2
+        ],
+        [
+          "onix",
+          1.2
         ]
       ],
       "elites": [

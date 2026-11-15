@@ -1,0 +1,84 @@
+{
+  "status": "prepared locally; no cloud job submitted",
+  "authoritativeReference": "https://www.youtube.com/watch?v=4ZrdWpWqVpQ",
+  "sourceTitle": "Pokémon Anime BGM - Trainer Battle (1997~1998-M56B)",
+  "sourceWavSha256": "b3dcc1e77107059e0b1c2d610390da93731124938571cc9c23eeadbfd4b3a2f3",
+  "files": {
+    "source": {
+      "wav": "source.wav",
+      "mp3": "source.mp3",
+      "sampleRate": 44100,
+      "channels": 2,
+      "startSampleInReference": 0,
+      "endSampleInReference": 5556225,
+      "durationSeconds": 125.99149659863946,
+      "wavSha256": "96bce91427ddbc1d3b3be1a3d89961c47a9e9a6ef2076a06bb34304995a6fadc",
+      "mp3Sha256": "793aa2305d92625a384e66a62f6f60ff70a4658b06eecd7ae489870d0f68837a",
+      "pcmMaxError": 0.0
+    },
+    "pilot": {
+      "wav": "pilot.wav",
+      "mp3": "pilot.mp3",
+      "sampleRate": 44100,
+      "channels": 2,
+      "startSampleInReference": 50176,
+      "endSampleInReference": 1093632,
+      "durationSeconds": 23.661133786848072,
+      "wavSha256": "1bf0ee7b7c4a1841452d7e9a25bc3414fbb80b41dca035208a0dbeb19f265472",
+      "mp3Sha256": "32ca4bdd07fc7c5b890f95bb0431ea1941ad482d2387cfe57efa377cbd42e2d0",
+      "pcmMaxError": 0.0
+    },
+    "resolution-reference": {
+      "wav": "resolution-reference.wav",
+      "mp3": "resolution-reference.mp3",
+      "sampleRate": 44100,
+      "channels": 2,
+      "startSampleInReference": 5027400,
+      "endSampleInReference": 5336100,
+      "durationSeconds": 7.0,
+      "wavSha256": "37f8cf11df3b7c0e6fc4b90be29ba308e6d547e3178a87783ea189db43aa17ea",
+      "mp3Sha256": "b6e6c261d4b62f122df9f0eb762d742bba2940f43db4c271e5a658382cfc83df",
+      "pcmMaxError": 0.0
+    }
+  },
+  "jobs": [
+    {
+      "purpose": "Separate the original instrumentation and request candidate MIDI",
+      "endpoint": "mureka/api/song/stem",
+      "inputAudioFile": "source.mp3",
+      "input": {
+        "model": "audio-separation-3"
+      },
+      "documentation": "https://fal.ai/models/mureka/api/song/stem/api"
+    },
+    {
+      "purpose": "Create notation for lead transcription review",
+      "endpoint": "mureka/api/song/transcribe",
+      "inputAudioFile": "source.mp3",
+      "input": {
+        "title": "Trainer Battle M56B — transcription candidate"
+      },
+      "documentation": "https://fal.ai/models/mureka/api/song/transcribe/api"
+    },
+    {
+      "purpose": "Audition the cinematic treatment on a short reference excerpt",
+      "endpoint": "fal-ai/ace-step/audio-to-audio",
+      "inputAudioFile": "pilot.mp3",
+      "input": {
+        "edit_mode": "remix",
+        "original_tags": "instrumental, melodic battle soundtrack, original arrangement",
+        "original_lyrics": "",
+        "tags": "instrumental only, modern Tamil cinematic mass-action score, explosive heroic brass, full orchestral strings, interlocking parai and thavil percussion, urumi tension textures, cinematic low drums, controlled sub-bass, aggressive synth bass, dramatic percussion breaks, wide cinematic mix, preserve the reference lead melody note for note, preserve original lead pitch intervals and rhythmic phrasing, no new lead hook, no lyrics, no singing, no vocal chants, no spoken voice",
+        "lyrics": "[instrumental]"
+      },
+      "documentation": "https://fal.ai/models/fal-ai/ace-step/audio-to-audio/api"
+    }
+  ],
+  "execution": "After connection, upload the named local audio and add the returned audio_url to that job input. Use the available connector capabilities; inspect them before submission.",
+  "acceptance": {
+    "melody": "Compare the lead alone against the authoritative reference; verify every note, onset, duration, rest, accent and phrase. Candidate MIDI and generation prompts are not proof of fidelity.",
+    "arrangement": "Instrumental only; judge the Tamil cinematic treatment by listening. Reject new hooks, reharmonizations that obscure the lead, vocals or timing drift.",
+    "stems": "Derive aligned stems from one approved arrangement; never generate the four intensities independently. Preserve common start, loop length and melodic phase.",
+    "release": "Keep all returned candidates out of the runtime imports until melody, arrangement, loops and mix are verified."
+  }
+}

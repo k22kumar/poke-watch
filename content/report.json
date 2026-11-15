@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-23T00:44:24.104Z",
+ "generated": "2026-11-15T07:01:22.726Z",
  "sources": "network",
  "species": [
   {
@@ -1720,6 +1720,85 @@
     "uniqueFrames": 90,
     "atlas": "1020x82",
     "heightPx": 26
+   },
+   "warnings": []
+  },
+  {
+   "id": "joltik",
+   "dex": 595,
+   "role": "starter",
+   "levelUpMoves": 17,
+   "usableMoves": 12,
+   "sprite": {
+    "folder": "sprite/0595",
+    "available": [
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Twirl",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 504,
+    "uniqueFrames": 56,
+    "atlas": "957x24",
+    "heightPx": 10
+   },
+   "warnings": []
+  },
+  {
+   "id": "onix",
+   "dex": 95,
+   "role": "starter",
+   "levelUpMoves": 26,
+   "usableMoves": 22,
+   "sprite": {
+    "folder": "sprite/0095",
+    "available": [
+     "Walk",
+     "Attack",
+     "Slam",
+     "Shoot",
+     "Twirl",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 344,
+    "uniqueFrames": 42,
+    "atlas": "977x157",
+    "heightPx": 46
    },
    "warnings": []
   },
@@ -8511,6 +8590,342 @@
    "sha256": "437e5a6246cec73db4f021f9728062cecd30b30799bbaa813bea8baa20b50e91"
   },
   {
+   "url": "https://pokeapi.co/api/v2/pokemon/joltik",
+   "from": "cache",
+   "bytes": 120758,
+   "sha256": "d73eb2eec95733fe90c72bdacb14891a4b97a364af53b708b28f5051b2f4d4e2"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/595/",
+   "from": "cache",
+   "bytes": 22247,
+   "sha256": "95333add5aef6ce72615faea501552494ef5ab2c0688d67f83f666dfecb873c7"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/AnimData.xml",
+   "from": "cache",
+   "bytes": 5792,
+   "sha256": "5ce4b54e957c5ff2a5794510cbd3e353f32d00361e06f852276bbd956c5158c2"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Idle-Anim.png",
+   "from": "cache",
+   "bytes": 4105,
+   "sha256": "b8aaad04adeab0414221528cae065c9ab6e9aca359d4a43b39121b02fe6cb827"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Idle-Shadow.png",
+   "from": "cache",
+   "bytes": 1176,
+   "sha256": "d4cbb09a8673064377042a1bffacecc12cd987ed0695a373fd136b8336851d71"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Walk-Anim.png",
+   "from": "cache",
+   "bytes": 2870,
+   "sha256": "c629e355bf4d5cb46750da2dd1e5c166ab2709cb38e4277337a11c1918aab42c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Walk-Shadow.png",
+   "from": "cache",
+   "bytes": 398,
+   "sha256": "5b7da5ec1f5e3bbd45e745f9b11f74c95395d049bdbedf266199e31e0184c9df"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Attack-Anim.png",
+   "from": "cache",
+   "bytes": 8857,
+   "sha256": "afb6ff47b4b2c5cd65b047a3c26b6c25a33460ea195598b19a8f581659ab2985"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Attack-Shadow.png",
+   "from": "cache",
+   "bytes": 4117,
+   "sha256": "8646021c1324dcef5087dc82636587d2d311b3986a7f787e2bdf81e46f33c537"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Attack-Anim.png",
+   "from": "cache",
+   "bytes": 8857,
+   "sha256": "afb6ff47b4b2c5cd65b047a3c26b6c25a33460ea195598b19a8f581659ab2985"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Attack-Shadow.png",
+   "from": "cache",
+   "bytes": 4117,
+   "sha256": "8646021c1324dcef5087dc82636587d2d311b3986a7f787e2bdf81e46f33c537"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Shoot-Anim.png",
+   "from": "cache",
+   "bytes": 7489,
+   "sha256": "d4b41c0f37e6aa4f39bbcd32860dde6da84458e5bc228fb7bd4e54dcacaadd1c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Shoot-Shadow.png",
+   "from": "cache",
+   "bytes": 2986,
+   "sha256": "a16b38072c69427f6016bf13d2a6df9089cd35c75a29a758f1b442f357c90ffb"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Charge-Anim.png",
+   "from": "cache",
+   "bytes": 2637,
+   "sha256": "1ec0daf1c1d06ebf052cc53d8e568444b2a3e8af5e73e26726db36c68e8ed13a"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Charge-Shadow.png",
+   "from": "cache",
+   "bytes": 943,
+   "sha256": "1722176ffa5303daf5b8bc9d651ab6af6430c2ba0cce759bc827d833d1d01db9"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Hurt-Anim.png",
+   "from": "cache",
+   "bytes": 2727,
+   "sha256": "470fbec6b7a382c2164a19fd2e34fdf0a63d23322cc67f35c13e7f5846ce29d7"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Hurt-Shadow.png",
+   "from": "cache",
+   "bytes": 661,
+   "sha256": "f58b8e3aa784a211088bac1e458b16f9b1643bd9f13706565afb510d88abd87c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Sleep-Anim.png",
+   "from": "cache",
+   "bytes": 369,
+   "sha256": "f676062d610627c121faff53ef7dc7c39706f81905f5938a1db1d7fb2a332eeb"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/Sleep-Shadow.png",
+   "from": "cache",
+   "bytes": 156,
+   "sha256": "6ad2993e96ac9f414a743d3d81ce45b115accace9f2cb3a1e622f323398b09c0"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0595/Normal.png",
+   "from": "cache",
+   "bytes": 1759,
+   "sha256": "71ac9587db47288a01b3db30f16601f82211b123985ee3c1ed878cc409b8d5cf"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0595/credits.txt",
+   "from": "cache",
+   "bytes": 275,
+   "sha256": "06d6cd9ee2b8d0da56d64138ab59897e5799bc42d1fab23d33e7d29cc4bf254c"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/303/",
+   "from": "cache",
+   "bytes": 1112,
+   "sha256": "5435525aeb4f78d42e5044b5ef5b63bb4733cda035dd357a80f77187236942eb"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/169/",
+   "from": "cache",
+   "bytes": 24259,
+   "sha256": "9edebde79e1e162fb187bff3c2df7e5f3f27ac9d8e95682702074a649c2b61a3"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/81/",
+   "from": "cache",
+   "bytes": 28614,
+   "sha256": "af598fee38cc35435156ab53db4f75a493e63bc2e8e6a0a4a842d79dea42e8c4"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/527/",
+   "from": "cache",
+   "bytes": 30801,
+   "sha256": "10f6b18e2d6735d26d06a9bf999292495889019bb0a5303aa705bbf54ac72ab6"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/103/",
+   "from": "cache",
+   "bytes": 40966,
+   "sha256": "5f8664f739dc045665ab9a439951e10686e767b48f653390fb3675f30ad75f6f"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/450/",
+   "from": "cache",
+   "bytes": 32262,
+   "sha256": "0a67330ef2fa5e467cf87f588f5c08df30d02b70eaea9149d201128a6a2f27c5"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/380/",
+   "from": "cache",
+   "bytes": 26800,
+   "sha256": "319f6abd55514686bd5921f124b1054a335c9d773bf82fe7dc92a8920bc0573a"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/595.ogg",
+   "from": "cache",
+   "bytes": 8593,
+   "sha256": "6e484cc524e5c14c837001ba6b4ddad83105ac4a23b1f9dc70196d9b282aed03"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon/onix",
+   "from": "cache",
+   "bytes": 293477,
+   "sha256": "e4c1249abf34580c5fdabeee8e8e49418e9d78e12b94d16a0663b95888d872d6"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/95/",
+   "from": "cache",
+   "bytes": 34697,
+   "sha256": "0860760bbb3cc721f09acf303eb44f522dc17ab09cee30fc6a7accae2b560958"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/AnimData.xml",
+   "from": "cache",
+   "bytes": 4668,
+   "sha256": "bef58e51370ba3aa112a6d680a268c826e39bce0b249f0cc0f2626fd70429de1"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Idle-Anim.png",
+   "from": "cache",
+   "bytes": 24718,
+   "sha256": "905c8e04bef0f755573db9daf33457a8ac288721301ef366641b6aa1f4a9ac9d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Idle-Shadow.png",
+   "from": "cache",
+   "bytes": 2450,
+   "sha256": "163e17667fdb56585c84a96edf388a1bd88af94d2a522e9034776a72fdf07cb8"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Walk-Anim.png",
+   "from": "cache",
+   "bytes": 24660,
+   "sha256": "f6a619b7f34f8dab42165d9f1a61b92113f42675d175c6d75ccdf7c68acf03b0"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Walk-Shadow.png",
+   "from": "cache",
+   "bytes": 2431,
+   "sha256": "de80bd56fa39be14d6751f6a29b226b00362b4a9e75136329a362cb3b47cd6b2"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Attack-Anim.png",
+   "from": "cache",
+   "bytes": 60023,
+   "sha256": "e6c85899ef134fd1103d3e9a65a0aea0796761c3fbcf604a97111e4834239d08"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Attack-Shadow.png",
+   "from": "cache",
+   "bytes": 10468,
+   "sha256": "70e680a8bfb517ac1328ef59ec397a65d0c907233865ddfe89a203f7f664c1da"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Shoot-Anim.png",
+   "from": "cache",
+   "bytes": 42346,
+   "sha256": "4460befebf8872697eb992c1caf45ec772ba37fcbd029c9b45cb7e5eb7d30621"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Shoot-Shadow.png",
+   "from": "cache",
+   "bytes": 6291,
+   "sha256": "55ca8cae683ecc0c6d905d81082058d6f08acf16add18d775c81bc06f996daa9"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Charge-Anim.png",
+   "from": "cache",
+   "bytes": 22699,
+   "sha256": "994a41fb7703a39ba4817126960cc3f29043350e20b24c3495cc7d5119ad749a"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Charge-Shadow.png",
+   "from": "cache",
+   "bytes": 3996,
+   "sha256": "c77553c082555e2d316f728cfa82127aed948765ef9ddd1cf5f629831d876202"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Hurt-Anim.png",
+   "from": "cache",
+   "bytes": 12222,
+   "sha256": "b8fa560fed71882b5f28ccfe5c6019ed1bfb4193a2d7f3b15e90d4a419618d32"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Hurt-Shadow.png",
+   "from": "cache",
+   "bytes": 1475,
+   "sha256": "4f20abd0b62127160502cc40ddaec247111b32e616e4d9ae5db2e07ba06ce633"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Sleep-Anim.png",
+   "from": "cache",
+   "bytes": 1594,
+   "sha256": "c64414dd4669b2bc7dd4c19f85da32c2f2ce3d1ed25980f5455582d56e54c247"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/Sleep-Shadow.png",
+   "from": "cache",
+   "bytes": 200,
+   "sha256": "74d17a74aad83d81b2eef239cfb65c11c64ae8e5c1f59369ba30c21b7e933fdc"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0095/Normal.png",
+   "from": "cache",
+   "bytes": 1916,
+   "sha256": "7bf24a1f4ee86430ccb64ddcf27accea31fa2d1e33f043d4bdf98ade7ffcfa5c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0095/credits.txt",
+   "from": "cache",
+   "bytes": 128,
+   "sha256": "1975948437d6b6b148172cfb79dcec512dfac58ce90e7e79b740c63cec2b8df7"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/41/",
+   "from": "cache",
+   "bytes": 1164,
+   "sha256": "a9d0612a0f1afd0bed5a27703c1f48e69bd685a83581a6e78728a9f11e8f147a"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/20/",
+   "from": "cache",
+   "bytes": 30035,
+   "sha256": "d107e1fa64de080f63f0ce93649c0d598f477167229cb27454f3cc0c638f0638"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/99/",
+   "from": "cache",
+   "bytes": 37236,
+   "sha256": "a86211a56ef68a9aae6393f1f7f89d16ad01966ce9f8d4759dc9455d188700e7"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/317/",
+   "from": "cache",
+   "bytes": 59878,
+   "sha256": "a64e5b5652d17968a95abeef3147b22728b4f85013e3d0c350fab03babf38099"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/225/",
+   "from": "cache",
+   "bytes": 30578,
+   "sha256": "8a32a7f241a24ee3fc941b0b0e21d33305c07abdfaafe601653709e40156ad5d"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/21/",
+   "from": "cache",
+   "bytes": 29798,
+   "sha256": "61f3220c1544ba735a031be905c10f2915038f209562728e3691c2efbde0f733"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/231/",
+   "from": "cache",
+   "bytes": 54741,
+   "sha256": "a4b3fd2a0053dd0de9634a3d3a0dc534fc3dad0ffec9cf09c3b49e102239fe14"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/95.ogg",
+   "from": "cache",
+   "bytes": 16625,
+   "sha256": "dc10a195219d228c60de61041816c9d38916b85096a3fa3933614169f2ca66cb"
+  },
+  {
    "url": "https://pokeapi.co/api/v2/pokemon/sudowoodo",
    "from": "cache",
    "bytes": 288306,
@@ -8631,12 +9046,6 @@
    "sha256": "7935d457344b92589fb7d12c115042f4474c6c31ba23640cb9b6d6a247b899aa"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/21/",
-   "from": "cache",
-   "bytes": 29798,
-   "sha256": "61f3220c1544ba735a031be905c10f2915038f209562728e3691c2efbde0f733"
-  },
-  {
    "url": "https://pokeapi.co/api/v2/move/383/",
    "from": "cache",
    "bytes": 28935,
@@ -8671,12 +9080,6 @@
    "from": "cache",
    "bytes": 32429,
    "sha256": "bb24f53818ce5531032d527f720f30e815c72a497f16cc1dd3091b4e2163615e"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/317/",
-   "from": "cache",
-   "bytes": 59878,
-   "sha256": "a64e5b5652d17968a95abeef3147b22728b4f85013e3d0c350fab03babf38099"
   },
   {
    "url": "https://pokeapi.co/api/v2/move/715/",
@@ -9188,5 +9591,93 @@
    "bytes": 14000,
    "sha256": "4b4000f538b0d4a9280aef0bba9aac2ed780591ae177476020df8419c42ce300"
   }
- ]
+ ],
+ "catalogue": {
+  "source": {
+   "repo": "PokeAPI/pokeapi",
+   "revision": "8a92bfa7dab2f12b84b5d151562f9857c133ff30",
+   "kind": "published CSV snapshot",
+   "files": [
+    {
+     "file": "pokemon.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon.csv",
+     "from": "cache",
+     "bytes": 47082,
+     "sha256": "16c81c33188b0eac403aa2f759fcbe9e42c611f722d263f5b5a6a5bff9f8ce6b"
+    },
+    {
+     "file": "pokemon_species.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_species.csv",
+     "from": "cache",
+     "bytes": 56884,
+     "sha256": "e66e2eeb25fd3836b0ebab6bf87bbf01960aa3c0555e2bac495fa8393c5e0c45"
+    },
+    {
+     "file": "pokemon_species_names.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_species_names.csv",
+     "from": "cache",
+     "bytes": 404970,
+     "sha256": "5a86cc021d01109949999e7fa1459414221ba8918469151251e33ffa19eeb88c"
+    },
+    {
+     "file": "pokemon_types.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_types.csv",
+     "from": "cache",
+     "bytes": 19058,
+     "sha256": "f1fc4bfd657a034ea3bf6972423b10276424aa068577b304a78a08996425ba05"
+    },
+    {
+     "file": "types.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/types.csv",
+     "from": "cache",
+     "bytes": 321,
+     "sha256": "37f039c8d722f47d51ba1c5c5ecf9b7007235b1a9a1af2827645c777b70307c8"
+    },
+    {
+     "file": "pokemon_forms.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_forms.csv",
+     "from": "cache",
+     "bytes": 63721,
+     "sha256": "99bf8f7ad4dc1f2e291357a090cef6a575623ec3cbf9030d0e33656e6e608ae2"
+    },
+    {
+     "file": "pokemon_form_names.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_form_names.csv",
+     "from": "cache",
+     "bytes": 149219,
+     "sha256": "a24fb943ac39876375ad5c53f3305fd4a6ccb7afacc91ab192579bb50c28f1d1"
+    },
+    {
+     "file": "pokemon_evolution.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_evolution.csv",
+     "from": "cache",
+     "bytes": 37836,
+     "sha256": "e78be51c8805551fffccd5551a556e752e4a76ff1b52482b53b409dd3882e1dd"
+    },
+    {
+     "file": "version_groups.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/version_groups.csv",
+     "from": "cache",
+     "bytes": 726,
+     "sha256": "28da8d89d8eb4966941f81a9e62b3990510ed4d76dd774158246551a8e7707a7"
+    },
+    {
+     "file": "regions.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/regions.csv",
+     "from": "cache",
+     "bytes": 105,
+     "sha256": "dbd1ecc3f014b67c1a9452611fca5d13542ebc3524f3a4188b5a6cb1ca911d79"
+    }
+   ]
+  },
+  "totals": {
+   "records": 269,
+   "species": 210,
+   "varieties": 59,
+   "families": 108,
+   "edges": 102,
+   "singletons": 39,
+   "conditions": 28
+  }
+ }
 }

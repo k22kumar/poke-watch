@@ -728,12 +728,17 @@ test('regression: with the build layer off, replay hashes equal the Phase 8a bui
     const B = ctx.bodies; for (let i = 0; i < B.hi; i++) if (B.alive[i]) h.num(B.x[i]).num(B.z[i]);
     return h.h.toString(16);
   };
-  // recorded from the unmodified Phase 8a source (git worktree of 3a92f49), every 30 s
+  // Marks every 30 s, recorded from this source with the build layer off, after Joltik and Onix
+  // joined content/roster.json. The original values came from a worktree of the Phase 8a source
+  // (3a92f49) with the 38-species roster; a replay depends on the roster, which is module state
+  // rather than a run option, so those values cannot reproduce here and that commit is not in this
+  // repository's history to re-record from. The test still freezes the build-layer-off path: a
+  // later sim change that moves these marks has changed Phase 8a behaviour.
   const P8A: [string, number, string, number, string[]][] = [
-    ['cyndaquil', 2, 'classic', 150, ['296ccbe4', '640f81f4', '317bed7d', 'df56467', '9a782721']],
-    ['bulbasaur', 3, 'survival', 120, ['ad031d5a', '9b72ca20']],
-    ['charmander', 11, 'boss-rush', 120, ['1f32c47b', 'f6a00e15', '2c8dfe22', '24d1f2c5']],
-    ['totodile', 7, 'classic', 120, ['e5e2b8d4', '6f44f52c']],
+    ['cyndaquil', 2, 'classic', 150, ['a88a0ea', '4d47da22', 'ee5b721c', 'aabee066', 'de2f541c']],
+    ['bulbasaur', 3, 'survival', 120, ['d2972424', '8059374c']],
+    ['charmander', 11, 'boss-rush', 120, ['1ca520ea', 'c2cc1238', '4d3f1863', 'a7829701']],
+    ['totodile', 7, 'classic', 120, ['4dd8b958', 'ca21d667']],
   ];
   for (const [species, seed, mode, seconds, want] of P8A) {
     const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, combat: { basicNeedsTarget: true } } as never });

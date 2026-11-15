@@ -8,6 +8,9 @@ export const SPECIES_HABITAT: Record<string, number> = {
   geodude: HAB.rock, houndour: HAB.dry | HAB.rock, zubat: HAB.forest | HAB.rock, paras: HAB.forest | HAB.water,
   vulpix: HAB.dry, slugma: HAB.rock | HAB.dry, swinub: HAB.water | HAB.rock, delibird: HAB.meadow | HAB.rock,
   gastly: HAB.forest | HAB.rock,
+  // Joltik clings to plants and to cave walls (Pinwheel Forest, Chargestone Cave); Onix tunnels
+  // through rock and dry ground (Rock Tunnel, Mt. Moon, the desert routes).
+  joltik: HAB.grass | HAB.forest, onix: HAB.rock | HAB.dry,
 };
 
 /** Habitat preference changes encounter odds, never eligibility. */

@@ -12,6 +12,8 @@ import { cries } from '../assets/cries';
 import { SfxEngine } from './sfx';
 import { TRACKS, TrackPlayer, makeWaves, type MusicSlot, type TrackDef } from './music';
 import SLOTS from '../content/music.json';
+import { AdaptivePlayer, ScoreDirector, type CombatMusicInput, type ScoreCue } from './adaptive';
+import { ADAPTIVE_SCORE } from './adaptive-score';
 
 export interface MixSettings { master: number; music: number; sfx: number; cries: number; muted: boolean }
 export const MIX_DEFAULT: MixSettings = { master: 0.8, music: 0.55, sfx: 0.8, cries: 0.85, muted: false };
@@ -29,6 +31,10 @@ export class Audio {
   private noise!: AudioBuffer;
   private slots: Record<string, MusicSlot> = SLOTS as Record<string, MusicSlot>;
   private slotBuffers = new Map<string, AudioBuffer>();
+  private adaptive: AdaptivePlayer | null = null;
+  private scoreDirector = new ScoreDirector();
+  private victoryTimer?: ReturnType<typeof setTimeout>;
+  get adaptiveStatus() { return { ready: this.adaptive?.ready ?? false, playing: this.adaptive?.playing ?? false, intensity: this.adaptive?.state ?? 'anticipation' }; }
   // director state
   state: MusicState = 'none';
   private player: TrackPlayer | null = null;
@@ -70,6 +76,12 @@ export class Audio {
     this.applyVolume();
     void cries.preload(c);
     void this.loadSlots();
+    this.adaptive = new AdaptivePlayer(c, this.musicDuck, ADAPTIVE_SCORE);
+    void this.adaptive.load().then(() => {
+      if (this.state === 'none' || this.state === 'ended') return;
+      this.player?.fade(0, 0.4); this.player?.stop(c.currentTime + 0.45); this.player = null;
+      this.syncAdaptive();
+    }).catch((error) => { console.warn('Adaptive score unavailable; keeping the original score', error); });
     if (this.state !== 'none') { const s = this.state; this.state = 'none'; this.go(s, 'audio unlocked'); }
   }
 
@@ -86,7 +98,7 @@ export class Audio {
     if (!this.ctx) return;
     const m = this.mix;
     this.master.gain.gain.value = m.muted ? 0 : m.master;
-    this.music.gain.gain.value = m.music * 0.7;
+    this.music.gain.gain.value = (this.paused ? 0.45 : 1) * m.music * 0.7;
     this.sfxBus.gain.gain.value = m.sfx;
     this.cryBus.gain.gain.value = m.cries;
   }
@@ -185,6 +197,12 @@ export class Audio {
   }
   /** switch music state; quantised to the current bar unless `now` */
   private trackKey = '';
+  private syncAdaptive() {
+    if (!this.adaptive?.ready) return;
+    if (this.state === 'none' || this.state === 'ended') { this.adaptive.stop(); return; }
+    const band = this.state === 'boss' ? 'climax' : this.state === 'battle' ? 'combat' : this.scoreDirector.state;
+    this.adaptive.start(band); this.adaptive.setState(band);
+  }
   private go(state: MusicState, why: string, now = false) {
     const key = state === 'explore' ? 'route_' + this.biome : state;
     if (key === this.trackKey && this.player) return;
@@ -194,6 +212,7 @@ export class Audio {
     this.state = state; this.dwell = 0; this.pressure = 0;
     const c = this.ctx;
     if (!c) return;
+    if (this.adaptive?.ready) { this.syncAdaptive(); return; }
     const def = this.trackFor(state);
     const old = this.player;
     // start on the old track's next bar boundary when it's close, else almost immediately
@@ -210,6 +229,8 @@ export class Audio {
   private stingerPlay(id: string) {
     const c = this.ctx;
     if (!c) return;
+    const cue: ScoreCue | null = id === 'victory' ? (this.state === 'ended' ? 'victory' : 'accent') : id === 'defeat' ? 'defeat' : id === 'item' || id === 'evolved' ? 'accent' : null;
+    if (cue && this.adaptive?.ready && this.adaptive.cue(cue, this.state === 'ended')) return;
     const def = TRACKS[id];
     this.stinger?.stop();
     const buf = this.slotBuffers.get(id);
@@ -222,16 +243,18 @@ export class Audio {
   }
 
   /** title / select screens */
-  titleMusic() { this.paused = false; this.musicFilter && this.setPausedFilter(false); this.go('title', 'menu'); }
-  stopMusic() { this.go('none', 'stop'); }
+  titleMusic() { clearTimeout(this.victoryTimer); this.scoreDirector.reset(); this.adaptive?.cancelCues(); this.paused = false; this.musicFilter && this.setPausedFilter(false); this.go('title', 'menu'); }
+  stopMusic() { clearTimeout(this.victoryTimer); this.adaptive?.cancelCues(); this.go('none', 'stop'); }
+  resetMusicRun() { clearTimeout(this.victoryTimer); this.scoreDirector.reset(); this.adaptive?.cancelCues(); this.adaptive?.setState('anticipation'); }
   /** start of a run or a region */
-  setBiome(b: BiomeDef) { const changed = b.id !== this.biome; this.biome = b.id; if (changed || this.state !== 'explore') this.go('explore', changed ? 'region ' + b.id : 'run start', changed && this.state === 'explore'); }
+  setBiome(b: BiomeDef) { clearTimeout(this.victoryTimer); if (this.state === 'title' || this.state === 'ended') { this.scoreDirector.reset(); this.adaptive?.cancelCues(); } const changed = b.id !== this.biome; this.biome = b.id; if (changed || this.state !== 'explore') this.go('explore', changed ? 'region ' + b.id : 'run start', changed && this.state === 'explore'); }
   onBossSpawn() { this.go('boss', 'boss appears', true); }
-  onBossDead() { this.stingerPlay('victory'); this.go('explore', 'boss defeated'); }
+  onBossDead() { this.scoreDirector.reset(); this.stingerPlay('victory'); this.go('explore', 'boss defeated'); }
+  onMusicClimax() { this.scoreDirector.emphasize(); this.adaptive?.setState('climax'); }
   onEvolveStart() { this.resumeAfterEvolution = this.state === 'evolution' ? 'explore' : this.state; this.go('evolution', 'evolution', true); }
   onEvolveEnd() { this.stingerPlay('evolved'); this.go(this.resumeAfterEvolution === 'none' ? 'explore' : this.resumeAfterEvolution, 'evolution done'); }
-  onDefeat() { this.go('ended', 'defeat', true); this.stingerPlay('defeat'); }
-  onVictory() { this.go('ended', 'run won', true); this.stingerPlay('victory'); setTimeout(() => this.go('title', 'after victory'), 4000); }
+  onDefeat() { clearTimeout(this.victoryTimer); this.go('ended', 'defeat', true); this.stingerPlay('defeat'); }
+  onVictory() { clearTimeout(this.victoryTimer); this.go('ended', 'run won', true); this.stingerPlay('victory'); this.victoryTimer = setTimeout(() => this.titleMusic(), 6500); }
   setPaused(p: boolean) { this.paused = p; this.setPausedFilter(p); }
   private setPausedFilter(p: boolean) {
     if (!this.ctx) return;
@@ -241,11 +264,17 @@ export class Audio {
   }
 
   /** per-frame update: schedules music and decides battle vs explore with hysteresis */
-  tick(dt = 1 / 60, info?: { inRun: boolean; enemiesNear: number; enemies: number; boss: boolean }) {
+  tick(dt = 1 / 60, info?: CombatMusicInput) {
     const c = this.ctx;
     if (!c) return;
     this.player?.pump(); this.stinger?.pump();
+    this.adaptive?.pump();
     if (!info || !info.inRun || this.paused) return;
+    if (this.adaptive?.ready) {
+      if (this.state !== 'ended' && this.state !== 'none') this.adaptive.setState(this.scoreDirector.update(dt, info));
+      this.intensity = Math.min(1, info.enemiesNear / 16);
+      return;
+    }
     this.dwell += dt;
     if (this.state === 'explore' || this.state === 'battle') {
       // close crowd for 2.5 s → battle; nearly empty surroundings for 6 s → back to the route;

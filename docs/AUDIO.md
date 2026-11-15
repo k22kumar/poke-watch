@@ -8,7 +8,7 @@ How Poke-Watch sounds, where each sound comes from, and what has and hasn't been
 |---|---|---|---|---|
 | Pokémon cries (38) | 38 latest-available cries from PokeAPI/cries (OGG Vorbis) | Each cry is also stored as an MP3 transcode (ffmpeg) for browsers that can't decode Vorbis; loudness is normalised per cry at load | Synthesised fallback voice per species, used only when both files fail to decode | None |
 | Move sounds (187) | None | None | Every move: a type material, an attack-shape motion and, for 38 moves, a dedicated signature layer (table below) | **No authentic main-series move SFX.** No licensable source was available; the original set is a stand-in |
-| Music (8 loops, 4 stingers) | None | None | Original chiptune score written for Poke-Watch, played by an in-game sequencer | **No official soundtrack.** It isn't licensable for this project; the music slots below take recordings you have rights to |
+| Music | Trainer Battle (1997–1998-M56B) reference recording retained as the melodic anchor | Adaptive percussion remix prototype; four synchronized layers and resolution cues | Synthesized added percussion, plus the original fallback score | Full Tamil cinematic reorchestration and listening approval remain unfinished |
 | UI, level-up, pickups, boss alarm | None | None | Synthesised | None |
 
 "Verified" in this document means measured in a recording of the game's own output (the mixer's `captureStream`, through headless Chromium), not that a person listened to it. Recordings are in `shots/audio/` of the working folder (`cries`, `cryfix`, `moves`, `music`, `loop`, `play`; `.webm` and `.wav`, with a `.json` of timed labels and bus meters).
@@ -17,7 +17,7 @@ How Poke-Watch sounds, where each sound comes from, and what has and hasn't been
 
 ### Era audit
 
-PokeAPI/cries offers legacy and latest recordings. Both were measured for all 38 Pokémon with ffmpeg `volumedetect`.
+PokeAPI/cries offers legacy and latest recordings. Both were measured for 38 of the 40 Pokémon with ffmpeg `volumedetect`; Joltik and Onix were imported on a machine without ffmpeg, so they ship their latest OGG recording with no measured loudness and no MP3 fallback (`npm run content` on a machine with ffmpeg fills both in).
 
 | | Legacy | Latest |
 |---|---|---|
@@ -231,6 +231,12 @@ Verified (`play` recording, 45 s of bot play from 4:32 in the meadow, through th
 | X-Scissor | Bug | hive | strike |  |  | Original synthesis |
 
 ## Music
+
+### Default adaptive reference remix
+
+The game now loads the four local stems in `content/music/adaptive/`, using the source selected by the user: [Trainer Battle (1997–1998-M56B)](https://www.youtube.com/watch?v=4ZrdWpWqVpQ). The original recorded mix retains the lead at its original pitch and timing. Added synthesized percussion builds through anticipation, combat, surge and climax. This is a **prototype reference remix, not a finished reorchestration or isolated melody transcription**.
+
+See [the score notes](../content/music/adaptive/README.md) for files, thresholds, limitations and reproduction. `src/audio/adaptive.ts` controls the shared sample clock, inferred bar boundaries, gain ramps and end cues. `src/audio/audio.ts` connects it to combat, health, objectives, bosses, pause, mute, ducking and the existing mixer. The default score works offline and has no YouTube player. The following older coverage and recording notes describe the original fallback score, which remains available if the new assets cannot decode.
 
 ### What plays
 

@@ -176,6 +176,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   renderer.resetView(ctx);
   acc = 0; hitstop = 0; paused = false; pendingCard = undefined;
   ui.startHud(ctx);
+  audio.resetMusicRun();
   audio.setBiome(ctx.world.biome);
   audio.cry(species, { volume: 0.6 });
   (window as any).pokewatch.ctx = ctx;
@@ -217,7 +218,7 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
       // boss cries play at their recorded pitch; see docs/AUDIO.md
       case 'bossSpawn': ui.banner(SPECIES_BY_ID[e.species].name, SPECIES_BY_ID[e.species].boss?.title ?? 'appears!', 3); audio.boss(); audio.onBossSpawn(); setTimeout(() => audio.cry(e.species, { volume: 0.8, gate: 0 }), 450); break;
-      case 'bossPhase': ui.banner('It\'s getting angry!', '', 1.4); break;
+      case 'bossPhase': ui.banner('It\'s getting angry!', '', 1.4); audio.onMusicClimax(); break;
       case 'bossDead': ui.banner('Boss defeated!', 'Step into the portal', 3); audio.cry(e.species, { volume: 0.8, pitch: 0.85, gate: 0 }); audio.onBossDead(); break;
       case 'finalSwarm': ui.banner('FINAL SWARM', 'They keep getting tougher…', 2.5); break;
       case 'swarm': ui.banner('Stampede!', '', 1.2); break;
@@ -249,7 +250,7 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         const what = e.kind === 'hold' ? 'Hold the pad!' : e.kind === 'hunt' ? 'A marked Pokémon is roaming!' : 'Carry the Egg to the goal!';
         const why = e.kind === 'hold' ? 'Stand on it for 30 s · pays an item ball' : e.kind === 'hunt' ? 'Defeat it and it may join you' : 'Walk into it · it pays an evolution';
         if (e.phase === 'offer') { ui.banner(what, why, 2.6); audio.chest(); }
-        else if (e.phase === 'done') { ui.banner(e.kind === 'hunt' ? 'Hunt complete!' : e.kind === 'hold' ? 'Pad charged!' : 'Egg delivered!', e.reward === 'recruit' ? 'It wants to join you' : e.reward === 'item' ? 'You found an item ball!' : e.reward === 'heal' ? 'Your squad is fully healed' : '', 2.2); audio.levelUp(); }
+        else if (e.phase === 'done') { ui.banner(e.kind === 'hunt' ? 'Hunt complete!' : e.kind === 'hold' ? 'Pad charged!' : 'Egg delivered!', e.reward === 'recruit' ? 'It wants to join you' : e.reward === 'item' ? 'You found an item ball!' : e.reward === 'heal' ? 'Your squad is fully healed' : '', 2.2); audio.levelUp(); audio.onMusicClimax(); }
         else if (e.phase === 'expired') ui.banner('The objective slipped away', 'Here they come…', 1.8);
         else if (e.phase === 'failed') audio.brace();
         break;
@@ -413,7 +414,7 @@ function audioTick(dt: number) {
       for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const dx = E.x[i] - P.x, dz = E.z[i] - P.z; if (dx * dx + dz * dz < 144) n++; }
       enemiesNear = n;
     }
-    audio.tick(dt, { inRun: c.state === 'play', enemiesNear, enemies: c.enemies.count, boss: c.director.bossIndex >= 0 && c.enemies.alive[c.director.bossIndex] === 1 });
+    audio.tick(dt, { inRun: c.state === 'play', enemiesNear, enemies: c.enemies.count, boss: c.director.bossIndex >= 0 && c.enemies.alive[c.director.bossIndex] === 1, health: c.player.hp / Math.max(1, c.player.maxHp), objective: c.objective?.phase === 'active' });
   } else audio.tick(dt);
 }
 

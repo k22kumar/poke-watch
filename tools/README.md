@@ -13,9 +13,11 @@ Headless-Chromium scripts used to check the build. Each takes the path to `dist/
 | `cap.mjs … tidescenes.json` | Shoal Grotto's tide (docs/HABITATS.md "Tide"): overview at low and high water, a non-swimmer in the hall during the warning and at the flood, a Water type swimming the flooded hall |
 | `cap.mjs … lagoonscenes.json` | Cascade Lagoon (docs/HABITATS.md "Lagoon"): the islet from above at seeds 1 and 3 (wide), the trainer on the raised bank and on the canopy path, the shore spawn, the dusk variant |
 | `cap.mjs … sanctscenes.json` | Spear Sanctuary (docs/HABITATS.md "Sanctuary"): the court from above and from behind the trainer (plinth, landmark, columns), the foothill spawn, the platform stair, inside the gallery, on the balcony, the snow variant |
+| `cap.mjs … sizescenes.json` | Visible size (docs/ART_BIBLE.md §4 "Visible size"): Rattata, Charmander, Charmeleon and Venusaur at one fixed camera, a wild row, a boss at its authored scale, and an evolution transition. The `eval` steps print `pokewatch.renderer.sizes()` |
 | `traycheck.mjs <html>` | The banked-pick tray clears on quit, restart and run end, and takes no picks while paused |
 | `film.mjs <html> <outdir>` | Frame sequences for footage (combat, moving cast, boss, evolution); assemble with ffmpeg |
 | `navcheck.mjs <html>` | Keyboard and virtual-gamepad navigation through every screen (27 steps) |
 | `audiocheck.mjs <html> <phase> <outdir>` | Records the mixer output: `cries`, `cryfix`, `moves`, `music`, `loop`, `play` |
 | `slotcheck.mjs <html>` | Licensed-recording slot looping, with a generated test tone |
+| `musiccheck.mjs <html>` | Actual adaptive stem decoding, loop configuration, melody continuity through intensity changes, mixer, defeat and restart |
 | `perf.mjs <html>` | Frame, render and sim-step timings in a dense boss fight |

@@ -1,5 +1,7 @@
 # Music slots
 
+The default adaptive reference remix and its editable stem exports are documented in [adaptive/README.md](adaptive/README.md). The slots below belong to the original fallback director.
+
 Poke-Watch ships original music (see `docs/AUDIO.md`). If you have recordings you are entitled to use, they can replace any music state without code changes:
 
 ```json

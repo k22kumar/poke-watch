@@ -3416,6 +3416,216 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   }
  },
  {
+  "id": "joltik",
+  "name": "Joltik",
+  "dex": 595,
+  "types": [
+   "bug",
+   "electric"
+  ],
+  "elements": [
+   "hive",
+   "volt"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 47,
+   "def": 50,
+   "spa": 57,
+   "spd": 50,
+   "spe": 65
+  },
+  "height": 0.9,
+  "art": "pokemon:joltik",
+  "behaviour": "ranged",
+  "shot": "hive",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
+    [
+     1,
+     "fury_cutter"
+    ],
+    [
+     1,
+     "leech_life"
+    ],
+    [
+     4,
+     "electroweb"
+    ],
+    [
+     8,
+     "bug_bite"
+    ],
+    [
+     20,
+     "electro_ball"
+    ],
+    [
+     24,
+     "agility"
+    ],
+    [
+     26,
+     "slash"
+    ],
+    [
+     28,
+     "sucker_punch"
+    ],
+    [
+     34,
+     "signal_beam"
+    ],
+    [
+     37,
+     "discharge"
+    ],
+    [
+     48,
+     "bug_buzz"
+    ]
+   ],
+   "abilities": [
+    "compound_eyes",
+    "unnerve",
+    "swarm"
+   ],
+   "heightM": 0.1,
+   "weightKg": 0.6,
+   "evolveLevel": 36,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "onix",
+  "name": "Onix",
+  "dex": 95,
+  "types": [
+   "rock",
+   "ground"
+  ],
+  "elements": [
+   "stone",
+   "quake"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 45,
+   "def": 160,
+   "spa": 30,
+   "spd": 45,
+   "spe": 70
+  },
+  "height": 3.02,
+  "art": "pokemon:onix",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "bind"
+    ],
+    [
+     1,
+     "harden"
+    ],
+    [
+     1,
+     "rock_throw"
+    ],
+    [
+     1,
+     "rollout"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "smack_down"
+    ],
+    [
+     8,
+     "rock_polish"
+    ],
+    [
+     10,
+     "rage"
+    ],
+    [
+     10,
+     "rock_tomb"
+    ],
+    [
+     11,
+     "bulldoze"
+    ],
+    [
+     12,
+     "dragon_breath"
+    ],
+    [
+     18,
+     "rock_slide"
+    ],
+    [
+     20,
+     "dig"
+    ],
+    [
+     20,
+     "gyro_ball"
+    ],
+    [
+     22,
+     "sandstorm"
+    ],
+    [
+     25,
+     "slam"
+    ],
+    [
+     28,
+     "sand_tomb"
+    ],
+    [
+     34,
+     "high_horsepower"
+    ],
+    [
+     35,
+     "earthquake"
+    ],
+    [
+     38,
+     "iron_tail"
+    ],
+    [
+     45,
+     "double_edge"
+    ],
+    [
+     46,
+     "stone_edge"
+    ]
+   ],
+   "abilities": [
+    "rock_head",
+    "sturdy",
+    "weak_armor"
+   ],
+   "heightM": 8.8,
+   "weightKg": 210,
+   "evolveTrigger": "trade"
+  }
+ },
+ {
   "id": "sudowoodo",
   "name": "Sudowoodo",
   "dex": 185,
@@ -5521,6 +5731,45 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/reversal"
  },
  {
+  "key": "electroweb",
+  "name": "Electroweb",
+  "element": "volt",
+  "cls": "special",
+  "power": 55,
+  "accuracy": 95,
+  "source": "pokeapi move/electroweb",
+  "archetype": "nova"
+ },
+ {
+  "key": "bug_bite",
+  "name": "Bug Bite",
+  "element": "hive",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-bite"
+ },
+ {
+  "key": "bind",
+  "name": "Bind",
+  "element": "plain",
+  "cls": "physical",
+  "power": 15,
+  "accuracy": 85,
+  "source": "pokeapi move/bind",
+  "ailment": "root",
+  "ailmentChance": 100
+ },
+ {
+  "key": "rock_tomb",
+  "name": "Rock Tomb",
+  "element": "stone",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 95,
+  "source": "pokeapi move/rock-tomb"
+ },
+ {
   "key": "slam",
   "name": "Slam",
   "element": "plain",
@@ -5528,6 +5777,15 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 80,
   "accuracy": 75,
   "source": "pokeapi move/slam"
+ },
+ {
+  "key": "iron_tail",
+  "name": "Iron Tail",
+  "element": "alloy",
+  "cls": "physical",
+  "power": 100,
+  "accuracy": 75,
+  "source": "pokeapi move/iron-tail"
  },
  {
   "key": "hammer_arm",
@@ -5546,15 +5804,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 120,
   "accuracy": 100,
   "source": "pokeapi move/wood-hammer"
- },
- {
-  "key": "rock_tomb",
-  "name": "Rock Tomb",
-  "element": "stone",
-  "cls": "physical",
-  "power": 60,
-  "accuracy": 95,
-  "source": "pokeapi move/rock-tomb"
  },
  {
   "key": "head_smash",
@@ -5959,6 +6208,10 @@ export const STAGE_TABLES: { biome: string; spawns: [string, number][]; elites: 
    [
     "mareep",
     1.2
+   ],
+   [
+    "joltik",
+    1.4
    ]
   ],
   "elites": [
@@ -5989,6 +6242,10 @@ export const STAGE_TABLES: { biome: string; spawns: [string, number][]; elites: 
    [
     "sandshrew",
     2
+   ],
+   [
+    "onix",
+    1.2
    ]
   ],
   "elites": [

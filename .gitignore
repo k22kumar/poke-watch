@@ -9,3 +9,8 @@ h8b-summary*.txt
 .env
 .env.*
 *.log
+content/music/adaptive/masters/
+content/music/adaptive/previews/
+content/music/adaptive/production/*.wav
+content/music/adaptive/production/*.mp3
+content/music/adaptive/production/candidates/

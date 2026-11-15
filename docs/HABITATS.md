@@ -506,10 +506,15 @@ collision radius and step, so sprite height only moves the eyes.
 | trainer (all 18 playable species, 0.9–1.77 m tall; jump and glide off; drops ≤ 4 m) | 0.55 m | 0.6 / 0.6 m | 0.7–1.42 m | yes |
 | trainer-jump (ordinary jump, apex 1.84 m, any drop) | 0.55 m | 0.6 / 2.44 m | 0.7–1.42 m | only for the no-player-only-perch gate |
 | wild-small (smallest ground wild Pokémon) | 0.36 m | 0.6 m | 0.5–0.9 m | yes |
-| wild-elite (largest ground wild Pokémon at elite ×2) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
+| wild-elite (largest ground body the director spawns: an elite-capable Pokémon at ×2, any other ground wild Pokémon at ×1, never below the validated 1.42 m floor) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
 | boss (largest ground boss) | 1.8 m | 0.6 m | 1.2–2.5 m | reported (bosses arrive after objectives close) |
 
-Treads are 5 tiles wide so the 2.84 m elite fits on diagonals. Swim, flight, glide and burrow add nothing essential:
+Only a species in a region's `elites` is ever spawned at elite or alpha scale (`sim/director.ts`), so the elite
+multiplier is applied to those species alone. An ordinary encounter that is larger than an elite still counts at ×1:
+Onix is 3.02 m tall (radius 1.21 m) and Badlands wild, and multiplying it would ask every approach for a 2.42 m radius
+that no recipe validates. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was
+accepted against, so roster edits cannot quietly loosen the approaches; raising it needs a `HAB_VERSION` bump and a new
+baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals. Swim, flight, glide and burrow add nothing essential:
 flyers already ignore terrain; frozen water is the only extra-edge state and is optional by construction.
 
 ## Measurements

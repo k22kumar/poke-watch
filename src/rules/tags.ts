@@ -33,4 +33,6 @@ export const TAG_ACTIONS: Record<string, TagLine> = {
   paras: { base: { move: 'leech_life' }, variant: { move: 'slash' } },
   houndour: { base: { move: 'fire_fang' }, variant: { move: 'ember' } },
   heracross: { base: { move: 'horn_attack' }, variant: { move: 'brick_break' } },
+  joltik: { base: { move: 'electroweb' }, variant: { move: 'discharge' } },
+  onix: { base: { move: 'rock_throw', create: 'rock' }, variant: { move: 'rock_slide' } },
 };

@@ -5,6 +5,7 @@
 import { ELEMENTS, ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { BIOMES } from '../rules/stages';
+import { speciesSizing, type SpeciesSizing } from '../rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { ROLE, PK, ZK } from '../sim/pools';
 import type { SimContext, SimEvent } from '../sim/types';
@@ -112,7 +113,7 @@ const COAT_RING: [number, number, number][] = [[1, 1, 1], [1, 0.45, 0.15], [0.3,
 const ELC: Record<string, [number, number, number]> = Object.fromEntries(ELEMENTS.map((e) => [e, hexToRgb(ELEMENT_DEFS[e].color)]));
 const TAU = Math.PI * 2;
 
-interface SpriteSet { art: CreatureArt; tex: WebGLTexture; batch: InstanceBatch; tw: number; th: number; walkRate: number }
+interface SpriteSet { art: CreatureArt; tex: WebGLTexture; batch: InstanceBatch; tw: number; th: number; walkRate: number; size: SpeciesSizing }
 interface Dying { sp: string; x: number; y: number; z: number; dir: number; frame: number; t: number; scale: number }
 interface Ribbon { ax: number; ay: number; az: number; bx: number; by: number; bz: number; w: number; c: [number, number, number]; life: number; max: number }
 interface Ring { x: number; z: number; r: number; c: [number, number, number]; life: number; max: number; kind: number; grow: boolean }
@@ -241,7 +242,21 @@ export class Renderer {
     // walk cadence: 1.6 frames per metre travelled, whatever the source's frame count
     const walk = art.clips.walk;
     const walkRate = (clipLength(walk) / Math.max(1, walk.durations.length)) * 1.6;
-    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate });
+    // visible size (rules/sizing.ts): one multiplier per species, from its researched extent against the
+    // asset's own neutral reference pose (idle, facing the camera, frame 0). Bosses keep their authored
+    // `sp.scale`, which `drawSprites` applies on top, so `size.scale` is 1 for them and nothing compounds.
+    const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE);
+    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, size });
+  }
+
+  /** What the visible-size rule (rules/sizing.ts) submits for every loaded sheet: source extent and its
+   *  provenance, class, target core, the asset's neutral reference core, the species multiplier, and the
+   *  authored multiplier the draw call applies on top (bosses). For captures and reports. */
+  sizes(): (SpeciesSizing & { authoredScale: number; submittedScale: number })[] {
+    return [...this.sheets.values()].map((s) => {
+      const authoredScale = SPECIES_BY_ID[s.size.id]?.scale ?? 1;
+      return { ...s.size, authoredScale, submittedScale: s.size.scale * authoredScale };
+    });
   }
 
   portrait(id: string): HTMLCanvasElement | undefined {
@@ -571,13 +586,15 @@ export class Renderer {
     } else {
       // third person: the rig orbits the Pokémon (mouse / right stick), nothing is snapped to a texel grid
       const rig = this.rig;
-      const f0 = this.sheets.get(P.species.id)?.art.clips.idle?.frames[0]?.[0];
+      const pSet = this.sheets.get(P.species.id);
+      const f0 = pSet?.art.clips.idle?.frames[0]?.[0];
+      const vs = pSet ? pSet.size.scale : 1;
       // shake: smooth noise sized for a lens ~4 m from the Pokémon (a new random 0.45 m offset every frame was ~8x the
       // fixed views' angular shake, and shook harder the higher the frame rate)
       const SK = CHASE_CONFIG.shake, sa = sh * SK.amp, st = this.time * SK.freq;
       const sx = sa * wobble(st, 0.3), sy = sa * wobble(st, 2.1) * 0.6, sz = sa * wobble(st, 4.7);
       rig.update(chaseFrameFor(ctx, {
-        dt, x: px, y: cy, z: pz, height: f0 ? f0.h / TEXELS_PER_METRE : 1.1, width: f0 ? f0.w / TEXELS_PER_METRE : undefined,
+        dt, x: px, y: cy, z: pz, height: f0 ? (f0.h / TEXELS_PER_METRE) * vs : 1.1, width: f0 ? (f0.w / TEXELS_PER_METRE) * vs : undefined,
         lookPitch: this.lookPitch, shake: [sx, sy, sz],
       }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: this.fovOffset });
       this.lookPitch = 0;
@@ -738,6 +755,7 @@ export class Renderer {
     const push = (id: string, x: number, y: number, z: number, scale: number, facing: number, state: AnimState, t: number, flash: number, dissolve: number, tint: number[], bias = 0) => {
       const set = this.sheets.get(id);
       if (!set) return;
+      scale *= set.size.scale;
       const clip = set.art.clips[state];
       // the sprite sheet is drawn for a camera looking north (yaw PI); a camera at another yaw sees it rotated
       const dir = dirIndex(facing - (this.yaw - Math.PI));
