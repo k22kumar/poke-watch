@@ -22,9 +22,11 @@
 import { navOpen, navTop } from '../gen/util';
 import type { GateResult } from '../gen/context';
 import { enemyCore, pathBetween, playerReach } from '../locgen/nav';
+import { defaultRules } from '../../rules/defaults';
 import { PROP_MATERIALS } from '../../rules/surfaces';
 import { T, WATER_Y, ICE_LIFT, type ArenaMap } from '../tiles';
 import type { Join } from './ctx';
+import { bracketsMuzzles, PLOT_ZONE, type GraveMark } from './graves';
 import type { BodyProfile, HabitatState } from './types';
 
 export const SEP = 4; // tiles two approaches keep apart outside the exempt funnel and shoulder
@@ -54,6 +56,10 @@ export interface Layout {
   states: HabitatState[];
   /** a tidal fluid body: the tiles it covers at high water (dry floor at low water) and its two levels (m) */
   tide?: { mask: Uint8Array; low: number; high: number };
+  /** an open shore (the lagoon's beach and backshore: low ground beside the water): the `shore` gate runs when present */
+  shore?: Uint8Array;
+  /** grave markers as built and the precinct footprint (tiles inside the perimeter wall): the marker gates run when present */
+  graves?: { marks: GraveMark[]; precinct: Uint8Array };
 }
 
 export interface SideReport { team: 'A' | 'B'; reach: Record<string, boolean>; exit: boolean; independent: boolean; bottleneck?: [number, number]; lengths: [number, number]; planned: Record<string, boolean> }
@@ -266,9 +272,9 @@ function approachPair(S: SideCtx, L: Layout, team: 'A' | 'B', r: number): { p1: 
 }
 
 /** the last `len` nodes of a path before it reaches the contest platform (the approach proper) */
-function finalSegment(m: ArenaMap, p: number[], L: Layout, len: number): number[] {
+function finalSegment(m: ArenaMap, p: number[], L: Layout, len: number, extra = 0): number[] {
   const n = m.w * m.h, out: number[] = [];
-  const R2 = (L.contest.r + PLATFORM) ** 2;
+  const R2 = (L.contest.r + PLATFORM + extra) ** 2;
   let i = p.length - 1;
   while (i >= 0) { const k = p[i] % n; if ((k % m.w + 0.5 - L.contest.x) ** 2 + (((k / m.w) | 0) + 0.5 - L.contest.y) ** 2 > R2) break; i--; }
   for (; i >= 0 && out.length < len; i--) out.push(p[i]);
@@ -299,6 +305,8 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
   const states: Record<string, SideReport[]> = {};
   const metrics: Record<string, number> = {};
   let perches: Perch[] = [];
+  const shoreHits: Perch[] = [];
+  let shoreLock = 0;
   const pathsFor: Record<string, { p1: number[] | null; p2: number[] | null }> = {};
 
   const baseClear = clearance(m0);
@@ -362,6 +370,21 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
           const weak = a <= b ? va : vb;
           found.push({ tile: k, deck: v >= n, team, sees: [+a.toFixed(2), +b.toFixed(2)], target: weak[0] % n, targets: weak.map((t) => t % n) });
         }
+        // shore: a long open shore needs no height. Any standable shore tile (ground, off the side's own routes, off the platform)
+        // that sees half of BOTH final stretches at weapon range would lock both approaches from the beach
+        if (L.shore) {
+          for (let v = 0; v < n; v++) {
+            if (!L.shore[v] || !reachable[v] || !nodeOpen(m, v) || onRoute[v] || (L.platform && L.platform[v])) continue;
+            const px = (v % W) + 0.5, py = ((v / W) | 0) + 0.5, h = level(m, v);
+            const va: number[] = [], vb: number[] = [];
+            const a = seesShare(m, px, py, h + eyeHi, s1, RANGE, va);
+            const b = seesShare(m, px, py, h + eyeHi, s2, RANGE, vb);
+            shoreLock = Math.max(shoreLock, Math.min(a, b));
+            if (a < 0.5 || b < 0.5) continue;
+            const weak = a <= b ? va : vb;
+            shoreHits.push({ tile: v, deck: false, team, sees: [+a.toFixed(2), +b.toFixed(2)], target: weak[0] % n, targets: weak.map((t) => t % n) });
+          }
+        }
       }
       perches = found;
 
@@ -401,6 +424,10 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
   const plannedBad = base.flatMap((s) => Object.entries(s.planned).filter(([, ok]) => !ok).map(([id]) => id));
   if (L.approaches?.length) gate('planned', plannedBad.length === 0, plannedBad.length ? `not realised: ${plannedBad.join(', ')}` : 'every planned approach is walkable as built');
   gate('perch', perches.length === 0, perches.length ? `${perches.length} tiles see both of a side's final approaches (worst ${perches[0].team} at ${perches[0].tile % W},${(perches[0].tile / W) | 0}: ${perches[0].sees.join('/')})` : 'no perch watches both of a side\'s approaches');
+  if (L.shore) {
+    metrics.shoreLock = +shoreLock.toFixed(2);
+    gate('shore', shoreHits.length === 0, shoreHits.length ? `${shoreHits.length} open-shore tiles see both of a side's final approaches (worst ${shoreHits[0].team} at ${shoreHits[0].tile % W},${(shoreHits[0].tile / W) | 0}: ${shoreHits[0].sees.join('/')})` : `no open-shore tile sees both of a side's final approaches (strongest lock ${(shoreLock * 100).toFixed(0)} % of the weaker one)`);
+  }
 
   // ---- base-state checks ----
   const m = m0, clear = baseClear;
@@ -484,6 +511,7 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
     gate('drainage', lost === 0, lost ? `${lost}/${fl} fluid tiles do not drain to an outlet or sink` : `${fl} fluid tiles drain to ${(L.outlets ?? []).length} outlet(s) and ${(L.sinks ?? []).length} sink(s)`);
   }
   if (L.tide) tideGates(m0, L, profiles, baseClear, pathsFor, gate, metrics);
+  if (L.graves) markerGates(m0, L, profiles, pathsFor, gate, metrics);
   // body fit along the planned approaches (PBL01): narrowest clearance on each as built
   for (const A of L.approaches ?? []) {
     let narrow = Infinity;
@@ -499,7 +527,141 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
   metrics.timeA = +tA.toFixed(1); metrics.timeB = +tB.toFixed(1);
   metrics.skew = +(Math.abs(tA - tB) / Math.max(tA, tB)).toFixed(3);
   metrics.perches = perches.length;
-  return { ok: gates.every((g) => g.ok), gates, failed: gates.filter((g) => !g.ok).map((g) => g.id), states, perches, metrics };
+  return { ok: gates.every((g) => g.ok), gates, failed: gates.filter((g) => !g.ok).map((g) => g.id), states, perches: [...perches, ...shoreHits], metrics };
+}
+
+// ---- grave markers (docs/HABITATS.md "Cemetery") ----------------------------------------------------------------------------
+
+/** the longest straight firing lane through a plot (tiles): measured from every open tile within PLOT_ZONE of a marker, in 16
+ *  directions at a muzzle height, ending at a wall, a rise over the ray, the contest platform or where the ray leaves the plot
+ *  zone. The run includes the zone's margin at both ends, so the limit is the Raiders' ranged reach plus that margin plus a body:
+ *  a lane longer than that lets one end of a row fire down it from beyond return range, the "firing alley with one dominant
+ *  end" of spec T26. A plot's rows are the lanes this keeps short. */
+export const LANE = defaultRules.enemy.rangedRange + 2 * PLOT_ZONE + 1.4;
+/** share of a side's other approach (its final 14 nodes) a watcher on the first may see; the same bound as a perch's */
+export const WATCH = 0.5;
+const LANE_CAP = 40;
+/** tiles beyond the contest platform (5 m from the point, plus its shoulder) that still belong to the fight for the point: the
+ *  forecourt wall and the first body-lengths outside its gates. The court is open by design, so two gates ~90 degrees apart see
+ *  each other through it out to a radius of 15.5 m; a route is judged as an approach from 16 m on, where the chord between
+ *  the gates no longer passes through the court */
+const SHOULDER = 6;
+
+/** the muzzle (eye) extremes of the roster's essential bodies: the smallest wild Pokémon's 0.5 m to the tallest partner's 1.42 m */
+export function muzzles(profiles: BodyProfile[]): [number, number] {
+  const ess = profiles.filter((p) => p.essential);
+  return [Math.min(...ess.map((p) => p.eye[0])), Math.max(...ess.map((p) => p.eye[1]))];
+}
+
+/** per open precinct tile: the longest clear straight run (tiles) at a muzzle height, over 16 directions. A ray holds the absolute
+ *  height of its muzzle, so a ground rise (a marker, a ledge) blocks it exactly as sightAbs would. */
+export function laneField(m: ArenaMap, region: Uint8Array, platform: Uint8Array | undefined, muzzle: number, zone: Uint8Array): { max: number; at: number; dir: number } {
+  const W = m.w, H = m.h;
+  let best = { max: 0, at: -1, dir: 0 };
+  const DIRS16: [number, number][] = [];
+  for (let i = 0; i < 16; i++) DIRS16.push([Math.cos((i / 16) * Math.PI * 2), Math.sin((i / 16) * Math.PI * 2)]);
+  for (let k = 0; k < W * H; k++) {
+    if (!zone[k] || !region[k] || !navOpen(m, k) || (platform && platform[k])) continue;
+    const px = (k % W) + 0.5, py = ((k / W) | 0) + 0.5, y = navTop(m, k) + muzzle;
+    for (let d = 0; d < 16; d++) {
+      const [dx, dy] = DIRS16[d];
+      let len = 0;
+      for (let s = 1; s <= LANE_CAP * 2; s++) {
+        const x = Math.floor(px + dx * s * 0.5), z = Math.floor(py + dy * s * 0.5);
+        if (x < 0 || z < 0 || x >= W || z >= H) break;
+        const t = z * W + x;
+        if (!zone[t] || !region[t] || (platform && platform[t]) || m.wall[t] || navTop(m, t) > y) break;
+        len = s * 0.5;
+      }
+      if (len > best.max) best = { max: len, at: k, dir: d };
+    }
+  }
+  return best;
+}
+
+/** Marker gates, on the final collision:
+ *   marker:height  the three classes bracket the roster's muzzle extremes; every marker's footprint carries its class height;
+ *                  none touches a tread, the contest platform or the forecourt; every class is present
+ *   lane           no straight firing lane inside the precinct is longer than LANE, at the smallest or the tallest muzzle
+ *   watch          a watcher on a side's main row (its first approach) sees under WATCH of the other approach's final stretch
+ *                  at either muzzle, and the other way round: the second way to the monument stays unwatched */
+function markerGates(m0: ArenaMap, L: Layout, profiles: BodyProfile[], pathsFor: Record<string, { p1: number[] | null; p2: number[] | null }>,
+  gate: (id: string, ok: boolean, value: string) => void, metrics: Record<string, number>) {
+  const G = L.graves!, n = m0.w * m0.h, W = m0.w;
+  const [lo, hi] = muzzles(profiles);
+  // ---- height: the bracket, the built footprints, the clearances ----
+  const br = bracketsMuzzles(lo, hi);
+  const bad: string[] = [];
+  const tread = new Uint8Array(n);
+  for (const A of L.approaches ?? []) for (const k of A.tiles) tread[k] = 1;
+  const count = { kerb: 0, stone: 0, stele: 0 };
+  for (const mk of G.marks) {
+    count[mk.cls]++;
+    for (let i = mk.x; i < mk.x + mk.w; i++) {
+      const k = mk.y * W + i;
+      if (Math.abs(m0.platform[k] - mk.top) > 0.011) bad.push(`${mk.x},${mk.y}: ${m0.platform[k].toFixed(2)} m, not ${mk.top} m`);
+      if (L.platform && L.platform[k]) bad.push(`${mk.x},${mk.y}: on the contest platform`);
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const j = (mk.y + dy) * W + i + dx; if (j >= 0 && j < n && tread[j]) bad.push(`${mk.x},${mk.y}: beside a tread`); }
+    }
+  }
+  metrics.markers = G.marks.length; metrics.kerbs = count.kerb; metrics.stones = count.stone; metrics.steles = count.stele;
+  const classesOk = count.stone > 0 && count.stele > 0 && count.kerb > 0;
+  gate('marker:height', br.ok && bad.length === 0 && classesOk, !br.ok ? br.why : bad.length ? [...new Set(bad)].slice(0, 3).join('; ') : !classesOk ? `a class is missing (${count.kerb} kerbs, ${count.stone} headstones, ${count.stele} steles)` : `${G.marks.length} markers (${count.kerb} kerbs, ${count.stone} headstones, ${count.stele} steles): ${br.why}`);
+
+  // ---- lanes and watchers, in the state where every destructible prop is gone (markers stay: they are terrain-grade) ----
+  const st = L.states.includes('stripped') ? 'stripped' : 'base';
+  const m = stateMap(m0, st, L);
+  // a plot zone: every tile within PLOT_ZONE of a marker (an alley between two rows lies 1-1.6 tiles from the markers either side)
+  const lanes: string[] = [], zone = new Uint8Array(n);
+  for (const mk of G.marks) for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= mk.w + 2; dx++) {
+    const x = mk.x + dx, y = mk.y + dy;
+    if (x < 0 || y < 0 || x >= W || y >= m0.h) continue;
+    const ex = Math.max(mk.x - (x + 0.5), 0, x + 0.5 - (mk.x + mk.w)), ey = Math.max(mk.y - (y + 0.5), 0, y + 0.5 - (mk.y + 1));
+    if (Math.hypot(ex, ey) <= PLOT_ZONE) zone[y * W + x] = 1;
+  }
+  let worst = 0;
+  for (const [name, mz] of [['small', lo], ['tall', hi]] as const) {
+    const r = laneField(m, G.precinct, L.platform, mz, zone);
+    metrics[`lane:${name}`] = r.max; worst = Math.max(worst, r.max);
+    lanes.push(`${name} muzzle ${mz} m: ${r.max} tiles${r.at >= 0 ? ` from ${r.at % W},${(r.at / W) | 0}` : ''}`);
+  }
+  gate('lane', worst <= LANE, `longest straight firing lane through a plot (limit ${LANE} tiles): ${lanes.join('; ')}`);
+
+  const watched: string[] = [];
+  let seen = 0;
+  for (const team of ['A', 'B'] as const) {
+    const pr = pathsFor[st + team];
+    if (!pr?.p1 || !pr.p2) continue;
+    const s1 = finalSegment(m, pr.p1, L, 14, SHOULDER), s2 = finalSegment(m, pr.p2, L, 14, SHOULDER);
+    for (const [from, to, name] of [[pr.p1, s2, 'main→alt'], [pr.p2, s1, 'alt→main']] as const) {
+      let top = 0, where = -1;
+      for (const v of from) {
+        const k = v % n;
+        if (v >= n || !G.precinct[k] || (L.platform && L.platform[k])) continue;
+        const px = (k % W) + 0.5, py = ((k / W) | 0) + 0.5;
+        // inside the contest shoulder a body is in the fight on the point, not on an approach: judged from beyond it
+        if ((px - L.contest.x) ** 2 + (py - L.contest.y) ** 2 < (L.contest.r + PLATFORM + SHOULDER) ** 2) continue;
+        for (const mz of [lo, hi]) { const sh = seesShare(m, px, py, level(m, v) + mz, to, 30); if (sh > top) { top = sh; where = k; } }
+      }
+      metrics[`watch:${team}:${name}`] = +top.toFixed(2); seen = Math.max(seen, top);
+      if (top >= WATCH) watched.push(`${team} ${name} ${(top * 100).toFixed(0)} % from ${where % W},${(where / W) | 0}`);
+    }
+  }
+  gate('watch', watched.length === 0, watched.length ? `the other approach is watched (limit ${WATCH * 100} %): ${watched.join('; ')}` : `no watcher on one approach sees ${WATCH * 100} % of the other's final stretch at either muzzle (worst ${(seen * 100).toFixed(0)} %)`);
+
+  // ---- what the markers do to the small and the tall muzzle: the defender on the point looking down each approach (reported) ----
+  const c = nodeAt(m, [L.contest.x, L.contest.y], L.contest.h);
+  const ck = c % n, cx = (ck % W) + 0.5, cy = ((ck / W) | 0) + 0.5;
+  let gap = 0;
+  for (const team of ['A', 'B'] as const) {
+    const pr = pathsFor[st + team];
+    if (!pr?.p1 || !pr.p2) continue;
+    for (const p of [pr.p1, pr.p2]) {
+      const seg = finalSegment(m, p, L, 14);
+      gap += seesShare(m, cx, cy, level(m, c) + hi, seg, 30) - seesShare(m, cx, cy, level(m, c) + lo, seg, 30);
+    }
+  }
+  metrics.muzzleGap = +gap.toFixed(2);
 }
 
 /** symmetric baseline reach over allowed nodes */

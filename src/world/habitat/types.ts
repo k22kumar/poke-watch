@@ -55,6 +55,10 @@ export interface VegetationRule {
   moisture: [number, number];
   /** share of open floor left as clearings with tall grass (0 = none) */
   clearings: number;
+  /** a dry shore band: within `within` tiles of open fluid, ground below `below` m (the beach and backshore) grows no stands */
+  dry?: { within: number; below: number };
+  /** a screened flank: stands thicken within `within` tiles of every flank approach (the canopy over the inland route), by `boost` of density */
+  canopy?: { within: number; boost: number };
 }
 
 export interface HabitatRecipe {
@@ -62,7 +66,7 @@ export interface HabitatRecipe {
   name: string;
   summary: string;
   /** the generator kernel that lays out this landform (landforms.ts) */
-  landform: 'gorge' | 'crater' | 'shoal';
+  landform: 'gorge' | 'crater' | 'shoal' | 'ridge' | 'lagoon' | 'sanctuary';
   /** support model: every playable surface is supported ground or a supported deck */
   support: 'ground';
   medium: Medium;
@@ -98,6 +102,9 @@ export interface HabitatRecipe {
   /** a tidal fluid body (sim/hazards.ts tideSystem, rules.habitat.tide): its level moves between `low` and `high` (m) over
    *  one fixed floor, so ground below `high` that the water reaches is dry at low water and flooded at high water */
   tide?: { low: number; high: number };
+  /** the grave marker family (graves.ts): the class mix, the chance a stone is a double slab and the chance a marker leans.
+   *  The lattice numbers (plot count, pitch, row gap, angle) are `freedoms`, so seeds vary them. */
+  graves?: { mix: { kerb: number; stone: number; stele: number }; wide: number; lean: number };
 }
 
 /** environment states the validator enumerates (PBL04) */

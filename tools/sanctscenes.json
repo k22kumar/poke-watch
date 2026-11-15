@@ -1,0 +1,22 @@
+[
+  { "name": "sanct1-court-wide", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab; c.player.x = c.player.px = H.contest.x - W.half; c.player.z = c.player.pz = H.contest.y - W.half + 4; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return [H.recipe, H.seed, H.gates.filter((g) => !g.ok).length]; })()" },
+    { "advance": 1.0, "frames": 60 }, { "shot": "court" } ] },
+  { "name": "sanct1-court-chase", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab; c.player.x = c.player.px = H.contest.x - W.half; c.player.z = c.player.pz = H.contest.y - W.half + 3; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return 1; })()" },
+    { "advance": 1.2, "frames": 72 }, { "shot": "plinth" } ] },
+  { "name": "sanct1-spawn", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1", "steps": [
+    { "advance": 1.0, "frames": 60 }, { "shot": "foothill" } ] },
+  { "name": "sanct1-direct-stair", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab, m = W.map; let best = -1, bd = 1e9; for (let k = 0; k < m.w * m.h; k++) { if (m.wall[k] || m.terrain[k] === 3 || m.gen.route[k] !== 1) continue; if (Math.abs(m.elev[k] - 7.6) > 0.3) continue; const d = Math.hypot((k % m.w) + 0.5 - H.contest.x, ((k / m.w) | 0) + 0.5 - H.contest.y); if (d < bd) { bd = d; best = k; } } c.player.x = c.player.px = (best % m.w) - W.half + 0.5; c.player.z = c.player.pz = ((best / m.w) | 0) - W.half + 0.5; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return [best % m.w, (best / m.w) | 0]; })()" },
+    { "advance": 1.2, "frames": 72 }, { "shot": "stair" } ] },
+  { "name": "sanct1-gallery", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab, m = W.map; let best = -1, bd = 1e9; for (let k = 0; k < m.w * m.h; k++) { if (m.wall[k] || m.terrain[k] === 3 || m.gen.route[k] !== 2) continue; if (Math.abs(m.elev[k] - 5) > 0.3) continue; const d = Math.hypot((k % m.w) + 0.5 - H.stage.A[0], ((k / m.w) | 0) + 0.5 - H.stage.A[1]); if (d < bd) { bd = d; best = k; } } c.player.x = c.player.px = (best % m.w) - W.half + 0.5; c.player.z = c.player.pz = ((best / m.w) | 0) - W.half + 0.5; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return [best % m.w, (best / m.w) | 0]; })()" },
+    { "advance": 1.2, "frames": 72 }, { "shot": "gallery" } ] },
+  { "name": "sanct1-balcony", "query": "go=1&species=cyndaquil&loc=spear-sanctuary&mapseed=1&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab, m = W.map; let best = -1, bd = 1e9; for (let k = 0; k < m.w * m.h; k++) { if (m.wall[k] || m.terrain[k] === 3 || m.elev[k] < 11.4) continue; const d = Math.hypot((k % m.w) + 0.5 - H.contest.x, ((k / m.w) | 0) + 0.5 - H.contest.y); if (d < bd) { bd = d; best = k; } } c.player.x = c.player.px = (best % m.w) - W.half + 0.5; c.player.z = c.player.pz = ((best / m.w) | 0) - W.half + 0.5; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return [best % m.w, (best / m.w) | 0, m.elev[best]]; })()" },
+    { "advance": 1.2, "frames": 72 }, { "shot": "balcony" } ] },
+  { "name": "sanct4-snow-wide", "query": "go=1&species=cyndaquil&loc=spear-sanctuary/snow&mapseed=4&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab; c.player.x = c.player.px = H.contest.x - W.half; c.player.z = c.player.pz = H.contest.y - W.half + 4; c.player.y = c.player.py = W.height(c.player.x, c.player.z); return [H.recipe, H.variant, H.seed]; })()" },
+    { "advance": 1.0, "frames": 60 }, { "shot": "snow" } ] }
+]

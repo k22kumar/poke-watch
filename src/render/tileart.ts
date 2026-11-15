@@ -62,6 +62,13 @@ BIOME_ART.volcano = {
   bank: g({ base: '#3a2e2c', dark: '#2c2220', deep: '#1a1212', light: '#4a3e3a' }),
   water: g({ base: '#ff6a20', light: '#ffb048', foam: '#fff0a0', dark: '#d8400e' }), waterGlow: true, clear: hex('#2a2020'), tint: [1.06, 0.97, 0.92],
 };
+// habitat palette (src/world/habitat): Cascade Lagoon — bright sand beaches, lush green, warm limestone bluffs, turquoise water
+BIOME_ART.tropic = {
+  ground: g({ grass: '#58b04c', grassD: '#3f9640', grassL: '#7ccf62', grassEdge: '#2d7a38', tallBase: '#3a9a46', tallD: '#287a38', sand: '#f1deaa', sandD: '#dcc786', path: '#cfae72', pathD: '#b8965c', pathL: '#e2c590', pathEdge: '#94783f', pathEdge2: '#7a6030', dirt: '#b08a5a', dirtD: '#94703f', flowerbed: '#4a9a48', lipA: '#5cb84c', lipB: '#3e8e3a', dots: ['#fff3b0', '#c8ffe0'], dotCore: '#ffffff' }),
+  cliff: g({ base: '#93805f', dark: '#715f45', deep: '#4c3f2d', light: '#b9a47e', lipA: '#5cb84c', lipB: '#3e8e3a' }),
+  bank: g({ base: '#dbc78f', dark: '#bda772', deep: '#8f7d52', light: '#efe0ad' }),
+  water: g({ base: '#27b6c4', light: '#78e6dc', foam: '#f2fffa', dark: '#168798' }), waterGlow: false, clear: hex('#58b04c'), tint: [1.02, 1.03, 0.98],
+};
 /**
  * How a location's terrain is built beyond its palette (render only). Caves paint the tops of their rock masses as
  * natural rock (never grass) and use one fractured rock face for every vertical, so a wall never reads as a lawn or a
@@ -171,6 +178,8 @@ export function arenaSprites(biome: string): Map<string, ImageData> {
   put('gatehouse', gatehouse());
   put('tent', tent());
   put('ladder', ladder());
+  // grave markers: kerb / headstone / stele, 1 or 2 tiles wide, three leans (render/tilestage.ts picks by the prop's top, w, lean)
+  for (const cls of ['kerb', 'stone', 'stele'] as const) for (const w of [1, 2]) for (const lean of [-1, 0, 1]) put(`grave_${cls}_${w}_${lean + 1}`, graveStone(ROCK[pal], cls, w, lean));
   return out;
 }
 
@@ -403,6 +412,34 @@ function pillar(r: Ramp, broken: boolean): ImageData {
   if (!broken) s.rect(1, 1, 12, 3, st);
   else { s.px(3, 5, st); s.px(4, 4, st); s.px(9, 5, st); }
   for (let y = broken ? 8 : 7; y < H - 5; y += 3) s.dot(5, y, r[2]);
+  return s.render();
+}
+
+/** A grave marker (world/habitat/graves.ts): a kerb (a low flat slab), a headstone (arched slab on a plinth) or a stele (a tall
+ *  narrow stone with a carved mark), `tiles` wide, settled `lean` px (-1, 0, 1) toward one side at its top. The sprite is as
+ *  tall as the marker (16 texels per metre) so what the player sees is the height the collision uses. */
+function graveStone(r: Ramp, cls: 'kerb' | 'stone' | 'stele', tiles: number, lean: number): ImageData {
+  const top = { kerb: 0.45, stone: 0.9, stele: 1.7 }[cls];
+  const W = 16 * tiles, H = Math.round(top * 16) + 4;
+  const s = new Sprite(W, H);
+  s.outline = '#2c2a34';
+  const st = s.ramp(r), lit = s.ramp([r[0], r[1], r[2]]);
+  const bw = W - { kerb: 4, stone: 6, stele: 9 }[cls]; // body width
+  const x0 = Math.round((W - bw) / 2), bodyTop = 1, bodyH = H - 4;
+  s.rect(Math.max(0, x0 - 2), H - 3, Math.min(W, bw + 4), 2, st); // plinth
+  for (let y = 0; y < bodyH; y++) {
+    const f = 1 - y / Math.max(1, bodyH - 1); // 1 at the top, 0 at the base
+    const dx = Math.round(lean * 2 * f);
+    // an arched shoulder on headstones and steles: the top two rows narrow in
+    const inset = cls !== 'kerb' && y < 2 ? 2 - y : 0;
+    s.rect(x0 + dx + inset, bodyTop + y, bw - inset * 2, 1, y < 2 || x0 === 0 ? lit : st);
+  }
+  // a lit left edge and a shaded right edge read as stone, not a flat slab
+  for (let y = 2; y < bodyH; y++) { const dx = Math.round(lean * 2 * (1 - y / Math.max(1, bodyH - 1))); s.dot(x0 + dx, bodyTop + y, '#d6d2da'); s.dot(x0 + dx + bw - 1, bodyTop + y, '#5a566a'); }
+  // the carving: a short cross on a headstone, a stack of marks on a stele, nothing on a kerb
+  const cx = x0 + Math.round(bw / 2) + Math.round(lean * 2 * 0.6);
+  if (cls === 'stone') { s.dline(cx, 4, cx, 8, '#4a4658'); s.dline(cx - 2, 5, cx + 2, 5, '#4a4658'); }
+  if (cls === 'stele') for (let y = 5; y < bodyH - 3; y += 4) s.dline(cx - 1, y, cx + 1, y, '#4a4658');
   return s.render();
 }
 

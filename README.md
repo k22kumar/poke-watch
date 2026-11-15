@@ -1,6 +1,6 @@
 # Poke-Watch
 
-A browser Pokémon survival roguelite in a DS-era 2.5D presentation: handcrafted tile routes, Pokémon as animated PMD pixel sprites standing in a 3D world, and the action-survival loop (waves, XP gems, cards, evolution, bosses) **rebuilt from PokéBonk's shipped mechanics**.
+A browser Pokémon hero shooter with multiple modes in a DS-era 2.5D presentation: handcrafted tile routes, Pokémon as animated PMD pixel sprites standing in a 3D world, and the action-survival loop (waves, XP gems, cards, evolution, bosses).
 
 The Pokémon are built in, generated from three sources by `scripts/build-content.mjs`:
 
@@ -9,15 +9,13 @@ The Pokémon are built in, generated from three sources by `scripts/build-conten
 - **PokeAPI/cries**: each Pokémon's latest available recorded cry.
 - **PokeAPI/sprites**: Pokémon type badges and item icons for the UI.
 
-The roster: 6 partners (Bulbasaur, Charmander, Squirtle, Chikorita, Cyndaquil, Totodile), each evolving twice to its final form, 16 wild Pokémon, and 4 bosses (Sudowoodo, Magcargo, Articuno, Houndoom): 38 Pokémon. Each carries a ability adapted to survival play (`docs/SPECIES.md`).
 
-Music and move sounds are original but the music has slots for licensed recordings (`docs/AUDIO.md`).
 
 - Zero runtime dependencies: TypeScript + a hand-written WebGL2 renderer.
 - Deterministic fixed-step simulation (60 Hz, seeded RNG streams): the same seed and inputs always give the same run, so it runs headless in Node for tests and balance bots.
 - The output is a single self-contained `dist/index.html`. Open it directly in a browser; no server needed.
 
-> **Fan-made, non-commercial project. Not affiliated with PokéBonk, Nintendo, Creatures, GAME FREAK or The Pokémon Company.** Pokémon names, designs, cries and data are © those companies. The sprites are CC BY-NC 4.0 (most are credited to CHUNSOFT, from the Pokémon Mystery Dungeon games). Do not sell or monetise it. Read [Licensing and takedown](#licensing-and-takedown) before sharing it.
+> **Fan-made, non-commercial project. Not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company.** Pokémon names, designs, cries and data are © those companies. The sprites are CC BY-NC 4.0 (most are credited to CHUNSOFT, from the Pokémon Mystery Dungeon games). Do not sell or monetise it. Read [Licensing and takedown](#licensing-and-takedown) before sharing it.
 
 ## Play
 
@@ -128,7 +126,7 @@ npm install          # esbuild, typescript, tsx
 npm run build        # -> dist/index.html (single file, ~1.9 MB with the Pokémon art, cries and icons)
 npm run dev          # rebuild-on-change server at http://localhost:5173
 npm run check        # typecheck, tests, and production build
-npm test             # sim, tile-world, asset-pipeline, audio, identity, combat, bodies, cells, banked-pick, coat, squad, phase 7, capability and build tests
+npm test             # every tests/*.test.ts suite (headless, deterministic); one suite: npx tsx --test tests/<name>.test.ts
 npx tsx scripts/checksum.ts    # replay checksums (same seed + inputs => same hashes); "off" must equal v10, "build-off" must equal Phase 8a
 npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms
 npx tsx scripts/h2.ts           # H2: damage gain from rotating Tag for cooldowns (ceiling 15%)
@@ -288,7 +286,7 @@ The game is one static file (`dist/index.html`, about 2 MB, all sprites, cries a
 ## Checks
 
 ```bash
-npm test          # 186 deterministic tests (sim, worlds, locations, build, audio)
+npm test          # deterministic node:test suites (sim, worlds, locations, build, audio)
 npm run typecheck
 npm audit
 ```
@@ -303,6 +301,6 @@ The code in this repository is the author's. The game content is not:
 - Sprites come from [PMD SpriteCollab](https://github.com/PMDCollab/SpriteCollab) (CC BY-NC 4.0, attribution required, non-commercial only). Most are official Pokémon Mystery Dungeon art credited to CHUNSOFT.
 - Cries and icons come from PokeAPI repositories whose own licence is CC0, but whose contents are © The Pokémon Company.
 - Per-asset provenance and credits: [docs/ASSETS.md](docs/ASSETS.md), the in-game Credits screen, and `content/report.json`.
-- Font: Pixelify Sans, SIL OFL 1.1 (`content/fonts/PixelifySans-OFL.txt`). Music and sound effects are synthesised in code.
+- Font: Pixelify Sans, SIL OFL 1.1 (`content/fonts/PixelifySans-OFL.txt`).
 
 Hosting these assets publicly is redistribution of third-party intellectual property, and rights holders can ask for removal. If you are a rights holder and want something taken down, open an issue and it will be removed promptly.

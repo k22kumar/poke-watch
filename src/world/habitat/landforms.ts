@@ -10,6 +10,10 @@
 //           around a rock island that carries the shrine terrace and rejoins downstream to the map edge (the
 //           outlet). Teams hold opposite rims; each has a low bridge approach (rim switchback → floor → bridge →
 //           cut ramp) and a screened approach (rim forest → bench ramp → bench → causeway onto the terrace).
+//   ridge   a walled burial precinct on a dry ridge in woodland: a lower terrace with a forecourt, two raised terraces on its
+//           contour, plot groups of grave markers along the contour, a broken perimeter wall and a broken wall round the
+//           forecourt. Each side has a path along the lower wall and another along the upper contour (half-turn symmetric,
+//           the two sides' numbers drawn apart).
 //   crater  a breached crater: a walkable rim crest above a crater floor with a bounded lava lake, an outer flank of
 //           solid rock, a foot plain around it. Teams start on the foot at opposite sides; each has a grounded
 //           switchback cut up the flank to a notch in the crest, and a dry cave (mouth → tunnel → chamber → tunnel)
@@ -18,7 +22,10 @@
 import { dcos, dsin } from '../../core/detmath';
 import { fbm } from '../../core/rng';
 import { HK, MED, type Approach, type HabCtx } from './ctx';
-import { arch, basin, bench, bridge, causeway, chamber, channel, keepLine, path, plinth, ruinWall, spur, switchback, tunnel, type Pt, type WP } from './families';
+import { arch, basin, bench, bridge, brokenWall, causeway, chamber, channel, keepLine, path, plinth, ruinWall, spur, switchback, tunnel, type Pt, type WP } from './families';
+import { dropPlot, placeMark, planPlot, retype, type GravePlot } from './graves';
+import { sanctuary } from './sanctuary';
+import { lagoon } from './lagoon';
 
 const sstep = (a: number, b: number, x: number) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -596,6 +603,226 @@ export function shoal(g: HabCtx) {
   border(g, 4, () => Hm + 1.2);
 }
 
+// =================================================================================================================
+// ridge
+// =================================================================================================================
+//
+// Canonical frame, team A west. An "A-local" point (ax, ay) is ax tiles west of the centre and ay tiles south of it; team B's
+// is the half turn of that, so the plan is point-symmetric and every side draws its own numbers (B is not A's mirror image).
+// Levels: the woodland floor 0, the lower terrace `lower`, two raised terraces `upper`, 0.9 m above it (a standable node on
+// one is never 1.5 m above a route on the other, so no terrace is a perch).
+//
+//   lower path  woodland → a ramp cut across the lower terrace's rim → along the lower wall → forecourt gate (from the west-south-west)
+//   upper path  woodland → a ramp cut onto a raised terrace's far end → along its north contour behind the plot group → ramp down →
+//               forecourt gate (from the north-west, about 90 degrees from the lower path's gate: gates further apart than that
+//               leave a chord through both openings, and gates closer than 60 degrees are no longer two ways in)
+//   plots       2-3 staggered groups of markers: one on each raised terrace, a third on the lower terrace's end; neighbouring
+//               plots shear opposite ways (graves.ts)
+//   walls       a broken perimeter wall round the lower terrace's rim (a gap where each route crosses it, seeded openings), a
+//               broken wall round the forecourt (a gap at each gate), the memorial beside the point
+
+export function ridge(g: HabCtx) {
+  const R = g.rng('landform'), F = g.recipe.freedoms, L = g.recipe.levels;
+  const fr = (key: string) => R.range(F[key][0], F[key][1]);
+  const fi = (key: string) => Math.floor(fr(key));
+  g.rot = R.int(0, 3); g.mir = R.chance(0.5);
+  const S1 = g.S - 1;
+  const C = (x: number, y: number): Pt => g.P(x / S1, y / S1);
+  const wp = (x: number, y: number, h: number): WP => { const [mx, my] = C(x, y); return { x: mx, y: my, h }; };
+  const Hl = L.lower, Hu = L.upper, wallRise = L.wall;
+  const wob = R.int(1, 1e6);
+  const cx = S1 / 2 + R.range(-2, 2), cy = fr('ridgeY');
+  const La = fr('ridgeA'), Lb = fr('ridgeB'), Ua = fr('terraceA'), Ub = fr('terraceB');
+  const r0 = g.mode.contestR, platR = r0 + 4; // the contest radius and the contest platform's
+  g.shape.ridgeA = +La.toFixed(1); g.shape.ridgeB = +Lb.toFixed(1);
+  const sgOf = (t: 'A' | 'B') => (t === 'A' ? -1 : 1);
+  /** an A-local point as a canonical point for a team (B is the half turn) */
+  const at = (t: 'A' | 'B', ax: number, ay: number): Pt => [cx + sgOf(t) * ax, cy - sgOf(t) * ay];
+
+  // ---- every side's own numbers, drawn up front (A then B) so no later draw shifts them ----
+  interface Side { team: 'A' | 'B'; stx: number; sty: number; ux: number; uy: number; phi: number; b: number[]; gateD: number; gateY: number; upX: number }
+  const sides: Side[] = (['A', 'B'] as const).map((team) => ({
+    team, stx: fr('stageX'), sty: fr('stageY'), ux: fr('upperX'), uy: fr('upperY'), phi: R.range(0.66, 0.82),
+    b: [0, 1, 2, 3].map((i) => fr('bend') * (i % 2 ? -1 : 1) * R.range(0.6, 1)), gateD: R.range(8, 10), gateY: R.range(7.4, 9), upX: R.range(7.5, 9.5),
+  }));
+
+  // ---- relief: woodland floor, the lower terrace (an ellipse with a wobbling rim), a raised terrace on each side ----
+  g.used.add('cliff'); g.used.add('relief');
+  const ell = (qx: number, qy: number, ex: number, ey: number, a: number, b: number) => ((qx - ex) / a) ** 2 + ((qy - ey) / b) ** 2;
+  const upper = sides.map((sd) => at(sd.team, sd.ux, -sd.uy));
+  for (let y = 0; y < g.S; y++) for (let x = 0; x < g.S; x++) {
+    const [qx, qy] = g.Q(x + 0.5, y + 0.5), k = g.idx(x, y);
+    const n = (fbm(qx / 7, qy / 7, wob, 2) - 0.5) * 0.12;
+    g.kind[k] = HK.floor; g.H[k] = 0;
+    if (ell(qx, qy, cx, cy, La, Lb) <= 1 + n) { g.H[k] = Hl; g.precinct[k] = 1; }
+    for (const u of upper) if (ell(qx, qy, u[0], u[1], Ua, Ub) <= 1 + n) { g.H[k] = Hu; g.precinct[k] = 1; }
+  }
+  // the forecourt is lower-terrace floor whatever a raised terrace's ellipse reached
+  const [ccx, ccy] = C(cx, cy);
+  g.disc(ccx, ccy, platR + 1.5, (k) => { g.H[k] = Hl; g.precinct[k] = 1; });
+  g.contest = { x: ccx, y: ccy, h: Hl, r: r0 };
+  g.nodes.contest = [ccx, ccy];
+  g.disc(ccx, ccy, platR, (k) => { g.platform[k] = 1; });
+
+  // ---- stagings in the woodland, one each side ----
+  const stage = {} as Record<'A' | 'B', Pt>;
+  for (const sd of sides) { stage[sd.team] = C(...at(sd.team, sd.stx, sd.sty)); for (const id of ['stage', 'spawn', 'exit']) g.nodes[id + sd.team] = stage[sd.team]; }
+
+  // ---- routes, one side at a time ----
+  const W = 5; // tread width: the largest essential body (elite, 2.84 m) plus turning margin on diagonals
+  // the relief's rim (with the same wobble) and a ramp cut across it
+  const rimN = (qx: number, qy: number) => (fbm(qx / 7, qy / 7, wob, 2) - 0.5) * 0.12;
+  const inL = (x: number, y: number) => ell(x, y, cx, cy, La, Lb) <= 1 + rimN(x, y);
+  const inU = (u: Pt) => (x: number, y: number) => ell(x, y, u[0], u[1], Ua, Ub) <= 1 + rimN(x, y);
+  const wc = (p: Pt, h: number): WP => wp(p[0], p[1], h);
+  const loc = (t: 'A' | 'B', p: Pt): Pt => [(p[0] - cx) / sgOf(t), (cy - p[1]) / sgOf(t)];
+  /** a ramp along the line a → b (canonical) across the rim `inside` names: foot `out` tiles outside the rim, top where it has risen `h` at grade 0.4;
+   *  `pre` is 6 tiles back along the same axis (the woodland leg's last stretch) */
+  const ramp = (a: Pt, b: Pt, inside: (x: number, y: number) => boolean, h: number, out: number) => {
+    const n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 4), dl = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, dir: Pt = [(b[0] - a[0]) / dl, (b[1] - a[1]) / dl];
+    let r0: Pt = b;
+    for (let i = 0; i <= n; i++) { const x = lerp(a[0], b[0], i / n), y = lerp(a[1], b[1], i / n); if (inside(x, y)) { r0 = [x, y]; break; } }
+    const foot: Pt = [r0[0] - dir[0] * out, r0[1] - dir[1] * out], top: Pt = [foot[0] + dir[0] * (h / 0.4), foot[1] + dir[1] * (h / 0.4)];
+    return { foot, top, dir, pre: [foot[0] - dir[0] * 6, foot[1] - dir[1] * 6] as Pt };
+  };
+  const entries: number[] = []; // the angle (map space, from the centre) each route reaches the forecourt at
+  const angleOf = (p: Pt) => Math.atan2(p[1] - ccy, p[0] - ccx);
+  for (const sd of sides) {
+    const team = sd.team, w = (ax: number, ay: number, h: number) => wp(...at(team, ax, ay), h);
+    const [b0, b1, b2, b3] = sd.b;
+    // lower path: out of the woodland, a short steep ramp cut across the lower terrace's rim, along the lower wall and into the
+    // forecourt from the west-south-west. A ramp is a cut across the rim (grade 0.4), found where its axis meets the rim the
+    // relief drew: a gentle ramp leaves a long band along its side where the bank is 0.5-0.7 m, the step limit, and a body
+    // that cuts the corner wedges on it. The woodland leg runs along the ramp's axis for its last 6 tiles, and clears 2 tiles either
+    // side of the tread (the validator lets a route stray 2 tiles off it, 4.5 from its centre line).
+    const A1 = approach(g, team, 'direct', 'lower wall path, rim gap, forecourt gate');
+    const fx = La * Math.cos(sd.phi), fy = Lb * Math.sin(sd.phi);
+    const rm = ramp(at(team, fx * 1.35, fy * 1.35), at(team, fx * 0.55, fy * 0.55), inL, Hl, 1.3);
+    const [px1, py1] = loc(team, rm.pre);
+    path(g, [w(sd.stx, sd.sty, 0), w(lerp(sd.stx, px1, 0.35), lerp(sd.sty, py1, 0.5) + b0, 0), wc(rm.pre, 0), wc(rm.foot, 0), wc(rm.top, Hl)], { w: W, approach: A1, keep: 2 });
+    // (inside the walls the tread claims no margin: the gap in a wall is the tread's own width)
+    const [tx, ty] = loc(team, rm.top);
+    path(g, [wc(rm.top, Hl), w(lerp(tx, sd.gateD + 9, 0.55), lerp(ty, sd.gateY + 3.5, 0.55) + b1 * 0.4, Hl), w(sd.gateD + 9, sd.gateY + 3.5 + b1 * 0.15, Hl), w(sd.gateD, sd.gateY, Hl), w(0, 0, Hl)],
+      { w: W, approach: A1, keep: 0 });
+    entries.push(angleOf(C(...at(team, sd.gateD, sd.gateY))));
+
+    // upper path: out of the woodland, a ramp cut up onto this side's raised terrace at its far end, along its north contour behind
+    // the plot group, a ramp down into the forecourt from the north-west
+    const A2 = approach(g, team, 'flank', 'upper contour path behind the plots, terrace ramp, forecourt gate');
+    const tipX = sd.ux + Ua; // the terrace's far (outer) tip
+    const rm2 = ramp(at(team, tipX + 9, -sd.uy), at(team, tipX - 6, -sd.uy), inU(upper[sides.indexOf(sd)]), Hu, 1.5);
+    const [px2, py2] = loc(team, rm2.pre);
+    path(g, [w(sd.stx, sd.sty, 0), w(lerp(sd.stx, px2, 0.35), lerp(sd.sty, py2, 0.5) + b2, 0), wc(rm2.pre, 0), wc(rm2.foot, 0), wc(rm2.top, Hu)], { w: W, approach: A2, keep: 2 });
+    path(g, [wc(rm2.top, Hu), w(sd.ux + Ua * 0.45, -sd.uy - Ub * 0.55 + b3 * 0.25, Hu), w(sd.ux - Ua * 0.2, -sd.uy - Ub * 0.5, Hu), w(sd.upX + 3, -sd.uy + 1.5, Hu), w(sd.upX, -8.7, Hl), w(0, 0, Hl)],
+      { w: W, approach: A2, keep: 0 });
+    entries.push(angleOf(C(...at(team, sd.upX, -8.7))));
+  }
+
+  // every wall keeps 2.5 tiles clear of any tread: a route may stray 2 tiles off its tread and a body is 1.1 m across
+  const clearOfTread = (() => {
+    const near = new Uint8Array(g.S * g.S);
+    for (const A of g.approaches) for (const k of A.tiles) g.disc((k % g.S) + 0.5, ((k / g.S) | 0) + 0.5, 2.5, (j) => { near[j] = 1; });
+    return (k: number) => !near[k];
+  })();
+
+  // ---- walls round the forecourt and wings between the gates (the perimeter comes last, round the plots) ----
+  const courtR = platR + 1.3, court: Pt[] = [];
+  for (let i = 0; i <= 64; i++) { const t = (i / 64) * 6.2832; court.push([ccx + dcos(t) * courtR, ccy + dsin(t) * courtR]); }
+  const angD = (a: number, b: number) => { let d = (a - b) % 6.2832; if (d > 3.1416) d -= 6.2832; if (d < -3.1416) d += 6.2832; return Math.abs(d); };
+  const inner = brokenWall(g, R, court, { rise: wallRise - 0.2, piece: [4, 7.5], gap: [2.5, 4], open: (x, y) => { const a = Math.atan2(y - ccy, x - ccx); return entries.some((e) => angD(a, e) < 0.28); }, can: (k) => !g.keep[k] && !g.lock[k] && g.kind[k] === HK.floor && !g.platform[k] && clearOfTread(k) });
+  // wing walls: from the forecourt wall outward along the bisector of each pair of neighbouring gates. Each route's last stretch runs
+  // in its own corridor between wings, so a watcher on one cannot see across the forecourt into another's (a ray has to pass
+  // through two gates that are 70-110 degrees apart)
+  const sorted = [...entries].sort((a, b) => a - b), wings: number[] = [];
+  sorted.forEach((e, i) => { const nx = i === sorted.length - 1 ? sorted[0] + 6.2832 : sorted[i + 1]; wings.push((e + nx) / 2); });
+  let wingTiles = 0;
+  for (const a of wings) {
+    // out to the edge of the precinct: a wing that stops short leaves a ray over its end
+    let reach = courtR + 2;
+    while (reach < 46) {
+      const [px, py] = [ccx + dcos(a) * (reach + 1), ccy + dsin(a) * (reach + 1)];
+      if (!g.in(Math.floor(px), Math.floor(py)) || !g.precinct[g.idx(Math.floor(px), Math.floor(py))]) break;
+      reach += 1;
+    }
+    wingTiles += brokenWall(g, R, [[ccx + dcos(a) * (courtR + 0.3), ccy + dsin(a) * (courtR + 0.3)], [ccx + dcos(a) * reach, ccy + dsin(a) * reach]],
+      { rise: wallRise - 0.1, piece: [reach + 4, reach + 6], gap: [1, 1], can: (k) => !g.keep[k] && !g.lock[k] && g.kind[k] === HK.floor && !g.platform[k] && clearOfTread(k) }).length;
+  }
+
+  // ---- plots: arcs concentric with the forecourt (along the contour), in the sectors between a wing and a gate; neighbours shear
+  // opposite ways and sit at different radii (staggered) ----
+  const gr = g.recipe.graves!, count = fi('plotCount');
+  const baseAngle = fr('angle');
+  interface Slot { a0: number; a1: number }
+  const slots: Slot[] = [];
+  sorted.forEach((e, i) => {
+    const nx = i === sorted.length - 1 ? sorted[0] + 6.2832 : sorted[i + 1], b = (e + nx) / 2;
+    slots.push({ a0: e, a1: b }, { a0: b, a1: nx });
+  });
+  // a plot takes the arc between a gate's path margin and a wing's (3.8 tiles from a gate, 3 from a wing), at its own radius; a
+  // plot that comes out under five markers is taken back and the next slot tried
+  const plots: GravePlot[] = [], shears: { a: number; sign: 1 | -1 }[] = [];
+  const order = R.shuffle(slots.map((s, i) => ({ s, i })));
+  const rRow = fr('plotR');
+  for (const { s, i } of order) {
+    if (plots.length >= count) break;
+    // staggered: each plot sits a step further in or out than the last
+    const r = rRow + (plots.length % 2 ? 1.8 : -1.2) + R.range(-0.5, 0.5);
+    const aS = s.a0 + (i % 2 === 0 ? 3.8 : 3) / r, aE = s.a1 - (i % 2 === 0 ? 3 : 3.8) / r;
+    if ((aE - aS) * r < 6) continue;
+    const pts: Pt[] = [];
+    for (let j = 0; j <= 10; j++) { const a = aS + ((aE - aS) * j) / 10; pts.push([ccx + dcos(a) * r, ccy + dsin(a) * r]); }
+    // a plot shears the opposite way to its nearest neighbour, so no lane runs straight through a seam (R21: opposing angles)
+    const mid = Math.atan2(pts[5][1] - ccy, pts[5][0] - ccx);
+    let near = Infinity, sign: 1 | -1 = 1;
+    for (const q of shears) { const d = angD(mid, q.a); if (d < near) { near = d; sign = q.sign === 1 ? -1 : 1; } }
+    const P = planPlot(g, R, { contour: pts, rows: fi('rows'), cols: fi('cols'), pitch: fr('pitch'), rowGap: fr('rowGap'), start: 0, angle: sign * (baseAngle + R.range(-0.06, 0.06)), wave: fr('wave'), jitter: fr('jitter'), skip: 0.1, mix: gr.mix, wide: gr.wide, lean: gr.lean, tread: 1, can: (k) => !!g.precinct[k] });
+    // a stele beyond each end of the arc, on its middle row: the taller memorial that stops the alley and interrupts the line across the court
+    for (const [a, sg] of [[aS, -1], [aE, 1]] as const) for (const d of [2.4, 3.2, 4]) if (placeMark(g, P, ccx + dcos(a + (sg * d) / r) * r, ccy + dsin(a + (sg * d) / r) * r, 'stele', 1, 0)) break;
+    if (P.marks.length < 5) { dropPlot(g, P); continue; }
+    plots.push(P); shears.push({ a: mid, sign });
+  }
+  // every class is in the precinct: where a seed's draw left one out, a marker of the commonest class becomes it
+  {
+    const all = plots.flatMap((p) => p.marks), by = (c: string) => all.filter((m) => m.cls === c);
+    for (const cls of ['stele', 'kerb', 'stone'] as const) {
+      if (by(cls).length) continue;
+      const donors = (['stone', 'kerb', 'stele'] as const).map(by).sort((p, q) => q.length - p.length)[0];
+      if (donors.length > 3) retype(g, donors[(donors.length >> 1)], cls);
+    }
+  }
+  g.shape.plots = plots.length;
+
+  // the perimeter: a broken wall round the lower terrace's rim, clear of the markers
+  const wpiece = [F.wallPiece[0], F.wallPiece[1]] as [number, number], wgap = [F.wallGap[0], F.wallGap[1]] as [number, number];
+  const openings: Pt[] = [];
+  for (let i = 0, n = fi('wallOpen'); i < n; i++) { const t = R.range(0, 6.283); openings.push(C(cx + La * 0.94 * Math.cos(t), cy + Lb * 0.94 * Math.sin(t))); }
+  const ring: Pt[] = [];
+  for (let i = 0; i <= 96; i++) { const t = (i / 96) * 6.2832; ring.push(C(cx + La * 0.94 * Math.cos(t), cy + Lb * 0.94 * Math.sin(t))); }
+  const nearMarker = (k: number) => { const x = k % g.S, y = (k / g.S) | 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (g.in(x + dx, y + dy) && g.marked[g.idx(x + dx, y + dy)]) return true; return false; };
+  const rim = brokenWall(g, R, ring, { rise: wallRise, piece: wpiece, gap: wgap, open: (x, y) => openings.some((o) => Math.hypot(o[0] - x, o[1] - y) < 2.6), can: (k) => g.H[k] >= Hl - 0.01 && !g.keep[k] && !g.lock[k] && g.kind[k] === HK.floor && !g.platform[k] && !nearMarker(k) && clearOfTread(k) });
+  g.shape.wallRim = rim.length; g.shape.wallCourt = inner.length; g.shape.wings = wingTiles; g.shape.openings = openings.length;
+  g.shape.markers = plots.reduce((a, p) => a + p.marks.length, 0);
+
+  // the terraces are the precinct: nothing grows on them but what is placed here (dress.ts leaves reserved tiles alone)
+  for (let k = 0; k < g.S * g.S; k++) if (g.precinct[k]) g.keep[k] = 1;
+
+  // ---- the memorial beside the point, at the angle farthest from every tread ----
+  {
+    let best = -Infinity, bx = ccx, by = ccy;
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * 6.2832, x = ccx + dcos(a) * (r0 + 1.5), y = ccy + dsin(a) * (r0 + 1.5);
+      let d = 9;
+      g.disc(x, y, 9, (k, dd) => { const t = g.kind[k]; if ((t === HK.route || t === HK.ramp || t === HK.tunnel) && dd < d) d = dd; });
+      if (d > best) { best = d; bx = x; by = y; }
+    }
+    g.landmark = { x: bx, y: by, name: g.recipe.props.landmark };
+  }
+
+  g.anchors.push(stage.B, C(cx, 11), C(cx, S1 - 11), C(14, 16), C(S1 - 14, S1 - 16), C(cx - 30, S1 - 14), C(cx + 30, 14));
+  g.m.bossSpot = [Math.floor(ccx), Math.floor(ccy)];
+  border(g, 4, (k) => g.H[k]);
+}
+
 /** is any tread (route, ramp or tunnel tile) within d tiles of k? */
 function treadNear(g: HabCtx, k: number, d: number): boolean {
   const x = k % g.S, y = (k / g.S) | 0;
@@ -607,4 +834,4 @@ function treadNear(g: HabCtx, k: number, d: number): boolean {
   return false;
 }
 
-export const LANDFORMS: Record<string, (g: HabCtx) => void> = { gorge, crater, shoal };
+export const LANDFORMS: Record<string, (g: HabCtx) => void> = { gorge, crater, shoal, ridge, lagoon, sanctuary };

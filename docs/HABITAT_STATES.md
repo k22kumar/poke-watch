@@ -1,7 +1,7 @@
 # Habitat environment states: what changes in a match, and what happens to whoever is in the way
 
 Scope: Shrine Gorge (`river-gorge`), Cinder Crater (`volcanic-ridge`) and Shoal Grotto (`tidal-cave`, the tide:
-section 7), docs/HABITATS.md. This page says which states
+section 7), docs/HABITATS.md. Cascade Lagoon (`tropical-lagoon`) adds no state of its own: its water, bank, bridge and terrace are fixed at load, the lagoon, pool and arms can freeze like any water (Cold, 12 s; the gorge's rule, section 2), and its props can burn and break (`tropical-lagoon.hold-stripped`, section 4). This page says which states
 change while a match runs and which are fixed when the map loads, what each change does to an actor standing in the
 affected space, which defects that turned up (all fixed), and which check covers each transition. Everything below was
 measured in the running sim; `npx tsx scripts/habstate.ts all 2` prints the same measurements for a seed.
@@ -103,6 +103,7 @@ seed 6; seed 10 has no vent branch and is checked as such). Every id below is in
 | `gorge.many-occupants` | the whole river thaws at once under the trainer and 9 Raiders spread over both reaches: all ashore, all alive, one dunk each | live |
 | `gorge.hold-frozen-stripped` | river frozen and the props stripped in the same match, then spawn → Hold → retreat by both approaches (both reach, Hold held, Raiders reach the point, 0 hits on the trainer or a Raider on its way) | live |
 | `river-gorge.hold-stripped` | 428 props burnt and broken, river running: the same | live |
+| `tropical-lagoon.hold-stripped` | 929 props burnt and broken (seed 2; cover stops at the 40 % cap), stream and lagoon running: the same two runs, 0 environment hits on the trainer or a Raider on its way (`npx tsx scripts/habstate.ts lagoon 2`) | live |
 | `tests/habstate.test.ts` unit checks | vent phase in whole steps and the five tick steps; buffed trainer, combat RNG and i-frames; `shore` is deterministic; an empty thaw moves nobody; classic regions get the same ice rule and an empty thaw drains the queue | live / static |
 
 Movement in every check is walking only: no jump, glide, dash or swim (the only optional abilities the checks touch are

@@ -3,6 +3,7 @@
 import { Rng, streamSeed } from '../../core/rng';
 import { ArenaBuilder } from '../builder';
 import type { ArenaMap } from '../tiles';
+import type { GraveMark, GravePlot } from './graves';
 import type { FamilyId, HabitatRecipe, ModeGraph } from './types';
 
 /** what each tile became */
@@ -66,6 +67,12 @@ export class HabCtx {
    *  reaches); dry floor at low water (families.ts tidal) */
   tide: Uint8Array;
   tideLevels: { low: number; high: number } | null = null;
+  /** grave markers (graves.ts): the plots planned, the tiles their footprints reserve, and the markers drawn into the map */
+  plots: GravePlot[] = [];
+  marked: Uint8Array;
+  graves: GraveMark[] = [];
+  /** the walled precinct (cemetery recipes): tiles inside the perimeter wall's footprint, for the lane test */
+  precinct: Uint8Array;
   approaches: Approach[] = [];
   joins: Join[] = [];
   /** mode nodes as placed (tile coords) */
@@ -100,6 +107,7 @@ export class HabCtx {
     this.wl = new Float32Array(n); this.over = new Float32Array(n);
     this.lock = new Uint8Array(n); this.keep = new Uint8Array(n); this.hazard = new Uint8Array(n); this.culvert = new Uint8Array(n); this.platform = new Uint8Array(n);
     this.tide = new Uint8Array(n);
+    this.marked = new Uint8Array(n); this.precinct = new Uint8Array(n);
     this.habitat = new Uint8Array(n);
   }
 

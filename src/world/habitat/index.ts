@@ -14,12 +14,15 @@ import { mixSeed, navOpen } from '../gen/util';
 import { enemyCore } from '../locgen/nav';
 import { PROP_RULES, T, type ArenaMap } from '../tiles';
 import { HK, HabCtx, MED } from './ctx';
-import { dress, write } from './dress';
+import { dress, wooded, write } from './dress';
+import { commitGraves } from './graves';
 import { smoothTreads, tidal } from './families';
 import { LANDFORMS } from './landforms';
+import { shoreOf } from './lagoon';
 import { CONTROL_POINT, profilesFor } from './mode';
 import { HABITATS } from './recipes';
 import type { BodyProfile, HabMeta, HabitatRecipe, ModeGraph } from './types';
+import { sanctuaryGates, sanctuaryIdentity } from './sanctuary-checks';
 import { validateHabitat, type HabReport, type Layout } from './validate';
 
 // v2: surface variants are collision- and footing-identical to the recipe (docs/HABITAT_AUDIT.md); crater fallback seeds
@@ -85,26 +88,40 @@ export function attemptHabitat(recipe: HabitatRecipe, mode: ModeGraph, seed: num
     g.notes.push(`tide covers ${tiles.length} tiles at high water`);
   }
   write(g);
+  // grave markers: planned by the kernel, drawn now (props over the written map), before dress so nothing grows through them
+  if (g.plots.length) commitGraves(g);
   const m = g.m;
   m.spawn = [Math.floor(g.nodes.spawnA[0]), Math.floor(g.nodes.spawnA[1])];
   dress(g);
   const sealed = seal(g);
   if (sealed) g.repairs.push(`sealed ${sealed} unreachable tiles`);
   const L = layoutOf(g);
-  let report = validateHabitat(m, L, profiles);
+  let report = checked(g, m, L, profiles);
   for (let round = 0; round < REPAIR_ROUNDS && !report.ok; round++) {
-    const fixable = report.failed.every((f) => f === 'perch' || f.startsWith('reach') || f.startsWith('independent') || f === 'planned' || f === 'contest');
+    const fixable = report.failed.every((f) => f === 'perch' || f === 'shore' || f.startsWith('reach') || f.startsWith('independent') || f === 'planned' || f === 'contest');
     if (!fixable) break;
     let did = 0;
-    if (report.failed.includes('perch')) did += occlude(g, report);
+    if (report.failed.includes('perch') || report.failed.includes('shore')) did += occlude(g, report);
     if (report.failed.some((f) => f.startsWith('reach') || f === 'planned' || f === 'contest' || f.startsWith('independent'))) did += widen(g);
     if (!did) break;
     seal(g);
-    report = validateHabitat(m, layoutOf(g), profiles);
+    report = checked(g, m, layoutOf(g), profiles);
   }
   const identity = identityOf(g, report);
   const failed = [...report.failed, ...(identity.length ? ['identity'] : [])];
   return { g, report, identity, ok: report.ok && !identity.length, failed: identity.length ? [...report.failed, ...identity.map((x) => 'identity:' + x)] : failed };
+}
+
+/** the shared validator, then the gates a landform adds for its own identity (sanctuary-checks.ts) */
+function checked(g: HabCtx, m: ArenaMap, L: Layout, profiles: BodyProfile[]): HabReport {
+  const rep = validateHabitat(m, L, profiles);
+  if (g.recipe.landform === 'sanctuary') {
+    const extra = sanctuaryGates(g, m, rep, profiles);
+    rep.gates.push(...extra);
+    rep.failed.push(...extra.filter((x) => !x.ok).map((x) => x.id));
+    rep.ok = rep.gates.every((x) => x.ok);
+  }
+  return rep;
 }
 
 export function layoutOf(g: HabCtx): Layout {
@@ -114,6 +131,8 @@ export function layoutOf(g: HabCtx): Layout {
     hazard: g.hazard, culvert: g.culvert, platform: g.platform, joins: g.joins, outlets: g.outlets, sinks: g.sinks,
     dropNav: DROP_NAV, states: g.recipe.states,
     tide: g.tideLevels ? { mask: g.tide, ...g.tideLevels } : undefined,
+    shore: shoreOf(g),
+    graves: g.graves.length ? { marks: g.graves, precinct: g.precinct } : undefined,
   };
 }
 
@@ -127,7 +146,7 @@ function seal(g: HabCtx): number {
     sealed++;
     // ground under a deck stays where it is (the slab spans it); it only becomes impassable
     if (m.over && m.over[k] > 0) { m.wall[k] = 1; continue; }
-    if (g.recipe.landform !== 'gorge' || g.lock[k] || g.keep[k]) { m.wall[k] = 1; m.elev[k] += 2.5; m.terrain[k] = T.stone; g.kind[k] = HK.rock; }
+    if (!wooded(g) || g.lock[k] || g.keep[k]) { m.wall[k] = 1; m.elev[k] += 2.5; m.terrain[k] = T.stone; g.kind[k] = HK.rock; }
     else if (!g.b.prop(g.vegetation().fill as never, k % S, (k / S) | 0, { force: true, allowPath: true })) { m.wall[k] = 1; g.kind[k] = HK.rock; m.terrain[k] = T.stone; m.elev[k] += 2.5; }
   }
   // decks nobody can reach (an arch over a sealed tunnel) are removed
@@ -148,6 +167,9 @@ function occlude(g: HabCtx, rep: HabReport): number {
   const m = g.m, S = g.S;
   let did = 0;
   const done = new Set<number>();
+  // a planned approach's tiles are treads whatever their kind (the lagoon's raised bank is bank-coloured ground)
+  const planned = new Set<number>();
+  for (const A of g.approaches) for (const k of A.tiles) planned.add(k);
   for (const p of rep.perches) {
     if (did >= 14) break;
     if (done.has(p.tile)) continue;
@@ -164,9 +186,9 @@ function occlude(g: HabCtx, rep: HabReport): number {
           const x = Math.floor(cx + nx * o), y = Math.floor(cy + ny * o);
           if (!g.in(x, y)) continue;
           const k = g.idx(x, y);
-          if (g.lock[k] || g.platform[k] || !g.play(k) || g.kind[k] === HK.route || g.kind[k] === HK.ramp || g.kind[k] === HK.tunnel || g.over[k] > 0) continue;
+          if (g.lock[k] || g.platform[k] || !g.play(k) || g.kind[k] === HK.route || g.kind[k] === HK.ramp || g.kind[k] === HK.tunnel || g.over[k] > 0 || planned.has(k)) continue;
           // reserved margin may take a spur, but never within 2 tiles of a tread (the route keeps its width)
-          if (g.keep[k] && nearTread(g, x, y, 2)) continue;
+          if (g.keep[k] && nearTread(g, x, y, 2, planned)) continue;
           tiles.push(k);
         }
         if (tiles.length < 2) continue;
@@ -187,11 +209,11 @@ function occlude(g: HabCtx, rep: HabReport): number {
   return did;
 }
 
-function nearTread(g: HabCtx, x: number, y: number, r: number): boolean {
+function nearTread(g: HabCtx, x: number, y: number, r: number, planned?: Set<number>): boolean {
   for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (!g.in(x + dx, y + dy)) continue;
     const t = g.kind[g.idx(x + dx, y + dy)];
-    if (t === HK.route || t === HK.ramp || t === HK.tunnel || g.over[g.idx(x + dx, y + dy)] > 0) return true;
+    if (t === HK.route || t === HK.ramp || t === HK.tunnel || g.over[g.idx(x + dx, y + dy)] > 0 || planned?.has(g.idx(x + dx, y + dy))) return true;
   }
   return false;
 }
@@ -243,6 +265,29 @@ function identityOf(g: HabCtx, rep: HabReport): string[] {
     if (tall < 25) out.push('tall-grass');
     if (!(g.shape.spurA > 0 && g.shape.spurB > 0)) out.push('spurs');
     if (decks < 20) out.push('causeways');
+  } else if (g.recipe.landform === 'ridge') {
+    // the precinct: markers in two or more plots, a perimeter wall, a real woodland round it, both a lower and an upper terrace
+    if (g.plots.length < 2 || g.plots.some((p) => p.marks.length < 4)) out.push('plots');
+    if (g.graves.length < 10) out.push('markers');
+    if (rock < 40) out.push('walls');
+    if (trees < 50) out.push('woodland');
+    let up = 0, low = 0;
+    for (let k = 0; k < n; k++) if (g.precinct[k]) { if (Math.abs(g.H[k] - g.recipe.levels.upper) < 0.3) up++; else if (Math.abs(g.H[k] - g.recipe.levels.lower) < 0.3) low++; }
+    if (up < 80 || low < 300) out.push('terraces');
+  } else if (g.recipe.landform === 'lagoon') {
+    // the cascade (a fall into the pool), a real lagoon, dry beach, the jungle, both crossings of the arm, the stacks
+    let lagoonWater = 0, sand = 0;
+    for (let k = 0; k < n; k++) { if (g.kind[k] === HK.fluid && g.wl[k] < 0) lagoonWater++; if (g.kind[k] === HK.bank) sand++; }
+    if ((rep.metrics.fallsEdges ?? 0) < 1) out.push('cascade');
+    if (lagoonWater < 500) out.push('lagoon');
+    if (sand < 150) out.push('beach');
+    if (trees < 80) out.push('jungle');
+    if (terrace < 60) out.push('terrace');
+    if (g.joins.filter((j) => j.what === 'bridge').length < 2) out.push('bridges');
+    if (g.joins.filter((j) => j.what === 'causeway').length < 2 || decks < 8) out.push('causeways');
+    if (!(g.shape.stackA > 0 && g.shape.stackB > 0)) out.push('stacks');
+  } else if (g.recipe.landform === 'sanctuary') {
+    out.push(...sanctuaryIdentity(g, rep));
   } else if (g.recipe.landform === 'shoal') {
     // the tide floods a real floor (hall, chamber, ramp feet), the sea inlet is there, the gallery crosses on a deck
     let floor = 0;

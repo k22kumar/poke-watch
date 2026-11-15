@@ -80,6 +80,8 @@ export const PROP_MATERIALS: Partial<Record<ArenaPropKind, PropMaterial>> = {
   lamp: { mat: 'stone', weight: 4, integrity: 0, breaksInto: 'rubble', cover: false },
   crystal: { mat: 'stone', weight: 4, integrity: 0, breaksInto: 'rubble', cover: false },
   vent: { mat: 'stone', weight: 4, integrity: 0, breaksInto: 'rubble', cover: false },
+  // old stones are terrain-grade cover: a sightline built on them holds in every environment state (the stripped state keeps them)
+  grave: { mat: 'stone', weight: 4, integrity: 0, breaksInto: 'rubble', cover: false },
 };
 
 /** a prop burns only if its material burns and it can be lost (landmarks and homes only scorch) */

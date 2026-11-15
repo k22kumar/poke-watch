@@ -12,8 +12,11 @@ import { HK, MED, type HabCtx } from './ctx';
 
 const N4: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
+/** forested landforms: the mass around the play space is woodland (closed by stands and thicket in dress), not rock */
+export const wooded = (g: HabCtx) => g.recipe.landform === 'gorge' || g.recipe.landform === 'ridge' || g.recipe.landform === 'lagoon';
+
 export function write(g: HabCtx) {
-  const m = g.m, S = g.S, n = S * S, sf = g.surfaces();
+  const m = g.m, S = g.S, n = S * S, sf = g.surfaces(), wd = wooded(g);
   const wl = new Float32Array(n);
   for (let k = 0; k < n; k++) {
     const kd = g.kind[k];
@@ -29,8 +32,8 @@ export function write(g: HabCtx) {
       case HK.shelf: t = sf.shelf; break;
       case HK.tunnel: t = sf.ramp; break;
       case HK.rock: t = T.stone; m.wall[k] = 1; break;
-      case HK.mass: t = g.recipe.landform !== 'gorge' ? T.stone : sf.rim; m.wall[k] = g.recipe.landform !== 'gorge' ? 1 : 0; break;
-      default: t = g.H[k] > 0.5 && g.recipe.landform === 'gorge' ? sf.rim : sf.floor;
+      case HK.mass: t = !wd ? T.stone : sf.rim; m.wall[k] = !wd ? 1 : 0; break;
+      default: t = g.H[k] > 0.5 && wd ? sf.rim : sf.floor;
     }
     // the tidal floor (dry at low water) reads as the bank: the tide line is visible at every tide
     if (g.tide[k] && kd !== HK.fluid) t = sf.bank;
@@ -145,6 +148,17 @@ export function dress(g: HabCtx) {
     }
   }
   const wet = g.recipe.medium === 'water';
+  // distance (tiles) to the nearest flank approach tile, for the canopy rule
+  const flankD = new Int16Array(n).fill(999);
+  if (V.canopy) {
+    const q: number[] = [];
+    for (const A of g.approaches) if (A.kind === 'flank') for (const k of A.tiles) if (flankD[k] !== 0) { flankD[k] = 0; q.push(k); }
+    for (let qh = 0; qh < q.length; qh++) {
+      const a = q[qh], ax = a % S, ay = (a / S) | 0;
+      if (flankD[a] >= V.canopy.within) continue;
+      for (const [dx, dy] of N4) { if (!g.in(ax + dx, ay + dy)) continue; const b = g.idx(ax + dx, ay + dy); if (flankD[b] > flankD[a] + 1) { flankD[b] = flankD[a] + 1; q.push(b); } }
+    }
+  }
   const s1 = R.int(1, 1e6), s2 = R.int(1, 1e6);
   // a stand grows where the patch field clears a threshold set by the recipe's density, raised by moisture where the
   // medium is water (riparian stands) and lowered near lava; inside a stand most 2×2 cells hold a tree
@@ -153,8 +167,12 @@ export function dress(g: HabCtx) {
     const moist = wet ? Math.exp(-dist[k] / 12) : Math.exp(-dist[k] / 10);
     const [mLo, mHi] = V.moisture;
     const inBand = moist >= mLo && moist <= mHi;
+    // the dry shore (beach and backshore): low ground beside open water carries no stands
+    if (V.dry && dist[k] <= V.dry.within && m.elev[k] < V.dry.below) return false;
     const field = fbm(x / 11, y / 11, s1, 3) + (wet ? (moist - 0.4) * 0.22 : -moist * 0.4);
-    return inBand && field > 1 - V.density * 0.75 && fbm(x / 5, y / 5, s2, 2) > V.clearings * 0.9;
+    // the canopy over a screened flank: near the inland route the stand is denser and has no clearings
+    const roof = V.canopy && flankD[k] <= V.canopy.within;
+    return inBand && field > 1 - (V.density + (roof ? V.canopy!.boost : 0)) * 0.75 && fbm(x / 5, y / 5, s2, 2) > (roof ? 0 : V.clearings * 0.9);
   };
   const hash = (x: number, y: number) => (((x * 73856093) ^ (y * 19349663) ^ s1) >>> 0) % 1000 / 1000;
   const trees = V.trees as ArenaPropKind[];
@@ -185,8 +203,9 @@ export function dress(g: HabCtx) {
   const s3 = R.int(1, 1e6);
   for (let k = 0; k < n; k++) {
     const x = k % S, y = (k / S) | 0;
-    if (g.kind[k] === HK.fluid && wet && dist[k] === 0 && hash(x, y + 3) < 0.03) { const nb = N4.some(([dx, dy]) => g.in(x + dx, y + dy) && g.play(g.idx(x + dx, y + dy))); if (nb) g.b.prop('lily', x, y); continue; }
-    if (g.keep[k] || m.wall[k] || m.platform[k] || g.kind[k] !== HK.floor || g.hazard[k]) continue;
+    // a shelf recipe (the lagoon's shallow rim) carries its lilies on the shelf band, several tiles deep, as scenery
+    const lily = g.recipe.landform === 'lagoon' ? 0.1 : 0.03;
+    if (g.kind[k] === HK.fluid && wet && dist[k] === 0 && hash(x, y + 3) < lily) { const nb = N4.some(([dx, dy]) => g.in(x + dx, y + dy) && g.play(g.idx(x + dx, y + dy))); if (nb) g.b.prop('lily', x, y); continue; }    if (g.keep[k] || m.wall[k] || m.platform[k] || g.kind[k] !== HK.floor || g.hazard[k]) continue;
     if (V.clearings > 0 && fbm(x / 5, y / 5, s3, 2) > 0.66) { g.b.prop('tall', x, y, { allowPath: true }); continue; }
     if (wet && dist[k] <= 2 && hash(x + 1, y) < 0.18) { g.b.prop('reeds', x, y, { allowPath: true }); continue; }
     if (Rp.decor.length && hash(x, y + 9) < 0.02) g.b.prop(Rp.decor[(x + y) % Rp.decor.length] as ArenaPropKind, x, y, { allowPath: true });
@@ -202,7 +221,9 @@ export function dress(g: HabCtx) {
     if (!g.play(k)) continue;
     const moist = dist[k] < 6;
     g.habitat[k] = g.recipe.landform === 'gorge' ? (moist ? HAB.water | HAB.forest : HAB.forest | HAB.grass | HAB.meadow)
+      : g.recipe.landform === 'ridge' ? HAB.forest | HAB.rock // woodland round old stones: Ghost and Rock natives
       : g.recipe.landform === 'shoal' ? (moist || g.tide[k] ? HAB.water | HAB.rock : HAB.rock)
+      : g.recipe.landform === 'lagoon' ? (g.kind[k] === HK.bank ? HAB.water | HAB.dry : moist ? HAB.water | HAB.grass : HAB.forest | HAB.grass)
       : (g.hazard[k] ? HAB.dry : HAB.rock | HAB.dry);
   }
 }

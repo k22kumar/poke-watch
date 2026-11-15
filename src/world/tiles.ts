@@ -17,7 +17,8 @@ export type ArenaPropKind =
   | 'cabin' | 'hedge' | 'fence' | 'well' | 'lamp' | 'bench' // hamlet kit (procedural regions)
   | 'flowerR' | 'flowerW' | 'flowerY' | 'flowerB' | 'tall' | 'reeds' | 'lily' // walkable decoration
   | 'thicket' | 'stalagmite' | 'moonstone' | 'magnetite' | 'fossil' | 'crate' // location kit (src/world/locgen)
-  | 'gatehouse' | 'tent' | 'ladder';
+  | 'gatehouse' | 'tent' | 'ladder'
+  | 'grave'; // grave marker family (world/habitat/graves.ts): per-instance height (`top`), width and lean
 
 export interface PropRule {
   /** footprint in tiles */
@@ -43,9 +44,24 @@ export const PROP_RULES: Record<ArenaPropKind, PropRule> = {
   thicket: { w: 1, h: 1, wall: true }, stalagmite: { w: 1, h: 1, wall: true }, moonstone: { w: 2, h: 2, wall: true },
   magnetite: { w: 2, h: 2, wall: true }, fossil: { w: 1, h: 1, platform: 0.45 }, crate: { w: 1, h: 1, platform: 0.8 },
   gatehouse: { w: 4, h: 3, wall: true }, tent: { w: 2, h: 2, wall: true }, ladder: { w: 1, h: 1 },
+  // a grave marker's height is its own (ArenaProp.top, one of GRAVE_TOP); this is the headstone default
+  grave: { w: 1, h: 1, platform: 0.9 },
 };
 
-export interface ArenaProp { kind: ArenaPropKind; x: number; y: number; w: number; h: number; variant: number; text?: string }
+/** Grave marker height classes (m above its footing). The classes bracket the roster's muzzle extremes (BodyProfile.eye:
+ *  0.5 m for the smallest wild Pokémon, 1.42 m for the tallest trainer partner): a kerb stands under every muzzle and is
+ *  walkable (≤ 0.6 m, the step limit), a headstone stops the smallest muzzles and the tallest fires over it, a stele
+ *  stands over every muzzle. validate.ts checks the bracket on the built map ('marker:height'). */
+export const GRAVE_TOP = { kerb: 0.45, stone: 0.9, stele: 1.7 } as const;
+export type GraveClass = keyof typeof GRAVE_TOP;
+/** the class a marker height belongs to (nearest class) */
+export const graveClassOf = (top: number): GraveClass => (top < 0.675 ? 'kerb' : top < 1.3 ? 'stone' : 'stele');
+
+export interface ArenaProp {
+  kind: ArenaPropKind; x: number; y: number; w: number; h: number; variant: number; text?: string;
+  /** grave markers: height above the footing (m; the platform the sim reads) and lean (-1, 0, 1: which way it settled) */
+  top?: number; lean?: number;
+}
 
 /** A handcrafted arena: everything the sim and renderer need, in tile coordinates. */
 export interface ArenaMap {

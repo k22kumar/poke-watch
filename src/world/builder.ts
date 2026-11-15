@@ -140,8 +140,9 @@ export class ArenaBuilder {
     }
     return true;
   }
-  prop(kind: ArenaPropKind, x: number, y: number, opts: { variant?: number; text?: string; force?: boolean; allowPath?: boolean } = {}) {
-    const R = PROP_RULES[kind];
+  prop(kind: ArenaPropKind, x: number, y: number, opts: { variant?: number; text?: string; force?: boolean; allowPath?: boolean; top?: number; lean?: number; w?: number } = {}) {
+    // a grave marker overrides the rule's width and platform height per instance (world/habitat/graves.ts)
+    const R = opts.top !== undefined || opts.w !== undefined ? { ...PROP_RULES[kind], ...(opts.top !== undefined ? { platform: opts.top } : {}), ...(opts.w !== undefined ? { w: opts.w } : {}) } : PROP_RULES[kind];
     const blocking = R.wall || R.platform;
     if (blocking) {
       if (!opts.force && !this.free(x, y, R.w, R.h, opts.allowPath)) return false;
@@ -154,7 +155,7 @@ export class ArenaBuilder {
       if (kind === 'lily' ? t !== T.water : this.m.wall[k] || this.m.platform[k] || t === T.water || t === T.wood || this.m.stairs[k]) return false;
       if (this.m.props.some((p) => p.x === x && p.y === y && !PROP_RULES[p.kind].wall && !PROP_RULES[p.kind].platform)) return false;
     }
-    this.m.props.push({ kind, x, y, w: R.w, h: R.h, variant: opts.variant ?? Math.floor(hash3(x, y, 77) * 8), text: opts.text });
+    this.m.props.push({ kind, x, y, w: R.w, h: R.h, variant: opts.variant ?? Math.floor(hash3(x, y, 77) * 8), text: opts.text, ...(opts.top !== undefined ? { top: opts.top } : {}), ...(opts.lean ? { lean: opts.lean } : {}) });
     for (let j = y; j < y + R.h; j++) for (let i = x; i < x + R.w; i++) {
       if (!this.in(i, j)) continue;
       const k = this.i(i, j);

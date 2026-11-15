@@ -36,7 +36,12 @@ test('recipes are data: anchors tagged canon / reinterpretation / original with 
   // both recipes are built from the same families (geometry and rule reuse), measured on generated maps
   const built = IDS.map((id) => new Set(gen(id, 5).gen!.hab!.families));
   const shared = [...built[0]].filter((f) => built.slice(1).every((s) => s.has(f)));
-  assert.ok(shared.length >= 6, `shared families: ${shared.join(', ')} (gorge ${[...built[0]]}, crater ${[...built[1]]})`);
+  // every recipe builds from at least five of the seven; a recipe with no fluid (the cemetery) has no `channel` to share, so the
+  // core every recipe shares is five and the wet recipes add the sixth
+  for (const [i, id] of IDS.entries()) assert.ok(built[i].size >= 5, `${id} builds from ${built[i].size} families: ${[...built[i]]}`);
+  assert.ok(shared.length >= 5, `shared families: ${shared.join(', ')} (gorge ${[...built[0]]}, crater ${[...built[1]]})`);
+  const wet = IDS.filter((id) => !HABITATS[id].anchors.every((a) => a.family !== 'channel'));
+  assert.ok(wet.length >= 3 && wet.every((id) => IDS.indexOf(id) >= 0 && built[IDS.indexOf(id)].has('channel')), `every recipe with a fluid anchor builds from channel: ${wet.join(', ')}`);
   void families;
   assert.equal(findHabitat('volcano')?.id, 'volcanic-ridge');
   assert.deepEqual(findHabitat('river-gorge:snow'), { id: 'river-gorge', variant: 'snow' });
@@ -48,7 +53,7 @@ test('the generator names no recipe, location or species', () => {
   for (const f of readdirSync('src/world/habitat')) {
     if (f === 'recipes.ts') continue;
     const src = readFileSync('src/world/habitat/' + f, 'utf8');
-    for (const word of ['Route 119', 'Ilex', 'Chimney', 'Fiery', 'Firespit', 'Shoal Cave', 'Shoal Grotto', 'river-gorge', 'volcanic-ridge', 'tidal-cave', 'totodile', 'magcargo']) assert.ok(!src.includes(word), `${f} mentions ${word}`);
+    for (const word of ['Route 119', 'Ilex', 'Chimney', 'Fiery', 'Firespit', 'Shoal Cave', 'Shoal Grotto', 'river-gorge', 'volcanic-ridge', 'tidal-cave', 'spear-sanctuary', 'Spear Sanctuary', 'Spear Pillar', 'Coronet', 'Temple of Sinnoh', 'totodile', 'magcargo']) assert.ok(!src.includes(word), `${f} mentions ${word}`);
     assert.ok(!/Math\.random|Date\.now|performance\.now\(\)\s*[-+*]/.test(src.replace(/typeof performance[^\n]*/g, '')), `${f}: no randomness or clock in the output`);
   }
 });

@@ -25,7 +25,7 @@ import { pathBetween } from '../src/world/locgen/nav';
 import { ICE_LIFT, T } from '../src/world/tiles';
 import { playHabitat } from './habplay';
 
-export interface Check { id: string; recipe: 'volcanic-ridge' | 'river-gorge'; coverage: 'static' | 'live'; transition: string; ok: boolean; detail: string }
+export interface Check { id: string; recipe: 'volcanic-ridge' | 'river-gorge' | 'tropical-lagoon'; coverage: 'static' | 'live'; transition: string; ok: boolean; detail: string }
 
 type Hit = Extract<SimEvent, { t: 'hazardHit' }> & { step: number };
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -455,7 +455,7 @@ export function gorgeChecks(seed: number): Check[] {
   return out;
 }
 
-export function strippedChecks(recipe: 'volcanic-ridge' | 'river-gorge', seed: number): Check[] {
+export function strippedChecks(recipe: 'volcanic-ridge' | 'river-gorge' | 'tropical-lagoon', seed: number): Check[] {
   const prepare = (c: SimContext) => { stripProps(c); };
   const geo = playHabitat(recipe, seed, { route: 'both', prepare }), raid = playHabitat(recipe, seed, { raid: true, route: 'both', prepare });
   const lost = stripProps(mk(recipe, seed));
@@ -469,6 +469,8 @@ if (process.argv[1]?.endsWith('habstate.ts')) {
   const all: Check[] = [];
   if (which === 'all' || which === 'crater') all.push(...craterChecks(seed), ...strippedChecks('volcanic-ridge', seed));
   if (which === 'all' || which === 'gorge') all.push(...gorgeChecks(seed), ...strippedChecks('river-gorge', seed));
+  // the lagoon's only state that changes in a match is its cover (docs/HABITAT_STATES.md): its water, bank and terrace are fixed at load
+  if (which === 'all' || which === 'lagoon') all.push(...strippedChecks('tropical-lagoon', seed));
   for (const c of all) console.log(`${c.ok ? 'ok  ' : 'FAIL'} [${c.coverage.padEnd(6)}] ${c.recipe} ${c.id}\n       ${c.transition}\n       ${c.detail}`);
   const live = all.filter((c) => c.coverage === 'live'), stat = all.filter((c) => c.coverage === 'static');
   console.log(`\n${all.filter((c) => c.ok).length}/${all.length} checks pass (${live.filter((c) => c.ok).length}/${live.length} exercised in the running simulation, ${stat.filter((c) => c.ok).length}/${stat.length} static)`);

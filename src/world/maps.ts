@@ -60,7 +60,7 @@ export function mapChecksum(m: ArenaMap): number {
   let h = 0x811c9dc5;
   const mix = (v: number) => { h = Math.imul(h ^ (v | 0), 0x01000193); };
   for (let k = 0; k < m.terrain.length; k++) { mix(m.terrain[k]); mix(Math.round(m.elev[k] * 4)); mix(m.wall[k]); mix(Math.round(m.platform[k] * 100)); mix(m.stairs[k]); }
-  for (const p of m.props) { mix(p.x); mix(p.y); mix(p.kind.length); mix(p.kind.charCodeAt(0)); mix(p.kind.charCodeAt(p.kind.length - 1)); mix(p.variant); }
+  for (const p of m.props) { mix(p.x); mix(p.y); mix(p.kind.length); mix(p.kind.charCodeAt(0)); mix(p.kind.charCodeAt(p.kind.length - 1)); mix(p.variant); if (p.lean) mix(p.lean); }
   mix(m.spawn[0]); mix(m.spawn[1]); mix(m.bossSpot[0]); mix(m.bossSpot[1]);
   // layered and fluid-level maps: decks and water levels are part of the layout (absent on other maps: unchanged hash)
   if (m.over) for (let k = 0; k < m.over.length; k++) if (m.over[k] > 0) { mix(k); mix(Math.round(m.over[k] * 4)); }

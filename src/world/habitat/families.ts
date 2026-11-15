@@ -15,7 +15,7 @@
 //              retaining walls), ruinWall() [kernel 7]
 //
 // Every join records its ends, height, headroom and what passes under it (ctx.joins); validate.ts checks them.
-import { fbm } from '../../core/rng';
+import { fbm, type Rng } from '../../core/rng';
 import { HK, MED, type Approach, type HabCtx } from './ctx';
 
 export type Pt = [number, number];
@@ -377,6 +377,53 @@ export function ruinWall(g: HabCtx, a: Pt, b: Pt, rise: number, gap: (t: number)
     g.H[k] += rise; g.kind[k] = HK.rock; out.push(k);
   }
   return out;
+}
+
+/** a broken wall along a polyline: indestructible wall tiles `rise` m above their footing, laid as pieces with gaps between
+ *  (piece and gap lengths drawn from `piece` and `gap`, in tiles), 4-connected so no ray slips through a diagonal. A tile
+ *  that `open` names (a route's mouth, a seeded opening) is never walled, and a gap is always at least `gap[0]` wide
+ *  around one; reserved route space and fluid are left alone. Returns the wall tiles. */
+export function brokenWall(g: HabCtx, R: Rng, pts: Pt[], o: { rise: number; piece: [number, number]; gap: [number, number]; open?: (x: number, y: number) => boolean; can?: (k: number) => boolean; stub?: number }): number[] {
+  g.used.add('structure');
+  const out: number[] = [], cum = cumLen(pts), total = cum[cum.length - 1];
+  const can = o.can ?? ((k: number) => !g.keep[k] && !g.lock[k] && g.kind[k] !== HK.fluid && g.kind[k] !== HK.rock && !g.platform[k]);
+  // piece / gap schedule along the arc length: a seeded start phase so the pieces do not begin at the same place
+  let s = -R.range(0, o.piece[1]), wall = true, left = R.range(o.piece[0], o.piece[1]);
+  const last = new Set<number>();
+  const put = (x: number, y: number) => {
+    if (!g.in(x, y)) return;
+    const k = g.idx(x, y);
+    if (last.has(k) || !can(k)) return;
+    last.add(k); g.H[k] += o.rise; g.kind[k] = HK.rock; g.lock[k] = 0; out.push(k);
+  };
+  let px = -1, py = -1;
+  const prev = new Map<number, number>();
+  for (let t = 0; t <= total; t += 0.4) {
+    while (left <= 0) { wall = !wall; left = wall ? R.range(o.piece[0], o.piece[1]) : R.range(o.gap[0], o.gap[1]); }
+    left -= 0.4; s = t;
+    const [x, y] = along(pts, cum, s);
+    if (!wall || (o.open && o.open(x, y))) { px = -1; continue; }
+    const tx = Math.floor(x), ty = Math.floor(y);
+    // step from the previous tile through a shared side, so the line is 4-connected
+    if (px >= 0 && tx !== px && ty !== py && g.in(tx, py)) prev.set(g.idx(tx, py), g.kind[g.idx(tx, py)]);
+    if (g.in(tx, ty)) prev.set(g.idx(tx, ty), g.kind[g.idx(tx, ty)]);
+    if (px >= 0 && tx !== px && ty !== py) put(tx, py);
+    put(tx, ty); px = tx; py = ty;
+  }
+  // a piece shorter than `stub` tiles (a cut the route's margin or a seeded opening left behind) is rubble, not a wall: it pinches a
+  // route without sheltering anything, so it is taken down again
+  const stub = o.stub ?? 3, set = new Set(out), seen = new Set<number>(), keep: number[] = [];
+  for (const k0 of out) {
+    if (seen.has(k0)) continue;
+    const comp = [k0]; seen.add(k0);
+    for (let i = 0; i < comp.length; i++) {
+      const x = comp[i] % g.S, y = (comp[i] / g.S) | 0;
+      for (const [dx, dy] of DIRS) { const j = g.in(x + dx, y + dy) ? g.idx(x + dx, y + dy) : -1; if (j >= 0 && set.has(j) && !seen.has(j)) { seen.add(j); comp.push(j); } }
+    }
+    if (comp.length >= stub) keep.push(...comp);
+    else for (const k of comp) { g.H[k] -= o.rise; g.kind[k] = prev.get(k) ?? HK.floor; }
+  }
+  return keep;
 }
 
 /** the supporting tiles at each end of a span: walking outward along its axis from each end, the first playable tile

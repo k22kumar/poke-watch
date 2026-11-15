@@ -14,5 +14,7 @@ export const SKY: Record<string, SkyDef> = {
   chargestone: { hor: rgb('#1c3450'), zen: rgb('#060c18'), fogNear: 16, fogFar: 72, fog: 1 },
   // habitat palette: a smoky, ember-lit sky over the crater
   volcano: { hor: rgb('#7a4a3a'), zen: rgb('#2a1a1e'), fogNear: 24, fogFar: 100, fog: 0.95 },
+  // habitat palette: a warm, hazy tropical sky
+  tropic: { hor: rgb('#d6efe0'), zen: rgb('#5fb4e6'), fogNear: 28, fogFar: 125, fog: 0.85 },
 };
 export const skyFor = (biome: string): SkyDef => SKY[biome] ?? SKY.meadow;

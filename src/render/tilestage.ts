@@ -9,7 +9,7 @@ import { Atlas } from '../overworld/render';
 import { boxGeo } from '../overworld/buildings';
 import { Pix, hex, type RGB } from '../overworld/paint';
 import { paintCliff, paintGround, paintRockFace, paintStairs, paintWater, type GroundInput } from '../overworld/terrain';
-import { PROP_RULES, T, WATER_Y, deckTop, stairEdges, type ArenaMap } from '../world/tiles';
+import { PROP_RULES, T, WATER_Y, deckTop, graveClassOf, stairEdges, type ArenaMap } from '../world/tiles';
 import { BIOME_ART, TERRAIN_STYLE, arenaSprites } from './tileart';
 import { decorSprites, layoutDecor } from './decor';
 import { artDirection, edgeShade, forestDepth, type ArtDirection } from './artdirection';
@@ -470,7 +470,8 @@ export class TileStage {
       }
       const jx = p.kind.startsWith('flower') ? (((p.x * 7 + p.y * 13) % 5) - 2) * 0.09 : 0;
       if (p.kind === 'tree') key = ['tree', 'tree3', 'tree'][p.variant % 3];
-      const flip = p.kind === 'tall' || p.kind === 'shrine' || p.kind === 'statue' || p.kind === 'sign' || p.kind === 'gatehouse' || p.kind === 'cabin' ? false : (p.variant & 1) === 1;
+      if (p.kind === 'grave') { key = `grave_${graveClassOf(p.top ?? 0.9)}_${Math.min(2, p.w)}_${(p.lean ?? 0) + 1}`; dz = -0.3; }
+      const flip = p.kind === 'grave' ? false : p.kind === 'tall' || p.kind === 'shrine' || p.kind === 'statue' || p.kind === 'sign' || p.kind === 'gatehouse' || p.kind === 'cabin' ? false : (p.variant & 1) === 1;
       this.props.push({ key, frames, x: cx + jx, y: p.kind === 'lily' ? -0.22 : y, z: base + dz, tile: p.y * W + p.x, sway, flip, kind: p.kind, shade: PROP_RULES[p.kind].wall ? frameShade(p.x, p.y, p.w, p.h) : 1, pi, sx: p.x + 0.5 - o, sz: base - 0.4 });
       if (big.has(p.kind) && PROP_RULES[p.kind].wall) this.treeShadows.push([cx, y, base - 0.6, p.kind === 'elder' || p.kind === 'cabin' || p.kind === 'gatehouse' ? 2.2 : 1.0, pi]);
     }

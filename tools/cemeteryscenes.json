@@ -1,0 +1,18 @@
+[
+  { "name": "cemetery3-wide", "query": "go=1&species=totodile&loc=forest-cemetery&mapseed=3&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half + 6; c.player.y = c.world.height(c.player.x, c.player.z, 9); return [H.recipe, H.seed, H.gates.filter((g) => !g.ok).length]; })()" },
+    { "advance": 1.0 }, { "shot": "contest" } ] },
+  { "name": "cemetery3-plot", "query": "go=1&species=totodile&loc=forest-cemetery&mapseed=3&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, g = W.map.props.filter((p) => p.kind === 'grave' && p.top > 0.8 && p.top < 1); const p = g[g.length >> 1], H = W.hab, dx = H.contest.x - p.x, dy = H.contest.y - p.y, l = Math.hypot(dx, dy); c.player.x = p.x - W.half + 0.5 + (dx / l) * 4; c.player.z = p.y - W.half + 0.5 + (dy / l) * 4; c.player.y = W.height(c.player.x, c.player.z, 9); return [g.length, p.x, p.y]; })()" },
+    { "advance": 1.2 }, { "shot": "plot" } ] },
+  { "name": "cemetery3-gate", "query": "go=1&species=totodile&loc=forest-cemetery&mapseed=3&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab, a = H.stage.A, dx = a[0] - H.contest.x, dy = a[1] - H.contest.y, l = Math.hypot(dx, dy); c.player.x = H.contest.x - W.half + (dx / l) * 14; c.player.z = H.contest.y - W.half + (dy / l) * 14; c.player.y = W.height(c.player.x, c.player.z, 9); return 1; })()" },
+    { "advance": 1.2 }, { "shot": "gate" } ] },
+  { "name": "cemetery3-point", "query": "go=1&species=totodile&loc=forest-cemetery&mapseed=3&calm=1", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, W = c.world, H = W.hab; c.player.x = H.contest.x - W.half; c.player.z = H.contest.y - W.half; c.player.y = W.height(c.player.x, c.player.z, 9); return 1; })()" },
+    { "advance": 1.2 }, { "shot": "memorial" } ] },
+  { "name": "cemetery3-spawn", "query": "go=1&species=totodile&loc=forest-cemetery&mapseed=3&calm=1", "steps": [ { "advance": 1.0 }, { "shot": "spawn" } ] },
+  { "name": "cemetery7-hollow", "query": "go=1&species=totodile&loc=forest-cemetery/hollow&mapseed=7&calm=1&cam=wide", "steps": [
+    { "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half + 6; c.player.y = c.world.height(c.player.x, c.player.z, 9); return H.variant; })()" },
+    { "advance": 1.0 }, { "shot": "contest" } ] }
+]
