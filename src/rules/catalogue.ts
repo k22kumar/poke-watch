@@ -8,9 +8,9 @@ import { CATALOGUE_FAMILIES, CATALOGUE_FORM_CONDITIONS, CATALOGUE_RECORDS } from
 // of it. A catalogue record carries canonical facts only — ordered typing, form identity, raw
 // measurements with their qualifiers, species family edges — and no sprite, cry, learnset, spawn
 // entry, behaviour or role. Nothing in src/sim/, src/world/, src/render/ or src/ui/ reads this
-// module: `profilesFor()` and `playableLine()` (src/world/habitat/mode.ts) derive habitat
-// navigation radii from min/max over the whole of `SPECIES`, so a reference record that entered
-// that set would move habitat layout acceptance and every replay hash. Keeping the two sets apart
+// module: a reference record inside `SPECIES` would join `all-wild` spawn pools and the habitat
+// navigation profiles (`profilesFor()`, src/world/habitat/mode.ts), so it would move habitat
+// layout acceptance and every replay hash. Keeping the two sets apart
 // makes that impossible rather than something to remember.
 //
 // The families here are canonical relationships. The game's paced progression is `evolvesTo` /

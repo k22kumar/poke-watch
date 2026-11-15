@@ -2,7 +2,7 @@
 # Sparse git checkouts of the content sources, limited to the Pokémon in content/roster.json:
 #   DIR/api-data      PokeAPI/api-data   (static PokéAPI JSON: pokemon, species, evolution chains, moves, types)
 #   DIR/spritecollab  PMDCollab/SpriteCollab (sprite/<dex4>/ sheets + AnimData.xml, portrait/<dex4>/Normal.png)
-#   DIR/cries         PokeAPI/cries      (cries/pokemon/latest/<id>.ogg)
+#   DIR/cries         PokeAPI/cries      (cries/pokemon/{latest,legacy}/<id>.ogg)
 # ... plus the source for the reference catalogue (content/catalogue.json), which is roster-independent:
 #   DIR/pokeapi-csv   PokeAPI/pokeapi    (data/v2/csv at the revision pinned in content/catalogue.json)
 # The catalogue needs no sprites or cries, so the roster-driven sets above are left alone: its ten
@@ -37,8 +37,8 @@ for (const d of fs.readdirSync(D)) for (const a of JSON.parse(fs.readFileSync(D+
 console.log([...s].join(' '));")
 (cd "$DIR/api-data" && git sparse-checkout add $(for i in $ABIL; do echo "/data/api/v2/ability/$i/"; done))
 (cd "$DIR/spritecollab" && git sparse-checkout set --no-cone $(for i in $IDS; do d=$(printf %04d "$i"); echo "/sprite/$d/*"; echo "!/sprite/$d/*/"; echo "/portrait/$d/Normal.png"; done) /LICENSE.md /credit_names.txt)
-# latest available cry recordings
-(cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; done) /LICENSE)
+# cry recordings: latest, plus legacy as the importer's fallback when a latest file is missing or not a real OGG
+(cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; echo "/cries/pokemon/legacy/$i.ogg"; done) /LICENSE)
 # UI icons: Pokémon type badges and bag icons for the items the game maps upgrades to
 # reference catalogue: PokéAPI's published CSV tables, pinned to the revision in content/catalogue.json
 CAT_REV=$(node -e "console.log(require('./content/catalogue.json').source.revision)")

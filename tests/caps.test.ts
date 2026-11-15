@@ -1,6 +1,7 @@
 // Phase 8a: capability tags, the shared resolver, projectile interception, suspend-and-release Hold,
 // body-on-body impacts, the burning-tile flow cost, the death recap, and determinism (blueprint sections 7,
 // 10, 12 and 16). Rule tests, property tests, micro-scene scenario tests and regression tests.
+import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
@@ -357,7 +358,9 @@ test('scenario: Lasso the rubble of a broken boulder and throw it into an enemy'
   let piece = -1, bd = 1e9;
   for (let i = 0; i < ctx.bodies.hi; i++) if (ctx.bodies.alive[i] && ctx.bodies.kind[i] === 3) { const d = Math.hypot(ctx.bodies.x[i] - P.x, ctx.bodies.z[i] - P.z); if (d < bd) { bd = d; piece = i; } }
   assert.ok(piece >= 0, 'rubble on the ground');
-  const e = dummy(ctx, 'rattata', x + 3, z + 13);
+  // a Medium target (Slugma): rubble released before it reaches the hold point flies a little off the aim line, which
+  // a Tiny body (size classes, docs/SIZING.md) can slip past
+  const e = dummy(ctx, 'slugma', x + 3, z + 13);
   const hp0 = ctx.enemies.hp[e];
   const aim = { aimX: x + 3, aimZ: z + 13, btn: BTN.basic }; // the basic attack (Vine Whip) throws what it holds
   assert.ok(holdBody(ctx, piece, 1, P.x - ctx.bodies.x[piece], P.z - ctx.bodies.z[piece], TEAM.player, 0));
@@ -494,7 +497,7 @@ test('regression: with the capability layer off, replay hashes equal the v10 bui
   for (const [species, seed, mode, seconds, want] of V10) {
     // v10 had neither the capability layer nor the Phase 8b build layer (nor liquid exposure and falls), and its basic
     // attack cast only at a target
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, combat: { basicNeedsTarget: true } } as never });
+    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, spawning: { regions: CLASSIC_REGIONS }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);

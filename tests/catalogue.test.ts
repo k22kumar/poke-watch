@@ -2,9 +2,9 @@
 //
 // The expected sets are the research report's appendices (docs/pokemon-integration-handoff.md,
 // Appendices B and C). This file asserts the inventory by count and by identity, and asserts that
-// catalogue records stay out of the sim's species universe — `profilesFor()` derives habitat
-// navigation radii from min/max over the whole of SPECIES, so a leak would move habitat layout
-// acceptance and every replay hash.
+// catalogue records stay out of the sim's species universe — a leak would join `all-wild` spawn
+// pools and the habitat navigation profiles, moving habitat layout acceptance and every replay hash.
+import { bodyOf } from '../src/rules/sizing';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -27,7 +27,8 @@ import {
 } from '../src/rules/catalogue';
 import { CATALOGUE_SOURCE } from '../src/content/catalogue';
 import { SPECIES, SPECIES_BY_ID, weightClass } from '../src/rules/species';
-import { POKEDEX_MOVES, POKEDEX_SPECIES, STAGE_TABLES } from '../src/content/pokedex';
+import { POKEDEX_MOVES, POKEDEX_SPECIES } from '../src/content/pokedex';
+import { STAGES } from '../src/rules/stages';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const authored = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/catalogue.json'), 'utf8'));
@@ -232,18 +233,18 @@ test('form and regional restrictions are kept as scoped source references', () =
 });
 
 test('isolation: catalogue records are not game species and move nothing in the sim', () => {
-  // the active registry holds the roster's 40 species, the same ids, and no catalogue leak.
-  // 38 of them predate this lane; Joltik and Onix were added deliberately as ordinary wild
-  // encounters (content/roster.json: Joltik ranged/volt in Meadow, Onix tank in Badlands), so they
-  // are role records that happen to coincide with two catalogue records, not a catalogue leak.
-  assert.equal(POKEDEX_SPECIES.length, 40);
-  assert.equal(SPECIES.length, 40);
+  // the active registry holds the roster's 72 species, the same ids, and no catalogue leak.
+  // 38 predate the catalogue lane; Joltik and Onix and then the 2026-11 wave of 32 (docs/SPECIES.md) were added
+  // deliberately through content/roster.json as wild encounters, so they are role records that coincide with catalogue
+  // records, not a catalogue leak. A catalogue record still never becomes a species on its own.
+  assert.equal(POKEDEX_SPECIES.length, 72);
+  assert.equal(SPECIES.length, 72);
   assert.equal(SPECIES, POKEDEX_SPECIES);
-  assert.deepEqual(STAGE_TABLES.map((s) => s.biome), ['meadow', 'badlands', 'frost', 'dusk']);
-  assert.equal(POKEDEX_MOVES.length, 191, 'the catalogue adds no move rows; the 4 new rows are Joltik\'s and Onix\'s level-up moves');
+  assert.deepEqual(STAGES.map((s) => s.biome), ['meadow', 'badlands', 'frost', 'dusk']);
+  assert.equal(POKEDEX_MOVES.length, 263, 'the catalogue adds no move rows; every row is a role species\' level-up move');
   const roleIds = new Set(SPECIES.map((s) => s.id));
   const catalogueOnly = CATALOGUE.filter((r) => !roleIds.has(r.id));
-  assert.equal(catalogueOnly.length, 260, '260 of the 269 records have no runtime role');
+  assert.equal(catalogueOnly.length, 228, '228 of the 269 records have no runtime role');
   for (const r of catalogueOnly) assert.equal(SPECIES_BY_ID[r.id], undefined, `${r.id} is not a game species`);
   // a catalogue record carries no gameplay field at all
   for (const r of CATALOGUE) {
@@ -251,26 +252,26 @@ test('isolation: catalogue records are not game species and move nothing in the 
       assert.ok(!(key in r), `${r.id} must not carry ${key}`);
     }
   }
-  // The active roster membership itself, pinned. `profilesFor()` (src/world/habitat/mode.ts) takes
-  // min/max over these sets for the wild-small, wild-elite and boss navigation radii, so this set
-  // changing at all is what would move habitat layout acceptance and the replay hashes.
+  // The active roster membership itself, pinned. The habitat navigation profiles (`profilesFor()`,
+  // src/world/habitat/mode.ts) take the extremes of the bodies the spawn pools can field, so a change to
+  // this set is what moves habitat layout acceptance and the replay hashes.
   assert.deepEqual(SPECIES.map((s) => s.id).sort(), [
-    'articuno', 'bayleef', 'blastoise', 'bulbasaur', 'charizard', 'charmander', 'charmeleon', 'chikorita', 'croconaw',
-    'cyndaquil', 'delibird', 'feraligatr', 'gastly', 'geodude', 'heracross', 'houndoom', 'houndour', 'ivysaur', 'joltik',
-    'ledyba', 'magcargo', 'mareep', 'meganium', 'oddish', 'onix', 'paras', 'poliwag', 'quilava', 'rattata', 'sandshrew',
-    'slugma', 'squirtle', 'sudowoodo', 'swinub', 'totodile', 'typhlosion', 'venusaur', 'vulpix', 'wartortle', 'zubat',
+    'articuno', 'bayleef', 'bergmite', 'blastoise', 'budew', 'bulbasaur', 'cetoddle', 'charizard', 'charmander', 'charmeleon',
+    'chikorita', 'croconaw', 'cutiefly', 'cyndaquil', 'delibird', 'diglett', 'doduo', 'dreepy', 'ekans', 'feraligatr', 'furret',
+    'gastly', 'gengar', 'geodude', 'hariyama', 'haunter', 'heracross', 'honedge', 'houndoom', 'houndour', 'impidimp', 'ivysaur',
+    'joltik', 'koffing', 'lapras', 'ledyba', 'litwick', 'magcargo', 'makuhita', 'mareep', 'meganium', 'murkrow', 'noibat',
+    'oddish', 'onix', 'paras', 'pichu', 'pikachu', 'poliwag', 'quilava', 'rattata', 'rolycoly', 'sandshrew', 'sentret',
+    'silicobra', 'sizzlipede', 'slugma', 'sneasel', 'snom', 'snorlax', 'snorunt', 'squirtle', 'sudowoodo', 'swinub', 'togepi',
+    'totodile', 'turtwig', 'typhlosion', 'venusaur', 'vulpix', 'wartortle', 'zubat',
   ]);
   const wild = SPECIES.filter((s) => !s.boss && !s.flying);
   const bosses = SPECIES.filter((s) => s.boss && !s.flying);
-  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 40);
+  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 72);
   assert.equal(Math.max(...SPECIES.map((s) => s.height)), 4.5, 'the overall height extremes are unchanged');
   assert.equal(Math.min(...SPECIES.map((s) => s.height)), 0.9);
-  // Onix is the tallest ground wild Pokémon the roster has carried (3.02 m from its idle sprite),
-  // so `profilesFor()`'s wild-elite radius moved from 1.42 m to 2.42 m when it was added. That is a
-  // deliberate roster consequence, not a leak, and it is pinned here so a later accidental change
-  // to the wild set is still caught.
-  const wildRadius = (h: number) => Math.min(3.2, Math.max(0.35, h * 0.4));
-  assert.equal(+Math.max(...wild.map((s) => wildRadius(s.height))).toFixed(3), 1.208);
+  // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large at the top of
+  // its class (Onix, 8.8 m listed), 0.9 m × 1.08. Pinned so a later accidental change to the set is still caught.
+  assert.equal(+Math.max(...wild.map((s) => bodyOf(s).radius)).toFixed(3), 0.972);
   assert.equal(SPECIES_BY_ID['onix'].height, 3.02);
   assert.equal(SPECIES_BY_ID['joltik'].height, 0.9);
   // a Gigantamax placeholder would read as "Massive" and Eternamax's 0 hg as "Weightless";
@@ -296,10 +297,16 @@ test('isolation: nothing in the sim, world, render, ui or audio imports the cata
   assert.deepEqual(offenders, [], 'the catalogue stays out of the sim bundle and the species registry');
 });
 
-test('the 9 records with a game role agree with the catalogue and keep their role', () => {
-  // 7 records already had a role when this lane landed; Joltik and Onix were added to the roster
-  // deliberately as wild encounters, so the overlap is 9.
-  const overlap = ['charmander', 'charmeleon', 'charizard', 'rattata', 'gastly', 'slugma', 'magcargo', 'joltik', 'onix'];
+test('the 41 records with a game role agree with the catalogue and keep their role', () => {
+  // 7 records already had a role when this lane landed; Joltik and Onix, then the 2026-11 wave of 32, were added to
+  // the roster deliberately as wild encounters, so the overlap is 41.
+  const overlap = [
+    'charmander', 'charmeleon', 'charizard', 'rattata', 'gastly', 'slugma', 'magcargo', 'joltik', 'onix',
+    'pichu', 'pikachu', 'togepi', 'sentret', 'furret', 'budew', 'cutiefly', 'turtwig', 'doduo', 'snorlax',
+    'diglett', 'ekans', 'koffing', 'rolycoly', 'sizzlipede', 'silicobra', 'makuhita', 'hariyama',
+    'snorunt', 'snom', 'sneasel', 'bergmite', 'cetoddle', 'lapras',
+    'murkrow', 'litwick', 'haunter', 'gengar', 'impidimp', 'noibat', 'honedge', 'dreepy',
+  ];
   assert.deepEqual(CATALOGUE.map((r) => r.id).filter((id) => SPECIES_BY_ID[id]).sort(), [...overlap].sort());
   for (const id of overlap) {
     const sp = SPECIES_BY_ID[id];
@@ -336,5 +343,5 @@ test('provenance: the generated module records the pinned source revision', () =
   assert.deepEqual(report.catalogue.totals, { ...CATALOGUE_TOTALS });
   assert.equal(report.catalogue.source.files.length, authored.source.csv.length);
   for (const f of report.catalogue.source.files) assert.match(f.sha256, /^[0-9a-f]{64}$/, `${f.file} checksum`);
-  assert.equal(report.species.length, 40, 'the role lane\'s provenance is preserved');
+  assert.equal(report.species.length, 72, 'the role lane\'s provenance is preserved');
 });

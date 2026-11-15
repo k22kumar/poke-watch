@@ -18,11 +18,33 @@ Poke-Watch preserves recognizable evolution lines but compresses progression to 
 
 ## Two registries: game species and the reference catalogue
 
-`SPECIES` (`src/rules/species.ts`) is the game's roster: 40 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority holding canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 9 identities (`charmander`, `charmeleon`, `charizard`, `rattata`, `gastly`, `slugma`, `magcargo`, and the two deliberate additions `joltik` and `onix`), where the pokedex stays the gameplay authority and the catalogue the reference one; `tests/catalogue.test.ts` asserts they agree on types, canonical height and canonical weight for all 9. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
+`SPECIES` (`src/rules/species.ts`) is the game's roster: 72 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority. It holds canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 41 identities: the 7 that already had a role, then `joltik` and `onix`, then the 32 of the 2026-11 wave (below). For those, the pokedex stays the gameplay authority and the catalogue the reference one. `tests/catalogue.test.ts` asserts the two agree on types, canonical height and canonical weight for all 41. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
 
-The split is structural, not stylistic. `profilesFor()` and `playableLine()` (`src/world/habitat/mode.ts`) take min/max over the whole of `SPECIES` to produce habitat navigation radii, so a reference record inside that set would change which habitat layouts are accepted and move every replay hash. Nothing in `src/sim/`, `src/world/`, `src/render/`, `src/ui/` or `src/rules/species.ts` imports the catalogue.
+The split is structural, not stylistic. A reference record inside `SPECIES` would join `all-wild` spawn pools and the habitat navigation profiles (`profilesFor()`, `src/world/habitat/mode.ts`), which would change which habitat layouts are accepted and move every replay hash. Nothing in `src/sim/`, `src/world/`, `src/render/`, `src/ui/` or `src/rules/species.ts` imports the catalogue.
 
 Canonical families live only in the catalogue, as complete chains with every branch kept. The game's paced progression remains `evolvesTo` / `evolveLevel` on a `SpeciesDef` — the only thing `progression.ts`, `lineage()`, `starterFamilyRoot()` and `playableLine()` read. A canonical edge never becomes an in-run evolution: of the catalogue's 102 directed edges, only `charmander>charmeleon` and `charmeleon>charizard` also exist as in-run pacing, and the ten other in-run edges (the five non-Charmander starter lines) are outside the catalogue's scope. `docs/PIPELINE.md` covers how the catalogue is generated and what its measurement qualifiers mean.
+
+## Why the catalogue Pokémon were not in the game
+
+The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). The rest of the 228 catalogue-only records can be promoted the same way, one line at a time. Legendaries, Gigantamax and other temporary forms stay reference data until a role is designed for them.
+
+## The 2026-11 wave (32 wild Pokémon)
+
+32 catalogue species became ordinary wild encounters: `content/roster.json` `wild` entries, `npm run content` from `fetch-sources` clones, and a place in each region's preset (`src/rules/spawning.ts`, composed over the `*-classic` tables). They needed no new mechanics. Tag Actions are derived from each Pokémon's own moves (`tagLineOf`, `src/rules/tags.ts`); Snorlax has an authored one. Habitat preferences are in `src/rules/profiles.ts`. None has a hard restriction.
+
+| Region | Pokémon (size class) |
+|---|---|
+| Sunpetal Meadow | Pichu (T), Togepi (T), Budew (T), Cutiefly (T, flies), Pikachu (S), Turtwig (S), Sentret (M), Furret (L), Doduo (L, grounded), Snorlax (XL) |
+| Cinder Badlands | Diglett (T), Rolycoly (T), Koffing (S, floats), Sizzlipede (M), Makuhita (M), Ekans (L), Silicobra (XL), Hariyama (XL) |
+| Rimefrost Heights | Snom (T), Snorunt (M), Sneasel (M), Bergmite (M), Cetoddle (L), Lapras (XL) |
+| Duskwood Hollow | Litwick (T), Murkrow (S, flies), Impidimp (S), Noibat (S, flies), Dreepy (S, flies), Honedge (M), Haunter (L, flies), Gengar (L) |
+
+Notes:
+- **All 32 have SpriteCollab sheets.** Pikachu's `latest` cry upstream is an MP3 under an `.ogg` name. The importer now treats a recording in the wrong format as missing and takes the `legacy` one, and `fetch-sources` checks out both eras.
+- **Electric Pokémon in a wet region make Charge floods** (see Joltik below). With Pichu swarming in fours and Pikachu at full weight, Meadow Charge hits doubled and tank-bot deaths appeared. Pichu now `chase`s at weight 0.5 and Pikachu sits at 0.7. Over 16 seeds, deaths match the classic tables, with about 30 % more Charge hits.
+- **Doduo** is a Flying type that cannot fly, so the roster sets `"flying": false`.
+- **Verified.** Every new Pokémon spawned in its region on both authored and generated maps (bot runs, seeds 1–2). Each one fired its Tag Action after recruiting, and the browser drew each region's row (`tools/sizescenes.json` `size-wave-*`).
+- **Balance.** Over 36 bot runs, survival matches the classic tables (313 s each). Deaths are 12 vs 14, and kills are about the same. Fewer runs clear region 1 by 7:00 (stage mean 0.39 vs 0.53).
 
 ## Joltik and Onix (Meadow and Badlands wild encounters)
 
@@ -37,13 +59,13 @@ Two ordinary wild Pokémon added through the normal pipeline — `content/roster
 | Role | wild `ranged`, shot `hive`, Meadow weight 1.4 | wild `tank`, Badlands weight 1.2 |
 | Tag Action (`rules/tags.ts`) | Electroweb → Discharge | Rock Throw (leaves a rock) → Rock Slide |
 | Native habitat tags (`rules/habitats.ts`) | grass, forest | rock, dry |
-| Gameplay height (sprite rule) | 0.9 m (clamp floor) | 3.02 m |
+| Sprite-derived height (`SpeciesDef.height`) | 0.9 m (clamp floor) | 3.02 m |
 | Weight class | Light (0.6 kg) | Massive (210 kg) |
-| Visible size (`rules/sizing.ts`) | Tiny, core 0.78 m (clamped), scale ×1.248 | Extra Large, core 2.55 m (clamped), scale ×0.887 |
+| Size class (`rules/sizing.ts`) | Tiny, drawn 0.64 m, body r 0.30 m | Extra Large, drawn 2.91 m, body r 0.97 m |
 
 Neither has a `Faint` animation in SpriteCollab; both fall back through `src/assets/art.ts` like the rest of the roster. Onix has `Slam` where the importer wants `Strike`, so it uses seven states.
 
-**Onix's listed extent measures the wrong axis.** 8.8 m is the length of the whole serpent, most of it tail on the ground; the PMD idle pose is a rearing column 46 px tall and 24 px wide, so the visible upright silhouette is roughly a third of the listed figure. The curve clamps anything over ~5 m of extent to the same 2.55 m core, so Onix renders identically whether the input is 8.8 m or a reviewed upright figure of 5 m or more, and the listed number is kept rather than guessed. A reviewed upright extent **below** 5 m would change what is drawn and belongs in `NEUTRAL_CORE_EXTENT_M` (`src/rules/sizing.ts`), which stays empty until such a figure is approved.
+**Onix's listed extent measures the wrong axis.** 8.8 m is the length of the whole serpent, most of it tail on the ground. The PMD idle pose is a rearing column 46 px tall and 24 px wide, so the visible upright silhouette is roughly a third of the listed figure. Any reviewed upright figure of 2.05 m or more keeps Onix Extra Large. Only the ±8 % tilt would change (it sits at the top of the class now), so the listed number is kept rather than guessed. A reviewed figure belongs in `NEUTRAL_CORE_EXTENT_M` (`src/rules/sizing.ts`), and a class pin in `SPECIES_OVERRIDES` (docs/SIZING.md).
 
 **Joltik shoots Bug, not Electric.** A `volt` projectile lays the Charge agent (`sim/cells.ts`), which floods up to 30
 connected wet or water cells; the Meadow has ponds and a river, so a Joltik line of fire turned most of the region into
@@ -53,7 +75,7 @@ normally. Bug is Joltik's first type slot and its early STAB (Bug Bite, Signal B
 canonical. Its Electric identity is intact elsewhere: typing, weakness chart, the Electroweb / Discharge Tag Action,
 and the type rule that makes any Electric creature discharge while it stands in water.
 
-Onix is also the first ordinary wild Pokémon taller than the partner forms (3.02 m, collision radius 1.21 m). It is not in any region's `elites`, so it never spawns at elite or alpha scale; `profilesFor()` (`src/world/habitat/mode.ts`) therefore applies the elite multiplier only to elite-capable species and keeps the validated 1.42 m headroom as a floor, which leaves every habitat layout, accepted seed and `docs/habaudit/baseline.json` checksum unchanged.
+Onix is not in any region's `elites`, so it never spawns at elite or alpha scale. `profilesFor()` (`src/world/habitat/mode.ts`) applies the elite multiplier only to elite-capable species and keeps the validated 1.42 m headroom as a floor. With size classes, Onix's body is 0.97 m, under that floor.
 
 ## Ability adaptations
 

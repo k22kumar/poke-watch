@@ -6,7 +6,7 @@ import type { GateResult } from '../gen/context';
 import { navOpen } from '../gen/util';
 import { T } from '../tiles';
 import { K, type LocCtx } from './ctx';
-import { enemyCore, pathBetween, playerReach, sightTiles } from './nav';
+import { enemyCore, pathBetween, playerReach, sightTiles, wideCore } from './nav';
 
 export interface LocValidation { ok: boolean; gates: GateResult[]; failed: string[]; metrics: Record<string, number> }
 
@@ -105,8 +105,13 @@ export function validateLocation(g: LocCtx, sealed: number): LocValidation {
     if (blockedEW || blockedNS) pinch++;
   }
   gate('pinch', pinch <= 24, `${pinch} one-tile passages`);
-
   const metrics = measure(g, core, coreN, vshare, share, pinch);
+  // wide bodies (Large / Extra Large Pokémon and elites, docs/SIZING.md "Navigation"): is the boss hall joined to the hub
+  // by a route at least two tiles wide, and how many enemy anchors are? Reported, not gated: a one-tile pinch is a
+  // legitimate chokepoint, and the sim lets a wide body squeeze through it on the ordinary field.
+  const wide = wideCore(m, hubK, G.dropNav);
+  metrics.wideBoss = wide[bossK] ? 1 : 0;
+  metrics.wideAnchors = g.anchors.filter(([x, y]) => wide[g.idx(x, y)]).length;
   gate('overlooks', metrics.overlooks >= 2, `${metrics.overlooks} raised spaces overlook lower ground`);
   return { ok: gates.every((x) => x.ok), gates, failed: gates.filter((x) => !x.ok).map((x) => x.id), metrics };
 }

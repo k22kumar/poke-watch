@@ -10,6 +10,7 @@
 // Guard deflects a body no heavier than the guard's own Weight class; Brace halves the hit.
 // Every change of owner costs a quarter of its integrity, so nothing can be passed back and forth forever.
 
+import { partnerRadius } from '../rules/sizing';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { capOf, deriveHold, derivePush } from '../rules/capabilities';
@@ -223,7 +224,7 @@ function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
   }
   // suspended: travel to the hold point in front of the holder and wait there
   P.holdNext++;
-  const dist = Math.max(C.holdDistance, T.radius + ctx.rules.player.radius + 0.25);
+  const dist = Math.max(C.holdDistance, T.radius + partnerRadius(ctx.player.species, ctx.rules) + 0.25);
   const tx = P.x + ux * dist, tz = P.z + uz * dist;
   const dx = tx - B.x[b], dz = tz - B.z[b], d = dhypot(dx, dz);
   if (d > 1e-6) {
@@ -417,7 +418,7 @@ export const bodySystem = {
       if (sp >= IMPACT_SPEED && collide && B.alive[b]) sp = bodyImpacts(ctx, b, sp);
 
       // the player: thrown bodies hit, guard or deflect; resting bodies are solid
-      const dxp = P.x - x, dzp = P.z - z, rp = R + ctx.rules.player.radius;
+      const dxp = P.x - x, dzp = P.z - z, rp = R + partnerRadius(ctx.player.species, ctx.rules);
       const dp2 = dxp * dxp + dzp * dzp;
       if (dp2 < (rp + 0.9) * (rp + 0.9) && sp >= IMPACT_SPEED && B.team[b] !== TEAM.player) {
         const near = dp2 < rp * rp;

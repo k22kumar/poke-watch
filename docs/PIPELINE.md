@@ -22,7 +22,7 @@ The content is generated at build time and shipped inside the game; nothing is d
         │
  scripts/build-content.mjs      runs scripts/import-pack.mjs for partners (+1 evolution) and enemies,
         │                       sizes bosses, builds the type chart, then writes:
-        ├─ src/content/pokedex.ts   species, moves, TYPE_CHART, STAGE_TABLES      (imported by the sim)
+        ├─ src/content/pokedex.ts   species, moves, TYPE_CHART                    (imported by the sim)
         ├─ src/content/art.json     atlases, frames, anchors, portraits, cries, credits  (loaded at boot)
         └─ content/report.json      every source file with URL + SHA-256; content/preview/ contact sheets
 
@@ -74,12 +74,13 @@ node scripts/build-content.mjs --catalogue-only --catalogue-out DIR   # isolated
 - Type order is the source's slot order and is display-visible; it is never sorted.
 - Measurements stay in their raw units (decimetres, hectograms) with a qualifier each. A Gigantamax height is a published *minimum* and its 10,000 hg mass means "unknown"; Eternamax's 0 hg means "unknown". Read them through `heightMeters` and `weightKilograms`, which return the qualifier and `null` respectively, so a placeholder can never be read as a real mass.
 - Families are complete chains walked from the root, keeping every branch (Tyrogue's three children, Applin's three plus Dipplin → Hydrapple, Nincada's Shedinja by-product). They are **canonical relationships only**: the game's paced progression stays in `evolvesTo` / `evolveLevel`, and a canonical edge never becomes an in-run evolution.
-- Catalogue records are not game species. They get no sprite, cry, learnset, move row, spawn entry or role, nothing in `src/sim/`, `src/world/`, `src/render/` or `src/ui/` imports them, and they are tree-shaken out of the production bundle. `profilesFor()` (`src/world/habitat/mode.ts`) derives habitat navigation radii from min/max over the whole of `SPECIES`, so a record that leaked into that set would change which habitat layouts are accepted and every replay hash. `tests/catalogue.test.ts` asserts both the exact inventory and that isolation.
+- Catalogue records are not game species. They get no sprite, cry, learnset, move row, spawn entry or role, nothing in `src/sim/`, `src/world/`, `src/render/` or `src/ui/` imports them, and they are tree-shaken out of the production bundle. A record that leaked into `SPECIES` would join `all-wild` spawn pools and the habitat navigation profiles (`profilesFor()`), changing which habitat layouts are accepted and every replay hash. `tests/catalogue.test.ts` asserts both the exact inventory and that isolation.
 
 ### Roles
 
 - **Partners** get a starter move (an early same-type attack), six more moves on the game's pacing, and their first evolution at its real level (Charmander → Charmeleon at 16).
-- **Wild Pokémon** take a behaviour (`chase`, `tank`, `swarm`, `ranged` with a shot element, `charger`, `healer`) and an optional `flying` flag.
+- **Wild Pokémon** take a behaviour (`chase`, `tank`, `swarm`, `ranged` with a shot element, `charger`, `healer`) and an optional `flying` flag (`false` grounds a Flying type such as Doduo).
+- **Where they spawn is not in the roster.** Spawn pools are authored in `src/rules/spawning.ts` (docs/SPAWNING.md), so changing a weight or a region's table needs no content rebuild. The generator no longer emits `STAGE_TABLES`.
 - **Bosses** take a title, an attack kit (`slam`, `radial`, `summon`, `charge`, `spiral`, `volley`), HP phase thresholds and the Pokémon they summon. They're drawn at `clamp(round(bossPixelHeight / idleHeight), 2, 3)`× so the pixel grid stays whole; the hitbox follows the drawn height.
 
 ## What the importer does (per Pokémon)
@@ -91,7 +92,7 @@ node scripts/build-content.mjs --catalogue-only --catalogue-out DIR   # isolated
 5. **Evolution**: the full chain is read, giving each stage and its level (Totodile → Croconaw at 18 → Feraligatr at 30). `partnerEvolutions` in the roster (or `--evolutions`) sets how many stages to include; the built-in roster uses 2.
 6. **Sprites**: `AnimData.xml` is parsed (CopyOf resolved). For Idle, Walk, Attack, Strike, Shoot, Charge, Hurt, Faint and Sleep, the importer decodes `<Anim>-Anim.png` and `<Anim>-Shadow.png`. Each frame is cropped to its opaque box; its feet anchor is the centroid of the shadow marker (or the lowest opaque row if the shadow sheet is missing). Identical frames are deduplicated and everything is shelf-packed into one atlas per species. Frame durations and Hit frames are kept exactly.
 7. **Portrait and credits**: `portrait/<dex4>/Normal.png` and the folder's credit list. Discord ids in `credits.txt` are resolved to artist names through `credit_names.txt`; ids with no public name are kept and labelled.
-8. **Cry**: `cries/pokemon/<era>/<id>.ogg` for the chosen era (`--cry-era`, default `latest`), falling back to the other era; checked for an OGG header. The content build adds an MP3 transcode (ffmpeg) and records loudness and length. The era actually used is stored per cry.
+8. **Cry**: `cries/pokemon/<era>/<id>.ogg` for the chosen era (`--cry-era`, default `latest`), falling back to the other era when the file is missing or not a real OGG/WAV (upstream's `latest/25.ogg` is an MP3); `fetch-sources` checks out both eras. The content build adds an MP3 transcode (ffmpeg) and records loudness and length. The era actually used is stored per cry.
 9. **Validate and report**: column/duration mismatch, missing direction rows, missing shadow sheets, missing cries or portraits are reported per species. The output has a preview contact sheet and `report.json` with every source URL and its SHA-256.
 
 ## Runtime loading

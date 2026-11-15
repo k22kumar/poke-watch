@@ -5,6 +5,7 @@
 
 import type { Element } from './elements';
 import { SPECIES_BY_ID, type SpeciesDef } from './species';
+import { speciesProfile } from './profiles';
 import type { StageDef } from './stages';
 
 /** a member's job: who can fill it */
@@ -61,8 +62,6 @@ export const COMPOSITIONS: CompositionDef[] = [
   },
 ];
 
-/** species that can heal allies in a region that has no healer of its own (Present heals in the main games) */
-const MENDERS = new Set(['paras', 'oddish', 'delibird']);
 const AGENT_TYPES: Element[] = ['blaze', 'tide', 'frost', 'volt'];
 
 export function agentElement(sp: SpeciesDef): Element | null {
@@ -79,7 +78,7 @@ export function fits(sp: SpeciesDef, m: MemberDef): boolean {
     case 'charger': return b === 'charger';
     case 'ranged': return b === 'ranged';
     case 'tank': return b === 'tank';
-    case 'mender': return b === 'healer' || MENDERS.has(sp.id);
+    case 'mender': return b === 'healer' || speciesProfile(sp).mender;
     case 'hexer': return agentElement(sp) !== null;
     case 'raider': return (b === 'chase' || b === 'swarm' || b === 'charger') && !sp.flying;
   }

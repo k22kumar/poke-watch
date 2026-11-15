@@ -1,3 +1,4 @@
+import type { SpawnPoolDef } from './spawning';
 // Every tunable number lives here. Systems read ctx.rules, never literals.
 // Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/ANALYSIS.md),
 // [I] inferred, [B] Poke-Watch's own choice where the original is unknown.
@@ -94,6 +95,36 @@ export const defaultRules = {
     },
     rangedRange: 13, rangedCooldown: 2.6, rangedShotSpeed: 11, // [B]
     chargeWindup: 0.6, chargeSpeedMult: 2.8, chargeTime: 0.7, chargeCooldown: 3.5, // [B]
+  },
+  // Spawning (src/rules/spawning.ts, docs/SPAWNING.md). Preference changes odds, never eligibility.
+  spawning: {
+    preference: { native: 2, foreign: 0.55 }, // [B] odds x on a tile with / without one of the species' preferred habitats
+    /** the spawn preset each region fields, in stage order (meadow, badlands, frost, dusk; presets in src/rules/spawning.ts).
+     *  The `*-classic` presets are the tables before the 2026-11 roster wave: older rule layers select them. */
+    regions: ['meadow', 'badlands', 'frost', 'dusk'] as string[],
+    /** a pool layered over every region's and map's (a mode or mod sets it; see SpawnPoolDef in src/rules/spawning.ts) */
+    override: null as SpawnPoolDef | null,
+    retries: 4, // [B] spots tried for a species before the director picks another or skips the spawn
+  },
+  // Size classes (src/rules/sizing.ts, docs/SIZING.md). Each Pokémon belongs to one class, picked from its canonical
+  // extent (`below` is the class's upper cut in metres) or pinned in src/rules/profiles.ts. A class fixes how big the
+  // Pokémon is drawn (`visual`, metres of visible core) and how big its body is in the sim (`radius`, `height`).
+  // Within a class an extent near the top cut reads up to `tilt` larger, near the bottom cut up to `tilt` smaller,
+  // so an evolution inside one class still grows a little; the classes themselves never overlap.
+  size: {
+    classes: [
+      { id: 'tiny', name: 'Tiny', below: 0.35, visual: 0.7, radius: 0.32, height: 0.6 }, // [B]
+      { id: 'small', name: 'Small', below: 0.65, visual: 0.98, radius: 0.42, height: 0.9 }, // [B]
+      { id: 'medium', name: 'Medium', below: 1.15, visual: 1.37, radius: 0.52, height: 1.2 }, // [B]
+      { id: 'large', name: 'Large', below: 2.05, visual: 1.92, radius: 0.68, height: 1.7 }, // [B]
+      { id: 'xl', name: 'Extra Large', below: Infinity, visual: 2.69, radius: 0.9, height: 2.4 }, // [B]
+    ],
+    tilt: 0.08, // [B] ± share of the class values, by where the extent sits inside the class (log scale)
+    extentRange: [0.1, 6] as [number, number], // [B] bottom of Tiny and top of Extra Large for the tilt (m)
+    wideRatio: 1.5, // [B] an idle frame at least this much wider than tall is normalised on width / wideRatio
+    geometry: true, // false = pre-size-class sim bodies (radius from sprite height, one shared partner radius): replay checksums unchanged
+    playerRadius: [0.48, 0.72] as [number, number], // [B] partner hurtbox clamp around the old shared 0.55 m (0.42 floor: +17 % bot survival, 0.48: +10 %)
+    heavyRadius: 0.55, // [B] ground bodies wider than this path on the heavy-clearance flow field (sim/world.ts)
   },
   director: {
     hpN: [1, 5.5, 13, 20], // [C] per stage

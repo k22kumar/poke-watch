@@ -4,6 +4,9 @@
 // learnset where it has one, and every key must exist in the move database (tests/squad.test.ts).
 // `create` leaves a body where the move lands (Rock Throw drops a rock).
 
+import { MOVE_BY_KEY } from './moves';
+import { SPECIES_BY_ID } from './species';
+
 export interface TagDef { move: string; create?: 'rock' }
 export interface TagLine { base: TagDef; variant: TagDef }
 
@@ -35,4 +38,38 @@ export const TAG_ACTIONS: Record<string, TagLine> = {
   heracross: { base: { move: 'horn_attack' }, variant: { move: 'brick_break' } },
   joltik: { base: { move: 'electroweb' }, variant: { move: 'discharge' } },
   onix: { base: { move: 'rock_throw', create: 'rock' }, variant: { move: 'rock_slide' } },
+  // the derived default (tagLineOf) would open with Covet: Snorlax leads with its weight instead
+  snorlax: { base: { move: 'headbutt' }, variant: { move: 'body_slam' } },
 };
+
+/** moves a derived Tag Action never uses: they knock out or exhaust the user, or need a condition the game lacks */
+const TAG_SKIP = new Set(['self_destruct', 'explosion', 'last_resort', 'struggle', 'snore', 'belch', 'dream_eater', 'covet', 'final_gambit', 'memento']);
+
+const derived = new Map<string, TagLine | null>();
+
+/**
+ * The Tag Action of a line, by the line's first form: the authored entry above, else a default derived from the
+ * species' own level-up moves, so a new Pokémon is recruitable without a hand-written entry. The default's base
+ * is its earliest damaging move of its own type (any damaging move if it has none), its variant the strongest
+ * other damaging move it learns by Lv 30. Add an entry above to choose different moves or a `create`.
+ */
+export function tagLineOf(id: string): TagLine | null {
+  const authored = TAG_ACTIONS[id];
+  if (authored) return authored;
+  if (derived.has(id)) return derived.get(id)!;
+  const sp = SPECIES_BY_ID[id];
+  let line: TagLine | null = null;
+  if (sp) {
+    const learn = (sp.learnset?.length ? sp.learnset : sp.canon?.levelUp ?? [])
+      .filter(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status' && MOVE_BY_KEY[k].power > 0 && !TAG_SKIP.has(k))
+      .sort((a, b) => a[0] - b[0]);
+    const stab = learn.find(([, k]) => sp.elements.includes(MOVE_BY_KEY[k].element)) ?? learn[0];
+    if (stab) {
+      const rest = learn.filter(([lv, k]) => k !== stab[1] && lv <= 30);
+      const strongest = rest.reduce<[number, string] | undefined>((best, m) => (!best || MOVE_BY_KEY[m[1]].power > MOVE_BY_KEY[best[1]].power ? m : best), undefined);
+      line = { base: { move: stab[1] }, variant: { move: (strongest ?? stab)[1] } };
+    }
+  }
+  derived.set(id, line);
+  return line;
+}

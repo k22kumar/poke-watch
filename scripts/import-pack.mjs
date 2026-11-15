@@ -341,10 +341,12 @@ async function importOne(nameOrId, role, report) {
     // preferred era first; if that recording doesn't exist, fall back to the other and record which
     const eras = CRY_ERA === 'legacy' ? ['legacy', 'latest'] : ['latest', 'legacy'];
     let url = null, buf = null, era = null;
+    // a recording in the wrong format counts as missing (upstream's latest/25.ogg is an MP3 under an .ogg name)
+    const playable = (b) => ['OggS', 'RIFF'].includes(b.subarray(0, 4).toString('latin1'));
     for (const e of eras) {
       const u = pokemon.cries?.[e] ?? `${CRY_URL}${e}/${pokemon.id}.ogg`;
       const b = await get(u, { optional: true });
-      if (b) { url = u; buf = b; era = e; break; }
+      if (b && playable(b)) { url = u; buf = b; era = e; break; }
     }
     const magic = buf?.subarray(0, 4).toString('latin1');
     if (magic === 'OggS' || magic === 'RIFF') cry = { src: dataUrl(magic === 'OggS' ? 'audio/ogg' : 'audio/wav', buf), source: url, era, license: MIRROR && !CLONES ? 'fixture (generated test tone)' : 'PokeAPI/cries (CC0 repository); audio © The Pokémon Company' };

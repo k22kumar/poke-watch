@@ -11,6 +11,7 @@
 // The generator embeds the mode graph in the recipe's landform, then derives routes and sightlines from the finished
 // collision (validate.ts). Nothing in the generator names a recipe; recipes name generator kernels.
 import type { TerrainId } from '../tiles';
+import type { SpawnPoolDef } from '../../rules/spawning';
 
 export interface Ref { title: string; url: string }
 
@@ -95,6 +96,8 @@ export interface HabitatRecipe {
   particles?: 'petals' | 'embers' | 'snow' | 'motes' | 'sparks' | 'dust';
   /** stage biomes whose spawn tables fit this habitat's ecology */
   biomeFit: string[];
+  /** optional spawn pool layered over the region's (src/rules/spawning.ts, docs/SPAWNING.md); absent = the region's */
+  spawns?: SpawnPoolDef;
   /** seeds verified to pass every gate at this generator version: the known valid fallback */
   fallbackSeeds: number[];
   /** the environment states this map really has (validate.ts enumerates every one) */

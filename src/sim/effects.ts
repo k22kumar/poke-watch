@@ -1,4 +1,5 @@
 // Projectile and zone systems.
+import { partnerHeight, partnerRadius } from '../rules/sizing';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { ELEMENTS } from '../rules/elements';
 import { AILMENTS, damageEnemy, damagePlayer, type DamageSpec } from './combat';
@@ -112,6 +113,8 @@ export const projectileSystem = {
     const P = ctx.player;
     const W = ctx.world;
     const lightBodies = capsOn(ctx, 'interception');
+    // the active partner's hurt cylinder (rules/sizing.ts: its size class, or the old shared 0.55 m × 1.2 m)
+    const pr = partnerRadius(P.species, ctx.rules), ph = partnerHeight(P.species, ctx.rules);
     for (let i = 0; i < Pr.hi; i++) {
       if (!Pr.alive[i]) continue;
       // a caught shot waits at the hold point (Phase 8a); it neither ages nor hits until it is released
@@ -135,12 +138,12 @@ export const projectileSystem = {
         eachBodyIn(ctx, Pr.x[i], Pr.z[i], Pr.radius[i], (b) => { if (tpl(ctx, b).weight >= 1) blocked = true; });
         if (blocked) { Pr.kill(i); continue; }
         const dx = P.x - Pr.x[i], dz = P.z - Pr.z[i];
-        const rr = Pr.radius[i] + ctx.rules.player.radius;
+        const rr = Pr.radius[i] + pr;
         // a Guard deflect window reaches a little further than the body, so a timed tap meets the shot
         // Phase 8a: Guard deflects only shots no heavier than the guarding Pokémon (shots are Weight 0 or 1)
         const canDeflect = deflecting(ctx) && (!lightBodies || Pr.weight[i] <= guardWeight(ctx));
         const reach = canDeflect ? rr + 0.9 : rr;
-        if (dx * dx + dz * dz < reach * reach && Math.abs(P.y + 0.6 - Pr.y[i]) < 1.6) {
+        if (dx * dx + dz * dz < reach * reach && Math.abs(P.y + ph * 0.5 - Pr.y[i]) < 1.0 + ph * 0.5) {
           if (canDeflect) { deflectShot(ctx, i); continue; }
           if (dx * dx + dz * dz < rr * rr) {
             const res = damagePlayer(ctx, Pr.dmg[i], Pr.x[i], Pr.z[i], 0.5, lightBodies ? Pr.weight[i] : 0, ELEMENTS[Pr.element[i]], { kind: 'shot', name: Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : '' });
@@ -212,7 +215,7 @@ export const projectileSystem = {
         const rr = Pr.radius[i] + E.radius[e];
         if (dx * dx + dz * dz > rr * rr) continue;
         // location maps: a shot passes over a creature on the floor below (or under one on the ledge above)
-        if (W.los && kind !== PK.orbit && Math.abs(Pr.y[i] - (E.y[e] + E.size[e] * 0.5)) > 1.1 + E.size[e] * 0.5) continue;
+        if (W.los && kind !== PK.orbit && Math.abs(Pr.y[i] - (E.y[e] + E.tall[e] * 0.5)) > 1.1 + E.tall[e] * 0.5) continue;
         if (Pr.recentlyHit(i, e, ctx.time)) continue;
         const cool = kind === PK.orbit || kind === PK.boomerang ? 0.45 : 999;
         Pr.markHit(i, e, ctx.time + cool);

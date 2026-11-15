@@ -8,7 +8,7 @@ import { gainXp, lineage } from '../src/sim/progression';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES } from '../src/rules/species';
 import { STAGES } from '../src/rules/stages';
-import { TAG_ACTIONS } from '../src/rules/tags';
+import { tagLineOf } from '../src/rules/tags';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 function calm(species = 'totodile'): SimContext {
@@ -26,7 +26,7 @@ test('every partner and recruitable wild line has a Tag Action whose moves exist
   for (const sp of SPECIES) {
     const base = lineage(sp)[0].id;
     if (!sp.playable && !recruitable.has(base)) continue;
-    const line = TAG_ACTIONS[base];
+    const line = tagLineOf(base);
     assert.ok(line, `${sp.id} has a Tag Action`);
     assert.ok(MOVE_BY_KEY[line.base.move], `${base} base ${line.base.move}`);
     assert.ok(MOVE_BY_KEY[line.variant.move], `${base} variant ${line.variant.move}`);

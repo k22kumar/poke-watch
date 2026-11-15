@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultRules } from '../src/rules/defaults';
-import { HAB, habitatSpawnFactor } from '../src/rules/habitats';
+import { HAB } from '../src/rules/habitats';
+import { habitatSpawnFactor } from '../src/rules/profiles';
 import { STAGES } from '../src/rules/stages';
 import { startStage, createRun } from '../src/sim/run';
 import { applyAgent, footing } from '../src/sim/cells';

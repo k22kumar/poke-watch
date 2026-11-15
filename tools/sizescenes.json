@@ -183,5 +183,161 @@
         "shot": "page"
       }
     ]
+  },
+  {
+    "name": "size-class-row",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['rattata',-6],['sandshrew',-3],['slugma',0],['heracross',3],['onix',6.5]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3))"
+      },
+      {
+        "advance": 0.4,
+        "frames": 24
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['rattata','sandshrew','slugma','heracross','onix'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), +s.scale.toFixed(3), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-same-class-small",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['geodude',-4.5],['oddish',-1.5],['vulpix',1.5],['houndour',4.5]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3))"
+      },
+      {
+        "advance": 0.4,
+        "frames": 24
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['geodude','oddish','vulpix','houndour'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), +s.scale.toFixed(3), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-wave-meadow",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['pichu',-7.20],['togepi',-5.60],['cutiefly',-4.00],['budew',-2.40],['pikachu',-0.80],['turtwig',0.80],['sentret',2.40],['doduo',4.00],['furret',5.60],['snorlax',7.20]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3.5))"
+      },
+      {
+        "advance": 0.3,
+        "frames": 18
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['pichu','togepi','cutiefly','budew','pikachu','turtwig','sentret','doduo','furret','snorlax'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-wave-badlands",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['diglett',-6.65],['rolycoly',-4.75],['koffing',-2.85],['sizzlipede',-0.95],['makuhita',0.95],['ekans',2.85],['silicobra',4.75],['hariyama',6.65]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3.5))"
+      },
+      {
+        "advance": 0.3,
+        "frames": 18
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['diglett','rolycoly','koffing','sizzlipede','makuhita','ekans','silicobra','hariyama'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-wave-frost",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['snom',-4.75],['snorunt',-2.85],['sneasel',-0.95],['bergmite',0.95],['cetoddle',2.85],['lapras',4.75]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3.5))"
+      },
+      {
+        "advance": 0.3,
+        "frames": 18
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['snom','snorunt','sneasel','bergmite','cetoddle','lapras'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-wave-dusk",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "[['litwick',-6.65],['impidimp',-4.75],['murkrow',-2.85],['noibat',-0.95],['dreepy',0.95],['honedge',2.85],['gengar',4.75],['haunter',6.65]].map(([id, dx]) => window.pokewatch.spawn(id, dx, -3.5))"
+      },
+      {
+        "advance": 0.3,
+        "frames": 18
+      },
+      {
+        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['litwick','impidimp','murkrow','noibat','dreepy','honedge','gengar','haunter'].includes(s.id)).map((s) => [s.id, s.className, +s.coreM.toFixed(2), s.wide])"
+      },
+      {
+        "raw": "idle"
+      },
+      {
+        "shot": "page"
+      }
+    ]
   }
 ]

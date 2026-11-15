@@ -61,6 +61,28 @@ function bfs(m: ArenaMap, src: number, ok: (a: number, b: number) => boolean): U
   return seen;
 }
 
+/** nodes a wide body fits on (the sim's heavy mask, sim/world.ts heavyMask; rules.size.heavyRadius): inside a 2 × 2 block
+ *  of open nodes on one layer whose tops differ by at most a step (0.6 m) */
+export function wideMask(m: ArenaMap): Uint8Array {
+  const W = m.w, H = m.h, n = W * H, ov = m.over, M = new Uint8Array(nodes(m));
+  for (let j = 0; j < H - 1; j++) for (let i = 0; i < W - 1; i++) {
+    const q = [j * W + i, j * W + i + 1, (j + 1) * W + i, (j + 1) * W + i + 1];
+    if (q.every((k) => navOpen(m, k))) { const t = q.map((k) => navTop(m, k)); if (Math.max(...t) - Math.min(...t) <= 0.6) for (const k of q) M[k] = 1; }
+    if (ov && q.every((k) => ov[k] > 0)) { const t = q.map((k) => ov[k]); if (Math.max(...t) - Math.min(...t) <= 0.6) for (const k of q) M[n + k] = 1; }
+  }
+  return M;
+}
+
+/** the hub's strongly connected component for a wide body: enemy movement over wideMask only */
+export function wideCore(m: ArenaMap, hub: number, drop: number): Uint8Array {
+  const M = wideMask(m);
+  const fwd = bfs(m, hub, (a, b) => M[b] === 1 && nodeMove(m, a, b, drop));
+  const back = bfs(m, hub, (a, b) => M[b] === 1 && nodeMove(m, b, a, drop));
+  const out = new Uint8Array(fwd.length);
+  for (let k = 0; k < out.length; k++) out[k] = fwd[k] & back[k];
+  return out;
+}
+
 /** nodes in the hub's strongly connected component under enemy movement (index k < w·h: ground; n + k: decks) */
 export function enemyCore(m: ArenaMap, hub: number, drop: number): Uint8Array {
   const fwd = bfs(m, hub, (a, b) => nodeMove(m, a, b, drop));

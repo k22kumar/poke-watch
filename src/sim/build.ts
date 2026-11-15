@@ -17,7 +17,7 @@ import { MOVE_BY_KEY } from '../rules/moves';
 import { capTag, compileCaps, type Cap, type CapVerb } from '../rules/capabilities';
 import { ELEMENT_DEFS } from '../rules/elements';
 import { SPECIES_BY_ID, SPECIES } from '../rules/species';
-import { TAG_ACTIONS } from '../rules/tags';
+import { tagLineOf } from '../rules/tags';
 import { TECHNIQUES, TECHNIQUE_BY_ID, TECH_BIT, TRANSFORMS_OF, TRANSFORM_BY_ID, type TransformDef } from '../rules/build';
 import type { Rules } from '../rules/defaults';
 import { compileMove } from './moves';
@@ -75,7 +75,7 @@ export function lineVerbs(rules: Rules, m: Member): Set<string> {
     if (sp.starter) keys.add(sp.starter);
   }
   for (const s of m.moves) keys.add(s.key);
-  const tag = TAG_ACTIONS[line[0].id];
+  const tag = tagLineOf(line[0].id);
   if (tag) { keys.add(tag.base.move); keys.add(tag.variant.move); if (tag.base.create || tag.variant.create) out.add('create'); }
   for (const k of keys) if (MOVE_BY_KEY[k]) for (const c of compileMove(rules, k).caps ?? []) out.add(c.verb);
   return out;
@@ -125,7 +125,7 @@ const UNIVERSAL = new Set(['hit', 'deflect']); // everyone hits and everyone can
 export function kitTags(ctx: SimContext, m: Member): Set<string> {
   const out = new Set<string>();
   for (const s of m.moves) for (const c of s.spec.caps ?? []) out.add(norm(c));
-  const line = TAG_ACTIONS[lineage(m.species)[0].id];
+  const line = tagLineOf(lineage(m.species)[0].id);
   const def = line ? (m.tagVariant ? line.variant : line.base) : null;
   if (def && MOVE_BY_KEY[def.move]) for (const c of compileMove(ctx.rules, def.move).caps ?? []) out.add(norm(c));
   if (def?.create) out.add('create');
@@ -265,7 +265,7 @@ function techniquePool(ctx: SimContext): Entry[] {
 function variantOpen(ctx: SimContext, m: Member, k: number): boolean {
   if (m.tagVariant || ctx.recruit.variants.includes(k)) return false;
   const line = lineage(m.species);
-  if (!TAG_ACTIONS[line[0].id]) return false;
+  if (!tagLineOf(line[0].id)) return false;
   const evolves = line.some((s) => s.evolvesTo) || !!m.species.evolvesTo;
   return evolves ? line.length > 1 : ctx.player.level >= ctx.rules.squad.variantLevel;
 }
@@ -278,7 +278,7 @@ function wildPool(ctx: SimContext): Entry[] {
     if (m.fainted) return;
     if (k !== P.active) for (const c of transformCards(ctx, k, 'wildcard')) out.push({ card: c, w: W.benchTransform });
     if (variantOpen(ctx, m, k) && !banished.has(`tag:${k}:1`)) {
-      const line = TAG_ACTIONS[lineage(m.species)[0].id];
+      const line = tagLineOf(lineage(m.species)[0].id)!; // variantOpen checked it
       const md = MOVE_BY_KEY[line.variant.move];
       const spec = compileMove(ctx.rules, md.key);
       out.push({ card: { id: `tag:${k}:1`, kind: 'tag', key: '1', member: k, group: 'wildcard', rarity: 'epic', element: md.element, title: md.name, desc: `New Tag Action for ${m.species.name}`, tags: compileCaps(spec, { create: line.variant.create }).map(norm) }, w: W.tagVariant });

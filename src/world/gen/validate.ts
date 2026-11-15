@@ -3,7 +3,7 @@
 import { dcos, dsin } from '../../core/detmath';
 import { T, PROP_RULES, type ArenaMap } from '../tiles';
 import { HAB, type GateResult, type GenCtx } from './context';
-import { SPECIES_HABITAT } from '../../rules/habitats';
+import { speciesProfile } from '../../rules/profiles';
 import { FIX } from './terrain';
 import { MARGIN } from './plan';
 import { DIRS4, Heap, canStep, d2, navOpen, navTop, walkDist } from './util';
@@ -227,16 +227,16 @@ export function validate(g: GenCtx, reachBeforeSeal: number): Validation {
     if (g.in(dx, dy) && D[g.idx(dx, dy)] >= 0 && (g.route[g.idx(dx, dy + 1)] || g.route[g.idx(dx, dy)])) doors++;
   }
   add('hamlet', cabins >= 3 && cabins <= 5 && doors === cabins, `${cabins} cabins, ${doors} doors on the street`);
-  // habitat: each spawn-table species of the region has a matching zone
-  const missing: string[] = [];
+  // habitat: a species that REQUIRES a habitat (src/rules/profiles.ts `requires`) needs a zone of it; a preference
+  // only changes encounter odds, so a region without a species' favourite ground is still valid (reported, not gated)
+  const zone = (mask: number) => { let found = 0; for (let k = 0; k < S * S && found < 30; k++) if (D[k] >= 0 && g.habitat[k] & mask) found++; return found >= 30; };
+  const missing: string[] = [], unpreferred: string[] = [];
   for (const sp of g.spawnSpecies) {
-    const need = SPECIES_HABITAT[sp];
-    if (!need) continue;
-    let found = 0;
-    for (let k = 0; k < S * S && found < 30; k++) if (D[k] >= 0 && g.habitat[k] & need) found++;
-    if (found < 30) missing.push(sp);
+    const p = speciesProfile(sp);
+    if (p.requires && !zone(p.requires)) missing.push(sp);
+    else if (p.prefers && !zone(p.prefers)) unpreferred.push(sp);
   }
-  add('habitat', missing.length === 0, missing.length ? 'no zone for ' + missing.join(', ') : `${g.spawnSpecies.length} species matched`);
+  add('habitat', missing.length === 0, missing.length ? 'no zone for ' + missing.join(', ') : `${g.spawnSpecies.length} species can spawn${unpreferred.length ? `; no favourite ground for ${unpreferred.join(', ')}` : ''}`);
   void HAB; void FIX;
   const failed = gates.filter((x) => !x.ok).map((x) => x.id);
   return { ok: failed.length === 0, gates, failed };

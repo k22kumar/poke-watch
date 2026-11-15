@@ -242,10 +242,10 @@ export class Renderer {
     // walk cadence: 1.6 frames per metre travelled, whatever the source's frame count
     const walk = art.clips.walk;
     const walkRate = (clipLength(walk) / Math.max(1, walk.durations.length)) * 1.6;
-    // visible size (rules/sizing.ts): one multiplier per species, from its researched extent against the
-    // asset's own neutral reference pose (idle, facing the camera, frame 0). Bosses keep their authored
+    // visible size (rules/sizing.ts): one multiplier per species, from its size class's visual target against the
+    // asset's own neutral reference pose (idle, facing the camera, frame 0; width-normalised when Wide). Bosses keep their authored
     // `sp.scale`, which `drawSprites` applies on top, so `size.scale` is 1 for them and nothing compounds.
-    const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE);
+    const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE, (art.widthPx ?? 0) / TEXELS_PER_METRE);
     this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, size });
   }
 

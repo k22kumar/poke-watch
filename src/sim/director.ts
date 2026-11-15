@@ -13,7 +13,6 @@
 import { dexp, dhypot } from '../core/detmath';
 import { clamp } from '../core/util';
 import { COMPOSITIONS, REGION_WEATHER, resolve, type CompositionDef } from '../rules/compositions';
-import { STAGES } from '../rules/stages';
 import { SPECIES_BY_ID } from '../rules/species';
 import { applyAgent, CS } from './cells';
 import { ringPoint, spawnEnemy, stageIndex } from './enemies';
@@ -21,7 +20,9 @@ import { objectiveDue, startObjective } from './objectives';
 import { ROLE } from './pools';
 import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
-import { habitatSpawnFactor } from '../rules/habitats';
+import { habitatSpawnFactor } from '../rules/profiles';
+import { canSpawnOn } from '../rules/spawning';
+import { enemyRadius } from '../rules/sizing';
 
 export function freshBeat(): Beat {
   return { phase: 'build', t: 0, dur: 40, intensity: 0, hot: 0, dmgRecent: 0, dmgSeen: 0, peaks: 0, objectives: 0 };
@@ -29,7 +30,7 @@ export function freshBeat(): Beat {
 
 /** spawn one composition at a point on the spawn ring; returns the enemy slots */
 export function spawnComposition(ctx: SimContext, def: CompositionDef, near?: [number, number]): number[] {
-  const table = STAGES[ctx.stage % STAGES.length];
+  const table = ctx.spawnTable;
   const jobs = resolve(def, table);
   if (!jobs) return [];
   const [rMin, rMax] = ctx.rules.enemy.spawnRadius;
@@ -48,6 +49,8 @@ export function spawnComposition(ctx: SimContext, def: CompositionDef, near?: [n
       const x = clamp(cx + ux * front + dsin(a) * r, -b, b), z = clamp(cz + uz * front + dcos(a) * r, -b, b);
       // the first region's Bulwark is a plain tank with a shield; from the second region on it is an elite
       const roles = ctx.stage === 0 && ctx.loop === 0 ? m.roles & ~ROLE.elite : m.roles;
+      // compatibility: a member that may not stand here is left out (the group still comes)
+      if (!allowedAt(ctx, sp.id, x, z, roles & ROLE.elite ? ctx.rules.enemy.roles.elite.size : 1)) { ctx.events.push({ t: 'spawnSkipped', species: sp.id, reason: 'restricted habitat', x, z }); continue; }
       const i = spawnEnemy(ctx, sp.id, x, z, roles);
       if (i < 0) continue;
       if (m.roles & ROLE.raider) { ctx.enemies.speed[i] *= R.raiderSpeed; ctx.enemies.hp[i] *= R.raiderHp; ctx.enemies.maxHp[i] *= R.raiderHp; }
@@ -59,7 +62,7 @@ export function spawnComposition(ctx: SimContext, def: CompositionDef, near?: [n
 
 /** compositions this region can field, for a peak or for an objective */
 export function compositionsFor(ctx: SimContext, when: 'peak' | 'objective'): CompositionDef[] {
-  const table = STAGES[ctx.stage % STAGES.length];
+  const table = ctx.spawnTable;
   return COMPOSITIONS.filter((c) => c.when === when && resolve(c, table));
 }
 
@@ -73,7 +76,7 @@ function startWeather(ctx: SimContext, kind: 'rain' | 'sun' | 'frost') {
 function peakEvent(ctx: SimContext, noObjective: boolean): string {
   const due = noObjective ? null : objectiveDue(ctx);
   if (due && startObjective(ctx, due)) return 'objective:' + due;
-  const biome = STAGES[ctx.stage % STAGES.length].biome;
+  const biome = ctx.spawnTable.biome;
   const skies = REGION_WEATHER[biome] ?? [];
   if (skies.length && !ctx.weather.element && ctx.rng.spawn.next() < ctx.rules.beats.weatherChance) {
     const kind = ctx.rng.spawn.pick(skies);
@@ -142,13 +145,75 @@ function weatherTick(ctx: SimContext) {
   }
 }
 
+/** the habitat under the tile a species would actually stand on at (x, z): spawnEnemy snaps a ground spawn off a wall
+ *  or out of water to the nearest walkable tile, so compatibility is judged there (flyers hover where they appear) */
+function standAt(ctx: SimContext, id: string, x: number, z: number): [number, number] {
+  const W = ctx.world;
+  if (SPECIES_BY_ID[id]?.flying || W.walkable(x, z)) return [x, z];
+  return W.nearestWalkable(x, z);
+}
+/** compatibility at (x, z): the species' habitat restrictions, and (size geometry on) room for a ground body wider than
+ *  rules.size.heavyRadius at this role size (elite ×2, alpha ×3) — it may not appear in a one-tile pocket */
+function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize = 1): boolean {
+  const [sx, sz] = standAt(ctx, id, x, z), W = ctx.world;
+  if (!canSpawnOn(id, W.habitatAt(sx, sz))) return false;
+  const sp = SPECIES_BY_ID[id];
+  if (ctx.rules.size.geometry && sp && !sp.flying && enemyRadius(sp, roleSize, ctx.rules) > ctx.rules.size.heavyRadius && !W.fitsHeavy(sx, sz)) return false;
+  return true;
+}
+
+/**
+ * One ordinary spawn: selection (weight × habitat preference), location (the spawn ring) and compatibility (the
+ * species' hard restrictions, src/rules/profiles.ts) kept apart. Generated maps pick the spot first so the local
+ * habitat can weight the species; authored arenas pick the species first. A spot the species may not use is re-rolled
+ * up to rules.spawning.retries times, then the director falls back to a species that may use it; if none may, the
+ * spawn is skipped and a `spawnSkipped` event says why. With no restrictions configured nothing is re-rolled, so the
+ * random draws are exactly the older director's.
+ */
+function pickSpawn(ctx: SimContext, spawns: [string, number][], rMin: number, rMax: number): [string, number, number] | null {
+  if (!spawns.length) return null;
+  const W = ctx.world, pref = ctx.rules.spawning.preference, tries = Math.max(1, ctx.rules.spawning.retries);
+  let x = 0, z = 0;
+  if (W.map.gen) {
+    for (let k = 0; k < tries; k++) {
+      [x, z] = ringPoint(ctx, rMin, rMax);
+      const habitat = W.habitatAt(x, z);
+      const ok = spawns.filter(([species]) => allowedAt(ctx, species, x, z));
+      if (ok.length) return [ctx.rng.spawn.weighted(ok, ([species, weight]) => weight * habitatSpawnFactor(species, habitat, pref))[0], x, z];
+    }
+    ctx.events.push({ t: 'spawnSkipped', species: '', reason: 'no species in the pool may spawn on the spots tried', x, z });
+    return null;
+  }
+  const [id] = ctx.rng.spawn.weighted(spawns, (w) => w[1]);
+  for (let k = 0; k < tries; k++) {
+    [x, z] = ringPoint(ctx, rMin, rMax);
+    if (allowedAt(ctx, id, x, z)) return [id, x, z];
+  }
+  const ok = spawns.filter(([species]) => allowedAt(ctx, species, x, z));
+  if (ok.length) return [ctx.rng.spawn.weighted(ok, (w) => w[1])[0], x, z];
+  ctx.events.push({ t: 'spawnSkipped', species: id, reason: 'restricted habitat: no allowed spot found', x, z });
+  return null;
+}
+
+/** a spawn-ring spot `id` may use (re-rolled up to rules.spawning.retries times), or null with a `spawnSkipped` event */
+function spotFor(ctx: SimContext, id: string | null, rMin: number, rMax: number, roleSize = 1): [number, number] | null {
+  const tries = Math.max(1, ctx.rules.spawning.retries);
+  let x = 0, z = 0;
+  for (let k = 0; k < tries; k++) {
+    [x, z] = ringPoint(ctx, rMin, rMax);
+    if (id === null || allowedAt(ctx, id, x, z, roleSize)) return [x, z];
+  }
+  ctx.events.push({ t: 'spawnSkipped', species: id ?? '', reason: 'restricted habitat: no allowed spot found', x, z });
+  return null;
+}
+
 export const directorSystem = {
   name: 'director',
   update(ctx: SimContext, dt: number) {
     const D = ctx.rules.director;
     const dir = ctx.director;
     const E = ctx.enemies;
-    const table = STAGES[ctx.stage % STAGES.length];
+    const table = ctx.spawnTable;
     const S = ctx.rules.stage;
     const s = stageIndex(ctx);
     const t = ctx.stageTime / 60;
@@ -183,15 +248,9 @@ export const directorSystem = {
       dir.spawnAcc -= 1;
       const cap = Math.min(dir.liveCap, D.capBase + D.capPerMin * t + (dir.finalSwarm ? 9999 : 0));
       if (E.count >= cap) { dir.spawnAcc = 0; break; }
-      let id: string, x: number, z: number;
-      if (ctx.world.map.gen) {
-        [x, z] = ringPoint(ctx, rMin, rMax);
-        const habitat = ctx.world.habitatAt(x, z);
-        [id] = ctx.rng.spawn.weighted(table.spawns, ([species, weight]) => weight * habitatSpawnFactor(species, habitat));
-      } else {
-        [id] = ctx.rng.spawn.weighted(table.spawns, (w) => w[1]);
-        [x, z] = ringPoint(ctx, rMin, rMax);
-      }
+      const pick = pickSpawn(ctx, table.spawns, rMin, rMax);
+      if (!pick) continue;
+      const [id, x, z] = pick;
       const sp = SPECIES_BY_ID[id];
       const cluster = sp.behaviour === 'swarm' ? 4 : 1;
       for (let c = 0; c < cluster; c++) spawnEnemy(ctx, id, x + c * 0.9, z + (c % 2) * 0.9);
@@ -200,21 +259,23 @@ export const directorSystem = {
     // elites
     if (ctx.stageTime >= dir.nextElite) {
       dir.nextElite += D.eliteEvery;
-      if (ctx.stageTime > 20) {
-        const [x, z] = ringPoint(ctx, rMin, rMax);
-        spawnEnemy(ctx, ctx.rng.spawn.pick(table.elites), x, z, ROLE.elite);
+      if (ctx.stageTime > 20 && table.elites.length) {
+        let at = spotFor(ctx, null, rMin, rMax);
+        const id = ctx.rng.spawn.pick(table.elites), size = ctx.rules.enemy.roles.elite.size;
+        if (at && !allowedAt(ctx, id, at[0], at[1], size)) at = spotFor(ctx, id, rMin, rMax, size);
+        if (at) spawnEnemy(ctx, id, at[0], at[1], ROLE.elite);
       }
     }
     // swarm rings (not while you are meant to be resting)
     if (ctx.stageTime >= dir.nextSwarm) {
       dir.nextSwarm += D.swarmEvery;
-      if (ctx.stageTime > 30 && !bossAlive && !(ctx.rules.beats.enabled && ctx.beat.phase === 'relax')) {
+      const swarmers = table.spawns.filter(([id]) => ['swarm', 'chase'].includes(SPECIES_BY_ID[id].behaviour ?? 'chase'));
+      if (ctx.stageTime > 30 && !bossAlive && !(ctx.rules.beats.enabled && ctx.beat.phase === 'relax') && swarmers.length) {
         const n = ctx.rng.spawn.int(D.swarmSize[0], D.swarmSize[1]) + s * 4;
-        const swarmers = table.spawns.filter(([id]) => ['swarm', 'chase'].includes(SPECIES_BY_ID[id].behaviour ?? 'chase'));
         const P = ctx.player;
         const habitat = ctx.world.habitatAt(P.x, P.z);
         const id = ctx.world.map.gen
-          ? ctx.rng.spawn.weighted(swarmers, ([species, weight]) => weight * habitatSpawnFactor(species, habitat))[0]
+          ? ctx.rng.spawn.weighted(swarmers, ([species, weight]) => weight * habitatSpawnFactor(species, habitat, ctx.rules.spawning.preference))[0]
           : ctx.rng.spawn.pick(swarmers)[0];
         for (let k = 0; k < n && E.count < dir.liveCap; k++) {
           const a = (k / n) * Math.PI * 2;
@@ -226,8 +287,12 @@ export const directorSystem = {
     // alpha (v8 pacing only: with objectives on, the Hunt is the alpha)
     if (!ctx.rules.objectives.enabled && !dir.alphaSpawned && ctx.stageTime >= D.alphaAt) {
       dir.alphaSpawned = true;
-      const [x, z] = ringPoint(ctx, rMin, rMax);
-      spawnEnemy(ctx, ctx.rng.spawn.pick(table.elites), x, z, ROLE.alpha);
+      if (table.elites.length) {
+        let at = spotFor(ctx, null, rMin, rMax);
+        const id = ctx.rng.spawn.pick(table.elites), size = ctx.rules.enemy.roles.alpha.size;
+        if (at && !allowedAt(ctx, id, at[0], at[1], size)) at = spotFor(ctx, id, rMin, rMax, size);
+        if (at) spawnEnemy(ctx, id, at[0], at[1], ROLE.alpha);
+      }
     }
   },
 };

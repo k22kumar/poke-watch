@@ -51,7 +51,7 @@ function reactHit(ctx: SimContext, e: number, amount: number, el: Element, kx = 
     const resist = E.roles[e] & ROLE.alpha ? 0.3 : E.roles[e] & ROLE.elite ? 0.6 : 1;
     E.kx[e] += (kx / L) * knock * resist; E.kz[e] += (kz / L) * knock * resist;
   }
-  ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.size[e], z: E.z[e], amount: dmg, crit: false, eff, element: el, enemy: e });
+  ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount: dmg, crit: false, eff, element: el, enemy: e });
   if (E.hp[e] <= 0) killEnemy(ctx, e);
 }
 

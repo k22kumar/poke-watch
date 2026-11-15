@@ -33,7 +33,7 @@ and what was measured. Every number lives in `src/rules/defaults.ts` (`squad`, `
 | Tag | Q / Y. Tap: back to the last Pokémon. Hold + primary / secondary fire (left / right mouse, RT / LT): first / second reserve |
 | Tag cooldown | 4 s, squad-wide; not during the Guard whiff lock or a dash |
 | Arrival | Same spot, 0.15 s invulnerable; Tag Action 0.2 s later toward the aim |
-| Tag Action | One move per line (`rules/tags.ts`), ×1.8 damage, ×1.5 knockback, deep coat. Variant chosen at the first evolution (level 18 for lines that do not evolve) |
+| Tag Action | One move per line (`rules/tags.ts`: an authored `TAG_ACTIONS` entry, else `tagLineOf` derives one from the line's own moves — its earliest damaging move of its type, then its strongest by Lv 30), ×1.8 damage, ×1.5 knockback, deep coat. Variant chosen at the first evolution (level 18 for lines that do not evolve) |
 | Move slots | 3 per Pokémon (v8 had a 4th from level 20) |
 | Grey health | 40% of each hit; drains on the field (half-life 2.8 s); refills 3% max HP/s on the bench |
 | Bench | Cooldowns tick at 1.0×; coats and paralysis wear off 2× faster; no auras, no actions; benched Pokémon evolve on the bench |

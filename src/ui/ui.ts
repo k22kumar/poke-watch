@@ -23,7 +23,7 @@ import { pinchActive } from '../sim/combat';
 import { lineage } from '../sim/progression';
 import type { Card, SimContext } from '../sim/types';
 import { COAT_NAMES } from '../rules/reactions';
-import { TAG_ACTIONS } from '../rules/tags';
+import { tagLineOf } from '../rules/tags';
 import { drawText, textWidth } from '../overworld/font';
 import { registry } from '../assets/registry';
 import { CAMERA_PRESETS } from '../render/camera';
@@ -695,7 +695,7 @@ export class UI {
     if (c.kind === 'recruit') {
       if (!c.key) return { look: HEAL_LOOK, kind: 'Squad', lines: ['Keep the squad as it is', `${P.squad.length} of ${ctx.rules.squad.max} Pokémon`], tags: [] };
       const sp = SPECIES_BY_ID[c.key];
-      const tagMove = MOVE_BY_KEY[TAG_ACTIONS[c.key]?.base.move ?? ''];
+      const tagMove = MOVE_BY_KEY[tagLineOf(c.key)?.base.move ?? ''];
       const ab = abilityOf(sp);
       return {
         look: LEARN_LOOK(TYPE_OF[sp.elements[0]]), kind: 'Recruit',
@@ -710,12 +710,12 @@ export class UI {
     }
     if (c.kind === 'tag') {
       const m = P.squad[c.member ?? 0];
-      const md = MOVE_BY_KEY[TAG_ACTIONS[lineage(m.species)[0].id]?.[c.key === '1' ? 'variant' : 'base'].move ?? ''];
+      const md = MOVE_BY_KEY[tagLineOf(lineage(m.species)[0].id)?.[c.key === '1' ? 'variant' : 'base'].move ?? ''];
       const spec = md ? compileMove(ctx.rules, md.key) : null;
       return {
         look: LEARN_LOOK(TYPE_OF[md?.element ?? 'plain']), kind: c.key === '1' ? 'New Tag Action' : 'Keep Tag Action',
         tags: md ? [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')] : [],
-        lines: [`${m.species.name}`, spec ? `${SHAPE_NAME[spec.archetype] ?? spec.archetype}` : '', spec ? capLabel(compileCaps(spec, { create: TAG_ACTIONS[lineage(m.species)[0].id]?.[c.key === '1' ? 'variant' : 'base'].create })) || (md?.power ? `Base power ${md.power}` : 'No fixed power') : '', 'Fires when it tags in'],
+        lines: [`${m.species.name}`, spec ? `${SHAPE_NAME[spec.archetype] ?? spec.archetype}` : '', spec ? capLabel(compileCaps(spec, { create: tagLineOf(lineage(m.species)[0].id)?.[c.key === '1' ? 'variant' : 'base'].create })) || (md?.power ? `Base power ${md.power}` : 'No fixed power') : '', 'Fires when it tags in'],
       };
     }
     // Phase 8b cards: the slot they came from, then what changes
@@ -1211,7 +1211,7 @@ export class UI {
     for (let e = 0; e < E.hi; e++) {
       if (!E.alive[e] || Math.abs(E.x[e] - P.x) > 9 || Math.abs(E.z[e] - P.z) > 7) continue;
       const sp = ctx.speciesIndex[E.species[e]];
-      label(`W${weightClass(sp, (E.roles[e] & ROLE.boss) !== 0)}`, E.x[e], E.y[e] + E.size[e] * sp.height + 0.5, E.z[e], '#ffb0a0');
+      label(`W${weightClass(sp, (E.roles[e] & ROLE.boss) !== 0)}`, E.x[e], E.y[e] + E.tall[e] + 0.5, E.z[e], '#ffb0a0');
     }
     label(`W${weightClass(P.species)} guard`, P.x, P.y + P.species.height + 0.9, P.z, '#7fd0ff');
     // recent capability events where they happened, rising as they age

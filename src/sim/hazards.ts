@@ -12,6 +12,7 @@
 // move), it is not skipped by hit i-frames (a dash still is), and bosses and alphas take `vent.bossMult` of it.
 // Damage ticks fall on the onset step and every `tick` s after it, so an actor still in the field when the eruption
 // begins takes the first tick, and the last tick lands `tick` s before the field goes quiet.
+import { partnerRadius } from '../rules/sizing';
 import { applyAgent, hurtPlayer, steamAt } from './cells';
 import { killEnemy } from './combat';
 import { ROLE } from './pools';
@@ -19,6 +20,7 @@ import type { Member, SimContext, System } from './types';
 import { faint, onHpLoss } from './squad';
 import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
+import { canSwim } from '../rules/profiles';
 
 export type VentPhase = 'dormant' | 'warn' | 'active';
 
@@ -75,7 +77,7 @@ export const hazardSystem: System = {
       const amount = E.maxHp[e] * V.pct * (E.roles[e] & (ROLE.boss | ROLE.alpha) ? V.bossMult : 1);
       E.hp[e] -= amount;
       E.flash[e] = 0.12;
-      ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.size[e], z: E.z[e], amount, crit: false, eff: 1, element: 'blaze', enemy: e });
+      ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount, crit: false, eff: 1, element: 'blaze', enemy: e });
       ctx.events.push({ t: 'hazardHit', kind: 'vent', who: 'enemy', id: e, amount, x: E.x[e], z: E.z[e] });
       if (E.hp[e] <= 0) killEnemy(ctx, e);
     }
@@ -158,7 +160,7 @@ export function dominant(ctx: SimContext, a: number, b: number): number {
  *  explicit flag only (rules.hazards.lava.safeSpecies; nothing is configured, so every Pokémon is vulnerable). */
 export function safeIn(ctx: SimContext, kind: number, species: { id: string; elements: readonly string[] }, moves?: readonly { key: string }[]): boolean {
   const H = ctx.rules.hazards;
-  if (kind === LIQUID.water) return species.elements.some((e) => H.water.safeTypes.includes(e)) || (!!moves && moves.some((s) => H.water.safeMoves.includes(s.key)));
+  if (kind === LIQUID.water) return canSwim(species, moves, ctx.rules);
   if (kind === LIQUID.lava) return H.lava.safeSpecies.includes(species.id);
   return true;
 }
@@ -326,7 +328,7 @@ function exposeEnemies(ctx: SimContext, dt: number) {
       const dead = E.hp[e] <= 0 || E.hzT[e] >= lethal - 1e-6;
       if ((E.hzCueT[e] >= H.cueEvery - 1e-6 || dead) && E.hzCue[e] > 0) {
         const el = k === LIQUID.lava ? 'blaze' : 'tide';
-        ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.size[e], z: E.z[e], amount: E.hzCue[e], crit: false, eff: 1, element: el, enemy: e });
+        ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount: E.hzCue[e], crit: false, eff: 1, element: el, enemy: e });
         ctx.events.push({ t: 'hazardHit', kind: KIND_NAME[k] as 'water' | 'lava', who: 'enemy', id: e, amount: E.hzCue[e], x: E.x[e], z: E.z[e] });
         E.hzCue[e] = 0; E.hzCueT[e] = 0;
       }
@@ -372,7 +374,7 @@ export function shoreFor(ctx: SimContext): [number, number] | null {
   if (!playerLiquid(ctx)) return null;
   const k = W.tile(P.x, P.z);
   if (k !== SHORE.tile) {
-    const s = W.shore(P.x, P.z, ctx.rules.player.radius, P.y);
+    const s = W.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
     SHORE.tile = k; SHORE.ok = !!s;
     if (s) { SHORE.x = s[0]; SHORE.z = s[1]; }
   }

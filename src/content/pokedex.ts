@@ -3626,6 +3626,2717 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   }
  },
  {
+  "id": "pichu",
+  "name": "Pichu",
+  "dex": 172,
+  "types": [
+   "electric"
+  ],
+  "elements": [
+   "volt"
+  ],
+  "stats": {
+   "hp": 20,
+   "atk": 40,
+   "def": 15,
+   "spa": 35,
+   "spd": 35,
+   "spe": 60
+  },
+  "height": 1.38,
+  "art": "pokemon:pichu",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "thunder_shock"
+    ],
+    [
+     5,
+     "quick_attack"
+    ],
+    [
+     12,
+     "nuzzle"
+    ],
+    [
+     13,
+     "nasty_plot"
+    ],
+    [
+     15,
+     "swift"
+    ],
+    [
+     21,
+     "spark"
+    ],
+    [
+     29,
+     "thunderbolt"
+    ],
+    [
+     37,
+     "iron_tail"
+    ],
+    [
+     47,
+     "thunder"
+    ]
+   ],
+   "abilities": [
+    "static",
+    "lightning_rod"
+   ],
+   "heightM": 0.3,
+   "weightKg": 2,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "pikachu",
+  "name": "Pikachu",
+  "dex": 25,
+  "types": [
+   "electric"
+  ],
+  "elements": [
+   "volt"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 55,
+   "def": 40,
+   "spa": 50,
+   "spd": 50,
+   "spe": 90
+  },
+  "height": 1.58,
+  "art": "pokemon:pikachu",
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "nasty_plot"
+    ],
+    [
+     1,
+     "nuzzle"
+    ],
+    [
+     1,
+     "quick_attack"
+    ],
+    [
+     1,
+     "thunder_shock"
+    ],
+    [
+     8,
+     "double_team"
+    ],
+    [
+     9,
+     "double_kick"
+    ],
+    [
+     12,
+     "electro_ball"
+    ],
+    [
+     15,
+     "swift"
+    ],
+    [
+     16,
+     "feint"
+    ],
+    [
+     20,
+     "slam"
+    ],
+    [
+     20,
+     "spark"
+    ],
+    [
+     21,
+     "thunderbolt"
+    ],
+    [
+     24,
+     "agility"
+    ],
+    [
+     28,
+     "iron_tail"
+    ],
+    [
+     30,
+     "thunder"
+    ],
+    [
+     32,
+     "discharge"
+    ],
+    [
+     50,
+     "wild_charge"
+    ]
+   ],
+   "abilities": [
+    "static",
+    "lightning_rod"
+   ],
+   "heightM": 0.4,
+   "weightKg": 6,
+   "evolveTrigger": "use-item"
+  }
+ },
+ {
+  "id": "togepi",
+  "name": "Togepi",
+  "dex": 175,
+  "types": [
+   "fairy"
+  ],
+  "elements": [
+   "fae"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 20,
+   "def": 65,
+   "spa": 40,
+   "spd": 65,
+   "spe": 20
+  },
+  "height": 1.05,
+  "art": "pokemon:togepi",
+  "behaviour": "healer",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "pound"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     6,
+     "fairy_wind"
+    ],
+    [
+     11,
+     "draining_kiss"
+    ],
+    [
+     16,
+     "ancient_power"
+    ],
+    [
+     18,
+     "calm_mind"
+    ],
+    [
+     32,
+     "double_edge"
+    ],
+    [
+     34,
+     "extrasensory"
+    ],
+    [
+     43,
+     "moonblast"
+    ],
+    [
+     48,
+     "last_resort"
+    ]
+   ],
+   "abilities": [
+    "hustle",
+    "serene_grace",
+    "super_luck"
+   ],
+   "heightM": 0.3,
+   "weightKg": 1.5,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "sentret",
+  "name": "Sentret",
+  "dex": 161,
+  "types": [
+   "normal"
+  ],
+  "elements": [
+   "plain"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 46,
+   "def": 34,
+   "spa": 35,
+   "spd": 45,
+   "spe": 20
+  },
+  "height": 2.03,
+  "art": "pokemon:sentret",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "scratch"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "defense_curl"
+    ],
+    [
+     7,
+     "quick_attack"
+    ],
+    [
+     12,
+     "fury_swipes"
+    ],
+    [
+     24,
+     "slam"
+    ],
+    [
+     31,
+     "sucker_punch"
+    ],
+    [
+     36,
+     "amnesia"
+    ],
+    [
+     42,
+     "double_edge"
+    ],
+    [
+     42,
+     "reversal"
+    ],
+    [
+     47,
+     "hyper_voice"
+    ]
+   ],
+   "abilities": [
+    "run_away",
+    "keen_eye",
+    "frisk"
+   ],
+   "heightM": 0.8,
+   "weightKg": 6,
+   "evolveLevel": 15,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "furret",
+  "name": "Furret",
+  "dex": 162,
+  "types": [
+   "normal"
+  ],
+  "elements": [
+   "plain"
+  ],
+  "stats": {
+   "hp": 85,
+   "atk": 76,
+   "def": 64,
+   "spa": 45,
+   "spd": 55,
+   "spe": 90
+  },
+  "height": 1.51,
+  "art": "pokemon:furret",
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "agility"
+    ],
+    [
+     1,
+     "coil"
+    ],
+    [
+     1,
+     "defense_curl"
+    ],
+    [
+     1,
+     "quick_attack"
+    ],
+    [
+     1,
+     "scratch"
+    ],
+    [
+     12,
+     "fury_swipes"
+    ],
+    [
+     28,
+     "slam"
+    ],
+    [
+     36,
+     "sucker_punch"
+    ],
+    [
+     42,
+     "amnesia"
+    ],
+    [
+     50,
+     "double_edge"
+    ],
+    [
+     50,
+     "reversal"
+    ],
+    [
+     56,
+     "hyper_voice"
+    ]
+   ],
+   "abilities": [
+    "run_away",
+    "keen_eye",
+    "frisk"
+   ],
+   "heightM": 1.8,
+   "weightKg": 32.5
+  }
+ },
+ {
+  "id": "budew",
+  "name": "Budew",
+  "dex": 406,
+  "types": [
+   "grass",
+   "poison"
+  ],
+  "elements": [
+   "bloom",
+   "venom"
+  ],
+  "stats": {
+   "hp": 40,
+   "atk": 30,
+   "def": 35,
+   "spa": 50,
+   "spd": 70,
+   "spe": 55
+  },
+  "height": 1.18,
+  "art": "pokemon:budew",
+  "behaviour": "ranged",
+  "shot": "bloom",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
+    [
+     1,
+     "growth"
+    ],
+    [
+     1,
+     "poison_sting"
+    ],
+    [
+     13,
+     "mega_drain"
+    ],
+    [
+     25,
+     "venoshock"
+    ],
+    [
+     34,
+     "poison_jab"
+    ],
+    [
+     43,
+     "energy_ball"
+    ],
+    [
+     52,
+     "petal_dance"
+    ]
+   ],
+   "abilities": [
+    "natural_cure",
+    "poison_point",
+    "leaf_guard"
+   ],
+   "heightM": 0.2,
+   "weightKg": 1.2,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "cutiefly",
+  "name": "Cutiefly",
+  "dex": 742,
+  "types": [
+   "bug",
+   "fairy"
+  ],
+  "elements": [
+   "hive",
+   "fae"
+  ],
+  "stats": {
+   "hp": 40,
+   "atk": 45,
+   "def": 40,
+   "spa": 55,
+   "spd": 40,
+   "spe": 84
+  },
+  "height": 1.58,
+  "art": "pokemon:cutiefly",
+  "flying": true,
+  "behaviour": "swarm",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
+    [
+     1,
+     "fairy_wind"
+    ],
+    [
+     10,
+     "struggle_bug"
+    ],
+    [
+     13,
+     "silver_wind"
+    ],
+    [
+     16,
+     "draining_kiss"
+    ],
+    [
+     26,
+     "bug_buzz"
+    ],
+    [
+     30,
+     "covet"
+    ],
+    [
+     31,
+     "dazzling_gleam"
+    ],
+    [
+     41,
+     "quiver_dance"
+    ]
+   ],
+   "abilities": [
+    "honey_gather",
+    "shield_dust",
+    "sweet_veil"
+   ],
+   "heightM": 0.1,
+   "weightKg": 0.2,
+   "evolveLevel": 25,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "turtwig",
+  "name": "Turtwig",
+  "dex": 387,
+  "types": [
+   "grass"
+  ],
+  "elements": [
+   "bloom"
+  ],
+  "stats": {
+   "hp": 55,
+   "atk": 68,
+   "def": 64,
+   "spa": 45,
+   "spd": 55,
+   "spe": 31
+  },
+  "height": 1.12,
+  "art": "pokemon:turtwig",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     5,
+     "withdraw"
+    ],
+    [
+     6,
+     "leafage"
+    ],
+    [
+     9,
+     "absorb"
+    ],
+    [
+     10,
+     "growth"
+    ],
+    [
+     11,
+     "bite"
+    ],
+    [
+     13,
+     "razor_leaf"
+    ],
+    [
+     18,
+     "bulldoze"
+    ],
+    [
+     25,
+     "mega_drain"
+    ],
+    [
+     34,
+     "leaf_blade"
+    ],
+    [
+     37,
+     "crunch"
+    ],
+    [
+     41,
+     "giga_drain"
+    ],
+    [
+     43,
+     "double_edge"
+    ],
+    [
+     45,
+     "leaf_storm"
+    ]
+   ],
+   "abilities": [
+    "overgrow",
+    "shell_armor"
+   ],
+   "heightM": 0.4,
+   "weightKg": 10.2,
+   "evolveLevel": 18,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "doduo",
+  "name": "Doduo",
+  "dex": 84,
+  "types": [
+   "normal",
+   "flying"
+  ],
+  "elements": [
+   "plain",
+   "gale"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 85,
+   "def": 45,
+   "spa": 35,
+   "spd": 35,
+   "spe": 75
+  },
+  "height": 1.25,
+  "art": "pokemon:doduo",
+  "flying": false,
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "peck"
+    ],
+    [
+     5,
+     "quick_attack"
+    ],
+    [
+     8,
+     "rage"
+    ],
+    [
+     9,
+     "fury_attack"
+    ],
+    [
+     9,
+     "pursuit"
+    ],
+    [
+     14,
+     "pluck"
+    ],
+    [
+     15,
+     "wing_attack"
+    ],
+    [
+     19,
+     "double_hit"
+    ],
+    [
+     21,
+     "tri_attack"
+    ],
+    [
+     22,
+     "agility"
+    ],
+    [
+     23,
+     "uproar"
+    ],
+    [
+     27,
+     "drill_peck"
+    ],
+    [
+     32,
+     "swords_dance"
+    ],
+    [
+     38,
+     "jump_kick"
+    ],
+    [
+     39,
+     "endeavor"
+    ],
+    [
+     40,
+     "lunge"
+    ],
+    [
+     43,
+     "thrash"
+    ]
+   ],
+   "abilities": [
+    "run_away",
+    "early_bird",
+    "tangled_feet"
+   ],
+   "heightM": 1.4,
+   "weightKg": 39.2,
+   "evolveLevel": 31,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "snorlax",
+  "name": "Snorlax",
+  "dex": 143,
+  "types": [
+   "normal"
+  ],
+  "elements": [
+   "plain"
+  ],
+  "stats": {
+   "hp": 160,
+   "atk": 110,
+   "def": 65,
+   "spa": 65,
+   "spd": 110,
+   "spe": 30
+  },
+  "height": 1.64,
+  "art": "pokemon:snorlax",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "amnesia"
+    ],
+    [
+     1,
+     "covet"
+    ],
+    [
+     1,
+     "defense_curl"
+    ],
+    [
+     1,
+     "flail"
+    ],
+    [
+     1,
+     "fling"
+    ],
+    [
+     1,
+     "headbutt"
+    ],
+    [
+     1,
+     "last_resort"
+    ],
+    [
+     1,
+     "lick"
+    ],
+    [
+     1,
+     "rollout"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     15,
+     "bulldoze"
+    ],
+    [
+     16,
+     "bite"
+    ],
+    [
+     17,
+     "chip_away"
+    ],
+    [
+     20,
+     "snore"
+    ],
+    [
+     24,
+     "crunch"
+    ],
+    [
+     25,
+     "body_slam"
+    ],
+    [
+     29,
+     "zen_headbutt"
+    ],
+    [
+     32,
+     "heavy_slam"
+    ],
+    [
+     35,
+     "giga_impact"
+    ],
+    [
+     37,
+     "high_horsepower"
+    ],
+    [
+     41,
+     "harden"
+    ],
+    [
+     44,
+     "hammer_arm"
+    ],
+    [
+     46,
+     "double_edge"
+    ],
+    [
+     51,
+     "hyper_beam"
+    ],
+    [
+     52,
+     "belch"
+    ],
+    [
+     65,
+     "superpower"
+    ]
+   ],
+   "abilities": [
+    "immunity",
+    "thick_fat",
+    "gluttony"
+   ],
+   "heightM": 2.1,
+   "weightKg": 460
+  }
+ },
+ {
+  "id": "diglett",
+  "name": "Diglett",
+  "dex": 50,
+  "types": [
+   "ground"
+  ],
+  "elements": [
+   "quake"
+  ],
+  "stats": {
+   "hp": 10,
+   "atk": 55,
+   "def": 25,
+   "spa": 35,
+   "spd": 45,
+   "spe": 95
+  },
+  "height": 0.9,
+  "art": "pokemon:diglett",
+  "behaviour": "swarm",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "scratch"
+    ],
+    [
+     7,
+     "astonish"
+    ],
+    [
+     9,
+     "magnitude"
+    ],
+    [
+     10,
+     "mud_slap"
+    ],
+    [
+     12,
+     "agility"
+    ],
+    [
+     15,
+     "fury_swipes"
+    ],
+    [
+     16,
+     "bulldoze"
+    ],
+    [
+     17,
+     "dig"
+    ],
+    [
+     20,
+     "sucker_punch"
+    ],
+    [
+     21,
+     "slash"
+    ],
+    [
+     25,
+     "mud_bomb"
+    ],
+    [
+     26,
+     "earth_power"
+    ],
+    [
+     28,
+     "sandstorm"
+    ],
+    [
+     29,
+     "earthquake"
+    ]
+   ],
+   "abilities": [
+    "sand_veil",
+    "arena_trap",
+    "sand_force"
+   ],
+   "heightM": 0.2,
+   "weightKg": 0.8,
+   "evolveLevel": 26,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "ekans",
+  "name": "Ekans",
+  "dex": 23,
+  "types": [
+   "poison"
+  ],
+  "elements": [
+   "venom"
+  ],
+  "stats": {
+   "hp": 35,
+   "atk": 60,
+   "def": 44,
+   "spa": 40,
+   "spd": 54,
+   "spe": 55
+  },
+  "height": 1.44,
+  "art": "pokemon:ekans",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "poison_sting"
+    ],
+    [
+     1,
+     "wrap"
+    ],
+    [
+     8,
+     "acid"
+    ],
+    [
+     9,
+     "bite"
+    ],
+    [
+     24,
+     "poison_jab"
+    ],
+    [
+     25,
+     "spit_up"
+    ],
+    [
+     28,
+     "acid_spray"
+    ],
+    [
+     28,
+     "mud_bomb"
+    ],
+    [
+     28,
+     "slam"
+    ],
+    [
+     33,
+     "sludge_bomb"
+    ],
+    [
+     38,
+     "belch"
+    ],
+    [
+     41,
+     "gunk_shot"
+    ],
+    [
+     44,
+     "coil"
+    ]
+   ],
+   "abilities": [
+    "intimidate",
+    "shed_skin",
+    "unnerve"
+   ],
+   "heightM": 2,
+   "weightKg": 6.9,
+   "evolveLevel": 22,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "koffing",
+  "name": "Koffing",
+  "dex": 109,
+  "types": [
+   "poison"
+  ],
+  "elements": [
+   "venom"
+  ],
+  "stats": {
+   "hp": 40,
+   "atk": 65,
+   "def": 95,
+   "spa": 60,
+   "spd": 45,
+   "spe": 35
+  },
+  "height": 1.58,
+  "art": "pokemon:koffing",
+  "flying": true,
+  "behaviour": "ranged",
+  "shot": "venom",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "smog"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     12,
+     "assurance"
+    ],
+    [
+     12,
+     "clear_smog"
+    ],
+    [
+     17,
+     "self_destruct"
+    ],
+    [
+     18,
+     "sludge"
+    ],
+    [
+     29,
+     "gyro_ball"
+    ],
+    [
+     32,
+     "sludge_bomb"
+    ],
+    [
+     37,
+     "explosion"
+    ],
+    [
+     40,
+     "belch"
+    ]
+   ],
+   "abilities": [
+    "levitate",
+    "neutralizing_gas",
+    "stench"
+   ],
+   "heightM": 0.6,
+   "weightKg": 1,
+   "evolveLevel": 35,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "rolycoly",
+  "name": "Rolycoly",
+  "dex": 837,
+  "types": [
+   "rock"
+  ],
+  "elements": [
+   "stone"
+  ],
+  "stats": {
+   "hp": 30,
+   "atk": 40,
+   "def": 50,
+   "spa": 40,
+   "spd": 50,
+   "spe": 30
+  },
+  "height": 1.05,
+  "art": "pokemon:rolycoly",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     5,
+     "rapid_spin"
+    ],
+    [
+     10,
+     "smack_down"
+    ],
+    [
+     15,
+     "rock_polish"
+    ],
+    [
+     20,
+     "ancient_power"
+    ],
+    [
+     25,
+     "incinerate"
+    ],
+    [
+     35,
+     "heat_crash"
+    ],
+    [
+     40,
+     "rock_blast"
+    ]
+   ],
+   "abilities": [
+    "steam_engine",
+    "heatproof",
+    "flash_fire"
+   ],
+   "heightM": 0.3,
+   "weightKg": 12,
+   "evolveLevel": 18,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "sizzlipede",
+  "name": "Sizzlipede",
+  "dex": 850,
+  "types": [
+   "fire",
+   "bug"
+  ],
+  "elements": [
+   "blaze",
+   "hive"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 65,
+   "def": 45,
+   "spa": 50,
+   "spd": 50,
+   "spe": 45
+  },
+  "height": 0.9,
+  "art": "pokemon:sizzlipede",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "ember"
+    ],
+    [
+     5,
+     "wrap"
+    ],
+    [
+     10,
+     "bite"
+    ],
+    [
+     15,
+     "flame_wheel"
+    ],
+    [
+     20,
+     "bug_bite"
+    ],
+    [
+     25,
+     "coil"
+    ],
+    [
+     30,
+     "slam"
+    ],
+    [
+     35,
+     "fire_spin"
+    ],
+    [
+     40,
+     "crunch"
+    ],
+    [
+     45,
+     "fire_lash"
+    ],
+    [
+     50,
+     "lunge"
+    ],
+    [
+     55,
+     "burn_up"
+    ]
+   ],
+   "abilities": [
+    "flash_fire",
+    "white_smoke",
+    "flame_body"
+   ],
+   "heightM": 0.7,
+   "weightKg": 1,
+   "evolveLevel": 28,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "silicobra",
+  "name": "Silicobra",
+  "dex": 843,
+  "types": [
+   "ground"
+  ],
+  "elements": [
+   "quake"
+  ],
+  "stats": {
+   "hp": 52,
+   "atk": 57,
+   "def": 75,
+   "spa": 35,
+   "spd": 50,
+   "spe": 46
+  },
+  "height": 1.38,
+  "art": "pokemon:silicobra",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "wrap"
+    ],
+    [
+     5,
+     "minimize"
+    ],
+    [
+     10,
+     "brutal_swing"
+    ],
+    [
+     15,
+     "bulldoze"
+    ],
+    [
+     20,
+     "headbutt"
+    ],
+    [
+     30,
+     "dig"
+    ],
+    [
+     35,
+     "sandstorm"
+    ],
+    [
+     40,
+     "slam"
+    ],
+    [
+     45,
+     "coil"
+    ],
+    [
+     50,
+     "sand_tomb"
+    ]
+   ],
+   "abilities": [
+    "sand_spit",
+    "shed_skin",
+    "sand_veil"
+   ],
+   "heightM": 2.2,
+   "weightKg": 7.6,
+   "evolveLevel": 36,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "makuhita",
+  "name": "Makuhita",
+  "dex": 296,
+  "types": [
+   "fighting"
+  ],
+  "elements": [
+   "brawl"
+  ],
+  "stats": {
+   "hp": 72,
+   "atk": 60,
+   "def": 30,
+   "spa": 20,
+   "spd": 30,
+   "spe": 25
+  },
+  "height": 1.38,
+  "art": "pokemon:makuhita",
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     7,
+     "arm_thrust"
+    ],
+    [
+     10,
+     "fake_out"
+    ],
+    [
+     10,
+     "vital_throw"
+    ],
+    [
+     13,
+     "force_palm"
+    ],
+    [
+     19,
+     "knock_off"
+    ],
+    [
+     22,
+     "bulk_up"
+    ],
+    [
+     22,
+     "smelling_salts"
+    ],
+    [
+     31,
+     "seismic_toss"
+    ],
+    [
+     34,
+     "focus_punch"
+    ],
+    [
+     34,
+     "wake_up_slap"
+    ],
+    [
+     40,
+     "close_combat"
+    ],
+    [
+     43,
+     "reversal"
+    ],
+    [
+     46,
+     "heavy_slam"
+    ]
+   ],
+   "abilities": [
+    "thick_fat",
+    "guts",
+    "sheer_force"
+   ],
+   "heightM": 1,
+   "weightKg": 86.4,
+   "evolveLevel": 24,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "hariyama",
+  "name": "Hariyama",
+  "dex": 297,
+  "types": [
+   "fighting"
+  ],
+  "elements": [
+   "brawl"
+  ],
+  "stats": {
+   "hp": 144,
+   "atk": 120,
+   "def": 60,
+   "spa": 40,
+   "spd": 60,
+   "spe": 50
+  },
+  "height": 1.58,
+  "art": "pokemon:hariyama",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "arm_thrust"
+    ],
+    [
+     1,
+     "brine"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     10,
+     "fake_out"
+    ],
+    [
+     10,
+     "vital_throw"
+    ],
+    [
+     13,
+     "force_palm"
+    ],
+    [
+     19,
+     "knock_off"
+    ],
+    [
+     22,
+     "bulk_up"
+    ],
+    [
+     22,
+     "smelling_salts"
+    ],
+    [
+     34,
+     "seismic_toss"
+    ],
+    [
+     38,
+     "focus_punch"
+    ],
+    [
+     38,
+     "wake_up_slap"
+    ],
+    [
+     46,
+     "close_combat"
+    ],
+    [
+     50,
+     "reversal"
+    ],
+    [
+     54,
+     "heavy_slam"
+    ],
+    [
+     60,
+     "headlong_rush"
+    ]
+   ],
+   "abilities": [
+    "thick_fat",
+    "guts",
+    "sheer_force"
+   ],
+   "heightM": 2.3,
+   "weightKg": 253.8
+  }
+ },
+ {
+  "id": "snorunt",
+  "name": "Snorunt",
+  "dex": 361,
+  "types": [
+   "ice"
+  ],
+  "elements": [
+   "frost"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 50,
+   "def": 50,
+   "spa": 50,
+   "spd": 50,
+   "spe": 50
+  },
+  "height": 1.31,
+  "art": "pokemon:snorunt",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "headbutt"
+    ],
+    [
+     1,
+     "powder_snow"
+    ],
+    [
+     4,
+     "double_team"
+    ],
+    [
+     6,
+     "ice_shard"
+    ],
+    [
+     10,
+     "bite"
+    ],
+    [
+     13,
+     "icy_wind"
+    ],
+    [
+     18,
+     "ice_fang"
+    ],
+    [
+     25,
+     "crunch"
+    ],
+    [
+     30,
+     "frost_breath"
+    ],
+    [
+     34,
+     "ice_beam"
+    ],
+    [
+     34,
+     "icicle_crash"
+    ],
+    [
+     37,
+     "hail"
+    ],
+    [
+     43,
+     "blizzard"
+    ],
+    [
+     45,
+     "snowscape"
+    ],
+    [
+     50,
+     "weather_ball"
+    ]
+   ],
+   "abilities": [
+    "inner_focus",
+    "ice_body",
+    "moody"
+   ],
+   "heightM": 0.7,
+   "weightKg": 16.8,
+   "evolveLevel": 42,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "snom",
+  "name": "Snom",
+  "dex": 872,
+  "types": [
+   "ice",
+   "bug"
+  ],
+  "elements": [
+   "frost",
+   "hive"
+  ],
+  "stats": {
+   "hp": 30,
+   "atk": 25,
+   "def": 35,
+   "spa": 45,
+   "spd": 30,
+   "spe": 20
+  },
+  "height": 0.92,
+  "art": "pokemon:snom",
+  "behaviour": "ranged",
+  "shot": "frost",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "powder_snow"
+    ],
+    [
+     1,
+     "struggle_bug"
+    ]
+   ],
+   "abilities": [
+    "shield_dust",
+    "ice_scales"
+   ],
+   "heightM": 0.3,
+   "weightKg": 3.8,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "sneasel",
+  "name": "Sneasel",
+  "dex": 215,
+  "types": [
+   "dark",
+   "ice"
+  ],
+  "elements": [
+   "gloom",
+   "frost"
+  ],
+  "stats": {
+   "hp": 55,
+   "atk": 95,
+   "def": 55,
+   "spa": 35,
+   "spd": 75,
+   "spe": 115
+  },
+  "height": 1.58,
+  "art": "pokemon:sneasel",
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "quick_attack"
+    ],
+    [
+     1,
+     "scratch"
+    ],
+    [
+     6,
+     "ice_shard"
+    ],
+    [
+     10,
+     "feint_attack"
+    ],
+    [
+     11,
+     "swift"
+    ],
+    [
+     14,
+     "icy_wind"
+    ],
+    [
+     16,
+     "fury_swipes"
+    ],
+    [
+     18,
+     "metal_claw"
+    ],
+    [
+     18,
+     "slash"
+    ],
+    [
+     20,
+     "agility"
+    ],
+    [
+     25,
+     "hone_claws"
+    ],
+    [
+     25,
+     "poison_jab"
+    ],
+    [
+     28,
+     "beat_up"
+    ],
+    [
+     34,
+     "swords_dance"
+    ],
+    [
+     43,
+     "blizzard"
+    ],
+    [
+     44,
+     "punishment"
+    ]
+   ],
+   "abilities": [
+    "inner_focus",
+    "keen_eye",
+    "pickpocket"
+   ],
+   "heightM": 0.9,
+   "weightKg": 28,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "bergmite",
+  "name": "Bergmite",
+  "dex": 712,
+  "types": [
+   "ice"
+  ],
+  "elements": [
+   "frost"
+  ],
+  "stats": {
+   "hp": 55,
+   "atk": 69,
+   "def": 85,
+   "spa": 32,
+   "spd": 35,
+   "spe": 28
+  },
+  "height": 1.18,
+  "art": "pokemon:bergmite",
+  "behaviour": "tank",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "bite"
+    ],
+    [
+     1,
+     "harden"
+    ],
+    [
+     1,
+     "rapid_spin"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     5,
+     "powder_snow"
+    ],
+    [
+     9,
+     "ice_shard"
+    ],
+    [
+     10,
+     "icy_wind"
+    ],
+    [
+     15,
+     "take_down"
+    ],
+    [
+     18,
+     "avalanche"
+    ],
+    [
+     20,
+     "sharpen"
+    ],
+    [
+     21,
+     "iron_defense"
+    ],
+    [
+     24,
+     "ice_fang"
+    ],
+    [
+     29,
+     "crunch"
+    ],
+    [
+     30,
+     "ice_ball"
+    ],
+    [
+     37,
+     "blizzard"
+    ],
+    [
+     42,
+     "double_edge"
+    ]
+   ],
+   "abilities": [
+    "own_tempo",
+    "ice_body",
+    "sturdy"
+   ],
+   "heightM": 1,
+   "weightKg": 99.5,
+   "evolveLevel": 37,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "cetoddle",
+  "name": "Cetoddle",
+  "dex": 974,
+  "types": [
+   "ice"
+  ],
+  "elements": [
+   "frost"
+  ],
+  "stats": {
+   "hp": 108,
+   "atk": 68,
+   "def": 45,
+   "spa": 30,
+   "spd": 40,
+   "spe": 43
+  },
+  "height": 1.31,
+  "art": "pokemon:cetoddle",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "powder_snow"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     9,
+     "echoed_voice"
+    ],
+    [
+     12,
+     "ice_shard"
+    ],
+    [
+     19,
+     "take_down"
+    ],
+    [
+     25,
+     "flail"
+    ],
+    [
+     27,
+     "avalanche"
+    ],
+    [
+     31,
+     "bounce"
+    ],
+    [
+     36,
+     "body_slam"
+    ],
+    [
+     40,
+     "amnesia"
+    ],
+    [
+     44,
+     "ice_spinner"
+    ],
+    [
+     49,
+     "double_edge"
+    ],
+    [
+     53,
+     "blizzard"
+    ]
+   ],
+   "abilities": [
+    "thick_fat",
+    "snow_cloak",
+    "sheer_force"
+   ],
+   "heightM": 1.2,
+   "weightKg": 45,
+   "evolveTrigger": "use-item"
+  }
+ },
+ {
+  "id": "lapras",
+  "name": "Lapras",
+  "dex": 131,
+  "types": [
+   "water",
+   "ice"
+  ],
+  "elements": [
+   "tide",
+   "frost"
+  ],
+  "stats": {
+   "hp": 130,
+   "atk": 85,
+   "def": 80,
+   "spa": 85,
+   "spd": 95,
+   "spe": 60
+  },
+  "height": 1.84,
+  "art": "pokemon:lapras",
+  "behaviour": "ranged",
+  "shot": "frost",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "water_gun"
+    ],
+    [
+     10,
+     "ice_shard"
+    ],
+    [
+     13,
+     "body_slam"
+    ],
+    [
+     14,
+     "water_pulse"
+    ],
+    [
+     22,
+     "rain_dance"
+    ],
+    [
+     31,
+     "ice_beam"
+    ],
+    [
+     35,
+     "brine"
+    ],
+    [
+     45,
+     "surf"
+    ],
+    [
+     46,
+     "hydro_pump"
+    ],
+    [
+     52,
+     "dragon_pulse"
+    ],
+    [
+     58,
+     "blizzard"
+    ]
+   ],
+   "abilities": [
+    "water_absorb",
+    "shell_armor",
+    "hydration"
+   ],
+   "heightM": 2.5,
+   "weightKg": 220
+  }
+ },
+ {
+  "id": "murkrow",
+  "name": "Murkrow",
+  "dex": 198,
+  "types": [
+   "dark",
+   "flying"
+  ],
+  "elements": [
+   "gloom",
+   "gale"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 85,
+   "def": 42,
+   "spa": 85,
+   "spd": 42,
+   "spe": 91
+  },
+  "height": 1.31,
+  "art": "pokemon:murkrow",
+  "flying": true,
+  "behaviour": "ranged",
+  "shot": "gloom",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "gust"
+    ],
+    [
+     1,
+     "peck"
+    ],
+    [
+     5,
+     "pursuit"
+    ],
+    [
+     6,
+     "snarl"
+    ],
+    [
+     15,
+     "wing_attack"
+    ],
+    [
+     18,
+     "aerial_ace"
+    ],
+    [
+     21,
+     "night_shade"
+    ],
+    [
+     25,
+     "assurance"
+    ],
+    [
+     25,
+     "night_slash"
+    ],
+    [
+     30,
+     "air_slash"
+    ],
+    [
+     31,
+     "feint_attack"
+    ],
+    [
+     34,
+     "nasty_plot"
+    ],
+    [
+     35,
+     "air_cutter"
+    ],
+    [
+     40,
+     "foul_play"
+    ],
+    [
+     43,
+     "dark_pulse"
+    ],
+    [
+     45,
+     "sucker_punch"
+    ]
+   ],
+   "abilities": [
+    "insomnia",
+    "super_luck",
+    "prankster"
+   ],
+   "heightM": 0.5,
+   "weightKg": 2.1,
+   "evolveTrigger": "use-item"
+  }
+ },
+ {
+  "id": "litwick",
+  "name": "Litwick",
+  "dex": 607,
+  "types": [
+   "ghost",
+   "fire"
+  ],
+  "elements": [
+   "wisp",
+   "blaze"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 30,
+   "def": 55,
+   "spa": 65,
+   "spd": 55,
+   "spe": 20
+  },
+  "height": 1.18,
+  "art": "pokemon:litwick",
+  "behaviour": "ranged",
+  "shot": "wisp",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "ember"
+    ],
+    [
+     1,
+     "smog"
+    ],
+    [
+     3,
+     "minimize"
+    ],
+    [
+     7,
+     "fire_spin"
+    ],
+    [
+     13,
+     "night_shade"
+    ],
+    [
+     16,
+     "hex"
+    ],
+    [
+     20,
+     "flame_burst"
+    ],
+    [
+     36,
+     "shadow_ball"
+    ],
+    [
+     38,
+     "inferno"
+    ],
+    [
+     52,
+     "overheat"
+    ]
+   ],
+   "abilities": [
+    "flash_fire",
+    "flame_body",
+    "infiltrator"
+   ],
+   "heightM": 0.3,
+   "weightKg": 3.1,
+   "evolveLevel": 41,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "haunter",
+  "name": "Haunter",
+  "dex": 93,
+  "types": [
+   "ghost",
+   "poison"
+  ],
+  "elements": [
+   "wisp",
+   "venom"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 50,
+   "def": 45,
+   "spa": 115,
+   "spd": 55,
+   "spe": 95
+  },
+  "height": 1.58,
+  "art": "pokemon:haunter",
+  "flying": true,
+  "behaviour": "ranged",
+  "shot": "wisp",
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "shadow_punch"
+    ],
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "lick"
+    ],
+    [
+     1,
+     "night_shade"
+    ],
+    [
+     1,
+     "smog"
+    ],
+    [
+     11,
+     "hex"
+    ],
+    [
+     12,
+     "payback"
+    ],
+    [
+     18,
+     "venoshock"
+    ],
+    [
+     19,
+     "sucker_punch"
+    ],
+    [
+     30,
+     "shadow_ball"
+    ],
+    [
+     31,
+     "dream_eater"
+    ],
+    [
+     34,
+     "dark_pulse"
+    ]
+   ],
+   "abilities": [
+    "levitate"
+   ],
+   "heightM": 1.6,
+   "weightKg": 0.1,
+   "evolveTrigger": "trade"
+  }
+ },
+ {
+  "id": "gengar",
+  "name": "Gengar",
+  "dex": 94,
+  "types": [
+   "ghost",
+   "poison"
+  ],
+  "elements": [
+   "wisp",
+   "venom"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 65,
+   "def": 60,
+   "spa": 130,
+   "spd": 75,
+   "spe": 110
+  },
+  "height": 1.31,
+  "art": "pokemon:gengar",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "shadow_punch"
+    ],
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "lick"
+    ],
+    [
+     1,
+     "night_shade"
+    ],
+    [
+     1,
+     "smog"
+    ],
+    [
+     11,
+     "hex"
+    ],
+    [
+     12,
+     "payback"
+    ],
+    [
+     18,
+     "venoshock"
+    ],
+    [
+     19,
+     "sucker_punch"
+    ],
+    [
+     30,
+     "shadow_ball"
+    ],
+    [
+     31,
+     "dream_eater"
+    ],
+    [
+     34,
+     "dark_pulse"
+    ]
+   ],
+   "abilities": [
+    "cursed_body"
+   ],
+   "heightM": 1.5,
+   "weightKg": 40.5
+  }
+ },
+ {
+  "id": "impidimp",
+  "name": "Impidimp",
+  "dex": 859,
+  "types": [
+   "dark",
+   "fairy"
+  ],
+  "elements": [
+   "gloom",
+   "fae"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 45,
+   "def": 30,
+   "spa": 55,
+   "spd": 40,
+   "spe": 50
+  },
+  "height": 1.25,
+  "art": "pokemon:impidimp",
+  "behaviour": "chase",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "fake_out"
+    ],
+    [
+     4,
+     "bite"
+    ],
+    [
+     16,
+     "assurance"
+    ],
+    [
+     24,
+     "sucker_punch"
+    ],
+    [
+     33,
+     "dark_pulse"
+    ],
+    [
+     36,
+     "nasty_plot"
+    ],
+    [
+     40,
+     "play_rough"
+    ],
+    [
+     44,
+     "foul_play"
+    ]
+   ],
+   "abilities": [
+    "prankster",
+    "frisk",
+    "pickpocket"
+   ],
+   "heightM": 0.4,
+   "weightKg": 5.5,
+   "evolveLevel": 32,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "noibat",
+  "name": "Noibat",
+  "dex": 714,
+  "types": [
+   "flying",
+   "dragon"
+  ],
+  "elements": [
+   "gale",
+   "wyrm"
+  ],
+  "stats": {
+   "hp": 40,
+   "atk": 30,
+   "def": 35,
+   "spa": 45,
+   "spd": 40,
+   "spe": 55
+  },
+  "height": 1.71,
+  "art": "pokemon:noibat",
+  "flying": true,
+  "behaviour": "swarm",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "absorb"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "gust"
+    ],
+    [
+     5,
+     "leech_life"
+    ],
+    [
+     12,
+     "double_team"
+    ],
+    [
+     13,
+     "bite"
+    ],
+    [
+     16,
+     "wing_attack"
+    ],
+    [
+     18,
+     "agility"
+    ],
+    [
+     23,
+     "air_cutter"
+    ],
+    [
+     31,
+     "razor_wind"
+    ],
+    [
+     32,
+     "super_fang"
+    ],
+    [
+     36,
+     "air_slash"
+    ],
+    [
+     52,
+     "hurricane"
+    ]
+   ],
+   "abilities": [
+    "frisk",
+    "infiltrator",
+    "telepathy"
+   ],
+   "heightM": 0.5,
+   "weightKg": 8,
+   "evolveLevel": 48,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "honedge",
+  "name": "Honedge",
+  "dex": 679,
+  "types": [
+   "steel",
+   "ghost"
+  ],
+  "elements": [
+   "alloy",
+   "wisp"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 80,
+   "def": 100,
+   "spa": 35,
+   "spd": 37,
+   "spe": 28
+  },
+  "height": 1.71,
+  "art": "pokemon:honedge",
+  "behaviour": "charger",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "fury_cutter"
+    ],
+    [
+     1,
+     "swords_dance"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "shadow_sneak"
+    ],
+    [
+     8,
+     "autotomize"
+    ],
+    [
+     12,
+     "aerial_ace"
+    ],
+    [
+     13,
+     "pursuit"
+    ],
+    [
+     20,
+     "slash"
+    ],
+    [
+     24,
+     "night_slash"
+    ],
+    [
+     26,
+     "retaliate"
+    ],
+    [
+     32,
+     "iron_defense"
+    ],
+    [
+     36,
+     "iron_head"
+    ],
+    [
+     47,
+     "sacred_sword"
+    ]
+   ],
+   "abilities": [
+    "no_guard"
+   ],
+   "heightM": 0.8,
+   "weightKg": 2,
+   "evolveLevel": 35,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
+  "id": "dreepy",
+  "name": "Dreepy",
+  "dex": 885,
+  "types": [
+   "dragon",
+   "ghost"
+  ],
+  "elements": [
+   "wyrm",
+   "wisp"
+  ],
+  "stats": {
+   "hp": 28,
+   "atk": 60,
+   "def": 30,
+   "spa": 40,
+   "spd": 30,
+   "spe": 82
+  },
+  "height": 1.18,
+  "art": "pokemon:dreepy",
+  "flying": true,
+  "behaviour": "swarm",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "astonish"
+    ],
+    [
+     1,
+     "bite"
+    ],
+    [
+     1,
+     "infestation"
+    ],
+    [
+     1,
+     "quick_attack"
+    ]
+   ],
+   "abilities": [
+    "clear_body",
+    "infiltrator",
+    "cursed_body"
+   ],
+   "heightM": 0.5,
+   "weightKg": 2,
+   "evolveLevel": 50,
+   "evolveTrigger": "level-up"
+  }
+ },
+ {
   "id": "sudowoodo",
   "name": "Sudowoodo",
   "dex": 185,
@@ -5788,6 +8499,288 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/iron-tail"
  },
  {
+  "key": "nuzzle",
+  "name": "Nuzzle",
+  "element": "volt",
+  "cls": "physical",
+  "power": 20,
+  "accuracy": 100,
+  "source": "pokeapi move/nuzzle",
+  "ailment": "stun",
+  "ailmentChance": 100
+ },
+ {
+  "key": "spark",
+  "name": "Spark",
+  "element": "volt",
+  "cls": "physical",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/spark",
+  "ailment": "stun",
+  "ailmentChance": 30
+ },
+ {
+  "key": "thunderbolt",
+  "name": "Thunderbolt",
+  "element": "volt",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/thunderbolt",
+  "ailment": "stun",
+  "ailmentChance": 10
+ },
+ {
+  "key": "double_team",
+  "name": "Double Team",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/double-team"
+ },
+ {
+  "key": "double_kick",
+  "name": "Double Kick",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 30,
+  "accuracy": 100,
+  "source": "pokeapi move/double-kick",
+  "hits": 2
+ },
+ {
+  "key": "wild_charge",
+  "name": "Wild Charge",
+  "element": "volt",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/wild-charge"
+ },
+ {
+  "key": "fairy_wind",
+  "name": "Fairy Wind",
+  "element": "fae",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/fairy-wind"
+ },
+ {
+  "key": "draining_kiss",
+  "name": "Draining Kiss",
+  "element": "fae",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/draining-kiss",
+  "drain": 0.75
+ },
+ {
+  "key": "calm_mind",
+  "name": "Calm Mind",
+  "element": "mind",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/calm-mind"
+ },
+ {
+  "key": "last_resort",
+  "name": "Last Resort",
+  "element": "plain",
+  "cls": "physical",
+  "power": 140,
+  "accuracy": 100,
+  "source": "pokeapi move/last-resort"
+ },
+ {
+  "key": "hyper_voice",
+  "name": "Hyper Voice",
+  "element": "plain",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/hyper-voice",
+  "archetype": "nova"
+ },
+ {
+  "key": "coil",
+  "name": "Coil",
+  "element": "venom",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/coil"
+ },
+ {
+  "key": "poison_jab",
+  "name": "Poison Jab",
+  "element": "venom",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/poison-jab",
+  "ailment": "poison",
+  "ailmentChance": 30
+ },
+ {
+  "key": "covet",
+  "name": "Covet",
+  "element": "plain",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/covet"
+ },
+ {
+  "key": "quiver_dance",
+  "name": "Quiver Dance",
+  "element": "hive",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/quiver-dance"
+ },
+ {
+  "key": "leafage",
+  "name": "Leafage",
+  "element": "bloom",
+  "cls": "physical",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/leafage"
+ },
+ {
+  "key": "leaf_blade",
+  "name": "Leaf Blade",
+  "element": "bloom",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/leaf-blade"
+ },
+ {
+  "key": "leaf_storm",
+  "name": "Leaf Storm",
+  "element": "bloom",
+  "cls": "special",
+  "power": 130,
+  "accuracy": 90,
+  "source": "pokeapi move/leaf-storm"
+ },
+ {
+  "key": "peck",
+  "name": "Peck",
+  "element": "gale",
+  "cls": "physical",
+  "power": 35,
+  "accuracy": 100,
+  "source": "pokeapi move/peck"
+ },
+ {
+  "key": "pluck",
+  "name": "Pluck",
+  "element": "gale",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/pluck"
+ },
+ {
+  "key": "double_hit",
+  "name": "Double Hit",
+  "element": "plain",
+  "cls": "physical",
+  "power": 35,
+  "accuracy": 90,
+  "source": "pokeapi move/double-hit",
+  "hits": 2
+ },
+ {
+  "key": "tri_attack",
+  "name": "Tri Attack",
+  "element": "plain",
+  "cls": "special",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/tri-attack"
+ },
+ {
+  "key": "uproar",
+  "name": "Uproar",
+  "element": "plain",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/uproar"
+ },
+ {
+  "key": "jump_kick",
+  "name": "Jump Kick",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 100,
+  "accuracy": 95,
+  "source": "pokeapi move/jump-kick"
+ },
+ {
+  "key": "lunge",
+  "name": "Lunge",
+  "element": "hive",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/lunge"
+ },
+ {
+  "key": "fling",
+  "name": "Fling",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/fling"
+ },
+ {
+  "key": "snore",
+  "name": "Snore",
+  "element": "plain",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/snore"
+ },
+ {
+  "key": "zen_headbutt",
+  "name": "Zen Headbutt",
+  "element": "mind",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 90,
+  "source": "pokeapi move/zen-headbutt"
+ },
+ {
+  "key": "heavy_slam",
+  "name": "Heavy Slam",
+  "element": "alloy",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/heavy-slam"
+ },
+ {
+  "key": "giga_impact",
+  "name": "Giga Impact",
+  "element": "plain",
+  "cls": "physical",
+  "power": 150,
+  "accuracy": 90,
+  "source": "pokeapi move/giga-impact"
+ },
+ {
   "key": "hammer_arm",
   "name": "Hammer Arm",
   "element": "brawl",
@@ -5795,6 +8788,456 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 100,
   "accuracy": 90,
   "source": "pokeapi move/hammer-arm"
+ },
+ {
+  "key": "hyper_beam",
+  "name": "Hyper Beam",
+  "element": "plain",
+  "cls": "special",
+  "power": 150,
+  "accuracy": 90,
+  "source": "pokeapi move/hyper-beam"
+ },
+ {
+  "key": "belch",
+  "name": "Belch",
+  "element": "venom",
+  "cls": "special",
+  "power": 120,
+  "accuracy": 90,
+  "source": "pokeapi move/belch"
+ },
+ {
+  "key": "wrap",
+  "name": "Wrap",
+  "element": "plain",
+  "cls": "physical",
+  "power": 15,
+  "accuracy": 90,
+  "source": "pokeapi move/wrap",
+  "ailment": "root",
+  "ailmentChance": 100
+ },
+ {
+  "key": "spit_up",
+  "name": "Spit Up",
+  "element": "plain",
+  "cls": "special",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/spit-up"
+ },
+ {
+  "key": "acid_spray",
+  "name": "Acid Spray",
+  "element": "venom",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/acid-spray"
+ },
+ {
+  "key": "sludge_bomb",
+  "name": "Sludge Bomb",
+  "element": "venom",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/sludge-bomb",
+  "ailment": "poison",
+  "ailmentChance": 30
+ },
+ {
+  "key": "gunk_shot",
+  "name": "Gunk Shot",
+  "element": "venom",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 80,
+  "source": "pokeapi move/gunk-shot",
+  "ailment": "poison",
+  "ailmentChance": 30
+ },
+ {
+  "key": "sludge",
+  "name": "Sludge",
+  "element": "venom",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/sludge",
+  "ailment": "poison",
+  "ailmentChance": 30
+ },
+ {
+  "key": "heat_crash",
+  "name": "Heat Crash",
+  "element": "blaze",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/heat-crash"
+ },
+ {
+  "key": "fire_lash",
+  "name": "Fire Lash",
+  "element": "blaze",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/fire-lash"
+ },
+ {
+  "key": "minimize",
+  "name": "Minimize",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/minimize"
+ },
+ {
+  "key": "brutal_swing",
+  "name": "Brutal Swing",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/brutal-swing",
+  "archetype": "nova"
+ },
+ {
+  "key": "vital_throw",
+  "name": "Vital Throw",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 70,
+  "priority": -1,
+  "accuracy": null,
+  "source": "pokeapi move/vital-throw"
+ },
+ {
+  "key": "force_palm",
+  "name": "Force Palm",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/force-palm",
+  "ailment": "stun",
+  "ailmentChance": 30
+ },
+ {
+  "key": "knock_off",
+  "name": "Knock Off",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/knock-off"
+ },
+ {
+  "key": "bulk_up",
+  "name": "Bulk Up",
+  "element": "brawl",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/bulk-up"
+ },
+ {
+  "key": "smelling_salts",
+  "name": "Smelling Salts",
+  "element": "plain",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/smelling-salts"
+ },
+ {
+  "key": "seismic_toss",
+  "name": "Seismic Toss",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/seismic-toss"
+ },
+ {
+  "key": "focus_punch",
+  "name": "Focus Punch",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 150,
+  "priority": -3,
+  "accuracy": 100,
+  "source": "pokeapi move/focus-punch"
+ },
+ {
+  "key": "brine",
+  "name": "Brine",
+  "element": "tide",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/brine"
+ },
+ {
+  "key": "headlong_rush",
+  "name": "Headlong Rush",
+  "element": "quake",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/headlong-rush"
+ },
+ {
+  "key": "frost_breath",
+  "name": "Frost Breath",
+  "element": "frost",
+  "cls": "special",
+  "power": 60,
+  "accuracy": 90,
+  "source": "pokeapi move/frost-breath"
+ },
+ {
+  "key": "ice_beam",
+  "name": "Ice Beam",
+  "element": "frost",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/ice-beam",
+  "ailment": "chill",
+  "ailmentChance": 10
+ },
+ {
+  "key": "hail",
+  "name": "Hail",
+  "element": "frost",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/hail"
+ },
+ {
+  "key": "snowscape",
+  "name": "Snowscape",
+  "element": "frost",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "weather",
+  "source": "pokeapi move/snowscape"
+ },
+ {
+  "key": "weather_ball",
+  "name": "Weather Ball",
+  "element": "plain",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/weather-ball"
+ },
+ {
+  "key": "hone_claws",
+  "name": "Hone Claws",
+  "element": "gloom",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/hone-claws"
+ },
+ {
+  "key": "punishment",
+  "name": "Punishment",
+  "element": "gloom",
+  "cls": "physical",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/punishment"
+ },
+ {
+  "key": "avalanche",
+  "name": "Avalanche",
+  "element": "frost",
+  "cls": "physical",
+  "power": 60,
+  "priority": -4,
+  "accuracy": 100,
+  "source": "pokeapi move/avalanche"
+ },
+ {
+  "key": "sharpen",
+  "name": "Sharpen",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/sharpen"
+ },
+ {
+  "key": "ice_ball",
+  "name": "Ice Ball",
+  "element": "frost",
+  "cls": "physical",
+  "power": 30,
+  "accuracy": 90,
+  "source": "pokeapi move/ice-ball"
+ },
+ {
+  "key": "echoed_voice",
+  "name": "Echoed Voice",
+  "element": "plain",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/echoed-voice"
+ },
+ {
+  "key": "bounce",
+  "name": "Bounce",
+  "element": "gale",
+  "cls": "physical",
+  "power": 85,
+  "accuracy": 85,
+  "source": "pokeapi move/bounce",
+  "ailment": "stun",
+  "ailmentChance": 30
+ },
+ {
+  "key": "ice_spinner",
+  "name": "Ice Spinner",
+  "element": "frost",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/ice-spinner"
+ },
+ {
+  "key": "surf",
+  "name": "Surf",
+  "element": "tide",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/surf",
+  "archetype": "nova"
+ },
+ {
+  "key": "dragon_pulse",
+  "name": "Dragon Pulse",
+  "element": "wyrm",
+  "cls": "special",
+  "power": 85,
+  "accuracy": 100,
+  "source": "pokeapi move/dragon-pulse"
+ },
+ {
+  "key": "snarl",
+  "name": "Snarl",
+  "element": "gloom",
+  "cls": "special",
+  "power": 55,
+  "accuracy": 95,
+  "source": "pokeapi move/snarl",
+  "archetype": "nova"
+ },
+ {
+  "key": "shadow_punch",
+  "name": "Shadow Punch",
+  "element": "wisp",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": null,
+  "source": "pokeapi move/shadow-punch"
+ },
+ {
+  "key": "play_rough",
+  "name": "Play Rough",
+  "element": "fae",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 90,
+  "source": "pokeapi move/play-rough"
+ },
+ {
+  "key": "razor_wind",
+  "name": "Razor Wind",
+  "element": "plain",
+  "cls": "special",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/razor-wind",
+  "archetype": "nova"
+ },
+ {
+  "key": "hurricane",
+  "name": "Hurricane",
+  "element": "gale",
+  "cls": "special",
+  "power": 110,
+  "accuracy": 70,
+  "source": "pokeapi move/hurricane",
+  "ailment": "confuse",
+  "ailmentChance": 30
+ },
+ {
+  "key": "shadow_sneak",
+  "name": "Shadow Sneak",
+  "element": "wisp",
+  "cls": "physical",
+  "power": 40,
+  "priority": 1,
+  "accuracy": 100,
+  "source": "pokeapi move/shadow-sneak",
+  "archetype": "dash"
+ },
+ {
+  "key": "autotomize",
+  "name": "Autotomize",
+  "element": "alloy",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/autotomize"
+ },
+ {
+  "key": "retaliate",
+  "name": "Retaliate",
+  "element": "plain",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/retaliate"
+ },
+ {
+  "key": "iron_head",
+  "name": "Iron Head",
+  "element": "alloy",
+  "cls": "physical",
+  "power": 80,
+  "accuracy": 100,
+  "source": "pokeapi move/iron-head"
+ },
+ {
+  "key": "sacred_sword",
+  "name": "Sacred Sword",
+  "element": "brawl",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/sacred-sword"
+ },
+ {
+  "key": "infestation",
+  "name": "Infestation",
+  "element": "hive",
+  "cls": "special",
+  "power": 20,
+  "accuracy": 100,
+  "source": "pokeapi move/infestation",
+  "ailment": "root",
+  "ailmentChance": 100
  },
  {
   "key": "wood_hammer",
@@ -5826,37 +9269,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 10
  },
  {
-  "key": "hurricane",
-  "name": "Hurricane",
-  "element": "gale",
-  "cls": "special",
-  "power": 110,
-  "accuracy": 70,
-  "source": "pokeapi move/hurricane",
-  "ailment": "confuse",
-  "ailmentChance": 30
- },
- {
-  "key": "ice_beam",
-  "name": "Ice Beam",
-  "element": "frost",
-  "cls": "special",
-  "power": 90,
-  "accuracy": 100,
-  "source": "pokeapi move/ice-beam",
-  "ailment": "chill",
-  "ailmentChance": 10
- },
- {
-  "key": "peck",
-  "name": "Peck",
-  "element": "gale",
-  "cls": "physical",
-  "power": 35,
-  "accuracy": 100,
-  "source": "pokeapi move/peck"
- },
- {
   "key": "mirror_coat",
   "name": "Mirror Coat",
   "element": "mind",
@@ -5865,24 +9277,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "priority": -5,
   "accuracy": 100,
   "source": "pokeapi move/mirror-coat"
- },
- {
-  "key": "hail",
-  "name": "Hail",
-  "element": "frost",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "weather",
-  "source": "pokeapi move/hail"
- },
- {
-  "key": "snowscape",
-  "name": "Snowscape",
-  "element": "frost",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "weather",
-  "source": "pokeapi move/snowscape"
  },
  {
   "key": "sky_attack",
@@ -6181,137 +9575,3 @@ export const TYPE_CHART: Record<Element, { name: string; strong: Element[]; weak
  }
 };
 
-export const STAGE_TABLES: { biome: string; spawns: [string, number][]; elites: string[]; boss: string }[] = [
- {
-  "biome": "meadow",
-  "spawns": [
-   [
-    "rattata",
-    5
-   ],
-   [
-    "ledyba",
-    3
-   ],
-   [
-    "sandshrew",
-    3
-   ],
-   [
-    "oddish",
-    1.4
-   ],
-   [
-    "poliwag",
-    1.6
-   ],
-   [
-    "mareep",
-    1.2
-   ],
-   [
-    "joltik",
-    1.4
-   ]
-  ],
-  "elites": [
-   "heracross",
-   "sandshrew"
-  ],
-  "boss": "sudowoodo"
- },
- {
-  "biome": "badlands",
-  "spawns": [
-   [
-    "slugma",
-    4
-   ],
-   [
-    "geodude",
-    3
-   ],
-   [
-    "mareep",
-    3
-   ],
-   [
-    "vulpix",
-    1.6
-   ],
-   [
-    "sandshrew",
-    2
-   ],
-   [
-    "onix",
-    1.2
-   ]
-  ],
-  "elites": [
-   "heracross",
-   "geodude"
-  ],
-  "boss": "magcargo"
- },
- {
-  "biome": "frost",
-  "spawns": [
-   [
-    "delibird",
-    2
-   ],
-   [
-    "swinub",
-    3
-   ],
-   [
-    "geodude",
-    2
-   ],
-   [
-    "ledyba",
-    3
-   ],
-   [
-    "rattata",
-    3
-   ]
-  ],
-  "elites": [
-   "swinub",
-   "heracross"
-  ],
-  "boss": "articuno"
- },
- {
-  "biome": "dusk",
-  "spawns": [
-   [
-    "zubat",
-    4
-   ],
-   [
-    "gastly",
-    2
-   ],
-   [
-    "paras",
-    1.2
-   ],
-   [
-    "houndour",
-    3
-   ],
-   [
-    "poliwag",
-    2
-   ]
-  ],
-  "elites": [
-   "houndour",
-   "heracross"
-  ],
-  "boss": "houndoom"
- }
-];

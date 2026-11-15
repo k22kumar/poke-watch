@@ -10,6 +10,7 @@
 // Adding a location means adding one of these files and registering it in ./index.ts. Nothing in the generator
 // names a location or a species.
 import type { ArenaPropKind, TerrainId } from '../tiles';
+import type { SpawnPoolDef } from '../../rules/spawning';
 
 export interface Ref { title: string; url: string }
 
@@ -142,4 +143,6 @@ export interface LocationDef {
   decks?: { shelves: [number, number]; depth: [number, number]; run: [number, number] };
   /** stage biomes whose spawn table fits this location's ecology (docs/LOCATIONS.md, "Species fit") */
   biomeFit: string[];
+  /** optional spawn pool layered over the region's (src/rules/spawning.ts, docs/SPAWNING.md); absent = the region's */
+  spawns?: SpawnPoolDef;
 }

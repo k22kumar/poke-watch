@@ -11,11 +11,11 @@
 // The schedule teaches one thing at a time: the first region opens with a Hold and then a Hunt (the first
 // recruit lands around 4:00), the second with a Transport and then a Hunt (the second recruit around 9:00).
 
+import { partnerRadius } from '../rules/sizing';
 import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
-import { STAGES } from '../rules/stages';
 import { SPECIES_BY_ID } from '../rules/species';
-import { TAG_ACTIONS } from '../rules/tags';
+import { tagLineOf } from '../rules/tags';
 import { fits } from '../rules/compositions';
 import { spawnBody, tpl } from './bodies';
 import { compositionsFor, forcePeak, spawnComposition } from './director';
@@ -29,9 +29,9 @@ const SCHEDULE: ObjectiveKind[][] = [['hold', 'hunt'], ['transport', 'hunt']];
 
 /** species from this region that could join the squad (not already in it) */
 function recruitables(ctx: SimContext): string[] {
-  const table = STAGES[ctx.stage % STAGES.length];
+  const table = ctx.spawnTable;
   const have = new Set(ctx.player.squad.map((m) => lineage(m.species)[0].id));
-  return [...new Set([...table.spawns.map(([id]) => id), ...table.elites])].filter((id) => TAG_ACTIONS[id] && !have.has(id));
+  return [...new Set([...table.spawns.map(([id]) => id), ...table.elites])].filter((id) => tagLineOf(id) && !have.has(id));
 }
 
 /** the objective the next Peak should open, if one is due */
@@ -86,7 +86,7 @@ export function startObjective(ctx: SimContext, kind: ObjectiveKind): boolean {
     obj = blank('hunt', x, z, O.offerTime);
     obj.target = t; obj.targetGen = ctx.enemies.gen[t]; obj.species = id;
     // the escort, and the Mender it will run to (on the far side, away from you)
-    const table = STAGES[ctx.stage % STAGES.length];
+    const table = ctx.spawnTable;
     const ids = [...new Set([...table.spawns.map(([s]) => s), ...table.elites])].map((s) => SPECIES_BY_ID[s]);
     const escorts = ids.filter((sp) => fits(sp, { job: 'pursuer', count: 1, roles: 0 }));
     for (let k = 0; k < O.hunt.escort && escorts.length; k++) spawnEnemy(ctx, ctx.rng.spawn.pick(escorts).id, x + dsin(k * 1.6) * 1.8, z + dcos(k * 1.6) * 1.8);
@@ -194,7 +194,7 @@ export const objectiveSystem = {
     } else {
       const B = ctx.bodies, g = O.egg;
       if (g < 0 || !B.alive[g]) { finish(ctx, O, false); return; }
-      const reach = tpl(ctx, g).radius + ctx.rules.player.radius + 0.3;
+      const reach = tpl(ctx, g).radius + partnerRadius(ctx.player.species, ctx.rules) + 0.3;
       if (O.carrier === -2) {
         // dropped by Guard, Dash, Tag, a faint or anything that ends normal play
         if (P.guardT >= 0 || P.dashT > 0 || P.tagPending >= 0 || P.faintT >= 0 || ctx.state !== 'play') { O.carrier = -1; P.carrying = false; }

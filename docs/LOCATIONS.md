@@ -119,6 +119,8 @@ All gated on `map.gen.loc`; authored arenas and the classic generator replay bit
 | landmarks | every canonical landmark placed at least its minimum count |
 | pinch | ≤ 24 one-tile passages |
 
+Reported, not gated: `wideBoss` (is the boss hall joined to the hub by a two-tile route, for Large / Extra Large bodies and elites; `wideCore` in `locgen/nav.ts`, the sim's heavy mask) and `wideAnchors`. Over 30 seeds: Viridian Forest 73 %, Mt. Moon 50 %, Chargestone Cave 37 % of seeds have a wide boss route. Elsewhere wide bodies squeeze through the one-tile chokepoint on the ordinary flow field (docs/SIZING.md). Gating it doubled attempts and left seeds unsatisfied, so widening the route belongs in the generator (a `LOC_VERSION` change).
+
 ## Metrics (30 seeds each, this build, Node 22 on an Apple laptop)
 
 | | Viridian Forest | Mt. Moon | Chargestone Cave | classic Meadow |
@@ -179,9 +181,9 @@ References are in each file; the main ones: [Bulbapedia — Viridian Forest](htt
 [Bulbapedia — Chargestone Cave](https://bulbapedia.bulbagarden.net/wiki/Chargestone_Cave),
 [Serebii — Chargestone Cave](https://serebii.net/pokearth/unova/chargestonecave.shtml).
 
-**Species fit.** Spawn tables stay the stage roster's (`content/roster.json`); only the map changes. The default
+**Species fit.** Spawn tables stay the region's (`src/rules/spawning.ts`) unless the location sets its own `spawns` pool (docs/SPAWNING.md); otherwise only the map changes. The default
 mapping puts a location where its canonical ecology overlaps the roster: Viridian Forest in the first region (Ledyba,
-Oddish, Rattata are forest and grass dwellers; the canonical Caterpie/Weedle/Pikachu are not in this roster), Mt. Moon
+Oddish, Rattata are forest and grass dwellers, and Pikachu is now in the Meadow pool; Caterpie and Weedle are not in the roster), Mt. Moon
 in the last (Zubat and Paras are canonical Mt. Moon Pokémon). Badlands (Fire) and Frost (Articuno) keep the classic
 generator: none of these locations fits them. `?loc=` overrides this for testing.
 

@@ -2,6 +2,7 @@
 // technique guarantee, rerolls and banish per region, exclusions, stacking, the three-technique limit and the swap, all
 // 12 transforms and all 8 techniques as micro-scenes, integration with learnsets, squad switching, evolution and the
 // capability log, build diversity, determinism, and regression (flag off = Phase 8a, hash for hash).
+import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, startStage, step } from '../src/sim/run';
@@ -741,7 +742,7 @@ test('regression: with the build layer off, replay hashes equal the Phase 8a bui
     ['totodile', 7, 'classic', 120, ['4dd8b958', 'ca21d667']],
   ];
   for (const [species, seed, mode, seconds, want] of P8A) {
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, combat: { basicNeedsTarget: true } } as never });
+    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, spawning: { regions: CLASSIC_REGIONS }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);

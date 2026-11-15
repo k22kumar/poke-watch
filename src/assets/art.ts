@@ -44,6 +44,8 @@ export interface CreatureArt {
   clips: Record<AnimState, Clip>;
   /** visible height of the idle/walk pose in texels (for UI sizing and hit-height) */
   heightPx: number;
+  /** visible width of the same idle frame in texels (Wide normalisation, rules/sizing.ts); absent = not measured */
+  widthPx?: number;
   /** PMD shadow size class 0 small · 1 medium · 2 large */
   shadowSize: number;
   portrait: HTMLCanvasElement;

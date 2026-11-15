@@ -6,7 +6,8 @@
 //
 // Reads content/roster.json (which Pokémon play which role), runs scripts/import-pack.mjs for
 // the partners (with their evolutions) and for the wild Pokémon and bosses, then writes:
-//   src/content/pokedex.ts  species, moves, type chart and stage tables (imported by the sim)
+//   src/content/pokedex.ts  species, moves and the type chart (imported by the sim; spawn pools are authored in
+//                           src/rules/spawning.ts, so changing one needs no content rebuild)
 //   src/content/art.json    sprite atlases, animation frames, portraits, cries, credits
 //                           (loaded by the browser at boot)
 //   content/report.json     provenance of every source file (URL + SHA-256) and warnings
@@ -185,7 +186,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
 /** Official type effectiveness: attacker -> defenders it hits for x2 / x0.5 / x0 */
 export const TYPE_CHART: Record<Element, { name: string; strong: Element[]; weak: Element[]; immune: Element[] }> = ${JSON.stringify(chart, null, 1)};
 
-export const STAGE_TABLES: { biome: string; spawns: [string, number][]; elites: string[]; boss: string }[] = ${JSON.stringify(roster.stages, null, 1)};
 `;
 fs.mkdirSync(path.join(ROOT, 'src/content'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'src/content/pokedex.ts'), ts);

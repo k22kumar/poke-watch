@@ -1,5 +1,6 @@
 // Aimed combat (blueprint section 4): aim, manual moves, Reflex charges, Guard (deflect, parry, brace),
 // and the deterministic maths the sim now uses.
+import { partnerRadius } from '../src/rules/sizing';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { datan2, dcos, dexp, dhypot, dlog, dpow, dsin } from '../src/core/detmath';
@@ -242,10 +243,14 @@ test('a Light Pokémon parries a Light attacker but only braces against a Medium
     const e = spawnEnemy(ctx, foe, ex, ez);
     ctx.enemies.hp[e] = ctx.enemies.maxHp[e] = 1e7; // survive Totodile's autofire
     steps(ctx, 15);
-    let got = '';
+    let got = '', tap = -99;
     for (let t = 0; t < 240 && !got; t++) {
-      // tap Guard repeatedly: press 6 ticks, release 30 (so the deflect window keeps reopening)
-      const btn = t % 36 < 6 || (expect === 'brace' && t % 36 < 30) ? BTN.guard : 0;
+      // tap Guard as the foe closes to contact range (press 6 ticks, then wait 30 before the next tap) so the deflect
+      // window is open when it touches, whatever the two bodies' sizes; hold it 30 of 36 ticks to brace
+      const reach = ctx.enemies.radius[e] + partnerRadius(P.species, ctx.rules) + 0.8;
+      if (t - tap >= 36 && Math.hypot(ctx.enemies.x[e] - P.x, ctx.enemies.z[e] - P.z) < reach) tap = t;
+      const since = t - tap;
+      const btn = since < 6 || (expect === 'brace' && t % 36 < 30) ? BTN.guard : 0;
       P.reflex = 2;
       const ev = step(ctx, { ...NONE, btn: btn | BTN.basic }); // Totodile keeps firing its basic attack
       if (ev.some((x) => x.t === 'parry' && x.enemy === e)) got = 'parry';

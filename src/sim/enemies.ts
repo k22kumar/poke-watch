@@ -7,7 +7,7 @@ import { clamp } from '../core/util';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, bst, weightClass, type SpeciesDef } from '../rules/species';
-import { STAGES } from '../rules/stages';
+import { enemyHeight, enemyRadius, partnerRadius } from '../rules/sizing';
 import { damageEnemy, damagePlayer, enemyAttackMult, killEnemy, playerAbility } from './combat';
 const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
 const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.indexOf('effect_spore') + 1;
@@ -82,7 +82,8 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   E.speed[i] = speed;
   E.dmg[i] = (R.dmgBase + sp.stats.atk * R.dmgPerAtk + sp.stats.spa * R.dmgPerSpa) * dmgRole;
   E.size[i] = size;
-  E.radius[i] = clamp(sp.height * 0.4, 0.35, 3.2) * size;
+  E.radius[i] = enemyRadius(sp, size, ctx.rules);
+  E.tall[i] = enemyHeight(sp, size, ctx.rules);
   E.species[i] = ctx.speciesIndex.indexOf(sp);
   { const ab = abilityOf(sp); E.ability[i] = ab ? ABILITY_IDS.indexOf(ab) + 1 : 0; }
   E.roles[i] = roles;
@@ -171,7 +172,8 @@ export const enemySystem = {
     const W = ctx.world;
     const steer = Math.min(1, R.steerRate * dt);
     const kdecay = dexp(-R.knockDecay * dt);
-    const pr = ctx.rules.player.radius;
+    const pr = partnerRadius(ctx.player.species, ctx.rules);
+    const sized = ctx.rules.size.geometry, heavyR = ctx.rules.size.heavyRadius;
     const RR = ctx.rules.roles, O = ctx.objective;
     const bulwarks = ctx.director.bulwarks;
     bulwarks.length = 0;
@@ -235,11 +237,14 @@ export const enemySystem = {
       if (ground && (dist > 1.5 || layerGap)) {
         // straight at the player unless a wall, water or cliff is in the way; then follow the flow field
         const feet = E.y[i];
-        if (layerGap || W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, feet, 0.6) || W.blocks(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4, feet, 0.6)) {
-          if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
+        // size classes (rules/sizing.ts): a wide body looks ahead past its own edge and routes on the heavy field
+        const heavy = sized && E.radius[i] > heavyR;
+        const p1 = sized ? Math.max(1.1, E.radius[i] + 0.75) : 1.1, p2 = sized ? Math.max(2.4, E.radius[i] + 2.05) : 2.4;
+        if (layerGap || W.blocks(E.x[i] + ux * p1, E.z[i] + uz * p1, feet, 0.6) || W.blocks(E.x[i] + ux * p2, E.z[i] + uz * p2, feet, 0.6)) {
+          if (W.flowDir(E.x[i], E.z[i], NAV, feet, heavy)) { ux = NAV[0]; uz = NAV[1]; }
         } else if (burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4))) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
-          if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
+          if (W.flowDir(E.x[i], E.z[i], NAV, feet, heavy)) { ux = NAV[0]; uz = NAV[1]; }
         }
       }
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }

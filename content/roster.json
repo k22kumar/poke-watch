@@ -1,5 +1,5 @@
 {
-  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays and which cross-game level-up moves each starter line learns at Poke-Watch's own game levels. Canonical moves and facts are kept separately in generated data (canon).",
+  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays (partner, wild with a behaviour, boss with an attack kit) and which cross-game level-up moves each starter line learns at Poke-Watch's own game levels. Canonical moves and facts are kept separately in generated data (canon). Which wild Pokémon appear where is not set here: spawn pools are in src/rules/spawning.ts (docs/SPAWNING.md).",
   "partnerEvolutions": 2,
   "cryEra": "latest",
   "partners": [
@@ -313,6 +313,116 @@
     },
     "onix": {
       "behaviour": "tank"
+    },
+    "pichu": {
+      "behaviour": "chase"
+    },
+    "pikachu": {
+      "behaviour": "charger"
+    },
+    "togepi": {
+      "behaviour": "healer"
+    },
+    "sentret": {
+      "behaviour": "chase"
+    },
+    "furret": {
+      "behaviour": "charger"
+    },
+    "budew": {
+      "behaviour": "ranged",
+      "shot": "bloom"
+    },
+    "cutiefly": {
+      "behaviour": "swarm",
+      "flying": true
+    },
+    "turtwig": {
+      "behaviour": "tank"
+    },
+    "doduo": {
+      "behaviour": "charger",
+      "flying": false
+    },
+    "snorlax": {
+      "behaviour": "tank"
+    },
+    "diglett": {
+      "behaviour": "swarm"
+    },
+    "ekans": {
+      "behaviour": "chase"
+    },
+    "koffing": {
+      "behaviour": "ranged",
+      "shot": "venom",
+      "flying": true
+    },
+    "rolycoly": {
+      "behaviour": "tank"
+    },
+    "sizzlipede": {
+      "behaviour": "chase"
+    },
+    "silicobra": {
+      "behaviour": "chase"
+    },
+    "makuhita": {
+      "behaviour": "charger"
+    },
+    "hariyama": {
+      "behaviour": "tank"
+    },
+    "snorunt": {
+      "behaviour": "chase"
+    },
+    "snom": {
+      "behaviour": "ranged",
+      "shot": "frost"
+    },
+    "sneasel": {
+      "behaviour": "charger"
+    },
+    "bergmite": {
+      "behaviour": "tank"
+    },
+    "cetoddle": {
+      "behaviour": "chase"
+    },
+    "lapras": {
+      "behaviour": "ranged",
+      "shot": "frost"
+    },
+    "murkrow": {
+      "behaviour": "ranged",
+      "shot": "gloom",
+      "flying": true
+    },
+    "litwick": {
+      "behaviour": "ranged",
+      "shot": "wisp"
+    },
+    "haunter": {
+      "behaviour": "ranged",
+      "shot": "wisp",
+      "flying": true
+    },
+    "gengar": {
+      "behaviour": "chase"
+    },
+    "impidimp": {
+      "behaviour": "chase"
+    },
+    "noibat": {
+      "behaviour": "swarm",
+      "flying": true
+    },
+    "honedge": {
+      "behaviour": "charger"
+    },
+    "dreepy": {
+      "behaviour": "swarm",
+      "flying": true
     }
   },
   "bosses": {
@@ -373,139 +483,5 @@
       "summon": "houndour"
     }
   },
-  "bossPixelHeight": 60,
-  "stages": [
-    {
-      "biome": "meadow",
-      "spawns": [
-        [
-          "rattata",
-          5
-        ],
-        [
-          "ledyba",
-          3
-        ],
-        [
-          "sandshrew",
-          3
-        ],
-        [
-          "oddish",
-          1.4
-        ],
-        [
-          "poliwag",
-          1.6
-        ],
-        [
-          "mareep",
-          1.2
-        ],
-        [
-          "joltik",
-          1.4
-        ]
-      ],
-      "elites": [
-        "heracross",
-        "sandshrew"
-      ],
-      "boss": "sudowoodo"
-    },
-    {
-      "biome": "badlands",
-      "spawns": [
-        [
-          "slugma",
-          4
-        ],
-        [
-          "geodude",
-          3
-        ],
-        [
-          "mareep",
-          3
-        ],
-        [
-          "vulpix",
-          1.6
-        ],
-        [
-          "sandshrew",
-          2
-        ],
-        [
-          "onix",
-          1.2
-        ]
-      ],
-      "elites": [
-        "heracross",
-        "geodude"
-      ],
-      "boss": "magcargo"
-    },
-    {
-      "biome": "frost",
-      "spawns": [
-        [
-          "delibird",
-          2
-        ],
-        [
-          "swinub",
-          3
-        ],
-        [
-          "geodude",
-          2
-        ],
-        [
-          "ledyba",
-          3
-        ],
-        [
-          "rattata",
-          3
-        ]
-      ],
-      "elites": [
-        "swinub",
-        "heracross"
-      ],
-      "boss": "articuno"
-    },
-    {
-      "biome": "dusk",
-      "spawns": [
-        [
-          "zubat",
-          4
-        ],
-        [
-          "gastly",
-          2
-        ],
-        [
-          "paras",
-          1.2
-        ],
-        [
-          "houndour",
-          3
-        ],
-        [
-          "poliwag",
-          2
-        ]
-      ],
-      "elites": [
-        "houndour",
-        "heracross"
-      ],
-      "boss": "houndoom"
-    }
-  ]
+  "bossPixelHeight": 60
 }

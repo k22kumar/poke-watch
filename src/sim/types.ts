@@ -3,6 +3,7 @@ import type { Grid } from '../core/grid';
 import type { Rules } from '../rules/defaults';
 import type { Element, Ailment } from '../rules/elements';
 import type { SpeciesDef } from '../rules/species';
+import type { StageDef } from '../rules/stages';
 import type { Hooks } from '../mods/types';
 import type { World } from './world';
 import type { Cap } from '../rules/capabilities';
@@ -242,6 +243,7 @@ export type SimEvent =
   | { t: 'bossDead'; species: string; x: number; z: number }
   | { t: 'portal'; x: number; z: number }
   | { t: 'stageStart'; stage: number; biome: string }
+  | { t: 'spawnSkipped'; species: string; reason: string; x: number; z: number }
   | { t: 'finalSwarm' }
   | { t: 'swarm' }
   | { t: 'chest'; x: number; z: number }
@@ -358,6 +360,8 @@ export interface SimContext {
   time: number;
   stageTime: number;
   stage: number;
+  /** the current region's resolved spawn pool (src/rules/spawning.ts): region preset + map pool + rules override */
+  spawnTable: StageDef;
   loop: number; // endless loops completed
   state: RunState;
   stateTimer: number;

@@ -498,24 +498,23 @@ whether the bank reads as a bank at chase-camera height (the lens collapses agai
 
 ## Roster assumptions (body profiles)
 
-From `rules.player`, `rules.enemy.roles` and the roster (`profilesFor`). The sim gives every playable Pokémon the same
-collision radius and step, so sprite height only moves the eyes.
+From `rules.player`, `rules.size`, `rules.enemy.roles` and the spawn pools (`profilesFor`). Bodies come from the size classes (docs/SIZING.md), the same numbers the sim collides with. The species counted are the ones a spawn pool can field (`spawnableSpecies`, src/rules/spawning.ts: region presets, every named preset, every map source's own pool), not the whole roster. Eyes and muzzles stay on the sprite-derived heights, because the sim fires every partner's shots from a fixed +0.8 m.
 
 | Profile | Radius | Step / climb | Eyes | Gated |
 | --- | --- | --- | --- | --- |
-| trainer (all 18 playable species, 0.9–1.77 m tall; jump and glide off; drops ≤ 4 m) | 0.55 m | 0.6 / 0.6 m | 0.7–1.42 m | yes |
-| trainer-jump (ordinary jump, apex 1.84 m, any drop) | 0.55 m | 0.6 / 2.44 m | 0.7–1.42 m | only for the no-player-only-perch gate |
-| wild-small (smallest ground wild Pokémon) | 0.36 m | 0.6 m | 0.5–0.9 m | yes |
-| wild-elite (largest ground body the director spawns: an elite-capable Pokémon at ×2, any other ground wild Pokémon at ×1, never below the validated 1.42 m floor) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
-| boss (largest ground boss) | 1.8 m | 0.6 m | 1.2–2.5 m | reported (bosses arrive after objectives close) |
+| trainer (all 18 playable species; jump and glide off; drops ≤ 4 m) | 0.72 m (the widest partner body, `rules.size.playerRadius` clamp) | 0.6 / 0.6 m | 0.7–1.42 m | yes |
+| trainer-jump (ordinary jump, apex 1.84 m, any drop) | 0.72 m | 0.6 / 2.44 m | 0.7–1.42 m | only for the no-player-only-perch gate |
+| wild-small (narrowest ground body a pool fields) | 0.29 m | 0.6 m | 0.5–0.9 m | yes |
+| wild-elite (widest ground body the director spawns: an elite at ×2, any other ground wild Pokémon at ×1, never below the validated 1.42 m floor) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
+| boss (widest ground boss; bosses keep their drawn encounter body) | 1.8 m | 0.6 m | 1.2–2.5 m | reported (bosses arrive after objectives close) |
 
-Only a species in a region's `elites` is ever spawned at elite or alpha scale (`sim/director.ts`), so the elite
-multiplier is applied to those species alone. An ordinary encounter that is larger than an elite still counts at ×1:
-Onix is 3.02 m tall (radius 1.21 m) and Badlands wild, and multiplying it would ask every approach for a 2.42 m radius
-that no recipe validates. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was
-accepted against, so roster edits cannot quietly loosen the approaches; raising it needs a `HAB_VERSION` bump and a new
-baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals. Swim, flight, glide and burrow add nothing essential:
-flyers already ignore terrain; frozen water is the only extra-edge state and is optional by construction.
+With `rules.size.geometry: false` the old figures come back: trainer 0.55 m, wild-small 0.36 m.
+
+When the size classes landed (2026-11), the trainer body grew from 0.55 m to 0.72 m. `scripts/habaudit.ts` was re-run: every accepted seed, layout checksum, geometry hash and route metric for all six recipes was identical, so `HAB_VERSION` stayed 2.
+
+The widest ordinary wild body is Onix's Extra Large 0.97 m, which is under the 1.42 m floor. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against, so roster edits cannot quietly loosen the approaches. Raising it needs a `HAB_VERSION` bump and a new baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals.
+
+Swim, flight, glide and burrow add nothing essential: flyers already ignore terrain, and frozen water is the only extra-edge state and is optional by construction.
 
 ## Measurements
 

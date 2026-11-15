@@ -9,6 +9,8 @@ import { defaultRules, type Rules } from '../rules/defaults';
 import { buildTypeChart } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID } from '../rules/species';
 import { BIOMES, STAGES } from '../rules/stages';
+import { resolveSpawnTable } from '../rules/spawning';
+import { mapSpawnPool, type WorldgenRules } from '../world/maps';
 import type { Mod, Mode } from '../mods/types';
 import { projectileSystem, zoneSystem } from './effects';
 import { enemySystem } from './enemies';
@@ -58,7 +60,7 @@ export function createRun(opts: RunOptions): SimContext {
   const seed = opts.seed >>> 0;
   const ctx: SimContext = {
     rules, chart: buildTypeChart(rules.damage.immuneMult), seed,
-    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0, loop: 0,
+    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0, spawnTable: STAGES[0], loop: 0,
     state: 'play', stateTimer: 0,
     rng: {
       spawn: new Rng(streamSeed(seed, 'spawn')), combat: new Rng(streamSeed(seed, 'combat')),
@@ -104,7 +106,9 @@ function freshDirector(rules: Rules) {
 
 export function startStage(ctx: SimContext, stage: number) {
   ctx.stage = stage;
-  const def = STAGES[stage % STAGES.length];
+  // the region's spawn pool, with the map source's pool and the rules override layered on (src/rules/spawning.ts)
+  const def = resolveSpawnTable(stage, ctx.rules.spawning.regions, mapSpawnPool(ctx.rules.worldgen as WorldgenRules, STAGES[stage % STAGES.length].biome), ctx.rules.spawning.override ?? undefined);
+  ctx.spawnTable = def;
   const biome = BIOMES[def.biome];
   ctx.world = new World(ctx.rules, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919 + ctx.loop * 104729) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.pickups.clear(); ctx.bodies.clear();

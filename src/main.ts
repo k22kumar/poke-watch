@@ -6,6 +6,7 @@ import { MODES } from './mods';
 import type { Mode } from './mods/types';
 import { BIOMES, STAGES } from './rules/stages';
 import { SPECIES_BY_ID } from './rules/species';
+import { SPAWN_PRESETS, type SpawnPoolDef } from './rules/spawning';
 import { Renderer } from './render/renderer';
 import { botInput } from './sim/bot';
 import { damagePlayer, killEnemy } from './sim/combat';
@@ -95,7 +96,7 @@ const ui = new UI({
   tuning: () => ({
     rules: ctx?.rules ?? {},
     ctx,
-    spawnBoss: () => { if (!ctx) return; const t = STAGES[ctx.stage % STAGES.length]; const P = ctx.player; const b = spawnEnemy(ctx, t.boss, P.x + 18, P.z, ROLE.boss); ctx.director.bossIndex = b; ctx.director.bossSpawned = true; ui.banner(SPECIES_BY_ID[t.boss].name, 'appears!', 2); audio.boss(); },
+    spawnBoss: () => { if (!ctx) return; const t = ctx.spawnTable; const P = ctx.player; const b = spawnEnemy(ctx, t.boss, P.x + 18, P.z, ROLE.boss); ctx.director.bossIndex = b; ctx.director.bossSpawned = true; ui.banner(SPECIES_BY_ID[t.boss].name, 'appears!', 2); audio.boss(); },
     addLevel: () => { if (ctx) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01); },
     god: (on) => { god = on; },
     killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i] && !(E.roles[i] & ROLE.boss)) killEnemy(ctx, i); },
@@ -136,6 +137,17 @@ function resize() {
  *  ?loc=meadow:viridian-forest,dusk:mt-moon sets them per stage biome; ?loc=river-gorge (or volcanic-ridge,
  *  river-gorge/snow) builds every region from a habitat recipe. 'generated' is the classic generator. ?mapseed=N
  *  (or Settings → World → Map seed) holds the map seed for every region, so a layout can be replayed. */
+/** ?pool=meadow (a spawn preset) or ?pool=onix,zubat (exactly these species): a debug layer over every region's spawn
+ *  pool (src/rules/spawning.ts, docs/SPAWNING.md). Elites and the boss stay the region's. */
+function poolOverride(): { spawning?: { override: SpawnPoolDef } } {
+  const q = params.get('pool');
+  if (!q) return {};
+  if (SPAWN_PRESETS[q]) return { spawning: { override: { preset: q } } };
+  const ids = q.split(',').filter((id) => SPECIES_BY_ID[id]);
+  if (!ids.length) { console.warn(`?pool=${q}: no preset or species by that name; presets: ${Object.keys(SPAWN_PRESETS).join(', ')}`); return {}; }
+  return { spawning: { override: { only: ids } } };
+}
+
 function worldgenOverrides(world: 'authored' | 'generated' | 'locations', loc: string | null) {
   const ms = params.get('mapseed') ?? (settings.mapSeed >= 0 ? String(settings.mapSeed) : null);
   return worldgenFromQuery({ world, loc, mapseed: ms, hv: params.get('hv'), biomes: Object.keys(BIOMES) }, (m) => console.warn(m.startsWith('unknown map') ? `${m}; known maps: ${[...Object.keys(LOCATIONS), ...Object.keys(HABITATS)].join(', ')}` : m));
@@ -162,7 +174,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
   const world = loc ? 'locations' : params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
   try {
-    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: worldgenOverrides(world, loc) } });
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: worldgenOverrides(world, loc), ...poolOverride() } });
   } catch (e) {
     // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
     failMap(e);

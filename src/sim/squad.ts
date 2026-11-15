@@ -14,8 +14,7 @@
 import { dexp } from '../core/detmath';
 import { MOVE_BY_KEY } from '../rules/moves';
 import { SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
-import { STAGES } from '../rules/stages';
-import { TAG_ACTIONS, type TagDef } from '../rules/tags';
+import { tagLineOf, type TagDef } from '../rules/tags';
 import { spawnBody, TEAM } from './bodies';
 import { resolve, setCastSlot } from './capabilities';
 import { buildRecap, rec, setSrc } from './caplog';
@@ -31,7 +30,7 @@ export const TAG_SLOT = 9;
 
 /** the Tag Action a member fires: its line's base or variant move */
 export function tagDefOf(m: Member): TagDef | null {
-  const line = TAG_ACTIONS[lineage(m.species)[0].id] ?? TAG_ACTIONS[m.species.id];
+  const line = tagLineOf(lineage(m.species)[0].id) ?? tagLineOf(m.species.id);
   if (!line) return null;
   return m.tagVariant ? line.variant : line.base;
 }
@@ -178,9 +177,9 @@ export function maybeOfferRecruit(ctx: SimContext) {
   if (Q.pending || P.squad.length >= R.max) return;
   const after = R.recruitAfter[Math.min(Q.offered, R.recruitAfter.length - 1)];
   if (ctx.time < after) return;
-  const table = STAGES[ctx.stage % STAGES.length];
+  const table = ctx.spawnTable;
   const have = new Set(P.squad.map((m) => lineage(m.species)[0].id));
-  const pool = [...new Set(table.spawns.map(([id]) => id))].filter((id) => !have.has(id) && SPECIES_BY_ID[id] && TAG_ACTIONS[id]);
+  const pool = [...new Set(table.spawns.map(([id]) => id))].filter((id) => !have.has(id) && SPECIES_BY_ID[id] && tagLineOf(id));
   if (!pool.length) return;
   const picks: string[] = [];
   const bag = [...pool];
@@ -202,7 +201,7 @@ export function recruitCards(ctx: SimContext): Card[] {
 /** the two Tag Action choices for member k */
 export function variantCards(ctx: SimContext, k: number): Card[] {
   const m = ctx.player.squad[k];
-  const line = TAG_ACTIONS[lineage(m.species)[0].id];
+  const line = tagLineOf(lineage(m.species)[0].id);
   if (!line) return [];
   const mk = (def: TagDef, v: number): Card => {
     const md = MOVE_BY_KEY[def.move];

@@ -98,7 +98,7 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   if ((ea === A.levitate && spec.element === 'quake') || (ea === A.flash && spec.element === 'blaze')) {
     if (ea === A.flash && !E.abilityFlag[e]) { E.abilityFlag[e] = 1; ctx.events.push({ t: 'ability', name: 'Flash Fire', x: E.x[e], z: E.z[e], enemy: e }); }
     else if (ea === A.levitate && ctx.rng.combat.next() < 0.1) ctx.events.push({ t: 'ability', name: 'Levitate', x: E.x[e], z: E.z[e], enemy: e });
-    ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.size[e], z: E.z[e], amount: 0, crit: false, eff: 0, element: spec.element, enemy: e });
+    ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount: 0, crit: false, eff: 0, element: spec.element, enemy: e });
     return 0;
   }
   if ((ea === A.wabsorb || ea === A.dry) && spec.element === 'tide') {
@@ -156,7 +156,7 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
 
   if (spec.drain > 0) healPlayer(ctx, amount * spec.drain);
 
-  ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.size[e], z: E.z[e], amount, crit, eff, element: spec.element, enemy: e });
+  ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount, crit, eff, element: spec.element, enemy: e });
   if (E.hp[e] <= 0) { killEnemy(ctx, e); return amount; }
   // the hit's agent coats the creature, or reacts with the coat it already carries
   if (spec.depth) coatEnemy(ctx, e, agentIndex(spec.element), spec.depth, amount, true);

@@ -61,6 +61,12 @@ export class World {
   readonly hazard: Uint8Array | null;
   /** habitat maps: flow field toward the contest (Raiders walk it), built on first use */
   private goalFlow: Uint16Array | null = null;
+  /** size-aware navigation (rules.size.heavyRadius, docs/SIZING.md): tiles a wide body fits on (inside a level 2 × 2
+   *  block of open tiles), and a BFS field over them from the player's tile. Both built on first use by a heavy body,
+   *  dropped whenever navigation changes; single-layer maps only (decked maps route everyone on the one field). */
+  private heavyOpen: Uint8Array | null = null;
+  private heavyFlow: Uint16Array | null = null;
+  private heavyFrom = -1;
   /** rules.hazards.enabled: liquids are entered (not walls) and chasms are open air (sim/hazards.ts) */
   readonly hazards: boolean;
   /** location maps with hazards on: chasm tiles (1 = open air, no supporting floor), else null */
@@ -330,6 +336,7 @@ export class World {
     }
     this.flowFrom = -1;
     this.goalFlow = null;
+    this.heavyOpen = null;
   }
 
   /** Tidal maps: set the water high (every tidal tile is open water at the tide's high level) or low (the tiles as built:
@@ -349,6 +356,7 @@ export class World {
     }
     this.flowFrom = -1;
     this.goalFlow = null;
+    this.heavyOpen = null;
   }
 
   /** tidal maps: does high water cover (x, z)? (dry floor at low water counts) */
@@ -366,6 +374,7 @@ export class World {
     this.navTop[k] = this.height(i - this.half + 0.5, j - this.half + 0.5);
     this.flowFrom = -1;
     this.goalFlow = null;
+    this.heavyOpen = null;
   }
 
   /** walkable tiles reachable from (x, z) by the navigation rules (watchdog; allocation per call, run every 2 s) */
@@ -405,7 +414,8 @@ export class World {
    * cannot take within its radius) and `room` tiles of walkable ground connected to it, else null. A shore within 1.5 m
    * of the height the actor stood at (`level`, default the ground under it) wins over a nearer one on another level, so
    * ice on a river's upper reach never drops anyone down the falls. Ties go to the lower tile index, so every client
-   * picks the same shore.
+   * picks the same shore. Within each pass a candidate with no wall on the straight line from (x, z) wins: an actor heads
+   * straight for its shore, so the nearest tile behind a pillar is only taken when nothing in view will do.
    */
   shore(x: number, z: number, radius: number, level?: number, reach = 16, room = 48): [number, number] | null {
     const k0 = this.tile(x, z);
@@ -426,9 +436,24 @@ export class World {
         }
       }
       cand.sort((a, b) => a[0] - b[0]);
-      for (const [, t] of cand) if (this.roomFrom(t, room)) return [(t % this.w) - this.half + 0.5, ((t / this.w) | 0) - this.half + 0.5];
+      // a shore in a straight line first (an actor heads straight for it); round a pillar only if there is no other
+      for (const clear of [true, false]) for (const [, t] of cand) {
+        const cx = (t % this.w) - this.half + 0.5, cz = ((t / this.w) | 0) - this.half + 0.5;
+        if ((clear && this.wallBetween(x, z, cx, cz)) || !this.roomFrom(t, room)) continue;
+        return [cx, cz];
+      }
     }
     return null;
+  }
+
+  /** Is there a wall tile on the straight line between two points? (A shore behind a pillar is not the nearest way out.) */
+  wallBetween(x0: number, z0: number, x1: number, z1: number): boolean {
+    const d = Math.sqrt((x1 - x0) ** 2 + (z1 - z0) ** 2), n = Math.ceil(d / 0.25);
+    for (let s = 1; s < n; s++) {
+      const k = this.tile(x0 + ((x1 - x0) * s) / n, z0 + ((z1 - z0) * s) / n);
+      if (k < 0 || this.map.wall[k] === 1) return true;
+    }
+    return false;
   }
 
   /** Burning tiles changed: rebuild the flow field now (same source tile). */
@@ -531,11 +556,73 @@ export class World {
     return k >= 0 && this.cells.state[k] === CS.burning;
   }
 
-  /** Unit direction toward the player along the flow field, or null if direct steering is fine. */
-  flowDir(x: number, z: number, out: [number, number], y?: number): boolean {
+  /** does a wide body (rules.size.heavyRadius) fit on the navigation node at (x, z) (its deck when `y` is on one)? */
+  fitsHeavy(x: number, z: number, y?: number): boolean {
+    const a = this.node(x, z, y);
+    return a >= 0 && this.heavyMask()[a] === 1;
+  }
+
+  /** navigation nodes inside a 2 × 2 block of open nodes on the same layer whose tops differ by at most a step (0.6 m):
+   *  ground nodes from the open tiles, deck nodes (layered maps) from the deck tiles */
+  private heavyMask(): Uint8Array {
+    if (this.heavyOpen) return this.heavyOpen;
+    const W = this.w, H = this.h, n = W * H, O = this.navOpen, top = this.navTop, ov = this.over;
+    const M = new Uint8Array(ov ? 2 * n : n);
+    for (let j = 0; j < H - 1; j++) for (let i = 0; i < W - 1; i++) {
+      const a = j * W + i, b = a + 1, c = a + W, d = c + 1;
+      if (O[a] && O[b] && O[c] && O[d] && Math.max(top[a], top[b], top[c], top[d]) - Math.min(top[a], top[b], top[c], top[d]) <= 0.6) M[a] = M[b] = M[c] = M[d] = 1;
+      if (ov && ov[a] > 0 && ov[b] > 0 && ov[c] > 0 && ov[d] > 0 && Math.max(ov[a], ov[b], ov[c], ov[d]) - Math.min(ov[a], ov[b], ov[c], ov[d]) <= 0.6) M[n + a] = M[n + b] = M[n + c] = M[n + d] = 1;
+    }
+    this.heavyOpen = M;
+    this.heavyFrom = -1;
+    return M;
+  }
+
+  /** the heavy field from the player's current node (rebuilt when the player's node or navigation changed): the same
+   *  search as the ordinary field (two layers on decked maps), restricted to nodes a wide body fits on */
+  private heavyField(): Uint16Array | null {
+    if (this.flowFrom < 0) return null;
+    const M = this.heavyMask();
+    if (this.heavyFrom === this.flowFrom && this.heavyFlow) return this.heavyFlow;
+    const W = this.w, H = this.h, n = W * H, ov = this.over, src = this.flowFrom;
+    const F = this.heavyFlow && this.heavyFlow.length === M.length ? this.heavyFlow : (this.heavyFlow = new Uint16Array(M.length));
+    const Q = this.queue;
+    F.fill(UNREACHED);
+    this.heavyFrom = src;
+    const step = (a: number, b: number) => (ov ? this.canStepNode(a, b) : this.canStep(a, b));
+    let head = 0, tail = 0;
+    F[src] = 0; Q[tail++] = src;
+    // the player's own node may be too tight: the search starts there and only continues through wide nodes
+    while (head < tail) {
+      const a = Q[head++], ka = a % n, ai = ka % W, aj = (ka / W) | 0;
+      const d = F[a] + 1;
+      for (let s = 0; s < 4; s++) {
+        const kb = s === 0 ? (ai > 0 ? ka - 1 : -1) : s === 1 ? (ai < W - 1 ? ka + 1 : -1) : s === 2 ? (aj > 0 ? ka - W : -1) : aj < H - 1 ? ka + W : -1;
+        if (kb < 0) continue;
+        if (M[kb] && F[kb] === UNREACHED && step(a, kb)) { F[kb] = d; Q[tail++] = kb; }
+        if (ov && ov[kb] > 0) { const db = n + kb; if (M[db] && F[db] === UNREACHED && step(a, db)) { F[db] = d; Q[tail++] = db; } }
+      }
+    }
+    return F;
+  }
+
+  /** Unit direction toward the player along the flow field, or null if direct steering is fine. A `heavy` walker
+   *  (wider than rules.size.heavyRadius) follows the heavy field where it reaches it, so it goes round a gap it does
+   *  not fit through; where the heavy field does not reach (it is already in a tight spot, or no wide route exists)
+   *  it falls back to the ordinary field rather than stopping. */
+  flowDir(x: number, z: number, out: [number, number], y?: number, heavy = false): boolean {
     const a = this.node(x, z, y);
     if (a < 0 || this.flowFrom < 0) return false;
-    const d = this.flow[a];
+    if (heavy) {
+      const HF = this.heavyField();
+      if (HF && HF[a] !== UNREACHED) return this.descend(HF, a, x, z, out);
+    }
+    return this.descend(this.flow, a, x, z, out);
+  }
+
+  /** step down a flow field from node `a` (8 neighbours, no corner cutting) */
+  private descend(field: Uint16Array, a: number, x: number, z: number, out: [number, number]): boolean {
+    const d = field[a];
     if (d === UNREACHED || d <= 1) return false;
     const W = this.w, H = this.h, n = W * H, k = a % n;
     const i = k % W, j = (k / W) | 0;
@@ -548,11 +635,11 @@ export class World {
       const ni = i + di, nj = j + dj;
       if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue;
       const nk = at(nj * W + ni);
-      let v = this.flow[nk];
+      let v = field[nk];
       if (v === UNREACHED) continue;
       if (di && dj) {
         // diagonal only if both orthogonal neighbours are open (no corner cutting through walls)
-        if (this.flow[at(j * W + ni)] === UNREACHED || this.flow[at(nj * W + i)] === UNREACHED) continue;
+        if (field[at(j * W + ni)] === UNREACHED || field[at(nj * W + i)] === UNREACHED) continue;
         v += 0.4;
       }
       if (v < best) { best = v; bi = ni; bj = nj; }

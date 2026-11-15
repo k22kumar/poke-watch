@@ -118,8 +118,12 @@ export async function buildArt(id: string, a: PackSpecies['art']): Promise<{ art
   let top = f.ay;
   for (let y = 0; y < f.h && top === f.ay; y++) for (let x = 0; x < f.w; x++) if (g[(y * f.w + x) * 4 + 3] > 0) { top = y; break; }
   const heightPx = Math.max(8, f.ay - top);
+  // visible width of the same frame (opaque columns), for the Wide normalisation in rules/sizing.ts
+  let x0 = f.w, x1 = -1;
+  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) if (g[(y * f.w + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
+  const widthPx = x1 >= x0 ? x1 - x0 + 1 : heightPx;
   let portrait: HTMLCanvasElement;
   if (a.portrait) portrait = toCanvas(await loadImage(a.portrait));
   else { portrait = canvasFrom(f.w, f.h, g); notes.push('no portrait; using the idle frame'); }
-  return { art: { id, kind: 'pmd', atlas, clips, heightPx, shadowSize: a.shadowSize ?? 1, portrait, credits: a.credits, license: a.license, sourceUrl: a.url }, report, notes };
+  return { art: { id, kind: 'pmd', atlas, clips, heightPx, widthPx, shadowSize: a.shadowSize ?? 1, portrait, credits: a.credits, license: a.license, sourceUrl: a.url }, report, notes };
 }

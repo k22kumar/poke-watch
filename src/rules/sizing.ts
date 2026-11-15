@@ -1,69 +1,63 @@
+import { defaultRules, type Rules } from './defaults';
+import { pinnedSizeClass } from './profiles';
 import type { SpeciesDef } from './species';
 
-// Visible size of a Pokémon on screen, derived from its researched real-world extent.
+// Size classes: one table (rules.size, src/rules/defaults.ts) decides how big every Pokémon is drawn and how big its
+// body is in the sim. docs/SIZING.md has the rationale and the numbers.
 //
-// The problem this fixes: a sprite's size used to come from the source art alone
-// (`scripts/import-pack.mjs`: visible idle texels / 16, clamped 0.9-3.2 m), so PMD sheets drawn at
-// roughly one sprite height put a 0.3 m Rattata and a 2.0 m Venusaur within 6 % of each other.
-// The algorithm here keeps canonical order (bigger species read bigger, an evolution grows) while
-// compressing the canonical range so a Tiny species stays legible and an Extra Large one still fits
-// the frame: a power curve on the extent, clamped at both ends.
+//   class      from the canonical extent, cut at rules.size.classes[].below — or pinned per species in profiles.ts
+//   visual     the visible core the renderer scales the idle sprite to (src/render/renderer.ts)
+//   radius     collision / hurt radius in the sim (enemies × role size; partners clamped by rules.size.playerRadius)
+//   height     vertical hit window in the sim
 //
-// Scope: this is a *presentation* rule. It is read by src/render only. Collision radii, hitboxes,
-// navigation profiles and roster membership keep reading `SpeciesDef.height`, so no sim state, no
-// habitat layout and no replay hash moves with it.
+// All three body values come from the same class row times one bounded tilt factor, so a Pokémon that is drawn
+// bigger is also hit, pushed and routed as bigger. Earlier this file ran a continuous curve (1.25·S^0.45 clamped
+// 0.78–2.55 m) that made the classes invisible: a 0.64 m Small and a 0.65 m Medium drew the same, and neighbouring
+// classes were ~25 % apart. Fixed class targets ×1.4 apart, with a ±8 % tilt, keep classes distinct and never
+// overlapping while an evolution inside one class still grows a little.
+//
+// Bosses keep their authored encounter scale (`SpeciesDef.scale`, drawn 2–3× by the renderer) and their sim body
+// stays the drawn one (radius from that drawn height), so the class rules never compound with it.
 
-/** Upper bounds of the Tiny, Small, Medium and Large classes, in metres of source extent. */
-export const SIZE_CUTOFFS_M = [0.35, 0.65, 1.15, 2.05] as const;
-
+export type SizeClassId = 'tiny' | 'small' | 'medium' | 'large' | 'xl';
+export const SIZE_CLASS_IDS: readonly SizeClassId[] = ['tiny', 'small', 'medium', 'large', 'xl'];
 export const SIZE_CLASS_NAMES = ['Tiny', 'Small', 'Medium', 'Large', 'Extra Large'] as const;
 export type SizeClass = (typeof SIZE_CLASS_NAMES)[number];
 
-/** The continuous curve: core = clamp(coefficient × S^exponent, min, max) metres. */
-export const VISIBLE_CORE = { coefficient: 1.25, exponent: 0.45, min: 0.78, max: 2.55 } as const;
+/** Upper bounds of the Tiny, Small, Medium and Large classes, in metres of source extent (rules.size.classes). */
+export const SIZE_CUTOFFS_M = defaultRules.size.classes.slice(0, -1).map((c) => c.below);
 
 /**
- * Approved neutral core extents (m), by species id: a reviewed figure for a species whose listed
- * extent describes something other than its standing silhouette — length along the body for a
- * serpent, a hovering cloud's envelope, a bound flower. An entry here replaces the canonical listed
- * extent as the input `S`; it never replaces the curve. Keep it empty until a figure is approved:
- * an unreviewed guess here is worse than the canonical number, which at least has a source.
+ * Approved neutral core extents (m), by species id: a reviewed figure for a species whose listed extent describes
+ * something other than its standing silhouette — length along the body for a serpent, a hovering cloud's envelope.
+ * An entry here replaces the canonical listed extent as the input `S`. To force a class regardless of extent, use
+ * `sizeClass` in SPECIES_OVERRIDES (src/rules/profiles.ts) instead. Keep empty until a figure is approved.
  */
 export const NEUTRAL_CORE_EXTENT_M: Record<string, number> = {};
 
-/** Where a species' input extent came from, so a capture or report can say. */
-export type ExtentSource = 'approved-neutral' | 'canonical-listed' | 'sprite-fallback';
+/** Where a species' class came from, so a capture or report can say. */
+export type ExtentSource = 'override' | 'approved-neutral' | 'canonical-listed' | 'sprite-fallback';
 
 export interface SpeciesExtent {
-  /** input `S` for the curve, in metres */
+  /** input `S` in metres */
   m: number;
-  source: ExtentSource;
+  source: Exclude<ExtentSource, 'override'>;
 }
 
+type SizeRules = Rules['size'];
+
 /** Class index 0-4 from a source extent in metres. */
-export function sizeClassIndex(extentM: number): number {
+export function sizeClassIndex(extentM: number, size: SizeRules = defaultRules.size): number {
   let i = 0;
-  while (i < SIZE_CUTOFFS_M.length && extentM >= SIZE_CUTOFFS_M[i]) i++;
+  while (i < size.classes.length - 1 && extentM >= size.classes[i].below) i++;
   return i;
 }
 
-export function sizeClassOf(extentM: number): SizeClass {
-  return SIZE_CLASS_NAMES[sizeClassIndex(extentM)];
+export function sizeClassOf(extentM: number, size: SizeRules = defaultRules.size): SizeClass {
+  return SIZE_CLASS_NAMES[sizeClassIndex(extentM, size)];
 }
 
-/** Visible core extent in metres for a source extent `S`: the height the silhouette should occupy. */
-export function visibleCoreMetres(extentM: number): number {
-  const V = VISIBLE_CORE;
-  const raw = V.coefficient * Math.pow(Math.max(0, extentM), V.exponent);
-  return Math.min(V.max, Math.max(V.min, raw));
-}
-
-/**
- * The extent to feed the curve: an approved neutral core extent when one exists, else the active
- * species' ordinary canonical listed extent (`canon.heightM`, the species-default form's published
- * figure). `SpeciesDef.height` is the last resort — it is the old sprite-derived number, so it is
- * only reached by a species with no canonical record at all.
- */
+/** The extent behind a species' class: approved neutral, else canonical listed, else the sprite-derived height. */
 export function speciesExtent(sp: SpeciesDef): SpeciesExtent {
   const approved = NEUTRAL_CORE_EXTENT_M[sp.id];
   if (approved !== undefined && approved > 0) return { m: approved, source: 'approved-neutral' };
@@ -72,45 +66,117 @@ export function speciesExtent(sp: SpeciesDef): SpeciesExtent {
   return { m: sp.height, source: 'sprite-fallback' };
 }
 
-export interface SpeciesSizing {
+/** 1 ± tilt from where `extentM` sits inside class `i` (log scale; the open ends use rules.size.extentRange). */
+export function classTilt(extentM: number, i: number, size: SizeRules = defaultRules.size): number {
+  const C = size.classes;
+  const lo = i === 0 ? size.extentRange[0] : C[i - 1].below;
+  const hi = i === C.length - 1 ? size.extentRange[1] : C[i].below;
+  const t = Math.min(1, Math.max(0, Math.log(Math.max(extentM, 1e-6) / lo) / Math.log(hi / lo)));
+  return 1 + size.tilt * (2 * t - 1);
+}
+
+export interface SpeciesBody {
   id: string;
+  sizeClass: SizeClassId;
+  sizeClassIndex: number;
+  className: SizeClass;
   extentM: number;
   extentSource: ExtentSource;
-  sizeClass: SizeClass;
-  sizeClassIndex: number;
-  /** target visible core, metres */
-  coreM: number;
-  /** the asset's own neutral core (idle, facing the camera, frame 0), metres */
-  neutralCoreM: number;
-  /** multiplier the renderer submits with the billboard */
-  scale: number;
-  /** true when the species carries an authored scale (bosses): the curve stays out of its way */
+  /** the tilt factor applied to every class value below */
+  factor: number;
+  /** visible core the sprite is drawn at, metres (authored bosses: their drawn height) */
+  visualM: number;
+  /** sim collision / hurt radius before any role multiplier */
+  radius: number;
+  /** sim body height before any role multiplier */
+  height: number;
+  /** true when the species carries an authored encounter scale (bosses) */
   authored: boolean;
 }
 
-/**
- * Sprite scale for a species, against a stable neutral asset reference: `neutralCoreM` is the
- * visible height of the idle pose facing the camera, frame 0 (`CreatureArt.heightPx / 16`), and
- * never the frame being drawn. One multiplier per species, applied uniformly to the billboard, so
- * proportions and the per-frame feet anchor survive animation, an evolution swap and a faint.
- *
- * A species with an authored `scale` (boss presentation, `scripts/build-content.mjs`) returns 1:
- * the authored multiplier is applied by the renderer on top, and the two must not compound.
- */
-export function speciesSizing(sp: SpeciesDef, neutralCoreM: number): SpeciesSizing {
-  const { m, source } = speciesExtent(sp);
-  const coreM = visibleCoreMetres(m);
-  const neutral = neutralCoreM > 0 ? neutralCoreM : sp.height;
+/** The pre-size-class sim radius (sprite height × 0.4, clamped): bosses keep it, and `geometry: false` restores it. */
+export const legacyRadius = (sp: SpeciesDef) => Math.min(3.2, Math.max(0.35, sp.height * 0.4));
+
+const bodies = new WeakMap<SizeRules, Map<string, SpeciesBody>>();
+
+/** The body of a species under these size rules: class, visual target and sim dimensions. Pure and cached. */
+export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): SpeciesBody {
+  let m = bodies.get(size);
+  if (!m) bodies.set(size, (m = new Map()));
+  const hit = m.get(sp.id);
+  if (hit) return hit;
+  const ext = speciesExtent(sp);
+  const pinned = pinnedSizeClass(sp.id);
+  const byExtent = sizeClassIndex(ext.m, size);
+  const at = pinned !== undefined ? size.classes.findIndex((c) => c.id === pinned) : -1;
+  const i = at >= 0 ? at : byExtent;
+  // a pinned class whose band does not hold the extent sits at the class centre
+  const factor = at >= 0 && i !== byExtent ? 1 : classTilt(ext.m, i, size);
+  const C = size.classes[i];
   const authored = sp.scale !== undefined;
-  return {
+  const body: SpeciesBody = {
     id: sp.id,
-    extentM: m,
-    extentSource: source,
-    sizeClass: sizeClassOf(m),
-    sizeClassIndex: sizeClassIndex(m),
-    coreM,
-    neutralCoreM: neutral,
-    scale: authored ? 1 : coreM / neutral,
+    sizeClass: C.id as SizeClassId,
+    sizeClassIndex: i,
+    className: SIZE_CLASS_NAMES[i],
+    extentM: ext.m,
+    extentSource: at >= 0 ? 'override' : ext.source,
+    factor,
+    visualM: authored ? sp.height : C.visual * factor,
+    radius: authored ? legacyRadius(sp) : C.radius * factor,
+    height: authored ? sp.height : C.height * factor,
     authored,
   };
+  m.set(sp.id, body);
+  return body;
+}
+
+/** A partner's collision and hurt radius: its class radius inside rules.size.playerRadius (or the shared legacy one). */
+export function partnerRadius(sp: SpeciesDef, rules: Rules = defaultRules): number {
+  if (!rules.size.geometry) return rules.player.radius;
+  const [lo, hi] = rules.size.playerRadius;
+  return Math.min(hi, Math.max(lo, bodyOf(sp, rules.size).radius));
+}
+
+/** A partner's vertical hurt extent: its class height (1.2 m, the old fixed window, when size geometry is off). */
+export function partnerHeight(sp: SpeciesDef, rules: Rules = defaultRules): number {
+  return rules.size.geometry ? bodyOf(sp, rules.size).height : 1.2;
+}
+
+/** An enemy's collision radius at a role size multiplier (elite ×2, alpha ×3). */
+export function enemyRadius(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
+  return (rules.size.geometry ? bodyOf(sp, rules.size).radius : legacyRadius(sp)) * roleSize;
+}
+
+/** An enemy's vertical hit extent at a role size (the legacy rules used the role size itself as the height). */
+export function enemyHeight(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
+  return rules.size.geometry ? bodyOf(sp, rules.size).height * roleSize : roleSize;
+}
+
+export interface SpeciesSizing extends SpeciesBody {
+  /** target visible core, metres (= visualM) */
+  coreM: number;
+  /** the asset's own neutral core (idle, facing the camera, frame 0), metres, after the Wide normalisation */
+  neutralCoreM: number;
+  /** true when the idle frame is wide enough that its width set the neutral core */
+  wide: boolean;
+  /** multiplier the renderer submits with the billboard */
+  scale: number;
+}
+
+/**
+ * Sprite scale for a species against a stable neutral asset reference: `neutralHeightM` is the visible height of the
+ * idle pose facing the camera, frame 0 (`CreatureArt.heightPx / 16`), never the frame being drawn. A frame at least
+ * `rules.size.wideRatio` times wider than tall (a serpent, a long quadruped) is normalised on width / wideRatio, so a
+ * long body is not drawn oversized. One multiplier per species, applied uniformly, so proportions and the per-frame
+ * feet anchor survive animation, an evolution swap and a faint.
+ *
+ * A species with an authored `scale` (boss presentation) returns 1: the renderer applies that on top.
+ */
+export function speciesSizing(sp: SpeciesDef, neutralHeightM: number, neutralWidthM = 0, size: SizeRules = defaultRules.size): SpeciesSizing {
+  const body = bodyOf(sp, size);
+  const h = neutralHeightM > 0 ? neutralHeightM : sp.height;
+  const wide = neutralWidthM >= size.wideRatio * h;
+  const neutral = wide ? neutralWidthM / size.wideRatio : h;
+  return { ...body, coreM: body.visualM, neutralCoreM: neutral, wide, scale: body.authored ? 1 : body.visualM / neutral };
 }

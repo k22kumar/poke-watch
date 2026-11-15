@@ -4,6 +4,7 @@ import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { MODES } from '../src/mods';
 import { StateHasher } from '../src/sim/checksum';
+import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import type { SimContext } from '../src/sim/types';
 
 /** hash built only from fields every version has (ctx.player), so it compares across refactors */
@@ -36,15 +37,24 @@ const which = process.argv[2] ?? 'all';
 // from Pokémon locations, the classic generator elsewhere); `gen-classic` turns locations off.
 // Hazards (liquid exposure and falls, docs/HAZARDS.md): `hazards-off` must print the `on` hashes from before that layer;
 // every older set turns it off too.
+// Size classes and the 2026-11 roster wave (docs/SIZING.md, docs/SPAWNING.md): `size-off` (sim bodies from sprite height,
+// one shared partner radius, the classic region tables) prints the `on` hashes from before both, apart from the World.shore
+// fix that landed with them (a bank behind a wall is no longer preferred); every older set turns both off too.
+// `roster-off` keeps size-class bodies and only selects the classic tables. `gen-size-off` is `size-off` on `gen`.
+const CLASSIC = { spawning: { regions: CLASSIC_REGIONS } };
+const SIZE_OFF = { size: { geometry: false }, ...CLASSIC };
 const SETS: Record<string, object | undefined> = {
-  off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false } },
-  'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false } },
-  'world-off': { surfaces: { enabled: false }, hazards: { enabled: false } },
-  'hazards-off': { hazards: { enabled: false } },
+  off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
+  'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
+  'world-off': { surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
+  'hazards-off': { hazards: { enabled: false }, ...SIZE_OFF },
+  'size-off': SIZE_OFF,
+  'roster-off': CLASSIC,
   on: undefined,
   gen: { worldgen: { mode: 'generated' } },
   // the classic generator everywhere (Pokémon locations off): must print the pre-location `gen` hashes exactly
   'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } },
+  'gen-size-off': { worldgen: { mode: 'generated' }, ...SIZE_OFF },
 };
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of CONFIGS) {
