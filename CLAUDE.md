@@ -37,3 +37,8 @@ Deterministic, data-driven survivor game: TypeScript, esbuild, `node:test` via t
 ## Parallel sessions
 - Several Claude sessions often work in this checkout at once. Check `git status` before editing, and leave alone uncommitted changes you didn't make.
 - `npm run build`, `npm run dev` and `npm run check` all write `dist/`. For screenshot captures, build into a private directory instead: copy `scripts/build.mjs` to your scratchpad with the output path changed, then pass that HTML to `tools/cap.mjs`. This keeps you from overwriting another session's build.
+
+## Agent skills
+- `/grilling` before committing to a change with undecided design questions whose wrong answer is expensive to undo — e.g. a `HAB_VERSION` bump, a regenerated baseline, moved replay hashes, or a contract other systems read (hazards × objectives × enemies). Not for mechanical work — the decisions are already made and only transcription is left.
+- `diagnosing-bugs` for a bug or regression with no deterministic repro yet (wrong sim behaviour at a known seed, a hash that moved unexpectedly, a layout failing a gate, a `perf-sim --gate` regression). Not for a failing test that already names its cause.
+- Both are vendored in `.claude/skills/`; see `.claude/skills/README.md` for provenance and local edits. Review stays the built-in `/code-review`.
