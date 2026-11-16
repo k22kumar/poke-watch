@@ -10,7 +10,7 @@ import { FOG_GLSL } from '../src/render/tilestage';
 import { createRun, startStage, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
-import ART from '../src/content/art.json';
+import { rigSize } from '../scripts/lib/chasesize';
 
 const flat = () => 0;
 const frame = (o: Partial<ChaseFrame> = {}): ChaseFrame => ({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1.1, threat: NO_THREAT, lookYaw: 0, lookPitch: 0, ground: flat, ...o });
@@ -165,7 +165,8 @@ test('culling: turning the camera never changes what is drawn in front of the le
 const D2R = Math.PI / 180;
 /** the lens' height over the pivot and its angle (deg) as camstats measures it */
 const elevOf = (r: ChaseRig) => { const up = r.eye[1] - r.py - r.pivotH; return { up, deg: Math.atan2(up, Math.hypot(r.eye[0] - r.px, r.eye[2] - r.pz)) / D2R }; };
-const idleSize = (id: string) => { const f = (ART as any).species[id]?.art.anims.Idle?.frames[0]?.[0]; return f ? { h: f[3] / 16, w: f[2] / 16 } : { h: 1.1, w: 1 }; };
+/** the subject size the renderer submits to the rig (idle frame x the species' visible-size scale) */
+const idleSize = (id: string) => { const s = rigSize(id); return { h: s.height, w: s.width }; };
 /** a generated map, as the game builds it by default */
 function mapRun(seed: number, stage: number, species: string, calm: boolean) {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
@@ -181,7 +182,7 @@ function drive(ctx: SimContext, fps: number, secs: number, control: (t: number, 
   let acc = 0;
   for (let t = 1 / fps; t < secs; t += 1 / fps) {
     const c = control(t, 1 / fps);
-    if (c.lookYaw) r.yaw = Math.atan2(Math.sin(r.yaw - c.lookYaw), Math.cos(r.yaw - c.lookYaw));
+    if (c.lookYaw) r.look(c.lookYaw, 0); // Renderer.look
     acc += 1 / fps;
     while (acc >= ctx.dt - 1e-9) { step(ctx, c.inp); acc -= ctx.dt; }
     const a = Math.max(0, Math.min(1, acc / ctx.dt));
@@ -299,20 +300,26 @@ test('climbing: never for a bank it cannot see over, even where climbing would o
 });
 
 test('rapid direction changes: the move direction and the aim follow the camera on the very frame it turns', async () => {
+  // in the host's order (render/hostframe.ts): the look input, then the sample the sim ticks aim with, then the render.
+  // The aim is taken BEFORE this frame's update; this test used to update first, the opposite of main.ts, and passed
+  // while the host aimed from last frame's lens (docs/THIRD_PERSON_IMPLEMENTATION.md, Phase 1)
   const { chaseAim } = await import('../src/render/camera');
   const r = new ChaseRig(); settle(r, {}, 1);
   for (const flip of [Math.PI, -2.2, 1.1, Math.PI, 0.4]) {
-    r.yaw = Math.atan2(Math.sin(r.yaw - flip), Math.cos(r.yaw - flip)); // Renderer.look
+    r.look(flip, 0); // Renderer.look
     const want = r.yaw;
-    r.update(frame({}));
-    const [fx, fz] = r.forward();
-    assert.ok(Math.abs(Math.atan2(Math.sin(r.yaw - want), Math.cos(r.yaw - want))) < 1e-9, 'the yaw the player set is the yaw drawn');
-    assert.ok(Math.abs(fx - Math.sin(want)) < 1e-9 && Math.abs(fz - Math.cos(want)) < 1e-9, 'move input is relative to it');
+    const v = r.sample(1280, 720); // Renderer.viewSample, before the ticks
+    const [fx, fz] = [Math.sin(v.yaw), Math.cos(v.yaw)];
+    assert.ok(Math.abs(Math.atan2(Math.sin(v.yaw - want), Math.cos(v.yaw - want))) < 1e-9, 'the ticks move relative to the yaw the player set');
     // the lens is behind the Pokémon for the new yaw (not still where the old one put it)
-    const back = -(r.eye[0] * fx + r.eye[2] * fz);
+    const back = -(v.eye[0] * fx + v.eye[2] * fz);
     assert.ok(back > 2, `lens ${back.toFixed(2)} m behind along the new view`);
-    const [ax, az] = chaseAim(r, 0, 0, 16 / 9, flat);
+    const [ax, az] = chaseAim(v, 0, 0, v.aspect, flat);
     assert.ok(ax * fx + az * fz > 3, 'the aim point is in front along the new view');
+    r.update(frame({}));
+    const [dx, dz] = chaseAim(r, 0, 0, 16 / 9, flat);
+    assert.ok(Math.abs(Math.atan2(Math.sin(r.yaw - want), Math.cos(r.yaw - want))) < 1e-9, 'the yaw the player set is the yaw drawn');
+    assert.ok(Math.hypot(ax - dx, az - dz) < 0.05, `the ticks aimed ${Math.hypot(ax - dx, az - dz).toFixed(3)} m from the crosshair drawn`);
   }
 });
 

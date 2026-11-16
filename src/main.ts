@@ -8,6 +8,8 @@ import { BIOMES, STAGES } from './rules/stages';
 import { SPECIES_BY_ID } from './rules/species';
 import { SPAWN_PRESETS, type SpawnPoolDef } from './rules/spawning';
 import { Renderer } from './render/renderer';
+import { lookDelta, runFrame } from './render/hostframe';
+import type { ViewSample } from './render/camera';
 import { botInput } from './sim/bot';
 import { damagePlayer, killEnemy } from './sim/combat';
 import { spawnEnemy } from './sim/enemies';
@@ -194,13 +196,15 @@ function startRun(mode: Mode, species: string, seed: number) {
   (window as any).pokewatch.ctx = ctx;
 }
 
-/** one input frame with the aim point: the ground under the cursor, or 8 m along the right stick */
-function sampleInput(c: SimContext): InputFrame {
-  const inp = input.sample(renderer.yaw);
+/** one input frame with the aim point: the ground under the cursor, or 8 m along the right stick. In third person the
+ *  aim is the crosshair ray of `view`, the frame's one view sample (render/hostframe.ts): every tick of a frame moves and
+ *  aims with the same yaw, pitch and lens position */
+function sampleInput(c: SimContext, view: ViewSample | null): InputFrame {
+  const inp = input.sample(view ? view.yaw : renderer.yaw);
   const P = c.player;
   let aim: [number, number] | null = null;
   // third person: the camera is the aim (the reticle ray against the terrain, in the camera's yaw plane)
-  if (renderer.chase) aim = renderer.chaseAim(c);
+  if (renderer.chase) aim = renderer.chaseAim(c, view);
   else if (input.aimSource === 'mouse' && input.mouseSeen) aim = renderer.groundAt(input.mouseX, input.mouseY, P.y);
   else if (input.aimSource === 'stick') aim = [P.x + input.stickAim[0] * 8, P.z + input.stickAim[1] * 8];
   if (aim && c.rules.combat.mode !== 'auto') { inp.aimX = aim[0]; inp.aimZ = aim[1]; }
@@ -289,13 +293,10 @@ function onEvents(c: SimContext, events: SimEvent[]) {
 
 /** third person: mouse deltas and the right stick turn the camera (and so the aim and the move direction) */
 function lookInput(dt: number, live: boolean) {
-  const [mx, my] = input.consumeMouse();
-  if (!live) return;
-  const sens = settings.sens, inv = settings.invertY ? -1 : 1;
-  let yaw = mx * 0.0022 * sens, pitch = my * 0.0018 * sens * inv;
-  const [rx, ry] = input.lookStick();
-  if (rx || ry) { yaw += rx * 2.6 * sens * dt; pitch += ry * 1.5 * sens * inv * dt; }
-  if (yaw || pitch) renderer.look(yaw, pitch);
+  const mouse = input.consumeMouse() as [number, number];
+  if (!live) return; // paused, a menu, the run over: the movement is dropped, not saved for later
+  const d = lookDelta(mouse, input.lookStick(), dt, settings.sens, settings.invertY);
+  if (d) renderer.look(d[0], d[1]);
 }
 
 // third person: until the browser has given us the mouse, say how to get it (gamepad players never see this)
@@ -369,29 +370,34 @@ function frame(now: number) {
   }
   const c = ctx;
   updateLockHint(c);
-  if (renderer.chase) lookInput(real, !paused && input.context === 'play' && c.state !== 'over' && c.state !== 'victory');
   const tSim0 = performance.now();
   let simDt = 0;
-  if (!paused && c.state !== 'over' && c.state !== 'victory') {
+  const simulate = !paused && c.state !== 'over' && c.state !== 'victory';
+  if (simulate) {
     let scale = speed;
     if (hitstop > 0) { hitstop -= real; scale *= c.rules.sim.hitstopScale; }
     if (c.state === 'dead') scale *= c.rules.sim.deathTimeScale;
     if (c.cards.offer && (autoplay || params.has('autopick'))) pendingCard = { action: 'pick', index: 0 };
     acc += real * scale;
     simDt = real * scale;
-    let steps = 0;
-    const maxSteps = Math.max(5, Math.ceil(speed * 5));
-    while (acc >= c.dt && steps < maxSteps) {
-      const inp = autoplay ? botInput(c) : sampleInput(c);
+  }
+  // look, then one view sample, then the due ticks (render/hostframe.ts); the render below advances the camera once
+  const fr = runFrame<ViewSample | null>({
+    look: () => { if (renderer.chase) lookInput(real, !paused && input.context === 'play' && c.state !== 'over' && c.state !== 'victory'); },
+    view: () => renderer.viewSample(),
+    tick: (view) => {
+      const inp = autoplay ? botInput(c) : sampleInput(c, view);
       if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
       let ev: SimEvent[];
-      try { ev = step(c, inp); } catch (e) { if (e instanceof HabitatError) { failMap(e); return; } throw e; }
+      try { ev = step(c, inp); } catch (e) { if (e instanceof HabitatError) { failMap(e); return 'abort'; } throw e; }
       onEvents(c, ev);
-      acc -= c.dt;
-      steps++;
-      if ((c.state as string) === 'over' || (c.state as string) === 'victory') { onEnd(c); break; }
-    }
-    if (steps >= maxSteps) acc = 0;
+      if ((c.state as string) === 'over' || (c.state as string) === 'victory') { onEnd(c); return 'end'; }
+      return 'go';
+    },
+  }, acc, c.dt, Math.max(5, Math.ceil(speed * 5)), simulate);
+  if (fr.aborted) return;
+  acc = fr.acc;
+  if (simulate) {
     // performance governor [C]: every 2 s, adapt the live enemy cap to frame rate
     govT += real;
     const G = c.rules.enemy.governor;
@@ -456,8 +462,10 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
   for (let f = 0; f < frames; f++) {
     let n = Math.round(per / c.dt);
     if (ctx) {
+      // like frame(): one view sample per drawn frame, shared by its ticks
+      const view = renderer.viewSample();
       while (n-- > 0 && c.state !== 'over' && c.state !== 'victory') {
-        const inp: InputFrame = opts.bot ? botInput(c) : { ...sampleInput(c), ...(opts.input ?? {}) } as InputFrame;
+        const inp: InputFrame = opts.bot ? botInput(c) : { ...sampleInput(c, view), ...(opts.input ?? {}) } as InputFrame;
         if (c.cards.offer && (opts.bot || params.has('autopick'))) inp.card = { action: 'pick', index: 0 };
         if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
         onEvents(c, step(c, inp));

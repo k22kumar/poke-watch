@@ -165,6 +165,27 @@ export interface ChaseFrame {
   shake?: [number, number, number];
 }
 
+/** One immutable sample of the third-person view (docs/THIRD_PERSON.md, "View-state contract"): everything that places
+ *  the crosshair ray, taken together at one instant. The host takes one per frame, after the frame's look input and
+ *  before the frame's sim ticks, and every tick of that frame aims with it (render/hostframe.ts). Position, direction,
+ *  projection and viewport always belong to the same rig state; nothing in it is a live reference into the rig. */
+export interface ViewSample {
+  /** lens position (m) */
+  readonly eye: readonly [number, number, number];
+  /** unit view axis (the screen centre) */
+  readonly dir: readonly [number, number, number];
+  /** view yaw (rad; the view direction is (sin yaw, cos yaw)) and the axis' pitch below the horizon (rad) */
+  readonly yaw: number; readonly viewPitch: number;
+  /** the player's own pitch offset (deg) the sample includes */
+  readonly userPitch: number;
+  /** vertical field of view (rad) */
+  readonly fov: number;
+  /** viewport (CSS px) and its aspect, and where the crosshair sits (fraction of height from the top) */
+  readonly width: number; readonly height: number; readonly aspect: number; readonly reticleY: number;
+}
+/** what chaseAim reads: a ViewSample, or the rig itself (its public fields are its composed view) */
+export interface AimView { readonly eye: readonly [number, number, number]; readonly yaw: number; readonly viewPitch: number; readonly fov: number }
+
 export interface ChaseSettings {
   /** the pitch the player may add to the state's pitch (deg) */
   pitchRange: [number, number];
@@ -239,6 +260,8 @@ export class ChaseRig {
   private slope = 0; private slopeV = 0;
   private yawV = 0; private lastYaw = Math.PI;
   private sizeSet = false;
+  /** the last tick was under a deck (the slab, not the player's pitch, set the boom elevation) */
+  private coveredTk = false;
   /** the next update follows a snap: take the collision answer at once instead of easing to it */
   private fresh = false;
   /** the rig's clock (s), its last and next tick, and the yaw and the Pokémon's position at the end of the last drawn
@@ -256,7 +279,7 @@ export class ChaseRig {
     this.colT = 1; this.colV = 0; this.clearT = 1; this.softT = 1; this.softV = 0; this.softClear = 0; this.lift = this.liftV = this.liftWant = this.liftLowT = 0;
     this.sinceC = this.sinceP = 99;
     this.sizeV = 0; this.vx = this.vz = 0; this.lx = x; this.lz = z; this.slope = this.slopeV = 0; this.yawV = 0; this.lastYaw = yaw;
-    this.side = 1; this.sideSm = 1; this.sideV = 0; this.sideT = 9; this.swapT = 0; this.sizeSet = false; this.fresh = true; this.fresh2 = true;
+    this.side = 1; this.sideSm = 1; this.sideV = 0; this.sideT = 9; this.swapT = 0; this.sizeSet = false; this.fresh = true; this.fresh2 = true; this.coveredTk = false;
     this.state = 'explore'; this.cur = { ...CFG.states.explore }; this.curV = { pitch: 0, boom: 0, fov: 0, tilt: 0 };
   }
 
@@ -310,8 +333,26 @@ export class ChaseRig {
     const d = Math.atan2(Math.sin(y1 - yawAt), Math.cos(y1 - yawAt)), cd = Math.cos(d), sd = Math.sin(d);
     const ex = mix(A.eye[0], B.eye[0]) - this.px, ez = mix(A.eye[2], B.eye[2]) - this.pz;
     this.eye = [this.px + ex * cd + ez * sd, mix(A.eye[1], B.eye[1]), this.pz - ex * sd + ez * cd];
+    // the player's pitch also sets the boom's elevation (step): pitch input since the ticks swings the lens about the
+    // pivot now, as the yaw does, instead of a tick later (zero once a tick has run with it)
+    this.swingLens(this.elevFor(this.userPitch) - this.elevFor(mix(A.up, B.up)));
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch), fy = Math.sin(y1), fz = Math.cos(y1);
     this.target = [this.eye[0] + fy * vc * 20, this.eye[1] - vs * 20, this.eye[2] + fz * vc * 20];
+  }
+
+  /** the boom elevation (deg, before any climb) the player's pitch `up` gives in the current state; under a deck the
+   *  slab decides it, so pitch does not move the lens there */
+  private elevFor(up: number) { return this.coveredTk ? 0 : clamp(this.cur.pitch + up, CFG.elevation[0], CFG.elevation[1]); }
+
+  /** turn the composed lens about the pivot in the vertical plane of the view yaw by `dElev` degrees (+ = higher) */
+  private swingLens(dElev: number) {
+    if (!dElev) return;
+    const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), oy = this.py + this.pivotH;
+    const rx = this.eye[0] - this.px, ry = this.eye[1] - oy, rz = this.eye[2] - this.pz;
+    const back = -(rx * fx + rz * fz), lx = rx + fx * back, lz = rz + fz * back; // behind the pivot, and across
+    const R = Math.hypot(back, ry), e = Math.atan2(ry, back) + dElev * D2R;
+    const b2 = R * Math.cos(e);
+    this.eye = [this.px + lx - fx * b2, oy + R * Math.sin(e), this.pz + lz - fz * b2];
   }
 
   /** one tick of the rig */
@@ -442,6 +483,7 @@ export class ChaseRig {
     // under a deck (a shelf, a bridge): keep the lens below its underside, a flat low boom rather than climbing over
     // the wall behind, which would put the camera on top of the slab looking down at nothing
     if (covered) baseElev = clamp(Math.asin(clamp((ceilHere - 0.45 - oy) / want, -1, 1)) / D2R, 2, baseElev);
+    this.coveredTk = covered;
 
     // shoulder: the lens sits on the right; if that side is walled in and the left is open it swaps (at most once a second)
     const SW = CFG.swap;
@@ -569,13 +611,47 @@ export class ChaseRig {
 
   /** unit vector of the horizontal view direction */
   forward(): [number, number] { return [Math.sin(this.yaw), Math.cos(this.yaw)]; }
+
+  /** Look input (mouse, right stick): dyaw > 0 turns right, dpitch > 0 looks further down (radians). Both apply at
+   *  once, and the composed view (eye, viewPitch, target) is recomposed for them exactly as update() composes a frame:
+   *  the lens turned about the pivot by the yaw change and swung up or down by the boom elevation the pitch change
+   *  gives, the axis tilted by the pitch change. So the rig's public view is
+   *  coherent at every instant, a sample taken now aims where update() with no elapsed time would draw, and the rig's
+   *  clock does not move (only update() advances it). The pitch is clamped to `range` (CHASE_CONFIG.pitchRange). */
+  look(dyaw: number, dpitch: number, range: [number, number] = CFG.pitchRange) {
+    const y0 = this.yaw, up0 = this.userPitch;
+    this.yaw = Math.atan2(Math.sin(y0 - dyaw), Math.cos(y0 - dyaw));
+    this.userPitch = clamp(up0 + dpitch / D2R, range[0], range[1]);
+    if (!this.ready) return; // nothing composed yet: the first update() snaps onto the Pokémon with this yaw and pitch
+    const d = Math.atan2(Math.sin(this.yaw - y0), Math.cos(this.yaw - y0)), cd = Math.cos(d), sd = Math.sin(d);
+    const ex = this.eye[0] - this.px, ez = this.eye[2] - this.pz;
+    this.eye = [this.px + ex * cd + ez * sd, this.eye[1], this.pz - ex * sd + ez * cd];
+    this.swingLens(this.elevFor(this.userPitch) - this.elevFor(up0));
+    this.viewPitch += (this.userPitch - up0) * D2R;
+    const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
+    this.target = [this.eye[0] + Math.sin(this.yaw) * vc * 20, this.eye[1] - vs * 20, this.eye[2] + Math.cos(this.yaw) * vc * 20];
+  }
+
+  /** a new run: the player's pitch back to neutral */
+  resetLook() { this.userPitch = 0; }
+
+  /** an immutable copy of the composed view, for a viewport of width x height */
+  sample(width: number, height: number): ViewSample {
+    const vc = Math.cos(this.viewPitch);
+    return Object.freeze({
+      eye: Object.freeze([this.eye[0], this.eye[1], this.eye[2]] as [number, number, number]),
+      dir: Object.freeze([Math.sin(this.yaw) * vc, -Math.sin(this.viewPitch), Math.cos(this.yaw) * vc] as [number, number, number]),
+      yaw: this.yaw, viewPitch: this.viewPitch, userPitch: this.userPitch, fov: this.fov,
+      width, height, aspect: width / Math.max(1, height), reticleY: RETICLE_Y,
+    });
+  }
 }
 
 /** The aim point for the camera: where the crosshair ray meets the terrain, at least `min` and at most `max` metres
  *  from the Pokémon. Shots converge on the crosshair like they do in a third-person shooter: the lens sits on a
  *  shoulder, so the point is offset sideways by the lens' own offset (eased in over the first 16 m so a close
  *  target does not swing the shot). With no shoulder the point lies in the vertical plane of the camera yaw. */
-export function chaseAim(rig: ChaseRig, px: number, pz: number, aspect: number, ground: (x: number, z: number) => number, min = CFG.aim.min, max = CFG.aim.max): [number, number] {
+export function chaseAim(rig: AimView, px: number, pz: number, aspect: number, ground: (x: number, z: number) => number, min = CFG.aim.min, max = CFG.aim.max): [number, number] {
   void aspect;
   const sy = Math.sin(rig.yaw), cy = Math.cos(rig.yaw);
   // the crosshair ray is above the view axis by (0.5 - RETICLE_Y) of the half-height

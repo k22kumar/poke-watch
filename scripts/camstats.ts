@@ -3,7 +3,7 @@
 // default (generated regions and Pokémon locations; --authored for the hand-made arenas), and reports how much the
 // camera moves that the player did not ask for. See docs/THIRD_PERSON.md, "Diagnostics".
 //   npx tsx scripts/camstats.ts [--fps 60,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species cyndaquil,feraligatr]
-//                               [--authored] [--noprops] [--noswap] [--json]
+//                               [--authored] [--noprops] [--noswap] [--rawsize] [--json]
 // --noprops lets the lens pass through props (CHASE_CONFIG.propsBlockLens = false); --noswap never swaps shoulder.
 //
 // Columns (per seed x stage x species x fps):
@@ -22,12 +22,12 @@
 //   slides                 frames the safety net had to slide the lens in along the boom (the eased boom was too slow)
 //   fpsDev          m      largest gap between the lens path at this frame rate and at 60 fps, following the same
 //                          recorded player path (so only the camera's own frame-rate dependence shows)
-import ART from '../src/content/art.json';
 import { CHASE_CONFIG, ChaseRig } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { botInput } from '../src/sim/bot';
 import { createRun, startStage, step } from '../src/sim/run';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
+import { rawFrameSize, rigSize } from './lib/chasesize';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const SEEDS = arg('seeds', '1,2,3').split(',').map(Number);
@@ -39,9 +39,10 @@ if (process.argv.includes('--noprops')) CHASE_CONFIG.propsBlockLens = false;
 if (process.argv.includes('--noswap')) CHASE_CONFIG.swap.below = -1;
 const D2R = Math.PI / 180;
 
-const art = (ART as any).species as Record<string, { art: { anims: Record<string, { frames: number[][][] }> } }>;
-/** idle frame size in metres, as the renderer reads it from the decoded clip */
-const sizeOf = (id: string) => { const f = art[id]?.art.anims.Idle?.frames[0]?.[0]; return f ? { h: f[3] / 16, w: f[2] / 16 } : { h: 1.1, w: 1 }; };
+/** the subject size the renderer submits to the rig (idle frame x the species' visible-size scale, scripts/lib/chasesize.ts);
+ *  --rawsize uses the unscaled idle frame these diagnostics used before 2026-11-16, to compare against old tables */
+const RAW = process.argv.includes('--rawsize');
+const sizeOf = (id: string) => { const s = RAW ? rawFrameSize(id) : rigSize(id); return { h: s.height, w: s.width }; };
 
 interface Sample { t: number; eye: number[]; vp: number; boom: number; fov: number; elev: number; state: string; lift: number; gap: number; off: number[] }
 type Control = (c: SimContext, r: ChaseRig, t: number, dt: number) => { inp: InputFrame; lookYaw?: number };
@@ -59,7 +60,7 @@ function run(ctx: SimContext, fps: number, secs: number, control: Control) {
     const real = 1 / fps;
     t += real;
     const ctl = control(ctx, rig, t, real);
-    if (ctl.lookYaw) rig.yaw = Math.atan2(Math.sin(rig.yaw - ctl.lookYaw), Math.cos(rig.yaw - ctl.lookYaw));
+    if (ctl.lookYaw) rig.look(ctl.lookYaw, 0); // Renderer.look
     acc += real;
     // the same tolerance main.ts would need to step exactly once per tick at 60 fps
     while (acc >= ctx.dt - 1e-9) { step(ctx, ctl.inp); acc -= ctx.dt; }

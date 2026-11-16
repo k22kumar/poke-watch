@@ -1,6 +1,7 @@
 // What the third-person rig (render/camera.ts) is told about the world each frame. Shared by the renderer and the
 // headless camera diagnostics (scripts/camstats.ts) so both drive the rig through exactly the same probes.
 // Reads the sim, never writes it.
+import { TEXELS_PER_METRE } from '../assets/art';
 import { ROLE } from '../sim/pools';
 import type { SimContext } from '../sim/types';
 import { CHASE_CONFIG, NO_THREAT, type ChaseFrame, type ChaseThreat } from './camera';
@@ -32,6 +33,13 @@ export interface ChaseSubject {
   height: number; width?: number;
   lookPitch: number;
   shake?: [number, number, number];
+}
+
+/** The subject size the rig frames (m): the idle reference frame (assets/art.ts `clips.idle.frames[0][0]`, in texels)
+ *  times the species' visible-size multiplier (rules/sizing.ts `speciesSizing(...).scale`, the one the sprite is drawn
+ *  at). The renderer and the Node diagnostics (scripts/lib/chasesize.ts) both build it here. No frame: 1.1 m. */
+export function chaseSubjectSize(f: { w: number; h: number } | undefined, scale: number): { height: number; width: number | undefined } {
+  return f ? { height: (f.h / TEXELS_PER_METRE) * scale, width: (f.w / TEXELS_PER_METRE) * scale } : { height: 1.1, width: undefined };
 }
 
 /** the rig's input for this frame: the subject plus the world probes (terrain, decks, solid props, threat) */

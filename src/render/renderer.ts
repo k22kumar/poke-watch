@@ -27,8 +27,8 @@ import { skyFor } from './sky';
 
 /** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
 const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
-import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, RING, ringAdd, wobble, type CameraPreset } from './camera';
-import { chaseFrameFor } from './chaseinput';
+import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, RING, ringAdd, wobble, type CameraPreset, type ViewSample } from './camera';
+import { chaseFrameFor, chaseSubjectSize } from './chaseinput';
 import { SPRITE_SAMPLE_GLSL } from './spritesample';
 
 // creature billboard: per-frame rect + anchor, stretched like the props so texels stay square on screen
@@ -177,8 +177,6 @@ export class Renderer {
   cam: CameraPreset = cameraPreset(undefined);
   /** third-person rig (used when the preset's mode is 'chase') */
   rig = new ChaseRig();
-  /** pitch input accumulated since the last frame (radians, down is positive) */
-  private lookPitch = 0;
   /** FOV offset in degrees (player setting, -10..+12) */
   fovOffset = 0;
   private lastStageKey: object | null = null;
@@ -341,18 +339,23 @@ export class Renderer {
 
   /** turn the third-person camera: dyaw > 0 turns right, dpitch > 0 looks further down (radians) */
   look(dyaw: number, dpitch: number) {
-    // yaw takes effect at once so the move direction and the aim of the very next sim tick already use it
-    if (this.chase) { this.rig.yaw = Math.atan2(Math.sin(this.rig.yaw - dyaw), Math.cos(this.rig.yaw - dyaw)); this.yaw = this.rig.yaw; }
-    this.lookPitch += dpitch;
+    // the rig owns look input (render/camera.ts ChaseRig.look); the fixed views ignore it
+    if (!this.chase) return;
+    this.rig.look(dyaw, dpitch);
+    this.yaw = this.rig.yaw;
   }
 
-  /** a new run: look north and put the rig on the Pokémon */
-  resetView(ctx: SimContext) { this.yaw = Math.PI; this.rig.userPitch = 0; this.rig.snapTo(ctx.player.x, ctx.player.y, ctx.player.z, Math.PI); this.lookPitch = 0; }
+  /** the third-person view as it stands now (after this frame's look input), or null for the fixed views; the host
+   *  takes one per frame and aims every tick of the frame with it (render/hostframe.ts) */
+  viewSample(): ViewSample | null { return this.chase ? this.rig.sample(this.width, this.height) : null; }
 
-  /** the third-person aim point (ground, in the camera's yaw plane), or null for the fixed views */
-  chaseAim(ctx: SimContext): [number, number] | null {
-    if (!this.chase) return null;
-    return chaseAim(this.rig, ctx.player.x, ctx.player.z, this.width / this.height, (x, z) => ctx.world.height(x, z));
+  /** a new run: look north and put the rig on the Pokémon */
+  resetView(ctx: SimContext) { this.yaw = Math.PI; this.rig.resetLook(); this.rig.snapTo(ctx.player.x, ctx.player.y, ctx.player.z, Math.PI); }
+
+  /** the third-person aim point (ground, in the camera's yaw plane) for a view sample, or null for the fixed views */
+  chaseAim(ctx: SimContext, view: ViewSample | null): [number, number] | null {
+    if (!this.chase || !view) return null;
+    return chaseAim(view, ctx.player.x, ctx.player.z, view.aspect, (x, z) => ctx.world.height(x, z));
   }
 
   addShake(a: number) { this.trauma = Math.min(1, this.trauma + a * this.shakeScale); }
@@ -588,16 +591,15 @@ export class Renderer {
       const rig = this.rig;
       const pSet = this.sheets.get(P.species.id);
       const f0 = pSet?.art.clips.idle?.frames[0]?.[0];
-      const vs = pSet ? pSet.size.scale : 1;
+      const subject = chaseSubjectSize(f0, pSet ? pSet.size.scale : 1);
       // shake: smooth noise sized for a lens ~4 m from the Pokémon (a new random 0.45 m offset every frame was ~8x the
       // fixed views' angular shake, and shook harder the higher the frame rate)
       const SK = CHASE_CONFIG.shake, sa = sh * SK.amp, st = this.time * SK.freq;
       const sx = sa * wobble(st, 0.3), sy = sa * wobble(st, 2.1) * 0.6, sz = sa * wobble(st, 4.7);
       rig.update(chaseFrameFor(ctx, {
-        dt, x: px, y: cy, z: pz, height: f0 ? (f0.h / TEXELS_PER_METRE) * vs : 1.1, width: f0 ? (f0.w / TEXELS_PER_METRE) * vs : undefined,
-        lookPitch: this.lookPitch, shake: [sx, sy, sz],
+        dt, x: px, y: cy, z: pz, height: subject.height, width: subject.width,
+        lookPitch: 0, shake: [sx, sy, sz],
       }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: this.fovOffset });
-      this.lookPitch = 0;
       this.yaw = rig.yaw; this.pitch = rig.viewPitch; this.dist = rig.boomUsed;
       fov = rig.fov; [tx, ty, tz] = rig.target;
       [fx, fz] = rig.forward();

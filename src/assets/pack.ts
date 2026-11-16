@@ -7,6 +7,7 @@ import { MOVES, type MoveData } from '../rules/moves';
 import { SPECIES_BY_ID, type SpeciesDef, type Stats } from '../rules/species';
 import { ANIM_STATES, DIRS, NATIVE_CLIP, canvasFrom, type CreatureArt, type FrameRect } from './art';
 import { resolveClips, type SourceAnim } from './clips';
+import { neutralExtent } from './measure';
 
 export const PACK_FORMAT = 'poke-watch-pack';
 export const PACK_VERSION = 1;
@@ -115,13 +116,9 @@ export async function buildArt(id: string, a: PackSpecies['art']): Promise<{ art
   // visible height from the front-facing idle frame
   const f = clips.idle.frames[0][0];
   const g = atlas.getContext('2d')!.getImageData(f.x, f.y, f.w, f.h).data;
-  let top = f.ay;
-  for (let y = 0; y < f.h && top === f.ay; y++) for (let x = 0; x < f.w; x++) if (g[(y * f.w + x) * 4 + 3] > 0) { top = y; break; }
-  const heightPx = Math.max(8, f.ay - top);
-  // visible width of the same frame (opaque columns), for the Wide normalisation in rules/sizing.ts
-  let x0 = f.w, x1 = -1;
-  for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) if (g[(y * f.w + x) * 4 + 3] > 0) { if (x < x0) x0 = x; if (x > x1) x1 = x; }
-  const widthPx = x1 >= x0 ? x1 - x0 + 1 : heightPx;
+  // visible height and width (opaque columns, for the Wide normalisation in rules/sizing.ts); assets/measure.ts is shared
+  // with the Node camera diagnostics so both measure the same pixels the same way
+  const { heightPx, widthPx } = neutralExtent(g, f);
   let portrait: HTMLCanvasElement;
   if (a.portrait) portrait = toCanvas(await loadImage(a.portrait));
   else { portrait = canvasFrom(f.w, f.h, g); notes.push('no portrait; using the idle frame'); }
