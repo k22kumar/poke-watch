@@ -14,6 +14,9 @@ import { CellField, CS } from './cells';
 import { PropField } from './props';
 import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../world/navblocks';
 
+/** wide block neighbour directions: four orthogonal, then four diagonal (World.wideNb and its link cache) */
+const WIDE_DI = [-1, 1, 0, 0, -1, 1, -1, 1], WIDE_DJ = [0, 0, -1, 1, -1, -1, 1, 1];
+
 export interface Chest { x: number; z: number; open: boolean }
 
 const UNREACHED = 0x7fff;
@@ -592,6 +595,7 @@ export class World {
   private wideMask(): Uint8Array {
     if (!this.wideOpen) {
       const M = (this.wideOpen = blockMask(this.grid)), W = this.w, n = W * this.h, C = (this.bnodes = new Int32Array(M.length * 4)), t = this.blk;
+      this.wideLink = new Uint32Array(M.length);
       // each wide block's four nodes, so neighbour and link tests are array compares (the predicate stays navblocks')
       for (let b = 0; b < M.length; b++) if (M[b] && blockNodes(this.grid, (b % n) % W, ((b % n) / W) | 0, (b / n) | 0, t)) C.set(t, b * 4);
       this.wideGen[0] = this.wideGen[1] = this.goalWideGen[0] = this.goalWideGen[1] = -1;
@@ -600,6 +604,10 @@ export class World {
   }
   /** the four nodes of wide blocks (index b·4 + q), filled with the mask */
   private bnodes = new Int32Array(0);
+  /** each wide block's links, filled on first use and dropped with the mask (so with every navigation change): bit s·2 + L
+   *  for the neighbour in direction s (WIDE_DI / WIDE_DJ, wideNb's order) on layer L, and bit 16 once filled. A field
+   *  search pops every block it reaches, and testing up to 8 links on each pop dominated the rebuild (docs/SIZING.md) */
+  private wideLink = new Uint32Array(0);
 
   /** does wide block b include node a? */
   private blockHas(b: number, a: number): boolean {
@@ -619,15 +627,28 @@ export class World {
     return false;
   }
 
+  /** block a's link bits (wideLink), filled on first use with the link predicate (linked) */
+  private linkBits(a: number): number {
+    const M = this.wideOpen!, W = this.w, H = this.h, n = W * H, layers = M.length / n, k = a % n, i = k % W, j = (k / W) | 0;
+    let v = this.wideLink[a];
+    if (v) return v;
+    v = 1 << 16;
+    for (let s = 0; s < 8; s++) {
+      const ni = i + WIDE_DI[s], nj = j + WIDE_DJ[s];
+      if (ni < 0 || nj < 0 || ni >= W - 1 || nj >= H - 1) continue;
+      for (let L = 0; L < layers; L++) { const b = L * n + nj * W + ni; if (M[b] && this.linked(a, b)) v |= 1 << (s * 2 + L); }
+    }
+    return (this.wideLink[a] = v);
+  }
+
   /** the wide blocks linked to block a (with `diag`, diagonal ones too), into out; returns how many */
   private wideNb(a: number, diag: boolean, out: Int32Array): number {
-    const M = this.wideOpen!, W = this.w, H = this.h, n = W * H, layers = M.length / n, k = a % n, i = k % W, j = (k / W) | 0;
+    const W = this.w, n = W * this.h, layers = this.wideOpen!.length / n, k = a % n, v = this.linkBits(a);
     let c = 0;
     for (let s = 0; s < (diag ? 8 : 4); s++) {
-      const ni = i + (s === 0 || s === 4 || s === 6 ? -1 : s === 1 || s === 5 || s === 7 ? 1 : 0);
-      const nj = j + (s === 2 || s === 4 || s === 5 ? -1 : s === 3 || s === 6 || s === 7 ? 1 : 0);
-      if (ni < 0 || nj < 0 || ni >= W - 1 || nj >= H - 1) continue;
-      for (let L = 0; L < layers; L++) { const b = L * n + nj * W + ni; if (M[b] && this.linked(a, b)) out[c++] = b; }
+      if (!(v & (3 << (s * 2)))) continue;
+      const nk = k + WIDE_DJ[s] * W + WIDE_DI[s];
+      for (let L = 0; L < layers; L++) if (v & (1 << (s * 2 + L))) out[c++] = L * n + nk;
     }
     return c;
   }
@@ -639,7 +660,7 @@ export class World {
 
   /** breadth-first search over linked wide blocks from `seeds` (block index, start distance; any order), into F */
   private blockSearch(F: Uint16Array, seeds: number[], diag: boolean, skip?: (b: number) => boolean) {
-    const M = this.wideMask(), g = this.grid, Q = this.queue, nb = this.blkNb, ta = this.blk, tb = this.blk2;
+    const M = this.wideMask(), Q = this.queue, WL = this.wideLink, W = this.w, n = W * this.h, layers = M.length / n, S = diag ? 8 : 4;
     F.fill(UNREACHED);
     // seeds sorted by start distance (ties by index), injected when the search reaches their distance
     const order: number[] = [];
@@ -657,14 +678,20 @@ export class World {
     while (head < tail || next < order.length) {
       if (head === tail) inject(seeds[order[next] + 1]);
       const a = Q[head++], d = F[a] + 1;
-      inject(F[a]);
-      const c = this.wideNb(a, diag, nb);
-      for (let q = 0; q < c; q++) {
-        const b = nb[q];
-        if (F[b] !== UNREACHED || (skip && skip(b))) continue;
-        F[b] = d; Q[tail++] = b;
+      if (next < order.length) inject(F[a]);
+      // wideNb inlined over the cached link bits (same blocks, same order)
+      const v = WL[a] || this.linkBits(a), k = a % n;
+      for (let s = 0; s < S; s++) {
+        if (!(v & (3 << (s * 2)))) continue;
+        const nk = k + WIDE_DJ[s] * W + WIDE_DI[s];
+        for (let L = 0; L < layers; L++) {
+          if (!(v & (1 << (s * 2 + L)))) continue;
+          const b = L * n + nk;
+          if (F[b] !== UNREACHED || (skip && skip(b))) continue;
+          F[b] = d; Q[tail++] = b;
+        }
       }
-      inject(d);
+      if (next < order.length) inject(d);
     }
   }
 

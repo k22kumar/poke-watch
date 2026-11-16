@@ -57,6 +57,20 @@ test('10 seeds of every location pass every hard gate', () => {
   }
 });
 
+test('a zone past the 52-tile candidate cap still joins the zone graph (mt-moon seed 275 threw in planTopology)', () => {
+  // seed 275 placed a zone 53.6 tiles from its nearest centre: it had no candidate edge, the spanning tree was a forest
+  const m = generateLocation({ location: 'mt-moon', seed: 275 });
+  const failed = m.gen!.gates.filter((g) => !g.ok).map((g) => `${g.id}: ${g.value}`);
+  assert.deepEqual(failed, []);
+  const { zones, links } = m.gen!.loc!;
+  const seen = new Set([zones.find((z) => z.kind === 'hub')!.id]);
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const L of links) for (const [a, b] of [[L.a, L.b], [L.b, L.a]]) if (seen.has(a) && !seen.has(b)) { seen.add(b); grew = true; }
+  }
+  assert.equal(seen.size, zones.length, 'every zone is joined to the hub by links');
+});
+
 test('location maps are well formed and strongly connected for enemies; the player has no perch enemies cannot reach', () => {
   for (const id of IDS) for (const s of [3, 8]) {
     const m = generateLocation({ location: id, seed: s }), S = m.w, L = m.gen!.loc!;

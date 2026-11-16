@@ -12,6 +12,7 @@ import { generateLocation } from '../src/world/locgen';
 import { wideCore } from '../src/world/locgen/nav';
 import { walkLocation } from '../scripts/navwalk';
 import { playHabitat } from '../scripts/habplay';
+import { escapeOf, TRAP_ROOM } from '../scripts/stuckwatch';
 
 // Movement footprints (docs/SIZING.md "Footprint", "Navigation classes"): every body collides with walls as a circle of
 // its class `body` (World.moveBody), wide bodies route on 2 × 2 blocks (world/navblocks.ts), and navigation and collision
@@ -164,5 +165,43 @@ test('the tidal-cave retreat no longer pins on a loose rock (habplay drove the t
     const r = playHabitat('tidal-cave', 5, { raid: true, route: 'direct', rules: { player: { crowdPush } } })[0];
     assert.ok(r.back !== null, `retreat completes (crowdPush ${crowdPush})`);
     assert.equal(r.stalls, 0, `no stall (crowdPush ${crowdPush})`);
+  }
+});
+
+test('stuckwatch tells a trapped partner from a bot that missed a narrow way out (escapeOf)', () => {
+  for (const species of ['totodile', 'feraligatr']) {
+    const ctx = createRun({ seed: 1, species, ruleOverrides: { director: { spawnBase: -99 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } } as never });
+    const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 14), ci = I + 7, cj = J + 7;
+    const put = () => { P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = W.height(P.x, P.z); };
+    put();
+    let r = escapeOf(ctx);
+    assert.equal(r.free, 16, `${species}: open ground`); assert.equal(r.trapped, false);
+    // a ring of walls three tiles out: a sealed 5 × 5 pocket, room to move but nowhere to go
+    const ring: [number, number][] = [];
+    for (let d = -3; d <= 3; d++) ring.push([ci + d, cj - 3], [ci + d, cj + 3]);
+    for (let d = -2; d <= 2; d++) ring.push([ci - 3, cj + d], [ci + 3, cj + d]);
+    withWalls(W, ring, () => {
+      put(); r = escapeOf(ctx);
+      assert.ok(r.free > 0 && r.room < TRAP_ROOM, `${species}: sealed pocket (${r.free} free, ${r.room} tiles)`);
+      assert.equal(r.trapped, true, `${species}: a sealed pocket is a trap`);
+    });
+    // the same pocket with a one-tile way out: no trap for a Small partner, still one for an Extra Large one, which does
+    // not fit the exit (a point flood called both free); a two-tile exit lets both out
+    withWalls(W, ring.filter(([a, b]) => !(a === ci && b === cj + 3)), () => {
+      put(); r = escapeOf(ctx);
+      assert.equal(r.trapped, species === 'feraligatr', `${species}: a one-tile exit (${r.free} free, ${r.room} tiles)`);
+    });
+    withWalls(W, ring.filter(([a, b]) => !((a === ci || a === ci + 1) && b === cj + 3)), () => {
+      put(); r = escapeOf(ctx);
+      assert.equal(r.trapped, false, `${species}: a two-tile exit (${r.free} free, ${r.room} tiles)`);
+    });
+    // walled in on all eight sides: no heading moves it, and its tile is a pocket of one
+    const box: [number, number][] = [];
+    for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) if (a || b) box.push([ci + a, cj + b]);
+    withWalls(W, box, () => {
+      put(); r = escapeOf(ctx);
+      assert.equal(r.trapped, true, `${species}: boxed in (${r.free} free, ${r.room} tiles)`);
+      if (species === 'feraligatr') assert.equal(r.free, 0, 'an Extra Large footprint has no room to move in one tile');
+    });
   }
 });

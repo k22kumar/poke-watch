@@ -59,6 +59,19 @@ export function planTopology(g: LocCtx) {
     const ra = find(e[0]), rb = find(e[1]);
     if (ra !== rb) { parent[ra] = rb; edges.push([e[0], e[1]]); } else rest.push(e);
   }
+  // a zone whose every candidate is past the 52-tile cap has no edge, and the tree is a forest: mt-moon seed 275 put
+  // zone 3 53.6 tiles from its nearest centre, and rule 4 below then read the tier of a neighbour it does not have. Join
+  // each stray part by the shortest link to another part (ties by index; no randomness, so a connected graph is untouched)
+  for (;;) {
+    let bi = -1, bj = -1, bl = Infinity;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+      if (find(i) === find(j)) continue;
+      const L2 = d2(Z[i], Z[j]);
+      if (L2 < bl) { bl = L2; bi = i; bj = j; }
+    }
+    if (bi < 0) break;
+    parent[find(bi)] = find(bj); edges.push([bi, bj]);
+  }
   const loops = R.int(D.freedoms.loops[0], D.freedoms.loops[1]);
   // a loop edge earns its place by the detour it saves (graph distance ÷ straight length); ties by order
   const graphDist = (a: number, b: number) => {

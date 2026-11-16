@@ -3,7 +3,11 @@
 //   npx tsx scripts/stuckwatch.ts [recipe|location|all] [seeds] [seconds] [firstSeed]
 // A stuck episode is 5 s with less than 0.5 m of net movement while the actor is trying to move:
 //   player  the bot asks to move (|input| > 0.5); `pinned` when it also walked under 2 m in those 5 s (against geometry
-//           or a crowd), else it walked back and forth (the bot kiting between threats)
+//           or a crowd), else it walked back and forth (the bot kiting between threats). Every player episode is also
+//           checked for a way out (escapeOf, with the partner's own footprint): TRAPPED when no heading moves it onto ground
+//           it may stand on, or when the ground it can walk to is a pocket under 48 tiles (World.shore's trap size).
+//           Anything else is the bot's own steering (it samples a few headings and can miss a one-tile way out:
+//           tropical-lagoon seed 3), not a movement failure
 //   enemy   a ground enemy with a route to the player (its field reaches it), more than 4 m from the player (crowding at
 //           the target is not a deadlock), not frozen, held, falling, in a liquid, a boss, or a role that keeps its
 //           distance on purpose (ranged, Hexer, Mender); a wide body with no wide route holds on purpose and is counted
@@ -14,17 +18,71 @@ import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
 import { HABITATS } from '../src/world/habitat';
 import { LOCATIONS } from '../src/world/locations';
-import { navWide } from '../src/rules/sizing';
+import { navWide, partnerFootprint } from '../src/rules/sizing';
 import { DIAG_R } from '../src/world/navblocks';
+import { stateHash } from '../src/sim/checksum';
+import { safeIn } from '../src/sim/hazards';
 import type { SimContext } from '../src/sim/types';
 
-export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; enemyStuck: number; holding: number; samples: number; notes: string[] }
+export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
 
-const NAV: [number, number] = [0, 0];
+const NAV: [number, number] = [0, 0], OUT: [number, number] = [0, 0];
+/** World.shore's room: a walkable pocket smaller than this (in tiles) is a trap */
+export const TRAP_ROOM = 48;
+
+/** Can the partner get out from where it stands? Both answers move its own footprint with World.moveBody, as the player
+ *  system does, so a one-tile exit counts for a Small partner and not for an Extra Large one.
+ *    free  of 16 headings, those along which a 0.3 m move goes at least 0.2 m onto ground it may stand on
+ *    room  ground it can walk to, in tiles: a flood over the world's 0.5 m lattice from where it stands, each step a 0.5 m
+ *          move that arrives (faces it cannot step up stop it; it may drop off a ledge), never into open air or a liquid it is not
+ *          safe in (hazards.safeIn); it stops at TRAP_ROOM
+ *  Reads the world only: moveBody and support write nothing, and the wide field (which a query could rebuild early, and
+ *  so change later steering) is never touched. */
+export function escapeOf(ctx: SimContext): { free: number; room: number; trapped: boolean } {
+  const W = ctx.world, P = ctx.player, r = partnerFootprint(P.species, ctx.rules), st = ctx.rules.player.stepHeight;
+  const standable = (x: number, z: number, feet: number) => {
+    const g = W.support(x, z, feet);
+    if (g === -Infinity) return -Infinity;
+    const kind = W.liquidAt(x, z, g, ctx.rules.hazards.contact);
+    return kind && !safeIn(ctx, kind, P.species) ? -Infinity : g;
+  };
+  let free = 0;
+  for (let h = 0; h < 16; h++) {
+    const a = (h * Math.PI) / 8;
+    W.moveBody(P.x, P.z, Math.sin(a) * 0.3, Math.cos(a) * 0.3, P.y, st, r, OUT);
+    if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], P.y) > -Infinity) free++;
+  }
+  // the lattice is the world's 0.5 m points (tile centres and corners: the middle of a one-tile and of a two-tile passage,
+  // where a footprint with little room to spare fits), seeded with those within 0.75 m the partner reaches from where it is
+  const key = (i: number, j: number) => (i + 2048) * 4096 + (j + 2048);
+  const cap = TRAP_ROOM * 4, seen = new Map<number, number>(), Q: number[] = [];
+  const reach = (x: number, z: number, feet: number, tx: number, tz: number) => {
+    W.moveBody(x, z, tx - x, tz - z, feet, st, r, OUT);
+    return Math.hypot(OUT[0] - tx, OUT[1] - tz) <= 0.05 ? standable(tx, tz, feet) : -Infinity;
+  };
+  const i0 = Math.round(P.x * 2), j0 = Math.round(P.z * 2);
+  for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
+    const tx = (i0 + di) / 2, tz = (j0 + dj) / 2;
+    if (Math.hypot(tx - P.x, tz - P.z) > 0.75) continue;
+    const g = reach(P.x, P.z, P.y, tx, tz);
+    if (g > -Infinity) { seen.set(key(i0 + di, j0 + dj), g); Q.push(key(i0 + di, j0 + dj)); }
+  }
+  for (let h = 0; h < Q.length && seen.size < cap; h++) {
+    const k = Q[h], i = Math.floor(k / 4096) - 2048, j = (k % 4096) - 2048, feet = seen.get(k)!;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nk = key(i + di, j + dj);
+      if (seen.has(nk)) continue;
+      const g = reach(i / 2, j / 2, feet, (i + di) / 2, (j + dj) / 2);
+      if (g > -Infinity) { seen.set(nk, g); Q.push(nk); }
+    }
+  }
+  const room = Math.min(TRAP_ROOM, seen.size / 4);
+  return { free, room, trapped: free === 0 || room < TRAP_ROOM };
+}
 
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
   const ctx: SimContext = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra } as never });
-  const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [] };
+  const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;
   const eAnchor = new Map<string, [number, number, number]>();
@@ -38,8 +96,10 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     if (ctx.tick % WIN === 0) {
       if (pAnchor && pTrying > WIN * 0.8 && Math.hypot(P.x - pAnchor[0], P.z - pAnchor[1]) < 0.5) { R.playerStuck++;
         let crowd = 0; for (let e = 0; e < E.hi; e++) if (E.alive[e] && Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 2.5) crowd++;
-        const pinned = pPath < 2; if (pinned) R.playerPinned++;
-        R.notes.push(`player ${pinned ? 'pinned' : 'oscillating'} at ${P.x.toFixed(1)},${P.z.toFixed(1)} y ${P.y.toFixed(1)} t ${ctx.time.toFixed(0)}, walked ${pPath.toFixed(1)} m, ${crowd} enemies within 2.5 m, ${P.holding ? 'holding' : ''}`); }
+        const pinned = pPath < 2, out = escapeOf(ctx); if (pinned) R.playerPinned++; if (out.trapped) R.playerTrapped++;
+        R.notes.push(`player ${out.trapped ? 'TRAPPED ' : ''}${pinned ? 'pinned' : 'oscillating'} (${out.free}/16 headings free, ${out.room >= TRAP_ROOM ? TRAP_ROOM + '+' : out.room} tiles reachable) at ${P.x.toFixed(1)},${P.z.toFixed(1)} y ${P.y.toFixed(1)} t ${ctx.time.toFixed(0)}, walked ${pPath.toFixed(1)} m, ${crowd} enemies within 2.5 m, ${P.holding ? 'holding' : ''}`); }
+      // STUCK_PROBE_ALL=1 runs the escape probe every window: a run with it must hash the same as one without
+      else if (process.env.STUCK_PROBE_ALL) escapeOf(ctx);
       pAnchor = [P.x, P.z, ctx.tick]; pTrying = 0; pPath = 0;
     }
     // enemies, sampled once a second
@@ -76,6 +136,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
       eAnchor.set(key, [E.x[e], E.z[e], ctx.tick]);
     }
   }
+  R.hash = stateHash(ctx).toString(16); // the sim state at the end (the probe must not move it)
   return R;
 }
 
@@ -83,12 +144,12 @@ if (process.argv[1]?.endsWith('stuckwatch.ts')) {
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), secs = Number(process.argv[4] ?? 120), first = Number(process.argv[5] ?? 1);
   const extra = process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {};
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];
-  let ps = 0, pp = 0, es = 0, hold = 0, samples = 0;
+  let ps = 0, pp = 0, pt = 0, es = 0, hold = 0, samples = 0;
   for (const map of maps) for (let s = first; s < first + N; s++) for (const species of ['totodile', 'feraligatr']) {
     const r = watch(map, s, secs, species, extra);
-    ps += r.playerStuck; pp += r.playerPinned; es += r.enemyStuck; hold += r.holding; samples += r.samples;
-    console.log(`${map} seed ${s} ${species.padEnd(10)} player stuck ${r.playerStuck} (pinned ${r.playerPinned}), enemy stuck ${r.enemyStuck} (of ${r.samples} enemy-seconds with a route), wide holding ${r.holding}`);
+    ps += r.playerStuck; pp += r.playerPinned; pt += r.playerTrapped; es += r.enemyStuck; hold += r.holding; samples += r.samples;
+    console.log(`${map} seed ${s} ${species.padEnd(10)} player stuck ${r.playerStuck} (pinned ${r.playerPinned}, trapped ${r.playerTrapped}), enemy stuck ${r.enemyStuck} (of ${r.samples} enemy-seconds with a route), wide holding ${r.holding}${process.env.STUCK_PROBE_ALL || process.env.STUCK_HASH ? ', end state ' + r.hash : ''}`);
     for (const n of r.notes) console.log('   ', n);
   }
-  console.log(`\nplayer stuck episodes ${ps} (pinned ${pp}: walked under 2 m in the 5 s; the rest walked back and forth); enemy stuck episodes ${es} over ${samples} enemy-seconds with a route; wide holding samples ${hold}`);
+  console.log(`\nplayer stuck episodes ${ps} (pinned ${pp}: walked under 2 m in the 5 s; the rest walked back and forth; TRAPPED ${pt}: no way out, a movement failure); enemy stuck episodes ${es} over ${samples} enemy-seconds with a route; wide holding samples ${hold}`);
 }
