@@ -5,6 +5,7 @@ import { botInput } from '../src/sim/bot';
 import { MODES } from '../src/mods';
 import { StateHasher } from '../src/sim/checksum';
 import { CLASSIC_REGIONS } from '../src/rules/spawning';
+import { withAim } from './lib/aimbot';
 import type { SimContext } from '../src/sim/types';
 
 /** hash built only from fields every version has (ctx.player), so it compares across refactors */
@@ -41,6 +42,9 @@ const which = process.argv[2] ?? 'all';
 // one shared partner radius, the classic region tables) prints the `on` hashes from before both, apart from the World.shore
 // fix that landed with them (a bank behind a wall is no longer preferred); every older set turns both off too.
 // `roster-off` keeps size-class bodies and only selects the classic tables. `gen-size-off` is `size-off` on `gen`.
+// Spatial aim (Phase 2B): `aim` covers it (the bot plus a crosshair ray); `aim-off` must print the `on` hashes exactly.
+// Spatial beams and the foliage cover rule (Phase 2C): `aim` covers them too; `aim-2b` (beams planar, foliage as cover)
+// must print the Phase 2B `aim` hashes exactly.
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS } };
 const SIZE_OFF = { size: { geometry: false }, ...CLASSIC };
 const SETS: Record<string, object | undefined> = {
@@ -55,13 +59,22 @@ const SETS: Record<string, object | undefined> = {
   // the classic generator everywhere (Pokémon locations off): must print the pre-location `gen` hashes exactly
   'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } },
   'gen-size-off': { worldgen: { mode: 'generated' }, ...SIZE_OFF },
+  // Phase 2B (docs/THIRD_PERSON_IMPLEMENTATION.md §13): the bot never aims, so no set above reaches the spatial aim. `aim`
+  // replays the `on` bot with a chase-style crosshair ray added to each input (withAim below): the direct shots then take
+  // the spatial path. `aim-off` sends the same rays with rules.aim.spatial off and must print the `on` hashes exactly
+  aim: undefined,
+  'aim-off': { aim: { spatial: false } },
+  // Phase 2C (§14): beams back on the planar path and foliage back to cover: the Phase 2B `aim` hashes exactly
+  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true } },
 };
+const AIMED = new Set(['aim', 'aim-off', 'aim-2b']);
+
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of CONFIGS) {
     const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: SETS[caps] as never });
     const marks: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
-      step(ctx, botInput(ctx));
+      step(ctx, AIMED.has(caps) ? withAim(ctx, botInput(ctx)) : botInput(ctx));
       if (ctx.tick % 3600 === 0) marks.push(legacyHash(ctx).toString(16));
     }
     console.log(`${caps.padEnd(9)}: ${species} seed ${seed} ${mode} ${seconds}s: ${marks.join(' ')} end=${legacyHash(ctx).toString(16)} lvl=${ctx.player.level} kills=${ctx.stats.kills}`);

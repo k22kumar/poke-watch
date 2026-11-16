@@ -150,6 +150,10 @@ export class ProjectilePool {
   /** Phase 8b: coat depth override (255 = by slot, as before), what happens where it ends (0 none, 1 Heat on the
    *  ground, 2 a Grass patch) and its radius, and an extra agent it carries (Slipstream; 0 none) */
   depth: Uint8Array; fx: Uint8Array; fxR: Float32Array; extra: Uint8Array;
+  /** Phase 2B: the trajectory model (0 = legacy: planar velocity, height set each tick by the map's rule; 1 = linear 3D:
+   *  x, y, z move by vx, vy, vz on swept ordered contacts, sim/effects.ts), its launch height (ox / oz are the launch
+   *  point) and the flight distance it has left (linear 3D only; it ends at 0) */
+  traj: Uint8Array; oy: Float32Array; rem: Float32Array;
 
   constructor(cap: number) {
     this.cap = cap;
@@ -166,6 +170,7 @@ export class ProjectilePool {
     this.weight = new Uint8Array(cap); this.pushP = new Uint8Array(cap); this.holdP = new Uint8Array(cap);
     this.heldT = F(); this.heldBtn = new Uint8Array(cap); this.src = new Int16Array(cap);
     this.depth = new Uint8Array(cap); this.fx = new Uint8Array(cap); this.fxR = F(); this.extra = new Uint8Array(cap);
+    this.traj = new Uint8Array(cap); this.oy = F(); this.rem = F();
   }
 
   spawn(): number {
@@ -177,6 +182,7 @@ export class ProjectilePool {
     this.hitN[i] = 0;
     this.weight[i] = 0; this.pushP[i] = 0; this.holdP[i] = 0; this.heldT[i] = 0; this.heldBtn[i] = 0; this.src[i] = -1;
     this.depth[i] = 255; this.fx[i] = 0; this.fxR[i] = 0; this.extra[i] = 0;
+    this.traj[i] = 0; this.oy[i] = 0; this.rem[i] = 0;
     this.t[i] = 0; this.vy[i] = 0; this.y[i] = 0; this.aoe[i] = 0; this.drain[i] = 0; this.target[i] = -1; this.size[i] = 1;
     for (let k = 0; k < HIT_RING; k++) this.hitE[i * HIT_RING + k] = -1;
     return i;

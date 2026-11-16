@@ -77,11 +77,19 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
 - **Aim = camera.** The aim point is the crosshair ray (screen centre) against the terrain, 4–26 m from the Pokémon, nudged by
   the lens' shoulder offset so shots converge on the crosshair. Move direction is camera-relative. The sim still receives an
   ordinary `aimX/aimZ`, so magnetism, Guard, Dash, Tag and every move work unchanged.
+  **Phase 2B (2026-11-16):** the host also sends the crosshair ray itself (`InputFrame.aim`, `aimRayOf(view)`). Under
+  `rules.aim.spatial` the sim traces it for the direct shots (bolt, orb): they leave the body's muzzle toward what the
+  crosshair is on, in 3D, with no magnetism or lead, and the crosshair turns red when cover stands between muzzle and target
+  (`docs/THIRD_PERSON_IMPLEMENTATION.md` §13). **Phase 2C:** beams take the same path: they leave the muzzle toward the
+  crosshair point, stop on the first wall, rise, slab or cliff their core meets, touch only bodies the core can see within
+  their width, and are drawn exactly from the muzzle to that end (§14). Foliage (bushes, hedges) is not cover for these
+  attacks; trees, rocks and walls are. Every other move still reads `aimX/aimZ`.
 - **Facing:** the sim turns the Pokémon toward its movement direction (and to the aim while a move is winding up), as before.
 
 ## View-state contract (Phase 1, 2026-11-16)
-Owner: the render-side rig (`ChaseRig`, `src/render/camera.ts`). The sim never reads it; it receives only the `aimX/aimZ` (and
-camera-relative `mx/mz`) the host writes into each `InputFrame`, so replays depend on recorded input alone.
+Owner: the render-side rig (`ChaseRig`, `src/render/camera.ts`). The sim never reads it; it receives only the `aimX/aimZ`, the
+crosshair ray `aim` (the sample's `eye` and `dir` through `Math.fround`, Phase 2B) and camera-relative `mx/mz` the host writes
+into each `InputFrame`, so replays depend on recorded input alone.
 
 - **`ChaseRig.look(dyaw, dpitch)`** applies yaw and pitch at once and recomposes the public view (`eye`, `viewPitch`,
   `target`) exactly as `update()` composes a frame: the lens turned about the pivot by the yaw change and swung up or down by
@@ -233,7 +241,8 @@ Right stick turns the camera. If the mouse is not captured, holding the right mo
 
 ## Not in yet (next phases)
 The hero-shooter migration (a 3D aim ray in the sim, attacks from the body, vertical combat, input buffering, shooter
-facing, headroom under decks) is planned in `docs/THIRD_PERSON_IMPLEMENTATION.md`. This file stays canonical for the rig as built.
+facing, headroom under decks) is planned in `docs/THIRD_PERSON_IMPLEMENTATION.md`; the aim ray and body-launched 3D direct
+shots landed in Phase 2B (its §13), beams in Phase 2C (its §14); the other move families have not moved yet. This file stays canonical for the rig as built.
 
 Rear-arc sim rules, compass, 3D audio (P1/P2); camera-relative sprite directions per creature with hysteresis, lock-on (P1);
 terrain mesh from the tile grid, instanced grass with a trample texture, shadows, the 3D pilot (P3).

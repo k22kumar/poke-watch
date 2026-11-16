@@ -226,7 +226,7 @@ export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec,
 export function launchShot(ctx: SimContext, i: number, ux: number, uz: number) {
   const Pr = ctx.projectiles, P = ctx.player, G = ctx.rules.combat;
   const sp = Math.max(10, dhypot(Pr.vx[i], Pr.vz[i])) * G.deflectSpeed;
-  Pr.kind[i] = PK.straight;
+  Pr.kind[i] = PK.straight; Pr.traj[i] = 0; // a launched (deflected, released) shot is planar again
   Pr.vx[i] = ux * sp; Pr.vz[i] = uz * sp; Pr.speed[i] = sp;
   Pr.dmg[i] = G.deflectDmg * (1 + 0.04 * (P.level - 1));
   Pr.pierce[i] = 1; Pr.radius[i] = Math.max(Pr.radius[i], 0.5);
@@ -295,7 +295,7 @@ function onShot(ctx: SimContext, ev: CapEvent): Outcome {
     }
     case 'hold': {
       if (ev.power < w) { logShot(ctx, 'hold', 'fail', i, ev.power); return 'fail'; }
-      Pr.kind[i] = PK.straight; Pr.vx[i] = Pr.vx[i] * 0.1; Pr.vz[i] = Pr.vz[i] * 0.1;
+      Pr.kind[i] = PK.straight; Pr.traj[i] = 0; Pr.vx[i] = Pr.vx[i] * 0.1; Pr.vz[i] = Pr.vz[i] * 0.1;
       Pr.heldT[i] = holdSeconds(ctx); Pr.heldBtn[i] = holdButton(ctx, ev.slot ?? -1); Pr.move[i] = -1;
       ctx.events.push({ t: 'push', x: Pr.x[i], z: Pr.z[i], ok: true, combined: false });
       logShot(ctx, 'hold', 'catch', i, ev.power);

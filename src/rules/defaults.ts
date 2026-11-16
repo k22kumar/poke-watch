@@ -34,6 +34,50 @@ export const defaultRules = {
     gridCell: 3, // [C] spatial grid cell (m)
     chests: 6, // [B] drawn from each arena's designed chest spots
   },
+  // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
+  // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
+  spatial: {
+    /** [C] m (per axis) an enemy may move between the grid rebuild (gridSystem) and a query later in the same tick; the
+     *  actor broad phase widens by it. Walking and knockback give < 0.5 m; a footprint pushed out of a wall after a fall
+     *  moves up to 2 pushes of bodyCap (an Extra Large Snorlax moved 1.04 m on one axis, tests/spatial.test.ts) */
+    gridSlack: 2.5,
+    /** [C] s an enemy cannot be hit after it spawns (the 0.25 s spawn guard of effects.ts, as a rule) */
+    spawnGuard: 0.25,
+  },
+  // Spatial aim and 3D direct shots (src/sim/aim.ts, docs/THIRD_PERSON_IMPLEMENTATION.md §13). Applies only when the
+  // input carries the chase camera's crosshair ray (InputFrame.aim), the cast is player-aimed (combat.mode 'aimed', or
+  // 'assist' for slots 1-3) and its archetype is listed: the sim traces the ray, launches from the body's muzzle toward
+  // the point it meets, and the shot flies its own straight 3D line on swept, ordered contacts. No magnetism and no
+  // lead on that path. The bot and the fixed views send no ray, so every replay checksum set is unchanged.
+  aim: {
+    /** [C] false = every cast takes the planar path (aimX/aimZ, magnetism, lead, shots at the shooter's height) */
+    spatial: true,
+    /** [C] the archetypes on the spatial path: the direct linear shots (others keep their own targeting until their stage) */
+    archetypes: ['bolt', 'orb', 'beam'] as string[],
+    /** [C] m the crosshair ray is traced past the partner's plane: how far the aim can see. It never extends a shot */
+    sightRange: 80,
+    /** [C] m: an aim point closer to the muzzle than this, or behind it, fires along the crosshair ray instead (point blank) */
+    convergeMin: 0.5,
+    /** [B] the muzzle: `up` × the partner's class height above its feet, `fwd` × its footprint (hurt radius with size
+     *  geometry off) ahead along the aim's heading. Size classes scale it (Tiny 0.36 m up, Extra Large 1.44 m) */
+    muzzle: { up: 0.6, fwd: 0.9 },
+    /** [B] per-archetype or per-move-key overrides of the muzzle (a move key wins over its archetype) */
+    muzzleBy: {} as Record<string, { up?: number; fwd?: number }>,
+    /** [B] a spatial shot's reach from its muzzle = range × reachMult + speed × reachPad: the distance a legacy shot of
+     *  the same move flies (its life is range / speed × 1.25 + 0.2 s), so moving onto this path changes no range */
+    reachMult: 1.25, reachPad: 0.2,
+    /** [C] the shot's radius against the world (m, < 1): 0 = a ray, so a shot skims floors and passes wall corners by
+     *  its centre line; its full radius applies against bodies */
+    worldRadius: 0,
+    /** [C] Phase 2C: a beam's core radius against the world (m, < 1): 0 = its centre line meets walls, floors and slabs,
+     *  so it passes beside a corner; its full width (the move's radius) applies against bodies, and only to bodies the
+     *  core can see (moves.ts beam3D) */
+    beamWorldRadius: 0,
+    /** [C] Phase 2C: true = foliage (props whose material has blocksShots false: bushes, hedges, berry bushes,
+     *  mushrooms) is cover for every spatial trace, as in Phase 2B; false = it is open air above its ground (the
+     *  authored material rule). Tree trunks, rock masses, buildings, rocks and grave markers block either way */
+    foliageCover: false,
+  },
   player: {
     radius: 0.55, // [C]
     gravity: 30, // [C]

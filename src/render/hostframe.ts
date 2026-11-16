@@ -10,6 +10,14 @@
 // The camera's clock advances only in step 4, once per frame; steps 1-2 never advance it. The sim receives only what
 // tick() writes into its InputFrame (aimX/aimZ today), so replays depend on recorded input, never on renderer state.
 
+/** The crosshair ray of a view sample as the sim receives it (InputFrame.aim, docs/THIRD_PERSON_IMPLEMENTATION.md §13):
+ *  the lens and the unit view axis (the crosshair is the screen centre, RETICLE_Y = 0.5), each through Math.fround so a
+ *  recording stores exactly what the sim saw. Built once per frame from the frame's one sample, never from the live rig. */
+export function aimRayOf(view: { readonly eye: readonly number[]; readonly dir: readonly number[] }): { ox: number; oy: number; oz: number; dx: number; dy: number; dz: number } {
+  const f = Math.fround;
+  return { ox: f(view.eye[0]), oy: f(view.eye[1]), oz: f(view.eye[2]), dx: f(view.dir[0]), dy: f(view.dir[1]), dz: f(view.dir[2]) };
+}
+
 /** what one look gesture turns the camera by: radians of yaw (+ right) and pitch (+ down) from the mouse movement
  *  since the last frame (px, pointer-locked) and the right stick (-1..1, scaled by the frame time), or null for none */
 export function lookDelta(mouse: readonly [number, number], stick: readonly [number, number], dt: number, sens: number, invertY: boolean): [number, number] | null {

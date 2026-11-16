@@ -22,6 +22,9 @@ export interface Chest { x: number; z: number; open: boolean }
 const UNREACHED = 0x7fff;
 /** an overhead deck is the surface for anything whose feet (or shot) are within this many metres below its top */
 export const DECK_REACH = 0.9;
+/** an overhead deck is a slab this thick: solid from its underside (top − DECK_SLAB) to its top (render/tilestage.ts
+ *  draws the same 0.6 m). DECK_REACH is the layer-selection reach, not geometry */
+export const DECK_SLAB = 0.6;
 
 export class World {
   readonly size: number;
@@ -248,7 +251,7 @@ export class World {
     const k = this.tile(x, z);
     if (k < 0) return Infinity;
     const ov = this.over[k];
-    return ov > 0 && y < ov - DECK_REACH ? ov - 0.6 : Infinity;
+    return ov > 0 && y < ov - DECK_REACH ? ov - DECK_SLAB : Infinity;
   }
 
   /** navigation node for a walker at (x, z) with its feet at `y`: the tile, or n + tile on a deck; -1 outside */

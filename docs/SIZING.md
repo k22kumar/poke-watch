@@ -58,12 +58,14 @@ Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The cl
 | Enemy vertical hit window, hit-number height | class height × role size (`E.tall`) | `src/sim/effects.ts`, `combat.ts`, `hazards.ts`, `cells.ts`, `coats.ts` |
 | Partner collision and hurt radius | class radius clamped to `rules.size.playerRadius` (0.48–0.72 m) | `partnerRadius`, read by `effects.ts`, `enemies.ts`, `bodies.ts`, `objectives.ts`, `cells.ts`, `hazards.ts` |
 | Partner vertical hurt window | class height | `partnerHeight`, `effects.ts` |
+| Spatial shot and beam muzzle (Phase 2B, beams Phase 2C) | class height × `rules.aim.muzzle.up` (0.6) above the feet, footprint × `muzzle.fwd` (0.9) ahead | `src/sim/aim.ts` (`resolveSpatial`); beams `src/sim/moves.ts` (`beam3D`) |
+| Spatial beam contact (Phase 2C) | enemy cylinder `E.y .. E.y + E.tall` × `E.radius` (class × role) met by the beam's half-width, up and sideways | `src/sim/moves.ts` (`beam3D`) through `src/sim/spatial.ts` `sweep` |
 | Wall and terrain collision | footprint (`footprintOf`, `partnerFootprint`) | `World.moveBody`, read by `player.ts`, `enemies.ts`, `bodies.ts` (resting-body contact) |
 | Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
 | Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
 
-Shots still leave a partner from a fixed +0.8 m, so muzzle and eye heights for the habitat validator stay on the sprite-derived heights.
+Planar (legacy) shots still leave a partner from a fixed +0.8 m, so muzzle and eye heights for the habitat validator stay on the sprite-derived heights. Spatial shots (the chase camera's direct shots, `docs/THIRD_PERSON_IMPLEMENTATION.md` §13) leave from the class muzzle in the row above: Tiny 0.36 m, Medium 0.72 m, Extra Large 1.44 m up.
 
 - **The neutral asset reference.** The renderer divides by the idle frame 0 facing the camera: `CreatureArt.heightPx / 16`. This is never the frame being drawn, so proportions and feet anchors survive animation.
 - **Wide normalisation.** An idle frame at least `rules.size.wideRatio` (1.5) times wider than tall is normalised on `width / 1.5` instead of its height. This applies to long and low bodies such as Lapras, Cetoddle and Diglett's mound, so they are not drawn oversized.

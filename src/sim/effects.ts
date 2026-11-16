@@ -56,6 +56,8 @@ import { TAG_SLOT } from './squad';
 import { guardWeight, onGuardDeflect } from './techniques';
 import { brambleAt } from './cells';
 import { resolve } from './capabilities';
+import { Contacts, MASK, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
+import { combatFlags } from './aim';
 
 const ds: DamageSpec = { element: 'plain', cls: 'special', ailment: 'knock', chance: 0, knock: 0, kx: 0, kz: 0, drain: 0, source: '' };
 
@@ -105,6 +107,61 @@ function explode(ctx: SimContext, i: number) {
   void brambleAt;
 }
 
+/** Phase 2B: a spatial shot ended at (x, y, z): it stops there (Kindle's heat is put down at that point) */
+function shotEnd(ctx: SimContext, i: number, why: 'world' | 'actor' | 'range', kind: number, x: number, y: number, z: number) {
+  const Pr = ctx.projectiles;
+  Pr.x[i] = x; Pr.y[i] = y; Pr.z[i] = z;
+  ctx.events.push({ t: 'shotEnd', why, kind, x: Pr.x[i], y: Pr.y[i], z: Pr.z[i], element: ELEMENTS[Pr.element[i]] });
+  endShot(ctx, i);
+}
+
+const LIN = new Contacts(32);
+/** every actor in order (pierce is counted below, so repeat contacts with an actor already hit spend none) */
+const LINQ = spatialQuery({ mask: MASK.shot, block: SK.enemy | SK.body, pierce: Infinity, selfKind: SK.player, selfId: 0 });
+
+/**
+ * Phase 2B: one tick of a linear 3D player shot (Pr.traj 1: bolt and orb launched by the spatial aim, sim/aim.ts). It
+ * moves along its own velocity, x / y / z alike, with no gravity and no tie to the shooter or the ground. The tick's
+ * whole path is swept (src/sim/spatial.ts) with the shot's radius against bodies and rules.aim.worldRadius against the
+ * world, and the contacts apply in the order the shot reaches them: each enemy or body once (as before), spending a
+ * pierce; the first world solid, or the actor that uses up the last pierce, ends it there. Its flight is its reach
+ * from the muzzle (Pr.rem), clipped exactly on the last tick, so it can never hit past it.
+ */
+function flyLinear(ctx: SimContext, i: number, dt: number) {
+  const Pr = ctx.projectiles;
+  const vx = Pr.vx[i], vy = Pr.vy[i], vz = Pr.vz[i], v = Math.sqrt(vx * vx + vy * vy + vz * vz), rem = Pr.rem[i];
+  const x0 = Pr.x[i], y0 = Pr.y[i], z0 = Pr.z[i];
+  if (!(v > 0) || !(rem > 0)) { shotEnd(ctx, i, 'range', 0, x0, y0, z0); return; }
+  const seg = Math.min(v * dt, rem), ux = vx / v, uy = vy / v, uz = vz / v;
+  // a Bulwark's shield stops shots coming at its front (the legacy rule, at the end of the tick's motion)
+  if (ctx.director.bulwarks.length) {
+    Pr.x[i] = x0 + ux * seg; Pr.z[i] = z0 + uz * seg;
+    const b = blockedByBulwark(ctx, i);
+    Pr.x[i] = x0; Pr.z[i] = z0;
+    if (b) { shotEnd(ctx, i, 'actor', SK.enemy, x0 + ux * seg, y0 + uy * seg, z0 + uz * seg); return; }
+  }
+  LINQ.actorR = Pr.radius[i]; LINQ.actorH = Pr.radius[i]; LINQ.worldR = ctx.rules.aim.worldRadius; LINQ.flags = combatFlags(ctx);
+  const n = sweep(ctx, x0, y0, z0, ux, uy, uz, seg, LINQ, LIN);
+  const E = ctx.enemies;
+  for (let k = 0; k < n; k++) {
+    const kind = LIN.kind[k], id = LIN.id[k];
+    if (kind & SK_WORLD) { shotEnd(ctx, i, 'world', kind, LIN.x[k], LIN.y[k], LIN.z[k]); return; }
+    if (kind === SK.enemy) {
+      if (Pr.recentlyHit(i, id, ctx.time)) continue;
+      Pr.markHit(i, id, ctx.time + 999);
+      damageEnemy(ctx, id, Pr.dmg[i], fill(ctx, i, vx || E.x[id] - x0, vz || E.z[id] - z0));
+    } else {
+      if (ctx.bodies.holdT[id] > 0 || Pr.recentlyHit(i, -2 - id, ctx.time)) continue; // your own effects pass a body you hold
+      Pr.markHit(i, -2 - id, ctx.time + 999);
+      effectOnBody(ctx, id, Pr.move[i], Pr.dmg[i], Pr.element[i], vx, vz, Pr.pushP[i], Pr.holdP[i]);
+    }
+    if (Pr.pierce[i] >= 0 && --Pr.pierce[i] < 0) { shotEnd(ctx, i, 'actor', kind, LIN.x[k], LIN.y[k], LIN.z[k]); return; }
+  }
+  Pr.x[i] = x0 + ux * seg; Pr.y[i] = y0 + uy * seg; Pr.z[i] = z0 + uz * seg;
+  Pr.rem[i] = rem - seg;
+  if (!(Pr.rem[i] > 1e-6)) shotEnd(ctx, i, 'range', 0, Pr.x[i], Pr.y[i], Pr.z[i]);
+}
+
 export const projectileSystem = {
   name: 'projectiles',
   update(ctx: SimContext, dt: number) {
@@ -124,6 +181,9 @@ export const projectileSystem = {
       const kind = Pr.kind[i];
       // shots leave their element on the ground they cross: Embers light grass, Water Gun wets it…
       if ((ctx.tick + i) % 3 === 0 && kind !== PK.lob && kind !== PK.orbit) applyAgent(ctx, agentOf(ELEMENTS[Pr.element[i]]), Pr.x[i], Pr.z[i], 0.5);
+
+      // Phase 2B: a linear 3D shot flies its own line (anything that made it another kind takes it off that line)
+      if (Pr.traj[i] === 1) { if (kind === PK.straight) { flyLinear(ctx, i, dt); continue; } Pr.traj[i] = 0; }
 
       if (kind === PK.hostile) {
         Pr.x[i] += Pr.vx[i] * dt;

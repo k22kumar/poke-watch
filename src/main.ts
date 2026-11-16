@@ -8,7 +8,7 @@ import { BIOMES, STAGES } from './rules/stages';
 import { SPECIES_BY_ID } from './rules/species';
 import { SPAWN_PRESETS, type SpawnPoolDef } from './rules/spawning';
 import { Renderer } from './render/renderer';
-import { lookDelta, runFrame } from './render/hostframe';
+import { aimRayOf, lookDelta, runFrame } from './render/hostframe';
 import type { ViewSample } from './render/camera';
 import { botInput } from './sim/bot';
 import { damagePlayer, killEnemy } from './sim/combat';
@@ -224,6 +224,9 @@ function sampleInput(c: SimContext, view: ViewSample | null): InputFrame {
   else if (input.aimSource === 'mouse' && input.mouseSeen) aim = renderer.groundAt(input.mouseX, input.mouseY, P.y);
   else if (input.aimSource === 'stick') aim = [P.x + input.stickAim[0] * 8, P.z + input.stickAim[1] * 8];
   if (aim && c.rules.combat.mode !== 'auto') { inp.aimX = aim[0]; inp.aimZ = aim[1]; }
+  // third person: the crosshair ray itself (InputFrame.aim). The sim traces it for the direct shots under
+  // rules.aim.spatial (sim/aim.ts); every other move keeps reading aimX/aimZ
+  if (renderer.chase && view && c.rules.combat.mode !== 'auto') { inp.aim = aimRayOf(view); inp.aimDev = input.pad() || input.aimSource === 'stick' ? 'stick' : 'mouse'; }
   renderer.aim.on = !!aim && c.rules.combat.mode !== 'auto' && c.state === 'play';
   if (aim) { renderer.aim.x = aim[0]; renderer.aim.z = aim[1]; }
   return inp;
@@ -326,7 +329,9 @@ document.body.appendChild(lockHint);
 const xhair = document.createElement('div');
 xhair.setAttribute('aria-hidden', 'true');
 xhair.style.cssText = `position:fixed;left:50%;top:${RETICLE_Y * 100}%;width:28px;height:28px;margin:-14px 0 0 -14px;pointer-events:none;z-index:4;display:none`;
-xhair.innerHTML = '<svg width="28" height="28" viewBox="-14 -14 28 28" fill="none" stroke-linecap="round"><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#20283a" stroke-width="4.5"/><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#fff" stroke-width="2"/><circle r="1.5" fill="#fff" stroke="#20283a" stroke-width="1"/></svg>';
+const XHAIR = '<svg width="28" height="28" viewBox="-14 -14 28 28" fill="none" stroke-linecap="round"><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#20283a" stroke-width="4.5"/><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#fff" stroke-width="2"/><circle r="1.5" fill="#fff" stroke="#20283a" stroke-width="1"/></svg>';
+const XHAIR_BLOCKED = '<svg width="28" height="28" viewBox="-14 -14 28 28" fill="none" stroke-linecap="round"><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10M-4-4L4 4M4-4L-4 4" stroke="#20283a" stroke-width="4.5"/><path d="M-10 0H-5M5 0H10M0-10V-5M0 5V10" stroke="#ff6b5e" stroke-width="2"/><path d="M-4-4L4 4M4-4L-4 4" stroke="#ff6b5e" stroke-width="2"/></svg>';
+xhair.innerHTML = XHAIR;
 document.body.appendChild(xhair);
 function updateLockHint(c: SimContext | null) {
   const show = !!c && renderer.chase && !paused && c.state === 'play' && !ui.trayOpen() && !input.locked && input.context === 'play' && !input.pad();
@@ -334,6 +339,10 @@ function updateLockHint(c: SimContext | null) {
   if (lockHint.style.display !== want) lockHint.style.display = want;
   const xh = !!c && renderer.chase && renderer.aim.on && !paused && c.state === 'play' && !ui.trayOpen() && !ui.menuOpen() ? 'block' : 'none';
   if (xhair.style.display !== xh) xhair.style.display = xh;
+  // the sim's spatial aim (ctx.aim): the crosshair turns red with a cross when cover stands between the Pokémon's muzzle
+  // and what the crosshair is on (the shot will stop there), and dims when that point is past the shot's reach
+  const st = !!c && c.aim.on ? (c.aim.blocked ? 'blocked' : c.aim.hitKind && c.aim.dist > c.aim.reach ? 'far' : 'clear') : 'clear';
+  if (xhair.dataset.state !== st) { xhair.dataset.state = st; xhair.innerHTML = st === 'blocked' ? XHAIR_BLOCKED : XHAIR; xhair.style.opacity = st === 'far' ? '0.55' : '1'; }
 }
 
 /** HUD markers that tell where things are when the low camera cannot see them: the objective arrow (also when it is

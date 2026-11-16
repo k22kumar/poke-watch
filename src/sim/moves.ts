@@ -12,12 +12,14 @@ import type { Rules } from '../rules/defaults';
 import { compileCaps } from '../rules/capabilities';
 import { ailmentIndex, damageEnemy, healPlayer, type DamageSpec } from './combat';
 import { PK, ZK } from './pools';
-import { eachBodyIn, holdPower, moveOnBody, pushPower, TEAM } from './bodies';
+import { eachBodyIn, holdPower, moveOnBody, pushPower, TEAM, tpl } from './bodies';
 import { currentCastSlot, forceOnShots, setCastSlot } from './capabilities';
 import { forceOnPropsIn } from './props';
 import { shotWeight } from '../rules/capabilities';
 import { agentOf, applyAgent } from './cells';
-import { BTN, type MoveSlot, type MoveSpec, type SimContext } from './types';
+import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
+import { beamLength, combatFlags, resolveSpatial, shotReach, spatialFor } from './aim';
+import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
 import { TB } from '../rules/build';
 import { tech, techSpec } from './techniques';
 import { AG } from '../rules/reactions';
@@ -211,6 +213,20 @@ function spawnProjectile(ctx: SimContext, kind: number, spec: MoveSpec, x: numbe
   return i;
 }
 
+/** Phase 2B: a linear 3D shot (Pr.traj 1) from the spatial aim's muzzle along the unit (ux, uy, uz): the legacy shot's
+ *  fields, then its own launch point, 3D velocity and reach (sim/effects.ts flies it; nothing reads the shooter again) */
+function spawnShot3D(ctx: SimContext, spec: MoveSpec, ux: number, uy: number, uz: number, slotIndex: number) {
+  const i = spawnProjectile(ctx, PK.straight, spec, A3.ox, A3.oz, ux, uz, slotIndex);
+  if (i < 0) return -1;
+  const Pr = ctx.projectiles, reach = shotReach(ctx, spec);
+  Pr.traj[i] = 1;
+  Pr.y[i] = A3.oy; Pr.oy[i] = A3.oy;
+  Pr.vx[i] = ux * spec.speed; Pr.vy[i] = uy * spec.speed; Pr.vz[i] = uz * spec.speed;
+  Pr.rem[i] = reach;
+  Pr.life[i] = Pr.maxLife[i] = spec.speed > 0 ? reach / spec.speed : 1;
+  return i;
+}
+
 function spawnZone(ctx: SimContext, kind: number, spec: MoveSpec, x: number, z: number, r: number, life: number, slotIndex: number) {
   const Z = ctx.zones;
   const i = Z.spawn();
@@ -232,6 +248,8 @@ function spawnZone(ctx: SimContext, kind: number, spec: MoveSpec, x: number, z: 
 // Assist/auto, or no aim input (bot, idle stick): the nearest enemy, as the original game did.
 interface Aim { manual: boolean; t: number; ux: number; uz: number; px: number; pz: number }
 const AIM: Aim = { manual: false, t: -1, ux: 0, uz: 1, px: 0, pz: 0 };
+/** Phase 2B: the spatial aim of the cast being resolved (sim/aim.ts); A3.on only while that cast is on the spatial path */
+const A3 = freshAimState();
 const MELEE = new Set(['strike', 'cone', 'spin', 'dash', 'aura', 'nova']);
 /** button bit for each move slot: slot 0 is the basic attack (primary fire; automatic only in 'auto' mode) */
 export const SLOT_BTN = [BTN.basic, BTN.a, BTN.b, BTN.sig];
@@ -281,6 +299,15 @@ export function resolveAim(ctx: SimContext, s: MoveSpec, manual: boolean, basic:
   const P = ctx.player, E = ctx.enemies, C = ctx.rules.combat;
   const reach = Math.max(s.range, 3) + 1;
   AIM.manual = manual;
+  // Phase 2B: a direct shot aimed through the chase camera: the sim's own trace of the crosshair ray, no magnetism
+  A3.on = false;
+  if (spatialFor(ctx, s, manual, basic) && resolveSpatial(ctx, s, A3)) {
+    const hl = dhypot(A3.ux, A3.uz);
+    AIM.t = A3.hitKind === SK.enemy ? A3.hitId : -1;
+    AIM.ux = hl > 1e-6 ? A3.ux / hl : dsin(P.facing); AIM.uz = hl > 1e-6 ? A3.uz / hl : dcos(P.facing);
+    AIM.px = A3.tx; AIM.pz = A3.tz;
+    return true;
+  }
   if (!aimedFor(ctx, basic)) {
     const t = nearestEnemy(ctx, P.x, P.z, reach);
     if (t >= 0) { setAimAt(ctx, t); return true; }
@@ -470,6 +497,7 @@ export const ARCHETYPES: Record<string, Archetype> = {
     cast(ctx, s) {
       const p = P(ctx), E = ctx.enemies;
       if (AIM.t < 0 && !AIM.manual) return false;
+      if (A3.on) return beam3D(ctx, s);
       const ux = AIM.ux, uz = AIM.uz;
       const len = s.range * ctx.player.derived.area;
       const n = enemiesInRadius(ctx, p.x + ux * len * 0.5, p.z + uz * len * 0.5, len * 0.5 + 1);
@@ -713,10 +741,100 @@ export const ARCHETYPES: Record<string, Archetype> = {
   },
 };
 
+// ------------------------------------------------------------------ Phase 2C: the spatial beam
+// docs/THIRD_PERSON_IMPLEMENTATION.md §14. A beam on the spatial path is one core line from the muzzle M along the
+// resolved aim direction u (sim/aim.ts: M toward the crosshair point T), out to its length (range × area):
+//   1. the core against the world: the first solid it enters (wall column, terrain, deck slab, liquid surface, map
+//      bounds; foliage by combatFlags) ends it there, with rules.aim.beamWorldRadius as its radius (0: a line)
+//   2. the width against bodies: enemies and rocks whose cylinder the beam's volume (radius = the move's radius, as
+//      wide vertically) meets before that end, in contact order; one is touched only when the core can see it (the
+//      segment from the core's closest point to the body's nearest point is clear), so the width never reaches around a
+//      corner or through a slab beside the line
+//   3. penetration: the move's pierce (−1: every body on the line, as every beam is authored); a pierce ≥ 0 ends the
+//      beam on the body that uses it up
+// What is drawn is what hit: the beam event runs from M to the end in 3D, and every body damaged lies inside that
+// band. The ground agents, a Push or Hold on enemy shots and the knockback stay planar (under the clipped beam, along
+// its heading), as for the direct shots.
+/** the beam's contacts: room for every enemy and body in the pools (beamContacts), so the list never truncates and drops a
+ *  far body the beam reaches (a 15 m beam through a 500-enemy Mt. Moon crowd met 323) */
+let BEAMC = new Contacts(64);
+function beamContacts(ctx: SimContext): Contacts {
+  const need = ctx.enemies.cap + ctx.bodies.cap;
+  if (BEAMC.cap < need) BEAMC = new Contacts(need);
+  return BEAMC;
+}
+/** enemies in their spawn guard included: the planar beam (like every area) hits them too, unlike a shot */
+const BEAMQ = spatialQuery({ mask: SK.enemy | SK.body, block: SK.enemy | SK.body, pierce: Infinity, selfKind: SK.player, selfId: 0, flags: QF.spawning });
+const BEAMW = new RayHit();
+
+/** can the beam's core (from M along u, up to `end`) see actor (kind, id)? The core's closest point to the actor's
+ *  centre, then the actor cylinder's nearest point to that: the open segment between them must be clear */
+function coreSees(ctx: SimContext, mx: number, my: number, mz: number, ux: number, uy: number, uz: number, end: number, kind: number, id: number, cf: number): boolean {
+  let ax: number, az: number, yb: number, yt: number, r: number;
+  if (kind === SK.enemy) { const E = ctx.enemies; ax = E.x[id]; az = E.z[id]; yb = E.y[id]; yt = yb + E.tall[id]; r = E.radius[id]; }
+  else { const B = ctx.bodies; r = tpl(ctx, id).radius; ax = B.x[id]; az = B.z[id]; yb = B.y[id]; yt = yb + 2 * r; }
+  const lim = end > 1e-4 ? end - 1e-4 : 0;
+  let t = (ax - mx) * ux + ((yb + yt) / 2 - my) * uy + (az - mz) * uz;
+  t = t < 0 ? 0 : t > lim ? lim : t;
+  const qx = mx + ux * t, qy = my + uy * t, qz = mz + uz * t;
+  const hx = qx - ax, hz = qz - az, hl = Math.sqrt(hx * hx + hz * hz);
+  const px = hl > r ? ax + (hx / hl) * r : qx, pz = hl > r ? az + (hz / hl) * r : qz, py = qy < yb ? yb : qy > yt ? yt : qy;
+  return segmentClear(ctx.world, qx, qy, qz, px, py, pz, MASK.los, cf);
+}
+
+function beam3D(ctx: SimContext, s: MoveSpec): boolean {
+  const p = P(ctx), cf = combatFlags(ctx);
+  const mx = A3.ox, my = A3.oy, mz = A3.oz, ux = A3.ux, uy = A3.uy, uz = A3.uz;
+  const hl = dhypot(ux, uz), hx = hl > 1e-6 ? ux / hl : dsin(p.facing), hz = hl > 1e-6 ? uz / hl : dcos(p.facing);
+  const len = beamLength(ctx, s);
+  // 1. the core against the world
+  let end = len, why: 'world' | 'actor' | 'range' = 'range', endKind = 0;
+  if (raycastWorld(ctx.world, mx, my, mz, ux, uy, uz, len, SK_WORLD, BEAMW, ctx.rules.aim.beamWorldRadius, 0, cf)) { end = BEAMW.t; why = 'world'; endKind = BEAMW.kind; }
+  // 2-3. the width against bodies, in contact order, up to that end
+  BEAMQ.actorR = s.radius; BEAMQ.actorH = s.radius;
+  const BC = beamContacts(ctx), n = sweep(ctx, mx, my, mz, ux, uy, uz, end, BEAMQ, BC);
+  let pierce = s.pierce < 0 ? Infinity : s.pierce, hits = 0;
+  for (let k = 0; k < n; k++) {
+    const kind = BC.kind[k], id = BC.id[k];
+    if (kind === SK.body && ctx.bodies.holdT[id] > 0) continue; // your own effects pass a body you hold
+    if (!coreSees(ctx, mx, my, mz, ux, uy, uz, end, kind, id, cf)) continue;
+    if (kind === SK.enemy) damageEnemy(ctx, id, s.dmg, dspec(s, hx, hz));
+    else moveOnBody(ctx, id, s, s.dmg, hx, hz);
+    hits++;
+    if (!(pierce > 0)) { end = BC.t[k]; why = 'actor'; endKind = kind; break; }
+    pierce--;
+  }
+  const ex = mx + ux * end, ey = my + uy * end, ez = mz + uz * end, endH = end * hl;
+  // planar side effects, under the clipped beam: enemy shots it crosses, the ground it paints
+  forceOnShots(ctx, pushPower(s), holdPower(s), s.element, TEAM.player, s.name, currentCastSlot(), (x, z, r) => {
+    const bx = x - mx, bz = z - mz, along = bx * hx + bz * hz;
+    return along >= 0 && along <= endH && Math.abs(bx * hz - bz * hx) <= s.radius + r;
+  }, () => [hx, hz]);
+  { const ag = agentOf(s.element); if (ag) for (let d = 1; d <= endH; d += 1.5) applyAgent(ctx, ag, mx + hx * d, mz + hz * d, Math.max(0.6, s.radius)); }
+  p.facing = datan2(hx, hz);
+  ctx.events.push({ t: 'beam', x1: mx, z1: mz, x2: ex, z2: ez, y1: my, y2: ey, width: s.radius, element: s.element, life: s.duration, why, kind: endKind, hits });
+  ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx: ex, tz: ez, key: s.key,
+    o: { o: [mx, my, mz], t: [A3.tx, A3.ty, A3.tz], kind: A3.hitKind, blocked: A3.blocked } });
+  return true;
+}
+
 function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): boolean {
   const p = P(ctx), E = ctx.enemies;
   const t = AIM.t;
   if (t < 0 && !AIM.manual) return false;
+  if (A3.on) {
+    // Phase 2B: from the muzzle toward the crosshair point, in 3D; a fan keeps its pitch and turns about the vertical
+    const sp = s.spread ?? spread;
+    for (let k = 0; k < s.count; k++) {
+      const off = (k - (s.count - 1) / 2) * sp;
+      if (off === 0) spawnShot3D(ctx, s, A3.ux, A3.uy, A3.uz, slot);
+      else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + A3.uz * n, A3.uy, A3.uz * c - A3.ux * n, slot); }
+    }
+    p.facing = datan2(AIM.ux, AIM.uz);
+    ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx: A3.tx, tz: A3.tz, key: s.key,
+      o: { o: [A3.ox, A3.oy, A3.oz], t: [A3.tx, A3.ty, A3.tz], kind: A3.hitKind, blocked: A3.blocked } });
+    return true;
+  }
   let base: number;
   if (t >= 0) {
     // lead the target a little
@@ -760,6 +878,7 @@ export const movesSystem = {
   name: 'moves',
   update(ctx: SimContext, dt: number) {
     const p = ctx.player;
+    ctx.aim.on = false;
     if (p.m.fainted) return;
     // while Tag is held, primary and secondary fire (basic attack, Move A) pick a reserve instead of casting
     const btn = (ctx.input.btn ?? 0) & ((ctx.input.btn ?? 0) & BTN.sig ? ~(BTN.basic | BTN.a | BTN.b) : ~0);
@@ -810,6 +929,7 @@ export const movesSystem = {
       p.aimT = w + 0.18;
       ctx.events.push({ t: 'windup', archetype: spec.archetype, element: spec.element, slot: i, dur: w, tx: AIM.px, tz: AIM.pz, key: spec.key });
     }
+    presentAim(ctx);
     // trail emitter
     if (p.trailT > 0 && p.trailSpec) {
       p.trailT -= dt;
@@ -824,6 +944,19 @@ export const movesSystem = {
     if (ctx.weather.t > 0) { ctx.weather.t -= dt; if (ctx.weather.t <= 0) ctx.weather.element = null; }
   },
 };
+
+/** Phase 2B: the spatial aim of the primary direct shot (the basic attack if it is one, else the first such slot), for
+ *  the HUD (ctx.aim): what the crosshair rests on, the muzzle, and whether cover stands between. Presentation only */
+function presentAim(ctx: SimContext) {
+  const p = ctx.player;
+  if (!ctx.rules.aim.spatial || !ctx.input.aim || ctx.state !== 'play') return;
+  for (let i = 0; i < p.moves.length; i++) {
+    const s = slotSpec(ctx, i);
+    if (!ctx.rules.aim.archetypes.includes(s.archetype)) continue;
+    if (spatialFor(ctx, s, needsButton(ctx) && !(i === 0 && ctx.rules.combat.basicNeedsTarget), i === 0)) resolveSpatial(ctx, s, ctx.aim);
+    return;
+  }
+}
 
 /** cast slot i (Phase 8b bookkeeping around the archetype: uses, Pressure Jet's root, Slipstream's copied coat) */
 function fire(ctx: SimContext, impl: Archetype, spec: MoveSpec, i: number): boolean {

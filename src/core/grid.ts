@@ -6,11 +6,18 @@ export class Grid {
   readonly extent: number; // world spans [-extent/2, extent/2]
   readonly dim: number;
   private counts: Int32Array;
-  private starts: Int32Array;
-  private items: Int32Array;
-  private cellOf: Int32Array;
+  /** cell c holds items[starts[c] .. starts[c + 1]) in index order (read-only outside rebuild: sim/spatial.ts walks
+   *  cells along a segment with them, so it never touches the shared `result` buffer another caller may be iterating) */
+  readonly starts: Int32Array;
+  readonly items: Int32Array;
+  /** cell of entry i at the last rebuild (-1: not alive then); valid for i < n */
+  readonly cellOf: Int32Array;
   readonly result: Int32Array;
   resultCount = 0;
+  /** entries the last rebuild looked at (0..n-1), and rebuilds so far: sim/spatial.ts finds entries that moved far from
+   *  the cell they were filed in (or were added) since that rebuild */
+  n = 0;
+  gen = 0;
 
   constructor(extent: number, cell: number, capacity: number) {
     this.cell = cell;
@@ -36,6 +43,7 @@ export class Grid {
   rebuild(n: number, xs: Float32Array, zs: Float32Array, alive: Uint8Array) {
     const counts = this.counts;
     counts.fill(0);
+    this.n = n; this.gen++;
     for (let i = 0; i < n; i++) {
       if (!alive[i]) { this.cellOf[i] = -1; continue; }
       const c = this.cellIndex(xs[i], zs[i]);

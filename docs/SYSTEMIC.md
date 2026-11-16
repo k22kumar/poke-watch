@@ -55,7 +55,9 @@ Zones carry `pushP`, `holdP` and `src` too, so Tag Action shots and zones (which
 | Guard | deflects only shots no heavier than the guarding Pokémon (Gastly, Weightless, can deflect shots but not heavy shots) |
 
 Area forces (strike, nova, aura, smite, cone, beam, and pushing or holding zones such as a dash or Fire Spin) act on
-enemy shots inside their shape through `forceOnShots`.
+enemy shots inside their shape through `forceOnShots`. A beam cast on the spatial path (chase view, Phase 2C,
+`docs/THIRD_PERSON_IMPLEMENTATION.md` §14) acts on the shots under its clipped length only (it ends where its core meets
+cover), still in the plane; the bodies it pushes or holds are the ones it reaches in 3D.
 
 ## Suspend-and-release Hold (`sim/bodies.ts`)
 

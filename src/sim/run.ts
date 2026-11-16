@@ -25,7 +25,7 @@ import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { reviveFainted, squadSystem } from './squad';
 import { finishEvolution, handleCardInput, learnMove, makePlayer, openingMove, pickupSystem, progressionSystem, recompute } from './progression';
-import { NO_INPUT, type HookRunner, type InputFrame, type SimContext, type System } from './types';
+import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
 import { CapLog } from './caplog';
 
@@ -83,6 +83,7 @@ export function createRun(opts: RunOptions): SimContext {
     weather: { element: null, t: 0 },
     stats: { kills: 0, damageDealt: 0, damageTaken: 0, xp: 0, bosses: 0, maxHit: 0 },
     input: NO_INPUT,
+    aim: freshAimState(),
     speciesIndex: SPECIES,
     portal: { active: false, x: 0, z: 0 },
     caplog: new CapLog(rules.caps.logSize),

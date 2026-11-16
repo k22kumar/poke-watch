@@ -22,6 +22,38 @@ export interface InputFrame {
   /** buttons held this tick, as BTN bits */
   btn?: number;
   card?: { action: 'pick' | 'reroll' | 'skip' | 'banish'; index: number };
+  /** the third-person crosshair ray (the camera's lens and the unit direction through the crosshair, each through
+   *  Math.fround: render/hostframe.ts aimRayOf), or absent (fixed views, the bot). Under rules.aim.spatial the sim traces
+   *  it itself (sim/aim.ts) for the archetypes in rules.aim.archetypes (direct shots, beams); aimX/aimZ stay the planar
+   *  point every other move reads */
+  aim?: AimRay;
+  /** the device that aims (the assistance policy of roadmap Stage 5A reads it; Phase 2B gives every device none) */
+  aimDev?: 'mouse' | 'stick' | 'touch';
+}
+/** a ray in world space: origin and direction (the direction need not be exactly unit after quantisation; the sim
+ *  normalises it) */
+export interface AimRay { ox: number; oy: number; oz: number; dx: number; dy: number; dz: number }
+
+/** The spatial aim the sim resolved this tick (sim/aim.ts), for the HUD and the in-world marker to show. Presentation
+ *  only reads it: it is derived from the input and the state, never hashed, and nothing in the sim reads it back.
+ *  `on` is false whenever the spatial path is not in use (flag off, no ray, a move that is not migrated, auto mode). */
+export interface AimState {
+  on: boolean;
+  /** the muzzle the shot leaves from (m) */
+  ox: number; oy: number; oz: number;
+  /** the aim point: where the crosshair ray first meets the world or a target, or its end in empty space */
+  tx: number; ty: number; tz: number;
+  /** what the crosshair ray met (SK bit from sim/spatial.ts; 0 = nothing within rules.aim.sightRange) and its id */
+  hitKind: number; hitId: number;
+  /** the launch direction (unit) */
+  ux: number; uy: number; uz: number;
+  /** the muzzle cannot reach the aim point: something solid or another body is in the way, at (bx, by, bz) */
+  blocked: boolean; blockKind: number; bx: number; by: number; bz: number;
+  /** the primary shot's flight distance and the distance from the muzzle to the aim point (m) */
+  reach: number; dist: number;
+}
+export function freshAimState(): AimState {
+  return { on: false, ox: 0, oy: 0, oz: 0, tx: 0, ty: 0, tz: 0, hitKind: 0, hitId: -1, ux: 0, uy: 0, uz: 1, blocked: false, blockKind: 0, bx: 0, by: 0, bz: 0, reach: 0, dist: 0 };
 }
 /** held-button bits in InputFrame.btn: Move A, Move B, Signature, Guard, and the basic attack (slot 0) */
 export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16 } as const;
@@ -220,10 +252,19 @@ export interface Card {
 export type SimEvent =
   | { t: 'hit'; x: number; y: number; z: number; amount: number; crit: boolean; eff: number; element: Element; enemy: number }
   | { t: 'kill'; x: number; y: number; z: number; species: number; roles: number; element: Element }
-  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string }
+  /** `o`: a cast on the spatial path (Phase 2B): the muzzle `o`, the aim point `t`, what the crosshair met (`kind`, SK
+   *  bit, 0 = nothing) and whether the muzzle's line to the aim point is obstructed */
+  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string; o?: { o: [number, number, number]; t: [number, number, number]; kind: number; blocked: boolean } }
+  /** a spatial (3D) player shot ended: on a world solid (`kind`: SK bit), on the actor that used up its pierce
+   *  ('actor'), or at the end of its reach ('range'), at (x, y, z) */
+  | { t: 'shotEnd'; why: 'world' | 'actor' | 'range'; kind: number; x: number; y: number; z: number; element: Element }
   | { t: 'ability'; name: string; x: number; z: number; enemy: number }
   | { t: 'windup'; archetype: string; element: Element; slot: number; dur: number; tx: number; tz: number; key: string }
-  | { t: 'beam'; x1: number; z1: number; x2: number; z2: number; width: number; element: Element; life: number }
+  /** a beam: from (x1, z1) to (x2, z2), `width` its half-width. Phase 2C (spatial beams): y1 / y2 are the muzzle and end
+   *  heights, the end is where the core stopped (`why`: 'world' on a solid of SK kind `kind`, 'actor' on the body that
+   *  used up its pierce, 'range' at its length), and `hits` counts the bodies it damaged. Without y1 the beam is planar
+   *  and the renderer draws it at the partner's chest */
+  | { t: 'beam'; x1: number; z1: number; x2: number; z2: number; width: number; element: Element; life: number; y1?: number; y2?: number; why?: 'world' | 'actor' | 'range'; kind?: number; hits?: number }
   | { t: 'chain'; pts: number[]; element: Element }
   | { t: 'ring'; x: number; z: number; r: number; element: Element; life: number }
   | { t: 'telegraph'; x: number; z: number; r: number; life: number; hostile: boolean }
@@ -392,6 +433,8 @@ export interface SimContext {
   weather: { element: Element | null; t: number };
   stats: { kills: number; damageDealt: number; damageTaken: number; xp: number; bosses: number; maxHit: number };
   input: InputFrame;
+  /** the spatial aim resolved this tick, for presentation (sim/aim.ts) */
+  aim: AimState;
   speciesIndex: SpeciesDef[];
   portal: { active: boolean; x: number; z: number };
   /** Phase 8a: the capability event log (death recap, pokewatch.debug('caps')) and the recap written when the run ends */

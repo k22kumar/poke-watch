@@ -46,7 +46,7 @@ close to the base move: what changes is the shape, a verb or a rule.
 
 | Move | Transform | Gain | Cost |
 | --- | --- | --- | --- |
-| Water Gun (bolt, Push 1, Wet) | **Pressure Jet** | a 10 m beam with Push 2 (rolls rocks, shoves a line, deflects shots along it) | rooted 0.3 s each time it fires |
+| Water Gun (bolt, Push 1, Wet) | **Pressure Jet** | a 10 m beam with Push 2 (rolls rocks, shoves a line, deflects shots along it); in the chase view a spatial beam (stops at cover, Phase 2C) | rooted 0.3 s each time it fires |
 | | **Scatter** | 3 shots in a 40° fan; each leaves a light Wet coat, even as Move A or B | no Push; each shot stops at the first enemy and hits for half |
 | Ember (bolt, Heat) | **Kindle** | where the shot ends, the ground within 1.6 m gets Heat (lights grass, dries Wet, thaws ice) | stops at the first enemy |
 | | **Searing** | pierces 1; always a deep Heat coat, even as the basic attack (elites and bosses too) | range −30%; pierce never grows with level |

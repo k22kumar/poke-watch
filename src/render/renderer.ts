@@ -389,9 +389,13 @@ export class Renderer {
         case 'windup': this.playerAttack(e.archetype, e.dur); break;
         case 'cast': this.castFx(ctx, e); if (this.pAnim.until < this.time || this.pAnim.state === 'hurt') this.playerAttack(e.archetype, 0); break;
         case 'beam': {
-          const y = P.y + 0.8;
-          this.rib.push({ ax: e.x1, ay: y, az: e.z1, bx: e.x2, by: y, bz: e.z2, w: e.width * 1.2, c: ELC[e.element], life: e.life + 0.1, max: e.life + 0.1 });
-          const bfx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain; for (let k = 0; k < 12; k++) { const t = Math.random(); this.px.spawn(bfx[1 + (k % 2)], e.x1 + (e.x2 - e.x1) * t, y, e.z1 + (e.z2 - e.z1) * t, rnd(-1, 1), rnd(0, 2), rnd(-1, 1), rnd(0.3, 0.5), 1, 0, rnd(-6, 6)); }
+          // Phase 2C: a spatial beam is drawn exactly where the sim traced it (muzzle to where its core stopped); a planar
+          // one at the partner's chest
+          const y1 = e.y1 ?? P.y + 0.8, y2 = e.y2 ?? y1;
+          this.rib.push({ ax: e.x1, ay: y1, az: e.z1, bx: e.x2, by: y2, bz: e.z2, w: e.width * 1.2, c: ELC[e.element], life: e.life + 0.1, max: e.life + 0.1 });
+          const bfx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain; for (let k = 0; k < 12; k++) { const t = Math.random(); this.px.spawn(bfx[1 + (k % 2)], e.x1 + (e.x2 - e.x1) * t, y1 + (y2 - y1) * t, e.z1 + (e.z2 - e.z1) * t, rnd(-1, 1), rnd(0, 2), rnd(-1, 1), rnd(0.3, 0.5), 1, 0, rnd(-6, 6)); }
+          // it met cover: a puff where the core stopped
+          if (e.why === 'world') { this.px.spawn('impact', e.x2, y2, e.z2, 0, 0, 0, 0.12, 1, 0, 0); for (let k = 0; k < 4; k++) this.px.spawn(bfx[1], e.x2, y2, e.z2, rnd(-2, 2), rnd(0, 2), rnd(-2, 2), 0.25, 1, 10, rnd(-6, 6)); }
           break;
         }
         case 'chain': {
@@ -477,6 +481,10 @@ export class Renderer {
         case 'stageStart':
           this.setStage(ctx);
           break;
+        case 'shotEnd':
+          // a spatial shot met cover (a wall, a cliff face, a deck) or ran out of reach: a puff where it stopped
+          if (e.why === 'world') { const sfx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain; this.px.spawn('impact', e.x, e.y, e.z, 0, 0, 0, 0.1, 1, 0, 0); for (let k = 0; k < 3; k++) this.px.spawn(sfx[1], e.x, e.y, e.z, rnd(-2, 2), rnd(0, 2), rnd(-2, 2), 0.25, 1, 10, rnd(-6, 6)); }
+          break;
         case 'deflect': case 'parry':
           this.rings.push({ x: e.x, z: e.z, r: 1.6, c: [1, 1, 1], life: 0.25, max: 0.25, kind: 1, grow: true });
           this.addShake(0.12);
@@ -522,6 +530,8 @@ export class Renderer {
     const c = ELC[e.element];
     const P = ctx.player;
     const y = P.y + 0.7;
+    // Phase 2B: a spatial cast leaves from its real muzzle: a small flash there
+    if (e.o) { const sfx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain; this.px.spawn('impact', e.o.o[0], e.o.o[1], e.o.o[2], 0, 0, 0, 0.08, 1, 0, 0); for (let k = 0; k < 3; k++) this.px.spawn(sfx[1], e.o.o[0], e.o.o[1], e.o.o[2], rnd(-1, 1), rnd(-0.5, 1), rnd(-1, 1), 0.18, 1, 0, rnd(-6, 6)); }
     switch (e.archetype) {
       case 'strike': {
         const ty = ctx.world.height(e.tx, e.tz) + 0.6;
@@ -995,8 +1005,16 @@ export class Renderer {
       put(D, px + Math.sin(f) * 0.86, pz + Math.cos(f) * 0.86, 0.13, OWN, 1, 4, 0, 0, 0, gy); }
     // pickup radius hint
     put(D, px, pz, ctx.player.derived.magnet, [0.6, 0.85, 1], 0.1, 1, 0.03, 0, 0, W.height(px, pz, ref));
-    // aim reticle on the ground, and three dots from the Pokémon toward it
-    if (this.aim.on) {
+    // Phase 2B: the sim's spatial aim (ctx.aim), when the primary is a direct shot through the chase crosshair: a marker
+    // where the shot will actually stop (red, on the cover) or arrive (white, on the aim point), and three dots along its
+    // real line from the muzzle. Drawn from sim state only; nothing here feeds back
+    const A = ctx.aim;
+    if (this.aim.on && A.on) {
+      const bl = A.blocked, ex = bl ? A.bx : A.tx, ey = bl ? A.by : A.ty, ez = bl ? A.bz : A.tz, col = bl ? [1, 0.42, 0.37] : [1, 1, 1];
+      if (A.hitKind || bl) { put(T, ex, ez, 0.45, col, 0.9, 1, 0.22, 0, 0, ey); put(T, ex, ez, 0.1, col, 0.95, 4, 0.2, 0, 0, ey); }
+      for (const d of [1.2, 1.8, 2.4]) if (d < A.dist) put(D, A.ox + A.ux * d, A.oz + A.uz * d, 0.09, col, 0.7, 4, 0.2, 0, 0, A.oy + A.uy * d);
+    } else if (this.aim.on) {
+      // aim reticle on the ground, and three dots from the Pokémon toward it
       const ax = this.aim.x, az = this.aim.z;
       put(T, ax, az, 0.55, [1, 1, 1], 0.85, 1, 0.22, 0, 0, W.height(ax, az, ref));
       put(T, ax, az, 0.12, [1, 1, 1], 0.9, 4, 0.2, 0, 0, W.height(ax, az, ref));
