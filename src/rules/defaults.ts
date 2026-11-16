@@ -87,6 +87,8 @@ export const defaultRules = {
     separationForce: 6, // [B]
     contactCooldown: 0.5, // [B]
     despawnDistance: 46, // [B] respawn closer if left behind
+    holdRelocate: 6, // [B] s a wide body may hold with no wide route to the player before it is moved like a far one (sim/enemies.ts)
+    navHold: 0.4, // [B] s a ground walker keeps to the flow field after its way ahead was last blocked (size geometry on; sim/enemies.ts)
     spawnRadius: [21, 27], // [B] just outside the fixed view (±15 m wide, ±11 m deep)
     roles: {
       elite: { hp: 4.5, dmg: 1.5, size: 2, xp: 5 }, // [C] hp; size [B] whole-number scales only, so texels stay square (1.5x doubled every other texel and shimmered)
@@ -111,20 +113,30 @@ export const defaultRules = {
   // Pokémon is drawn (`visual`, metres of visible core) and how big its body is in the sim (`radius`, `height`).
   // Within a class an extent near the top cut reads up to `tilt` larger, near the bottom cut up to `tilt` smaller,
   // so an evolution inside one class still grows a little; the classes themselves never overlap.
+  // `body` is the movement footprint: the circle that collides with walls, faces and deck slabs (World.moveBody) and
+  // decides which navigation class a Pokémon routes on (docs/SIZING.md "Footprint"). It is set per class with no
+  // tilt, so passability belongs to the class: a one-tile passage (1.0 m) fits Tiny, Small and Medium bodies
+  // (body < heavyRadius); Large and Extra Large bodies need two tiles. It is configured on its own, apart from the
+  // drawn size (`visual`) and the hurtbox (`radius`): Medium's body is 0.46 m, under its 0.52 m hurtbox, so the most
+  // common wild class keeps using the locations' one-tile chokepoints.
   size: {
     classes: [
-      { id: 'tiny', name: 'Tiny', below: 0.35, visual: 0.7, radius: 0.32, height: 0.6 }, // [B]
-      { id: 'small', name: 'Small', below: 0.65, visual: 0.98, radius: 0.42, height: 0.9 }, // [B]
-      { id: 'medium', name: 'Medium', below: 1.15, visual: 1.37, radius: 0.52, height: 1.2 }, // [B]
-      { id: 'large', name: 'Large', below: 2.05, visual: 1.92, radius: 0.68, height: 1.7 }, // [B]
-      { id: 'xl', name: 'Extra Large', below: Infinity, visual: 2.69, radius: 0.9, height: 2.4 }, // [B]
+      { id: 'tiny', name: 'Tiny', below: 0.35, visual: 0.7, radius: 0.32, height: 0.6, body: 0.3 }, // [B]
+      { id: 'small', name: 'Small', below: 0.65, visual: 0.98, radius: 0.42, height: 0.9, body: 0.4 }, // [B]
+      { id: 'medium', name: 'Medium', below: 1.15, visual: 1.37, radius: 0.52, height: 1.2, body: 0.46 }, // [B]
+      { id: 'large', name: 'Large', below: 2.05, visual: 1.92, radius: 0.68, height: 1.7, body: 0.66 }, // [B]
+      { id: 'xl', name: 'Extra Large', below: Infinity, visual: 2.69, radius: 0.9, height: 2.4, body: 0.88 }, // [B]
     ],
     tilt: 0.08, // [B] ± share of the class values, by where the extent sits inside the class (log scale)
     extentRange: [0.1, 6] as [number, number], // [B] bottom of Tiny and top of Extra Large for the tilt (m)
     wideRatio: 1.5, // [B] an idle frame at least this much wider than tall is normalised on width / wideRatio
     geometry: true, // false = pre-size-class sim bodies (radius from sprite height, one shared partner radius): replay checksums unchanged
     playerRadius: [0.48, 0.72] as [number, number], // [B] partner hurtbox clamp around the old shared 0.55 m (0.42 floor: +17 % bot survival, 0.48: +10 %)
-    heavyRadius: 0.55, // [B] ground bodies wider than this path on the heavy-clearance flow field (sim/world.ts)
+    heavyRadius: 0.5, // [B] a footprint (`body`) at or above this routes on the wide (2 × 2 block) navigation field (sim/world.ts)
+    // [B] role-scaled footprints (elite ×2, alpha ×3, bosses) stop here: pursuers must fit the two-tile routes the
+    // location and habitat gates guarantee to every essential space (a body ≥ 1 m needs three tiles; docs/SIZING.md)
+    bodyCap: 0.95,
+    wideSeed: 4, // [B] tiles (ordinary-field steps) around the player that seed the wide field when the player stands where a wide body does not fit
   },
   director: {
     hpN: [1, 5.5, 13, 20], // [C] per stage

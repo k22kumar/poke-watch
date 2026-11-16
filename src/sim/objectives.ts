@@ -11,7 +11,8 @@
 // The schedule teaches one thing at a time: the first region opens with a Hold and then a Hunt (the first
 // recruit lands around 4:00), the second with a Transport and then a Hunt (the second recruit around 9:00).
 
-import { partnerRadius } from '../rules/sizing';
+import { navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
+import { DIAG_R } from '../world/navblocks';
 import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
 import { SPECIES_BY_ID } from '../rules/species';
@@ -49,13 +50,14 @@ export function objectiveDue(ctx: SimContext): ObjectiveKind | null {
   return kind;
 }
 
-/** an open walkable point (r..R m from the player) with room around it */
+/** an open walkable point (r..R m from the player) with room around it; with size geometry on, one the partner's own
+ *  navigation class reaches (a Large or Extra Large partner never gets an objective behind a one-tile neck) */
 function site(ctx: SimContext, rMin: number, rMax: number, fromX = ctx.player.x, fromZ = ctx.player.z): [number, number] {
-  const W = ctx.world, b = W.bound - 4;
+  const W = ctx.world, b = W.bound - 4, pf = partnerFootprint(ctx.player.species, ctx.rules), wide = pf > 0 && navWide(pf, ctx.rules);
   for (let k = 0; k < 40; k++) {
     const a = ctx.rng.spawn.range(0, Math.PI * 2), r = ctx.rng.spawn.range(rMin, rMax);
     const x = Math.floor(clamp(fromX + dsin(a) * r, -b, b)) + 0.5, z = Math.floor(clamp(fromZ + dcos(a) * r, -b, b)) + 0.5;
-    let ok = W.walkable(x, z);
+    let ok = W.walkable(x, z) && (!wide || W.wideReached(x, z, pf < DIAG_R));
     for (let q = 0; q < 8 && ok; q++) ok = W.walkable(x + dsin(q * 0.785) * 2.2, z + dcos(q * 0.785) * 2.2);
     if (ok) return [x, z];
   }

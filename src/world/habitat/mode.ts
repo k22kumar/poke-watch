@@ -11,7 +11,7 @@
 // Movement profiles come from the sim's rules and the roster's real dimensions (profilesFor).
 import { defaultRules, type Rules } from '../../rules/defaults';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../../rules/species';
-import { enemyRadius, partnerRadius } from '../../rules/sizing';
+import { enemyRadius, footprintOf, partnerFootprint, partnerRadius } from '../../rules/sizing';
 import { spawnableSpecies, type SpawnPoolDef } from '../../rules/spawning';
 import { LOCATIONS } from '../locations';
 import { HABITATS } from './recipes';
@@ -57,9 +57,10 @@ export function playableLine(): SpeciesDef[] {
 }
 
 /** body and locomotion profiles from the sim's rules and the roster (docs/HABITATS.md, "Roster assumptions").
- *  Every body comes from the size classes (src/rules/sizing.ts), the same numbers the sim collides with:
- *    trainer     the widest partner body (rules.size.playerRadius clamps it); eyes from the sprite heights, as before
- *    wild-small  the narrowest ground body any spawn pool can field
+ *  Every body is a movement footprint from the size classes (src/rules/sizing.ts `body`), the circle the sim collides
+ *  with (World.moveBody), not the hurtbox:
+ *    trainer     the widest partner footprint (an Extra Large partner, 0.88 m); eyes from the sprite heights, as before
+ *    wild-small  the narrowest ground footprint any spawn pool can field
  *    wild-elite  the widest ground body the director spawns: any pool's ground species at ×1, an elite at the elite
  *                role size, never under the validated headroom below
  *    boss        the widest ground boss at the boss role size (bosses keep their authored encounter body)
@@ -72,7 +73,10 @@ export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfi
   // eye / muzzle heights stay on the sprite-derived height: the sim fires every partner's shots from a fixed +0.8 m
   // (sim/moves.ts), so the size classes widen bodies but do not raise a muzzle, and the validated marker bracket holds
   const hMin = Math.min(...line.map((s) => s.height)), hMax = Math.max(...line.map((s) => s.height));
-  const trainerR = Math.max(...line.map((s) => partnerRadius(s, rules)));
+  // movement footprints (World.moveBody); with size geometry off (no footprint) the old hurt radii, as before
+  const foot = rules.size.geometry;
+  const trainerR = Math.max(...line.map((s) => (foot ? partnerFootprint(s, rules) : partnerRadius(s, rules))));
+  const bodyR = (s: SpeciesDef, size: number) => (foot ? footprintOf(s, size, rules) : enemyRadius(s, size, rules));
   const pools: SpawnPoolDef[] = [...Object.values(LOCATIONS), ...Object.values(HABITATS)].flatMap((d) => (d.spawns ? [d.spawns] : []));
   const fielded = spawnableSpecies(pools);
   const ground = (ids: Set<string>) => [...ids].map((id) => SPECIES_BY_ID[id]).filter((s): s is SpeciesDef => !!s && !s.boss && !s.flying);
@@ -83,9 +87,9 @@ export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfi
   // gate keeps it as a floor so a roster or pool change cannot quietly loosen the approaches; raising it is a deliberate
   // act that needs a HAB_VERSION bump and a new baseline.
   const VALIDATED_ELITE_R = 1.42;
-  const wMin = Math.min(...wild.map((s) => enemyRadius(s, 1, rules)));
-  const wBig = Math.max(VALIDATED_ELITE_R, ...wild.map((s) => enemyRadius(s, 1, rules)), ...elites.map((s) => enemyRadius(s, eliteSize, rules)));
-  const bMax = Math.max(...bosses.map((s) => enemyRadius(s, rules.enemy.roles.boss.size, rules)));
+  const wMin = Math.min(...wild.map((s) => bodyR(s, 1)));
+  const wBig = Math.max(VALIDATED_ELITE_R, ...wild.map((s) => bodyR(s, 1)), ...elites.map((s) => bodyR(s, eliteSize)));
+  const bMax = Math.max(...bosses.map((s) => bodyR(s, rules.enemy.roles.boss.size)));
   // shots leave the player at +0.7 m (sim/effects.ts) and enemies aim at the chest (+0.9 m); eyes sit near the top
   return [
     { id: 'trainer', radius: +trainerR.toFixed(2), step: R.stepHeight, climb: R.stepHeight, drop: dropNav, eye: [0.7, +(hMax * 0.8).toFixed(2)], speed: R.baseSpeed, essential: true, note: `every playable Pokémon (${line.length} species, ${hMin}–${hMax} m tall, the widest body r ${trainerR.toFixed(2)}), jump and glide disabled` },

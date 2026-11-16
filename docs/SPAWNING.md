@@ -14,7 +14,7 @@ Code:
 | **Eligibility**: may this species appear here? | The resolved pool: region preset + map pool + override (below) |
 | **Selection**: which eligible species now? | `director.ts pickSpawn`: weight × habitat preference (`rules.spawning.preference`: ×2 on a preferred tile, ×0.55 elsewhere, ×1 with no preference) |
 | **Location**: where? | `ringPoint` (`src/sim/enemies.ts`): the spawn ring around the player, or a location map's entry anchors |
-| **Compatibility**: can it stand there? | `allowedAt` (`director.ts`): the species' hard `requires` / `avoids` habitat tags (`profiles.ts`), and room for a wide body (docs/SIZING.md) |
+| **Compatibility**: can it stand there? | `allowedAt` (`director.ts`): the species' hard `requires` / `avoids` habitat tags (`profiles.ts`), and, for a wide footprint, ground the wide field toward the player reaches (docs/SIZING.md "Navigation classes"). `spawnEnemy` then puts the body where it fits (`World.nearestFit`: a tile centre, or a wide block's centre) |
 
 If a spot fails compatibility, the director tries again: up to `rules.spawning.retries` spots for that species, then a species from the pool that may use the spot. If none may, the spawn is skipped and a `spawnSkipped` event says why. Nothing is placed where it may not be.
 

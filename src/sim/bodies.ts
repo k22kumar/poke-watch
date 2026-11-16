@@ -10,7 +10,7 @@
 // Guard deflects a body no heavier than the guard's own Weight class; Brace halves the hit.
 // Every change of owner costs a quarter of its integrity, so nothing can be passed back and forth forever.
 
-import { partnerRadius } from '../rules/sizing';
+import { partnerFootprint, partnerRadius } from '../rules/sizing';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { capOf, deriveHold, derivePush } from '../rules/capabilities';
@@ -27,6 +27,8 @@ import { currentCastSlot, holdAim, holdButton } from './capabilities';
 import { TB } from '../rules/build';
 import { guardWeight, holdSeconds, logTech, onGuardDeflect } from './techniques';
 import { applyAgent } from './cells';
+
+const PUSH: [number, number] = [0, 0];
 
 export const TEAM = { neutral: 0, player: 1, enemy: 2 } as const;
 const HIT_RING = 8;
@@ -437,11 +439,15 @@ export const bodySystem = {
         }
       }
       const held = ctx.objective && ctx.objective.egg === b && ctx.objective.carrier !== -1;
-      if (!held && sp < IMPACT_SPEED && dp2 < rp * rp && dp2 > 1e-6 && P.y - B.y[b] < R * 1.2) {
+      // resting contact is physical: with size geometry on it is the partner's movement footprint that touches the body
+      // (docs/SIZING.md "Footprint"), not its hurtbox, which only decides what hits it
+      const pf = partnerFootprint(ctx.player.species, ctx.rules), rs = pf > 0 ? R + pf : rp;
+      if (!held && sp < IMPACT_SPEED && dp2 < rs * rs && dp2 > 1e-6 && P.y - B.y[b] < R * 1.2) {
         // resting bodies are solid: push the player out
-        const d = Math.sqrt(dp2), push = rp - d;
+        const d = Math.sqrt(dp2), push = rs - d;
         const qx = P.x + (dxp / d) * push, qz = P.z + (dzp / d) * push;
-        if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, PUSH); P.x = PUSH[0]; P.z = PUSH[1]; }
+        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
       }
     }
   },
@@ -483,6 +489,14 @@ export function seedBodies(ctx: SimContext) {
     const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(7, 42);
     const x = Math.floor(sx + dsin(a) * r) + 0.5, z = Math.floor(sz + dcos(a) * r) + 0.5;
     if (!W.walkable(x, z) || !W.walkable(x + 1, z) || !W.walkable(x - 1, z) || !W.walkable(x, z + 1) || !W.walkable(x, z - 1)) continue;
+    // size geometry on: only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre
+    // beside it keeps rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to
+    // every partner until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
+    if (ctx.rules.size.geometry) {
+      let open = true;
+      for (let dz = -3; dz <= 3 && open; dz++) for (let dx = -3; dx <= 3 && open; dx++) open = W.walkable(x + dx, z + dz);
+      if (!open) continue;
+    }
     let clear = true;
     eachBodyIn(ctx, x, z, 4, () => { clear = false; });
     if (!clear) continue;

@@ -58,11 +58,12 @@ Check: `npx tsx --test tests/sizing.test.ts`. Then `pokewatch.renderer.sizes()` 
 
 Implemented. Edit `size.classes` in `src/rules/defaults.ts`:
 ```ts
-{ id: 'large', name: 'Large', below: 2.05, visual: 1.92, radius: 0.68, height: 1.7 },
+{ id: 'large', name: 'Large', below: 2.05, visual: 1.92, radius: 0.68, height: 1.7, body: 0.66 },
 ```
 - `below` is the class's upper cut in canonical metres.
 - `visual` is the drawn core.
-- `radius` and `height` are the sim body.
+- `radius` and `height` are the hurtbox: what hits it.
+- `body` is the movement footprint: the circle walls stop, and the navigation class (under `size.heavyRadius`, 0.5 m, a body fits one-tile passages; from it up, it routes on two-tile blocks). It has no tilt. Keep it under 1 m. Role sizes scale it up to `size.bodyCap` (0.95 m), and raising that needs a three-tile gate on the maps first (docs/SIZING.md "Footprint").
 - `tilt` (±8 %) is how far apart Pokémon in one class may drift.
 
 `tests/sizing.test.ts` fails if neighbouring classes end up less than 1.3× apart or overlap. A sim number change moves replay hashes. Record them again with `npx tsx scripts/checksum.ts`, after checking the run still plays well.
@@ -71,7 +72,8 @@ To change only how big things look and leave the sim alone, change `visual` only
 
 ## 4. Configure movement or environmental capabilities
 
-- **Flying.** Implemented. Set `"flying": true/false` in `content/roster.json`, then `npm run content`. A flyer hovers and ignores walls, water and wide-body routing.
+- **Flying.** Implemented. Set `"flying": true/false` in `content/roster.json`, then `npm run content`. A flyer hovers and ignores walls, water, footprints and wide-body routing.
+- **Size and passability.** A physical capability, set per class (`body` in section 3), or per species by pinning its class (section 2). It is not inferred from type.
 - **Swimming.** Implemented as a rule, not per species. A Pokémon of a type in `rules.hazards.water.safeTypes`, or knowing a move in `rules.hazards.water.safeMoves` (`src/rules/defaults.ts`), swims safely. Everything else has the liquid's `lethal` seconds to reach a bank. `canSwim()` in `src/rules/profiles.ts` answers it.
 - **Burrowing, aquatic-only movement.** Not implemented. There is no burrow or swim-only locomotion in the sim. A water-only Pokémon would need a new movement mode in `src/sim/enemies.ts`. Until then, use the spawn restriction in section 10 to keep it to water tiles.
 
@@ -85,7 +87,7 @@ Then choose it for a biome with `rules.worldgen.locations` (`src/rules/defaults.
 
 ## 6. Modify an existing map
 
-Implemented. Edit its definition file (`src/world/locations/<name>.ts`, `src/world/habitat/recipes.ts`, or `src/world/arenas.ts` for the handcrafted arenas). A change that alters an accepted habitat layout needs a `HAB_VERSION` bump (CLAUDE.md). A location change that alters accepted layouts should bump `LOC_VERSION` (`src/world/locgen/index.ts`). The generator reports `wideBoss` / `wideAnchors` (`npx tsx scripts/locstats.ts <id> 30 1`), so you can see whether a Large Pokémon gets a two-tile route to the boss hall.
+Implemented. Edit its definition file (`src/world/locations/<name>.ts`, `src/world/habitat/recipes.ts`, or `src/world/arenas.ts` for the handcrafted arenas). A change that alters an accepted habitat layout needs a `HAB_VERSION` bump (CLAUDE.md). A location change that alters accepted layouts should bump `LOC_VERSION` (`src/world/locgen/index.ts`). The `wide` gate requires a two-tile route from the hub to the boss hall, every arena and three anchors (docs/LOCATIONS.md). Check a change with `npx tsx scripts/locstats.ts <id> 30 1` and `npx tsx scripts/navwalk.ts <id> 5`.
 
 ## 7. Change which Pokémon appear on a map
 
@@ -146,7 +148,7 @@ Partly implemented: the inputs exist, the planner does not.
   - capabilities, preferences and restrictions: `speciesProfile(id)`, `canSwim(...)`;
   - body size: `bodyOf(sp)`, `enemyRadius(...)`;
   - the move set and its interaction verbs: `src/rules/capabilities.ts`, `src/sim/capabilities.ts`;
-  - world affordances: `World.habitatAt`, `walkable`, `fitsHeavy`, `flowDir`, `goalDir`, `shore`, location anchors (`World.anchors`);
+  - world affordances: `World.habitatAt`, `walkable`, `fitsHeavy`, `flowDir`, `wideDir`, `goalDir`, `wideGoalDir`, `nearestFit`, `shore`, location anchors (`World.anchors`);
   - objective state: `ctx.objective`.
 - **To add a new behaviour today,** add a branch to the chain in `enemySystem.update` (`src/sim/enemies.ts`) and a value to `Behaviour` (`src/rules/species.ts`). Keep species-specific logic out of the sim: give a species the behaviour in the roster instead.
 - **Not implemented:** an HTN planner, task or method data, per-species behaviour parameters. When that work starts, the natural seam is to replace the `behaviour` branch with a planner call that reads the facts above.

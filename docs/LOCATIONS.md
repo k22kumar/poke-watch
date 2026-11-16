@@ -119,7 +119,13 @@ All gated on `map.gen.loc`; authored arenas and the classic generator replay bit
 | landmarks | every canonical landmark placed at least its minimum count |
 | pinch | ≤ 24 one-tile passages |
 
-Reported, not gated: `wideBoss` (is the boss hall joined to the hub by a two-tile route, for Large / Extra Large bodies and elites; `wideCore` in `locgen/nav.ts`, the sim's heavy mask) and `wideAnchors`. Over 30 seeds: Viridian Forest 73 %, Mt. Moon 50 %, Chargestone Cave 37 % of seeds have a wide boss route. Elsewhere wide bodies squeeze through the one-tile chokepoint on the ordinary flow field (docs/SIZING.md). Gating it doubled attempts and left seeds unsatisfied, so widening the route belongs in the generator (a `LOC_VERSION` change).
+Gated: `wide`. Footprints of 0.5 m and up (Large and Extra Large Pokémon, partners included, and elites) route on the wide block lattice (`src/world/navblocks.ts`, read by both the sim and `wideCore` in `locgen/nav.ts`; docs/SIZING.md "Navigation classes"). The gate uses the strictest wide body, an Extra Large partner at 0.88 m with no diagonal-only links. From the hub it must reach every mandatory space: the boss hall and every arena (the main-route spaces), plus at least three enemy anchors, so wide enemies always have a way in. `wideBoss` and `wideAnchors` are still reported.
+
+### Size-restricted spaces
+
+Chambers and nooks are side spaces off trails, and they may be closed to wide bodies on purpose. Two cases do it: a one-tile neck where a two-tile trail meets a chamber offset by a column, and a two-tile trail stepping along a diagonal (about 1.41 m across, which fits a Large body at 0.66 m but not an Extra Large one). Anchors outside the wide core are narrow-only entrances, and the director never spawns a wide body at one. The one-tile pinches the `pinch` gate allows stay Tiny, Small and Medium chokepoints.
+
+Before this gate, `wideBoss` read 73 / 50 / 37 % of seeds (Viridian Forest / Mt. Moon / Chargestone Cave). That was a measurement defect: the old block rule rejected diagonal ramps and bridge abutments (docs/SIZING.md). With the edge rule the boss hall is wide-reachable on 30 of 30 seeds in each location. Adding the gate re-rolled 13 of 300 Viridian Forest seeds and 2 of 300 Mt. Moon seeds (an arena was reachable only through such trails); attempts rose 597 → 624 and 479 → 482, no seed is left unsatisfied, and Chargestone Cave is unchanged. That is `LOC_VERSION` 2. Mt. Moon seed 275 throws in `planTopology` (`topology.ts:155`) at both versions; this pass did not fix that pre-existing crash.
 
 ## Metrics (30 seeds each, this build, Node 22 on an Apple laptop)
 

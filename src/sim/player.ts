@@ -8,6 +8,9 @@ import { footing } from './cells';
 import { TB } from '../rules/build';
 import { logTech } from './techniques';
 import { liquidMotion, playerLiquid } from './hazards';
+import { navWide, partnerFootprint } from '../rules/sizing';
+
+const MOVE: [number, number] = [0, 0];
 
 /** release Guard; a tap that caught nothing costs a short lockout */
 export function endGuard(ctx: SimContext) {
@@ -125,19 +128,27 @@ export const playerSystem = {
     const stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight; // climbing out of a liquid
     const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp);
     let nx = P.x + stepX, nz = P.z + stepZ;
-    const ahead = 0.35;
-    const ax = Math.sign(stepX) * ahead, az = Math.sign(stepZ) * ahead;
-    if (blocked(nx + ax, nz + az)) {
-      if (!blocked(nx + ax, P.z)) nz = P.z;
-      else if (!blocked(P.x, nz + az)) nx = P.x;
-      else { nx = P.x; nz = P.z; }
-    }
-    // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
-    // cutting); beside a chasm that would drop the player into it, so test where the step actually lands too
-    if (W.los && blocked(nx, nz)) {
-      if (!blocked(nx, P.z)) nz = P.z;
-      else if (!blocked(P.x, nz)) nx = P.x;
-      else { nx = P.x; nz = P.z; }
+    const foot = partnerFootprint(P.species, ctx.rules);
+    if (foot > 0) {
+      // size geometry on: the partner's footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"):
+      // it glides round corners, never cuts one, and a Large or Extra Large partner does not fit a one-tile gap
+      W.moveBody(P.x, P.z, stepX, stepZ, feet, stepUp, foot, MOVE);
+      nx = MOVE[0]; nz = MOVE[1];
+    } else {
+      const ahead = 0.35;
+      const ax = Math.sign(stepX) * ahead, az = Math.sign(stepZ) * ahead;
+      if (blocked(nx + ax, nz + az)) {
+        if (!blocked(nx + ax, P.z)) nz = P.z;
+        else if (!blocked(P.x, nz + az)) nx = P.x;
+        else { nx = P.x; nz = P.z; }
+      }
+      // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
+      // cutting); beside a chasm that would drop the player into it, so test where the step actually lands too
+      if (W.los && blocked(nx, nz)) {
+        if (!blocked(nx, P.z)) nz = P.z;
+        else if (!blocked(P.x, nz)) nx = P.x;
+        else { nx = P.x; nz = P.z; }
+      }
     }
     const b = W.bound;
     P.x = clamp(nx, -b, b);
@@ -155,6 +166,9 @@ export const playerSystem = {
     // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
     const g = W.support(P.x, P.z, P.y);
     if (P.y <= g) {
+      // landing from a fall or a drop: clear the footprint of the ground it landed on (faces were measured from the feet
+      // on the way down, so it may stand in the lip; World.moveBody's push)
+      if (foot > 0 && !P.grounded && P.py - g > 0.3) { W.moveBody(P.x, P.z, 0, 0, g, R.stepHeight, foot, MOVE); P.x = MOVE[0]; P.z = MOVE[1]; }
       P.y = g;
       P.vy = 0;
       P.grounded = true;
@@ -169,7 +183,7 @@ export const playerSystem = {
     // (a walker standing on a deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so
     // this only matters where a habitat causeway spans sealed ground)
     if (W.los && W.wallAt(P.x, P.z) && !(W.over && W.node(P.x, P.z, P.y) >= W.w * W.h)) {
-      [P.x, P.z] = W.nearestWalkable(P.x, P.z);
+      [P.x, P.z] = foot > 0 ? W.nearestFit(P.x, P.z, foot, navWide(foot, ctx.rules)) : W.nearestWalkable(P.x, P.z);
       P.y = W.height(P.x, P.z, P.y); P.vy = 0; P.grounded = true;
     }
 

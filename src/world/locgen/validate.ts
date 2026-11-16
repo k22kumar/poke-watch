@@ -106,12 +106,26 @@ export function validateLocation(g: LocCtx, sealed: number): LocValidation {
   }
   gate('pinch', pinch <= 24, `${pinch} one-tile passages`);
   const metrics = measure(g, core, coreN, vshare, share, pinch);
-  // wide bodies (Large / Extra Large Pokémon and elites, docs/SIZING.md "Navigation"): is the boss hall joined to the hub
-  // by a route at least two tiles wide, and how many enemy anchors are? Reported, not gated: a one-tile pinch is a
-  // legitimate chokepoint, and the sim lets a wide body squeeze through it on the ordinary field.
+  // wide bodies (footprint ≥ 0.5 m: Large and Extra Large Pokémon, elites; docs/SIZING.md "Navigation classes") route
+  // on 2 × 2 blocks (world/navblocks.ts, the sim's wide field reads the same lattice). The strictest wide body (an
+  // Extra Large partner, 0.88 m: no diagonal-only links) must reach every mandatory space from the hub: the boss hall
+  // and every arena (the main-route spaces), and at least three enemy anchors so wide enemies always have a way in.
+  // Chambers and nooks are side spaces off trails and may be size-restricted: a one-tile neck or a trail stepping
+  // along a diagonal keeps big bodies out on purpose (docs/LOCATIONS.md "Size-restricted spaces").
   const wide = wideCore(m, hubK, G.dropNav);
-  metrics.wideBoss = wide[bossK] ? 1 : 0;
-  metrics.wideAnchors = g.anchors.filter(([x, y]) => wide[g.idx(x, y)]).length;
+  const near = (x: number, y: number, R: number) => {
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      if (!g.in(Math.floor(x) + dx, Math.floor(y) + dy)) continue;
+      const k = g.idx(Math.floor(x) + dx, Math.floor(y) + dy);
+      if (wide[k] || (m.over && wide[n + k])) return true;
+    }
+    return false;
+  };
+  const mandatory = g.zones.filter((z) => z.kind === 'boss' || z.kind === 'arena' || z.kind === 'hub');
+  const wideLost = mandatory.filter((z) => !near(z.x, z.y, 3));
+  metrics.wideBoss = near(boss.x, boss.y, 3) ? 1 : 0;
+  metrics.wideAnchors = g.anchors.filter(([x, y]) => near(x, y, 0)).length;
+  gate('wide', wideLost.length === 0 && metrics.wideAnchors >= Math.min(3, anchorsOk), wideLost.length ? 'no wide route: ' + wideLost.map((z) => z.kind + z.id).join(',') : `${mandatory.length} mandatory spaces, ${metrics.wideAnchors} anchors on wide routes`);
   gate('overlooks', metrics.overlooks >= 2, `${metrics.overlooks} raised spaces overlook lower ground`);
   return { ok: gates.every((x) => x.ok), gates, failed: gates.filter((x) => !x.ok).map((x) => x.id), metrics };
 }

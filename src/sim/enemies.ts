@@ -7,7 +7,8 @@ import { clamp } from '../core/util';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, bst, weightClass, type SpeciesDef } from '../rules/species';
-import { enemyHeight, enemyRadius, partnerRadius } from '../rules/sizing';
+import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
+import { DIAG_R } from '../world/navblocks';
 import { damageEnemy, damagePlayer, enemyAttackMult, killEnemy, playerAbility } from './combat';
 const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
 const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.indexOf('effect_spore') + 1;
@@ -74,7 +75,10 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (beh === 'swarm') speed *= 1.12;
   if (beh === 'ranged') speed *= 0.85;
   if (roles & ROLE.boss) speed *= 0.8;
-  if (!sp.flying && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
+  // a ground body with a footprint (size geometry on) is put down where it fits: a tile centre, or a wide block's centre
+  const foot = sp.flying ? 0 : footprintOf(sp, size, ctx.rules);
+  if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules));
+  else if (!sp.flying && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
   E.x[i] = x; E.z[i] = z; E.px[i] = x; E.pz[i] = z;
   E.hover[i] = sp.flying ? 0.9 + ((i * 37) % 10) * 0.05 : 0;
   E.y[i] = ctx.world.height(x, z) + E.hover[i]; E.py[i] = E.y[i];
@@ -84,6 +88,7 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   E.size[i] = size;
   E.radius[i] = enemyRadius(sp, size, ctx.rules);
   E.tall[i] = enemyHeight(sp, size, ctx.rules);
+  E.foot[i] = foot;
   E.species[i] = ctx.speciesIndex.indexOf(sp);
   { const ab = abilityOf(sp); E.ability[i] = ab ? ABILITY_IDS.indexOf(ab) + 1 : 0; }
   E.roles[i] = roles;
@@ -162,6 +167,7 @@ function aimBoulder(ctx: SimContext, i: number, left: number, delay = ctx.rules.
 }
 
 const NAV: [number, number] = [0, 0];
+const MOVE: [number, number] = [0, 0];
 
 export const enemySystem = {
   name: 'enemies',
@@ -173,7 +179,7 @@ export const enemySystem = {
     const steer = Math.min(1, R.steerRate * dt);
     const kdecay = dexp(-R.knockDecay * dt);
     const pr = partnerRadius(ctx.player.species, ctx.rules);
-    const sized = ctx.rules.size.geometry, heavyR = ctx.rules.size.heavyRadius;
+    const sized = ctx.rules.size.geometry, pf = partnerFootprint(ctx.player.species, ctx.rules);
     const RR = ctx.rules.roles, O = ctx.objective;
     const bulwarks = ctx.director.bulwarks;
     bulwarks.length = 0;
@@ -217,10 +223,18 @@ export const enemySystem = {
       // ground nothing connects to the point). It stays where it is until it is killed or the Hold ends.
       const raiding = !!W.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
       const pinned = raiding || (O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active'));
-      if (dist > R.despawnDistance && !(roles & ROLE.boss) && !pinned) {
+      // a wide body with no wide route to the player (it holds: see the pursuit below) is moved the same way after
+      // rules.enemy.holdRelocate seconds, onto ground the wide field reaches, rather than standing idle for good
+      const far = dist > R.despawnDistance;
+      if ((far || E.holdT[i] > R.holdRelocate) && !(roles & ROLE.boss) && !pinned) {
+        E.holdT[i] = 0;
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
-        if (!sp.flying && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
+        if (E.foot[i] > 0) [nx, nz] = W.nearestFit(nx, nz, E.foot[i], navWide(E.foot[i], ctx.rules));
+        else if (!sp.flying && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
+        // a holder is only moved onto ground with a wide route to the player; with none anywhere near (the player is in a
+        // pocket only small bodies fit) it keeps holding
+        if (!far && !W.wideReached(nx, nz, E.foot[i] < DIAG_R)) { nx = E.x[i]; nz = E.z[i]; }
         E.x[i] = nx; E.z[i] = nz;
         E.px[i] = E.x[i]; E.pz[i] = E.z[i];
         continue;
@@ -237,14 +251,36 @@ export const enemySystem = {
       if (ground && (dist > 1.5 || layerGap)) {
         // straight at the player unless a wall, water or cliff is in the way; then follow the flow field
         const feet = E.y[i];
-        // size classes (rules/sizing.ts): a wide body looks ahead past its own edge and routes on the heavy field
-        const heavy = sized && E.radius[i] > heavyR;
-        const p1 = sized ? Math.max(1.1, E.radius[i] + 0.75) : 1.1, p2 = sized ? Math.max(2.4, E.radius[i] + 2.05) : 2.4;
-        if (layerGap || W.blocks(E.x[i] + ux * p1, E.z[i] + uz * p1, feet, 0.6) || W.blocks(E.x[i] + ux * p2, E.z[i] + uz * p2, feet, 0.6)) {
-          if (W.flowDir(E.x[i], E.z[i], NAV, feet, heavy)) { ux = NAV[0]; uz = NAV[1]; }
-        } else if (burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4))) {
+        // size classes (rules/sizing.ts, docs/SIZING.md "Navigation classes"): a body looks ahead past its own edge. A wide
+        // one (footprint ≥ heavyRadius) follows the wide block field wherever it has a route, and walks straight only
+        // beside the player: point probes cannot tell whether the lane its whole width needs is clear (a drop off a bridge
+        // it would not fit below reads as open), so straight steering and the field fought, tick by tick. With no wide
+        // route it holds where it is: it never follows the ordinary field into a gap it does not fit
+        const f = E.foot[i], wide = sized && navWide(f, ctx.rules);
+        const p1 = sized ? Math.max(1.1, f + 0.75) : 1.1, p2 = sized ? Math.max(2.4, f + 2.05) : 2.4;
+        let ahead = wide || layerGap || W.blocks(E.x[i] + ux * p1, E.z[i] + uz * p1, feet, 0.6) || W.blocks(E.x[i] + ux * p2, E.z[i] + uz * p2, feet, 0.6);
+        // size geometry on: once the way ahead is blocked the walker keeps to the field for rules.enemy.navHold seconds. The
+        // two probes are points, so with one sitting on a tile edge the test flips every tick, and the walker alternated
+        // between straight at the player (into the wall) and the field (away from it) and stood still for good (viridian
+        // seed 1, beside a terrace: docs/SIZING.md "Navigation classes")
+        // It also walks straight only while straight agrees with the field (they point less than 90° apart): the player on a
+        // terrace reached by a ramp behind the walker is straight ahead across open ground that ends at the terrace face,
+        // and the walker went back and forth between that dead end and the ramp (viridian seed 1)
+        // (checked every fourth tick per walker; the hold below carries a disagreement between checks)
+        if (sized && !ahead && ((ctx.tick + i) & 3) === 0 && W.flowDir(E.x[i], E.z[i], NAV, feet) && NAV[0] * ux + NAV[1] * uz < 0) ahead = true;
+        // and it does not walk off a ledge toward a player who is not below it: the walker that had climbed a ramp to the
+        // player's terrace walked straight off the terrace's edge, landed at the ramp's foot and climbed it again, round and
+        // round (tropical-lagoon seed 3, a Sandshrew, 1.2 m drop). With the player below, the drop is the short way down
+        if (sized && !ahead && P.y > feet - 0.6 && W.height(E.x[i] + ux * p1, E.z[i] + uz * p1, feet) < feet - 0.6) ahead = true;
+        if (sized) { if (ahead) E.navT[i] = R.navHold; else if (E.navT[i] > 0) { E.navT[i] -= dt; ahead = true; } }
+        const fireAhead = !ahead && burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4));
+        if (ahead || fireAhead) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
-          if (W.flowDir(E.x[i], E.z[i], NAV, feet, heavy)) { ux = NAV[0]; uz = NAV[1]; }
+          if (wide) {
+            const r = W.wideDir(E.x[i], E.z[i], NAV, feet, f < DIAG_R);
+            if (r === 1) { ux = NAV[0]; uz = NAV[1]; } else if (r < 0) speed = 0;
+            E.holdT[i] = r < 0 ? E.holdT[i] + dt : 0;
+          } else if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
         }
       }
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }
@@ -270,7 +306,12 @@ export const enemySystem = {
         // habitat maps: a Raider bound for the point walks the contest's flow field (bridges, causeways, caves); the
         // field already steers around walls, so the look-ahead slide below (which turns at every hairpin) is skipped
         let flowed = false;
-        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && W.goalDir(E.x[i], E.z[i], NAV, E.y[i])) {
+        const gf = E.foot[i];
+        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && sized && navWide(gf, ctx.rules)) {
+          // a wide Raider walks the wide block field to the point; with no wide route it holds (docs/SIZING.md)
+          const r = W.wideGoalDir(E.x[i], E.z[i], NAV, E.y[i], gf < DIAG_R);
+          if (r === 1) { ux = NAV[0]; uz = NAV[1]; flowed = true; } else if (r < 0) { speed = 0; flowed = true; }
+        } else if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && W.goalDir(E.x[i], E.z[i], NAV, E.y[i])) {
           ux = NAV[0]; uz = NAV[1]; flowed = true;
           // a diagonal step clipping an inner corner (a hairpin, a cave mouth): take one axis, the larger if it is free
           if (ux && uz && W.blocks(E.x[i] + ux * 0.8, E.z[i] + uz * 0.8, E.y[i], 0.6)) {
@@ -383,7 +424,13 @@ export const enemySystem = {
         const stop = W.hazards
           ? (x: number, z: number) => W.collides(x, z, feet, up) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
           : (x: number, z: number) => W.blocks(x, z, feet, 0.6);
-        if (stop(nx, nz)) {
+        if (E.foot[i] > 0) {
+          // its footprint against walls and faces (World.moveBody); the centre-point rules (no walking into open air or a
+          // liquid on its own) stay as `stop`
+          W.moveBody(ox, oz, nx - ox, nz - oz, feet, W.hazards ? up : 0.6, E.foot[i], MOVE, W.hazards && !forced ? (x, z) => avoidsStep(ctx, i, ox, oz, x, z, feet) : undefined);
+          const fx = Math.fround(MOVE[0]), fz = Math.fround(MOVE[1]);
+          if (stop(fx, fz) && !stop(ox, oz)) { nx = ox; nz = oz; } else { nx = fx; nz = fz; }
+        } else if (stop(nx, nz)) {
           if (!stop(nx, oz)) nz = oz;
           else if (!stop(ox, nz)) nx = ox;
           else { nx = ox; nz = oz; }
@@ -398,6 +445,12 @@ export const enemySystem = {
           E.y[i] = Math.max(sg, E.y[i] - E.fallV[i] * dt);
           if (E.y[i] <= sg) E.fallV[i] = 0;
         } else { E.fallV[i] = 0; E.y[i] = sg; }
+        // landed this tick (a ledge drop or a fall): faces were measured from its feet on the way down, so it may stand in
+        // the lip of the ground it landed on; clear the footprint now (World.moveBody's push), not on its next move
+        if (E.foot[i] > 0 && E.fallV[i] === 0 && E.py[i] - E.y[i] > 0.3) {
+          W.moveBody(E.x[i], E.z[i], 0, 0, E.y[i], 0.6, E.foot[i], MOVE);
+          E.x[i] = Math.fround(MOVE[0]); E.z[i] = Math.fround(MOVE[1]);
+        }
       } else {
         const g = W.over ? W.height(E.x[i], E.z[i], E.y[i] - E.hover[i]) : W.height(E.x[i], E.z[i]);
         if (!(roles & ROLE.boss && E.state[i] === 5)) E.y[i] = g + E.hover[i] + (E.hover[i] > 0 ? dsin(ctx.time * 3 + i) * 0.15 : 0);
@@ -414,7 +467,8 @@ export const enemySystem = {
         const push = (cr - dist) / cr;
         const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
         const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
-        if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE); P.x = MOVE[0]; P.z = MOVE[1]; }
+        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen) {
           E.contactCd[i] = R.contactCooldown;
           const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);

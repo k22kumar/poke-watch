@@ -22,7 +22,8 @@ import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
 import { habitatSpawnFactor } from '../rules/profiles';
 import { canSpawnOn } from '../rules/spawning';
-import { enemyRadius } from '../rules/sizing';
+import { footprintOf, navWide } from '../rules/sizing';
+import { DIAG_R } from '../world/navblocks';
 
 export function freshBeat(): Beat {
   return { phase: 'build', t: 0, dur: 40, intensity: 0, hot: 0, dmgRecent: 0, dmgSeen: 0, peaks: 0, objectives: 0 };
@@ -152,13 +153,15 @@ function standAt(ctx: SimContext, id: string, x: number, z: number): [number, nu
   if (SPECIES_BY_ID[id]?.flying || W.walkable(x, z)) return [x, z];
   return W.nearestWalkable(x, z);
 }
-/** compatibility at (x, z): the species' habitat restrictions, and (size geometry on) room for a ground body wider than
- *  rules.size.heavyRadius at this role size (elite ×2, alpha ×3) — it may not appear in a one-tile pocket */
+/** compatibility at (x, z): the species' habitat restrictions, and (size geometry on) room for a ground body whose
+ *  footprint at this role size (elite ×2, alpha ×3) routes on the wide field — it may not appear in a one-tile pocket or
+ *  at an entrance only small bodies fit (docs/SIZING.md "Navigation classes") */
 function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize = 1): boolean {
   const [sx, sz] = standAt(ctx, id, x, z), W = ctx.world;
   if (!canSpawnOn(id, W.habitatAt(sx, sz))) return false;
   const sp = SPECIES_BY_ID[id];
-  if (ctx.rules.size.geometry && sp && !sp.flying && enemyRadius(sp, roleSize, ctx.rules) > ctx.rules.size.heavyRadius && !W.fitsHeavy(sx, sz)) return false;
+  const foot = ctx.rules.size.geometry && sp && !sp.flying ? footprintOf(sp, roleSize, ctx.rules) : 0;
+  if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R)) return false;
   return true;
 }
 

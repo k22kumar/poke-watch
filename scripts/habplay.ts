@@ -15,6 +15,8 @@ import { pathBetween } from '../src/world/locgen/nav';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
 import { ROLE } from '../src/sim/pools';
 import { shoreFor, ventPhase } from '../src/sim/hazards';
+import { partnerFootprint } from '../src/rules/sizing';
+import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 
 export interface PlayResult { recipe: string; seed: number; route: string; reach: number | null; held: boolean; holdT: number | null; back: number | null; stalls: number; hp: number; note: string; raidAt: number | null;
   /** damage the trainer took from everything (a stampede can arrive) and environment hits (vent ticks, cold dunks, burning or charged tiles) on anyone: none on required travel */
@@ -22,17 +24,45 @@ export interface PlayResult { recipe: string; seed: number; route: string; reach
   /** of those hits: the trainer's, and a Raider's while the Hold is active (its required travel); the rest are creatures that chose to cross (chasing the trainer) */
   trainerHits: number; raiderHits: number }
 
+/** the trainer's movement footprint (0 with size geometry off: then the old fixed 0.45 m probes) */
+const trainerFoot = (ctx: SimContext) => partnerFootprint(ctx.player.species, ctx.rules);
+
+/** tiles a resting body (a loose rock, the egg) covers for the trainer: within the body's radius plus the trainer's
+ *  footprint of the body's centre. Resting bodies are solid to the player (sim/bodies.ts), so a route through one pins the
+ *  driver against it head-on (tidal-cave seed 5: the retreat stalled on a rock at a corridor corner). */
+export function bodyTiles(ctx: SimContext): Set<number> {
+  const B = ctx.bodies, W = ctx.world, out = new Set<number>(), f = Math.max(0.45, trainerFoot(ctx));
+  for (let b = 0; b < B.hi; b++) {
+    if (!B.alive[b] || Math.hypot(B.vx[b], B.vz[b]) > 1) continue;
+    const R = BODY_TEMPLATES[BODY_KINDS[B.kind[b]]].radius + f;
+    for (let z = Math.floor(B.z[b] - R); z <= Math.floor(B.z[b] + R); z++) for (let x = Math.floor(B.x[b] - R); x <= Math.floor(B.x[b] + R); x++) {
+      // the tile's nearest point to the body's centre
+      const qx = Math.min(x + 1, Math.max(x, B.x[b])), qz = Math.min(z + 1, Math.max(z, B.z[b]));
+      if (Math.hypot(qx - B.x[b], qz - B.z[b]) < R - 0.5) { const k = W.tile(x + 0.5, z + 0.5); if (k >= 0) out.add(k); }
+    }
+  }
+  return out;
+}
+
 export function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<number>, minClear = 0.75): number[] | null {
-  const m = ctx.world.map, n = m.w * m.h, cl = clearance(m), N = cl.length;
-  const allow = new Uint8Array(N);
-  for (let v = 0; v < N; v++) allow[v] = cl[v] >= minClear && !(avoid && avoid.has(v % n)) ? 1 : 0;
-  if (ctx.world.hazard) for (let k = 0; k < n; k++) if (ctx.world.hazard[k]) { allow[k] = 0; }
-  return pathBetween(m, from, to, allow);
+  const m = ctx.world.map, n = m.w * m.h, cl = clearance(m), N = cl.length, need = Math.max(minClear, trainerFoot(ctx));
+  const rocks = bodyTiles(ctx);
+  rocks.delete(from % n); rocks.delete(to % n);
+  const plan = (withBodies: boolean) => {
+    const allow = new Uint8Array(N);
+    for (let v = 0; v < N; v++) allow[v] = cl[v] >= need && !(avoid && avoid.has(v % n)) && !(withBodies && rocks.has(v % n)) ? 1 : 0;
+    if (ctx.world.hazard) for (let k = 0; k < n; k++) if (ctx.world.hazard[k]) { allow[k] = 0; }
+    return pathBetween(m, from, to, allow);
+  };
+  // round resting bodies when there is a way round; through them only when there is none (a Power move would clear it)
+  return plan(true) ?? plan(false);
 }
 
 /** drive the player along a node path; returns seconds taken or null if it stalls past the budget */
 export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void): number | null {
-  const W = ctx.world, n = W.w * W.h, P = ctx.player, t0 = ctx.time;
+  const W = ctx.world, n = W.w * W.h, P = ctx.player, t0 = ctx.time, Bd = ctx.bodies;
+  // the straight-line test samples the trainer's footprint (0.45 m with size geometry off) and keeps clear of resting bodies
+  const pf = Math.max(0.45, trainerFoot(ctx)), probes = [[0, 0], [pf, 0], [-pf, 0], [0, pf], [0, -pf]];
   let i = 0, lastProgress = ctx.time, best = Infinity;
   while (ctx.time - t0 < budget) {
     // shoved into a liquid (hazards on: crowds and knockback can do that): swim to the nearest shore, then re-plan the
@@ -50,10 +80,13 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
       }
       continue;
     }
-    // the next waypoint: a few nodes ahead of the nearest one
+    // the next waypoint: a few nodes ahead of the nearest one, counting a difference in level as distance. Knocked onto
+    // a ledge on the retreat (forest-cemetery seed 1), the nearest node in plan was on the plateau 0.9 m above, half a
+    // metre away and many nodes along the route, and the driver steered at the face below it for good
     let near = i, nd = Infinity;
     for (let j = i; j < Math.min(path.length, i + 30); j++) {
-      const k = path[j] % n, x = (k % W.w) - W.half + 0.5, z = ((k / W.w) | 0) - W.half + 0.5, d = Math.hypot(x - P.x, z - P.z);
+      const v = path[j], k = v % n, x = (k % W.w) - W.half + 0.5, z = ((k / W.w) | 0) - W.half + 0.5;
+      const h = v >= n ? W.height(x, z, 1e9) : W.height(x, z), d = Math.hypot(x - P.x, z - P.z) + Math.max(0, Math.abs(h - P.y) - 0.6) * 4;
       if (d < nd) { nd = d; near = j; }
     }
     i = near;
@@ -66,7 +99,10 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
       const L0 = Math.hypot(cx - P.x, cz - P.z), steps = Math.ceil(L0 / 0.25);
       for (let s = 1; s <= steps && clear; s++) {
         const x = P.x + ((cx - P.x) * s) / steps, z = P.z + ((cz - P.z) * s) / steps;
-        for (const [ox, oz] of [[0, 0], [0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) if (W.blocks(x + ox, z + oz, feet, 0.6) || W.hazardAt(x + ox, z + oz)) { clear = false; break; }
+        for (const [ox, oz] of probes) if (W.blocks(x + ox, z + oz, feet, 0.6) || W.hazardAt(x + ox, z + oz)) { clear = false; break; }
+        // and never off a ledge: a corner cut along a plateau edge dropped the trainer onto the ledge below (forest-cemetery 1)
+        if (clear && W.height(x, z, feet) < feet - 0.6) clear = false;
+        if (clear) for (let b = 0; b < Bd.hi; b++) if (Bd.alive[b] && Math.hypot(Bd.vx[b], Bd.vz[b]) <= 1 && Math.hypot(Bd.x[b] - x, Bd.z[b] - z) < BODY_TEMPLATES[BODY_KINDS[Bd.kind[b]]].radius + pf) { clear = false; break; }
         if (clear) feet = Math.max(W.height(x, z, feet), feet - 0.6);
       }
       if (clear) { tk = c; break; }
@@ -92,12 +128,12 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
 }
 
 /** `prepare` runs on the fresh run before the route is derived (transitions the match permits: strip the props, freeze the river) */
-export function playHabitat(recipe: string, seed: number, opts: { enemies?: boolean; raid?: boolean; route?: 'direct' | 'flank' | 'both'; prepare?: (ctx: SimContext) => void } = {}): PlayResult[] {
+export function playHabitat(recipe: string, seed: number, opts: { enemies?: boolean; raid?: boolean; route?: 'direct' | 'flank' | 'both'; prepare?: (ctx: SimContext) => void; rules?: object } = {}): PlayResult[] {
   const out: PlayResult[] = [];
   const routes = opts.route === 'direct' ? ['direct'] : opts.route === 'flank' ? ['flank'] : ['direct', 'flank'];
   let first: number[] | null = null;
   for (const which of routes) {
-    const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, ...(opts.enemies ? {} : { director: { spawnBase: -99 } }) } as never });
+    const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, ...(opts.enemies ? {} : { director: { spawnBase: -99 } }), ...(opts.rules ?? {}) } as never });
     const W = ctx.world, H = W.hab!, n = W.w * W.h, m = W.map;
     const res: PlayResult = { recipe, seed, route: which, reach: null, held: false, holdT: null, back: null, stalls: 0, hp: 0, note: '', raidAt: null, dmg: 0, hazardHits: 0, ventSeconds: 0, trainerHits: 0, raiderHits: 0 };
     ctx.hooks.onTick.push((c) => { for (const e of c.events) {

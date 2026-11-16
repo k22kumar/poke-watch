@@ -4,13 +4,15 @@ Every Pokémon belongs to one of five size classes. A class decides how big the 
 
 ## The classes
 
-| Class | Canonical extent | Drawn core (`visual`) | Sim radius | Sim height | Examples |
-|---|---|---|---|---|---|
-| Tiny | < 0.35 m | 0.70 m | 0.32 m | 0.6 m | Rattata, Joltik, Pichu, Diglett, Litwick |
-| Small | 0.35 – 0.65 m | 0.98 m | 0.42 m | 0.9 m | Charmander, Sandshrew, Pikachu, Murkrow |
-| Medium | 0.65 – 1.15 m | 1.37 m | 0.52 m | 1.2 m | Bulbasaur, Slugma, Sentret, Sneasel |
-| Large | 1.15 – 2.05 m | 1.92 m | 0.68 m | 1.7 m | Charizard, Heracross, Gengar, Furret |
-| Extra Large | ≥ 2.05 m | 2.69 m | 0.90 m | 2.4 m | Onix, Snorlax, Lapras, Feraligatr |
+| Class | Canonical extent | Drawn core (`visual`) | Hurt radius (`radius`) | Sim height | Footprint (`body`) | Examples |
+|---|---|---|---|---|---|---|
+| Tiny | < 0.35 m | 0.70 m | 0.32 m | 0.6 m | 0.30 m | Rattata, Joltik, Pichu, Diglett, Litwick |
+| Small | 0.35 – 0.65 m | 0.98 m | 0.42 m | 0.9 m | 0.40 m | Charmander, Sandshrew, Pikachu, Murkrow |
+| Medium | 0.65 – 1.15 m | 1.37 m | 0.52 m | 1.2 m | 0.46 m | Bulbasaur, Slugma, Sentret, Sneasel |
+| Large | 1.15 – 2.05 m | 1.92 m | 0.68 m | 1.7 m | 0.66 m | Charizard, Heracross, Gengar, Furret |
+| Extra Large | ≥ 2.05 m | 2.69 m | 0.90 m | 2.4 m | 0.88 m | Onix, Snorlax, Lapras, Feraligatr |
+
+Three sizes are configured separately, and nothing derives one from another at runtime: `visual` is how big it is drawn, `radius` is what hits it (hurtbox, contact and crowd reach), and `body` is the movement footprint, the circle walls, faces and deck slabs stop (see "Footprint" below).
 
 - **Steps between classes.** Each class is about 1.4× the one below.
 - **Tilt.** Within a class a Pokémon is tilted by at most ±8 % (`rules.size.tilt`). The tilt depends on where its extent sits in the class band, on a log scale. The open ends use `rules.size.extentRange` (0.1 m and 6 m). Two Pokémon in the same class therefore look nearly the same size, and an evolution that stays in one class still grows a little.
@@ -56,8 +58,9 @@ Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The cl
 | Enemy vertical hit window, hit-number height | class height × role size (`E.tall`) | `src/sim/effects.ts`, `combat.ts`, `hazards.ts`, `cells.ts`, `coats.ts` |
 | Partner collision and hurt radius | class radius clamped to `rules.size.playerRadius` (0.48–0.72 m) | `partnerRadius`, read by `effects.ts`, `enemies.ts`, `bodies.ts`, `objectives.ts`, `cells.ts`, `hazards.ts` |
 | Partner vertical hurt window | class height | `partnerHeight`, `effects.ts` |
-| Wide-body routing | radius > `rules.size.heavyRadius` (0.55 m) | `src/sim/world.ts` (heavy field), `src/sim/director.ts` (spawn room) |
-| Habitat navigation profiles | partner and enemy radii from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
+| Wall and terrain collision | footprint (`footprintOf`, `partnerFootprint`) | `World.moveBody`, read by `player.ts`, `enemies.ts`, `bodies.ts` (resting-body contact) |
+| Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
+| Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
 
 Shots still leave a partner from a fixed +0.8 m, so muzzle and eye heights for the habitat validator stay on the sprite-derived heights.
@@ -77,30 +80,49 @@ Measured over 36 bot runs (6 partners × 6 seeds, 7 minutes, `rules.size.geometr
 | 0.48 m (default) | +10 % |
 | 0.55 m | ±0 % |
 
-Movement and wall collision use a point probe for every body, so the partner's radius changes what hits it, not where it can walk.
+The partner's footprint is its class `body`, uncapped: an Extra Large partner (Feraligatr, 0.88 m) is physically bigger than a Large one (0.66 m), while its hurtbox stays inside the 0.48–0.72 m clamp above. Large and Extra Large partners cannot use one-tile chokepoints.
 
-### Navigation
+## Footprint
 
-A ground body wider than `rules.size.heavyRadius` follows a second flow field. That field only crosses tiles inside a level 2 × 2 block of open ground (`World.fitsHeavy`, `src/sim/world.ts`; on decked maps it covers both layers), so the body goes round a one-tile gap. Where the wide field does not reach the body, it falls back to the ordinary field and squeezes through rather than stopping. `tests/navsize.test.ts` covers both cases.
+Every ground body collides with solid geometry as a circle of its footprint (`World.moveBody`, `src/sim/world.ts`), with size geometry on. One rule decides what is solid: `World.collides` read at the centre and at the circle's nearest point inside each tile it covers.
 
-A wide body is also never spawned in a one-tile pocket (`allowedAt` in `src/sim/director.ts`).
+- **Values.** A one-tile passage (1.0 m) fits Tiny, Small and Medium bodies (footprint < 0.5 m) and stops Large and Extra Large ones. Medium's footprint (0.46 m) sits under its 0.52 m hurtbox on purpose, so the most common wild class keeps using the locations' chokepoints. There is no tilt: passability belongs to the class.
+- **Role sizes.** An elite (×2), an alpha (×3) or a boss scales its footprint up to `rules.size.bodyCap` (0.95 m). Pursuers must fit the two-tile routes the location and habitat gates guarantee to every mandatory space. Three-tile routes reach the boss hall on only 6–14 of 30 location seeds, and widening every essential route would flatten the locations. So an elite Tiny is 0.60 m, an elite Small 0.80 m, an elite Medium 0.92 m and anything bigger 0.95 m, smaller than its hurtbox. Raising the cap means a config value plus a three-tile gate (the lattice takes the block size as a parameter).
+- **Substeps.** A move is cut into steps of at most 0.25 m, so a dash (24 m/s) or a knockback never tunnels through a corner.
+- **Corners and pinholes.** The circle is pushed out of what it overlaps, so it glides round a corner into a passage it fits. Two walls touching only at a corner are closed: the point collision let the trainer through that zero-width gap.
+- **Where faces are measured from.** While grounded (feet within a step of the surface), faces are measured from the surface under the centre. The feet lag a tick on a slope, and a terrace beside a ramp read as a step from them. While airborne (a jump, a ledge drop, a fall), faces are measured from the feet. A tile diagonal to the centre's tile is measured from the higher of the two orthogonal tiles between them, which is the block rule below.
+- **Drops and landings.** A body only drops off a ledge where it fits once it lands, and it lands clear of the lip it left. A body landing from a fall has its footprint cleared on the landing tick, because faces were measured from its feet on the way down.
+- **Escape.** A move is accepted when the overlap does not grow, so a body left in a tight spot (an evolution inside a corridor) walks out of it and never further in. A push is applied only when it clears something.
+- **Resting bodies.** A loose rock pushes the partner out by rock radius plus footprint. The hurtbox only decides what a thrown body hits. Loose rocks (`seedBodies`) are only scattered where a 7 × 7 patch is walkable, so a wide route always goes round one.
 
-Measured reach of the wide field from the player spawn (`fitsHeavy` tiles reachable on wide routes, seeds 1–4):
+With size geometry off, every footprint is 0 and the old point collision runs unchanged.
 
-| Map | Wide reach |
-|---|---|
-| Classic generated regions | 73–98 % of walkable ground |
-| Pokémon locations | 45–100 % |
+### Navigation classes
 
-The location generator reports `wideBoss` and `wideAnchors` (`src/world/locgen/validate.ts`): whether the boss hall and how many enemy entrances are joined to the hub by a two-tile route. Over 30 seeds:
+A footprint under `rules.size.heavyRadius` (0.5 m) is **narrow**: it routes on tile centres, the ordinary flow field. A circle under 0.5 m at a tile centre fits its tile, and a four-way step stays inside the two tiles, so a route on that field is traversable.
 
-| Location | Seeds with a wide boss route |
-|---|---|
-| Viridian Forest | 73 % |
-| Mt. Moon | 50 % |
-| Chargestone Cave | 37 % |
+A footprint from 0.5 m up is **wide**: it routes on the wide block lattice (`src/world/navblocks.ts`). A node there is a 2 × 2 block of tiles, centred on their shared corner. A block is wide when each tile gives one node (its ground, or its deck on a bridge) and the four orthogonal edges inside it are symmetric steps. Two blocks are linked when their shared tiles are the same nodes.
 
-On the remaining seeds the route is a deliberate one-tile chokepoint that wide bodies squeeze through. Widening those routes inside the generator would need a `LOC_VERSION` bump; it is not done yet.
+- A circle under 1 m moved between linked block centres stays inside their open union.
+- Footprints under 0.7 m (Large) may also take a diagonal-only link (`DIAG_R`). That is how a Large body follows a two-tile trail stepping along a diagonal, which is about 1.41 m across, where an Extra Large body does not fit.
+- Wide routes take no ledge drops, so they are conservative.
+
+The sim (`World.wideDir`, `wideGoalDir`) and the location validator (`wideCore`, the `wide` gate) read the same predicate.
+
+- **The field is the authority.** A wide body follows the wide field whenever it has a route, and steers straight only beside the player. Point probes cannot tell whether a lane its width needs is clear: a drop off a bridge it would not fit below reads as open.
+- **Seeding.** The field starts from the blocks covering the player's own node when it stands on wide ground. Otherwise it starts from the closest wide blocks within `rules.size.wideSeed` (4) ordinary steps, so a wide body comes as close as the ground allows. Seeding every nearby block at its ordinary distance made false minima, which held a walker 3.7 m short.
+- **Cost.** The field is rebuilt when navigation changes, when the player changes layer, or when the player moves more than a tile from where it was built, not on every tile crossed. Each wide block's nodes are cached with the mask. The field-agreement check below runs every fourth tick per walker. `perf-sim 500 --repeat 3`, min of 3: p50 0.38 ms, p95 0.48 ms, p99 1.75 ms (before: 0.24 / 0.47 / 0.54 ms; the gate is 2 / 3 ms).
+- **No route.** A wide body whose block is off the field, with no reached block within 2 tiles, has no route and holds: `wideDir` returns -1, and it never squeezes. After `rules.enemy.holdRelocate` (6 s) it is moved like a far enemy, onto ground the wide field reaches. If there is none, it keeps holding.
+- **Placement.** Spawns, relocations and rescues put a body where it fits (`World.nearestFit`). A wide body goes on a block the wide field reaches, so it is never left in a pocket only narrow routes join, and it is never spawned at a narrow-only anchor (`allowedAt`).
+
+The same pass fixed four pursuit defects, all present with point collision too and gated on size geometry so replay layers keep their hashes:
+
+- The ordinary field now only steers at a neighbour the walker can step to. It used to point a walker at a cheaper tile across a face beside a diagonal ramp, forever.
+- Once its way ahead is blocked, a walker keeps to the field for `rules.enemy.navHold` (0.4 s). A probe sitting on a tile edge flipped the test every tick, and the walker stood still.
+- A walker steers straight only while straight agrees with the field (less than 90° apart). A player on a terrace reached by a ramp behind the walker used to draw it back and forth between a dead end and the ramp.
+- A walker does not steer straight off a ledge (ground more than 0.6 m below its feet at the near probe) toward a player who is not below it. A Sandshrew that had climbed a ramp to the player's terrace walked off the terrace edge, landed at the ramp's foot and climbed again, round and round (tropical-lagoon seed 3). With the player below, the drop is still the short way down.
+
+Earlier both the sim and the validator accepted a 2 × 2 block only when the spread of its four heights was ≤ 0.6 m. On a diagonal ramp the orthogonal steps are ≤ 0.45 m but the diagonal spans 0.61–0.67 m. Every ramp tile read as too narrow, and a bridge abutment (two ground tiles, two deck tiles) fitted neither layer. That is why a two-tile boss route looked missing on 27–63 % of location seeds. With the edge rule it exists on 30 of 30 seeds in each location (wideAnchors 99–100 %).
 
 ## Turning it off
 
@@ -108,12 +130,17 @@ On the remaining seeds the route is a deliberate one-tile chokepoint that wide b
 - radius `clamp(sprite height × 0.4, 0.35, 3.2)`;
 - the role size as the hit height;
 - one shared 0.55 m partner radius and a fixed 1.2 m hurt window;
-- no wide-body routing.
+- point collision (no footprint) and no wide-body routing;
+- the older pursuit rules (no step check on the field, no hysteresis or field agreement) and the older bot probes.
 
 `npx tsx scripts/checksum.ts size-off` prints those hashes. With the classic region tables it reproduces the earlier `on` set. The only exception is the `World.shore` fix that landed with this work: a bank behind a wall is no longer preferred. Every older layer (`off`, `build-off`, `world-off`, `hazards-off`) turns size geometry off too.
 
 ## Checking it
 
-- `npx tsx --test tests/sizing.test.ts tests/navsize.test.ts`
+- `npx tsx --test tests/sizing.test.ts tests/navsize.test.ts tests/footprint.test.ts`
+- `npx tsx scripts/navwalk.ts [location|habitat|all] [seeds]` drives real walkers of every class (Medium, Large, Extra Large, an elite) and the trainer (Small and Extra Large) to every target. Mandatory targets must be reached. A size-restricted optional target must be reached by the narrow body and refused by the wide ones. No grounded walker may end a tick overlapping solid geometry.
+- `npx tsx scripts/stuckwatch.ts [map|all] [seeds] [seconds]` watches live bot runs for movement deadlocks of the bot and of enemies that have a route. A relocated enemy (far or holding) starts a new episode. A bot episode is `pinned` when the bot also walked under 2 m in the 5 s; the others are the bot walking back and forth between threats or shoved in a crowd. `all 3` on 2026-11-16: 34 bot episodes (1 pinned), 1 enemy episode in 114,805 enemy-seconds; with `STUCK_RULES='{"size":{"geometry":false}}'`, 55 bot and 796 enemy episodes.
+  - The pinned one (tropical-lagoon seed 3, Totodile, at -24.4,-21.4) is the bot's heading search: the only way out is a one-tile strip due south, and none of the sampled turns points down it. The partner fits the strip. This is a limit of the bot, not of movement.
+  - The enemy one (river-gorge seed 2, a Poliwag) is a route change: Totodile's ice bridge melted (27 tiles) and the route to the player grew by 54 steps, so the walker turned back.
 - `pokewatch.renderer.sizes()` in the browser prints class, target, multiplier and the Wide flag for every loaded sheet.
 - `node tools/cap.mjs <html> tools/sizescenes.json <outdir> size-` captures a one-per-class row (`size-class-row`), a same-class row (`size-same-class-small`) and each region's newer Pokémon (`size-wave-*`). Build to a private folder first (CLAUDE.md).

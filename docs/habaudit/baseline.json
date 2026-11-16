@@ -2,7 +2,7 @@
  "version": 2,
  "node": "v24.21.0",
  "cpu": "Apple M3 Max",
- "date": "2026-11-14",
+ "date": "2026-11-16",
  "freshLoads": [
   {
    "request": "river-gorge seed 3",
@@ -13,11 +13,11 @@
    "rejected": "-",
    "checksum": "7997d385",
    "geometry": "5f596e55.ba141ec5.2a450d76.a16e82b1.4d1fac32.38699dc5.3db4bf6d.811c9dc5",
-   "nav": "f8d454a5.68ac9cad",
-   "sim": "e357c12d",
+   "nav": "f8d454a5.c644e8e3",
+   "sim": "1f251977",
    "loads": 4,
    "agree": true,
-   "ms": "379/385/396/249"
+   "ms": "363/367/387/223"
   },
   {
    "request": "river-gorge seed 7",
@@ -28,11 +28,11 @@
    "rejected": "-",
    "checksum": "e549aa9b",
    "geometry": "6e635dea.4e6b243a.5ea0c83d.ed45c3f1.bd13d54c.38699dc5.4eb3b443.811c9dc5",
-   "nav": "0dcf5484.ac202381",
-   "sim": "ce4f6413",
+   "nav": "0dcf5484.3fb54dcf",
+   "sim": "6abe93bd",
    "loads": 4,
    "agree": true,
-   "ms": "371/379/375/253"
+   "ms": "378/394/396/230"
   },
   {
    "request": "river-gorge/snow seed 3",
@@ -43,11 +43,11 @@
    "rejected": "-",
    "checksum": "22f7cf39",
    "geometry": "5f596e55.ba141ec5.2a450d76.a16e82b1.4d1fac32.38699dc5.3db4bf6d.811c9dc5",
-   "nav": "f8d454a5.68ac9cad",
-   "sim": "e357c12d",
+   "nav": "f8d454a5.c644e8e3",
+   "sim": "1f251977",
    "loads": 3,
    "agree": true,
-   "ms": "366/373/214"
+   "ms": "374/397/221"
   },
   {
    "request": "river-gorge/snow seed 7",
@@ -58,11 +58,11 @@
    "rejected": "-",
    "checksum": "4920363d",
    "geometry": "6e635dea.4e6b243a.5ea0c83d.ed45c3f1.bd13d54c.38699dc5.4eb3b443.811c9dc5",
-   "nav": "0dcf5484.ac202381",
-   "sim": "ce4f6413",
+   "nav": "0dcf5484.3fb54dcf",
+   "sim": "6abe93bd",
    "loads": 3,
    "agree": true,
-   "ms": "367/423/205"
+   "ms": "384/456/224"
   },
   {
    "request": "volcanic-ridge seed 3",
@@ -73,11 +73,11 @@
    "rejected": "3[perch] 1556944651[perch] 3130656841[planned]",
    "checksum": "c59665d1",
    "geometry": "5589ac50.dcaa6fcb.85e6821d.02d40b39.443c4bc5.38699dc5.a99ad781.3e5eec50",
-   "nav": "2b7ade24.65c1b8cb",
-   "sim": "960644b9",
+   "nav": "2b7ade24.0831547f",
+   "sim": "8f65d5c4",
    "loads": 4,
    "agree": true,
-   "ms": "1853/1888/1844/1726"
+   "ms": "1844/1862/1852/1780"
   },
   {
    "request": "volcanic-ridge seed 7",
@@ -88,11 +88,11 @@
    "rejected": "-",
    "checksum": "c655a19c",
    "geometry": "10907a03.3f6ddb6a.02cbfc5d.81185845.dbd74a05.38699dc5.1bd8cbce.17a5becb",
-   "nav": "0719466b.def3146b",
-   "sim": "50a1658c",
+   "nav": "0719466b.afec8ecd",
+   "sim": "431b2495",
    "loads": 4,
    "agree": true,
-   "ms": "555/556/562/388"
+   "ms": "537/582/536/401"
   },
   {
    "request": "volcanic-ridge/ash seed 3",
@@ -103,11 +103,11 @@
    "rejected": "3[perch] 1556944651[perch] 3130656841[planned]",
    "checksum": "c59665d1",
    "geometry": "5589ac50.dcaa6fcb.85e6821d.02d40b39.443c4bc5.38699dc5.a99ad781.3e5eec50",
-   "nav": "2b7ade24.65c1b8cb",
-   "sim": "960644b9",
+   "nav": "2b7ade24.0831547f",
+   "sim": "8f65d5c4",
    "loads": 3,
    "agree": true,
-   "ms": "1838/1882/1568"
+   "ms": "1875/1864/1750"
   },
   {
    "request": "volcanic-ridge/ash seed 7",
@@ -118,11 +118,11 @@
    "rejected": "-",
    "checksum": "c655a19c",
    "geometry": "10907a03.3f6ddb6a.02cbfc5d.81185845.dbd74a05.38699dc5.1bd8cbce.17a5becb",
-   "nav": "0719466b.def3146b",
-   "sim": "50a1658c",
+   "nav": "0719466b.afec8ecd",
+   "sim": "431b2495",
    "loads": 3,
    "agree": true,
-   "ms": "558/570/386"
+   "ms": "551/555/411"
   },
   {
    "request": "tidal-cave seed 3",
@@ -134,10 +134,10 @@
    "checksum": "4c15a18c",
    "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
    "nav": "258ce6bb.2e7d8a33",
-   "sim": "c342892e",
+   "sim": "74e5ef53",
    "loads": 4,
    "agree": true,
-   "ms": "153/156/165/59"
+   "ms": "157/150/163/50"
   },
   {
    "request": "tidal-cave seed 7",
@@ -149,10 +149,10 @@
    "checksum": "9326ae3",
    "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
    "nav": "d44c55d2.81a23e65",
-   "sim": "8a21114f",
+   "sim": "460608e3",
    "loads": 4,
    "agree": true,
-   "ms": "166/162/168/148"
+   "ms": "158/172/159/47"
   },
   {
    "request": "tidal-cave/glimmer seed 3",
@@ -164,10 +164,10 @@
    "checksum": "4c15a18c",
    "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
    "nav": "258ce6bb.2e7d8a33",
-   "sim": "c342892e",
+   "sim": "74e5ef53",
    "loads": 3,
    "agree": true,
-   "ms": "160/166/111"
+   "ms": "158/152/47"
   },
   {
    "request": "tidal-cave/glimmer seed 7",
@@ -179,10 +179,10 @@
    "checksum": "9326ae3",
    "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
    "nav": "d44c55d2.81a23e65",
-   "sim": "8a21114f",
+   "sim": "460608e3",
    "loads": 3,
    "agree": true,
-   "ms": "164/282/94"
+   "ms": "152/160/52"
   },
   {
    "request": "forest-cemetery seed 3",
@@ -194,10 +194,10 @@
    "checksum": "c676c7bc",
    "geometry": "07c61bc9.cc4e3330.1e2b851f.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "bd48d363.5c34b601",
-   "sim": "6866bb3",
+   "sim": "111e6666",
    "loads": 4,
    "agree": true,
-   "ms": "394/352/349/223"
+   "ms": "287/271/267/189"
   },
   {
    "request": "forest-cemetery seed 7",
@@ -209,10 +209,10 @@
    "checksum": "6b37db34",
    "geometry": "83a048be.56d89cb6.0f3b5f28.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "6aa18736.11878851",
-   "sim": "616bd666",
+   "sim": "f2150acf",
    "loads": 4,
    "agree": true,
-   "ms": "381/361/394/221"
+   "ms": "284/270/257/193"
   },
   {
    "request": "forest-cemetery/hollow seed 3",
@@ -224,10 +224,10 @@
    "checksum": "c676c7bc",
    "geometry": "07c61bc9.cc4e3330.1e2b851f.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "bd48d363.5c34b601",
-   "sim": "6866bb3",
+   "sim": "111e6666",
    "loads": 3,
    "agree": true,
-   "ms": "337/326/207"
+   "ms": "274/288/187"
   },
   {
    "request": "forest-cemetery/hollow seed 7",
@@ -239,10 +239,130 @@
    "checksum": "6b37db34",
    "geometry": "83a048be.56d89cb6.0f3b5f28.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "6aa18736.11878851",
-   "sim": "616bd666",
+   "sim": "f2150acf",
    "loads": 3,
    "agree": true,
-   "ms": "314/318/203"
+   "ms": "285/270/195"
+  },
+  {
+   "request": "tropical-lagoon seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "1972d433",
+   "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
+   "nav": "6523eceb.2a6fe209",
+   "sim": "dc4608f3",
+   "loads": 4,
+   "agree": true,
+   "ms": "295/309/295/157"
+  },
+  {
+   "request": "tropical-lagoon seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "ecce33e2",
+   "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
+   "nav": "c84e62dc.1c273ddb",
+   "sim": "efdf15ed",
+   "loads": 4,
+   "agree": true,
+   "ms": "317/285/312/159"
+  },
+  {
+   "request": "tropical-lagoon/dusk seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "1972d433",
+   "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
+   "nav": "6523eceb.2a6fe209",
+   "sim": "dc4608f3",
+   "loads": 3,
+   "agree": true,
+   "ms": "314/283/167"
+  },
+  {
+   "request": "tropical-lagoon/dusk seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "ecce33e2",
+   "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
+   "nav": "c84e62dc.1c273ddb",
+   "sim": "efdf15ed",
+   "loads": 3,
+   "agree": true,
+   "ms": "318/311/164"
+  },
+  {
+   "request": "spear-sanctuary seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "118e923d",
+   "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
+   "nav": "67c732ef.d086eaef",
+   "sim": "80484cf",
+   "loads": 4,
+   "agree": true,
+   "ms": "217/226/214/111"
+  },
+  {
+   "request": "spear-sanctuary seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "b245e43a",
+   "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
+   "nav": "9b6f8b80.3d768df5",
+   "sim": "9a1af862",
+   "loads": 4,
+   "agree": true,
+   "ms": "224/230/228/110"
+  },
+  {
+   "request": "spear-sanctuary/snow seed 3",
+   "kind": "direct",
+   "requested": 3,
+   "accepted": 3,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "118e923d",
+   "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
+   "nav": "67c732ef.d086eaef",
+   "sim": "80484cf",
+   "loads": 3,
+   "agree": true,
+   "ms": "205/227/113"
+  },
+  {
+   "request": "spear-sanctuary/snow seed 7",
+   "kind": "direct",
+   "requested": 7,
+   "accepted": 7,
+   "attempts": 1,
+   "rejected": "-",
+   "checksum": "bdf1142e",
+   "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
+   "nav": "9b6f8b80.3d768df5",
+   "sim": "9a1af862",
+   "loads": 3,
+   "agree": true,
+   "ms": "211/238/111"
   }
  ],
  "replayLinks": [
@@ -1451,7 +1571,7 @@
      "coverB": 399
     }
    ],
-   "sheet": "/private/tmp/claude-501/-Users-kajanthkumar-Projects-vibecode-poke-watch/e27ca793-21d4-425b-8520-4c8baaa90548/scratchpad/habaudit3/tidal-cave-layouts.png"
+   "sheet": "docs/habaudit/tidal-cave-layouts.png"
   },
   "forest-cemetery": {
    "layouts": [
@@ -1842,7 +1962,852 @@
      "coverB": 43
     }
    ],
-   "sheet": "/private/tmp/claude-501/-Users-kajanthkumar-Projects-vibecode-poke-watch/5382e191-2012-423f-a242-0960b1d80f0f/scratchpad/audit/forest-cemetery-layouts.png"
+   "sheet": "docs/habaudit/forest-cemetery-layouts.png"
+  },
+  "tropical-lagoon": {
+   "layouts": [
+    {
+     "seed": 3,
+     "accepted": 3,
+     "attempts": 1,
+     "checksum": "1972d433",
+     "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
+     "orientation": "rot 90° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 338,
+       "length": 57.5,
+       "sinuosity": 1.28,
+       "turns": 0.5,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "A.flank": {
+       "tiles": 390,
+       "length": 67.6,
+       "sinuosity": 1.5,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      },
+      "B.direct": {
+       "tiles": 349,
+       "length": 60.2,
+       "sinuosity": 1.21,
+       "turns": 0.4,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "B.flank": {
+       "tiles": 425,
+       "length": 74.4,
+       "sinuosity": 1.5,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      }
+     },
+     "vertical": {
+      "contestH": 2.5,
+      "stageA": 0.4,
+      "stageB": 0.4,
+      "relief": 2.25,
+      "bands": {
+       "<2": 2363,
+       "2-4": 895,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 2.1
+     },
+     "crossings": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "deckTiles": 65,
+     "heights": "bridge@1.3 causeway@2.5",
+     "cover": {
+      "hardTiles": 20,
+      "softTiles": 16,
+      "spurs": 0,
+      "ringTiles": 752
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "shoreLock": 0.14,
+      "contestUsable": 1,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 2264,
+      "fallsEdges": 7,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 8.9,
+      "timeB": 8.2,
+      "skew": 0.078,
+      "perches": 0
+     },
+     "shape": {
+      "lip": 54.8,
+      "curve": 3,
+      "inlet": 4.9,
+      "canopy": 25.1,
+      "lagoon": 330.8,
+      "beach": 594,
+      "spurA": 30,
+      "stackA": 20,
+      "crossA": 85.7,
+      "overA": 72.7,
+      "rampA": 76.5,
+      "spurB": 23,
+      "stackB": 9,
+      "crossB": 85.1,
+      "overB": 72.2,
+      "rampB": 76.5
+     }
+    },
+    {
+     "seed": 7,
+     "accepted": 7,
+     "attempts": 1,
+     "checksum": "ecce33e2",
+     "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
+     "orientation": "rot 270°",
+     "routes": {
+      "A.direct": {
+       "tiles": 320,
+       "length": 55.3,
+       "sinuosity": 1.2,
+       "turns": 0.4,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "A.flank": {
+       "tiles": 403,
+       "length": 72.6,
+       "sinuosity": 1.57,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      },
+      "B.direct": {
+       "tiles": 332,
+       "length": 58.3,
+       "sinuosity": 1.26,
+       "turns": 0.5,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "B.flank": {
+       "tiles": 419,
+       "length": 74,
+       "sinuosity": 1.61,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      }
+     },
+     "vertical": {
+      "contestH": 2.5,
+      "stageA": 0.4,
+      "stageB": 0.4,
+      "relief": 2.25,
+      "bands": {
+       "<2": 2368,
+       "2-4": 877,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 2.1
+     },
+     "crossings": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "deckTiles": 64,
+     "heights": "bridge@1.3 causeway@2.5",
+     "cover": {
+      "hardTiles": 18,
+      "softTiles": 10,
+      "spurs": 0,
+      "ringTiles": 754
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "shoreLock": 0,
+      "contestUsable": 1,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 2389,
+      "fallsEdges": 7,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 7.8,
+      "timeB": 8.6,
+      "skew": 0.097,
+      "perches": 0
+     },
+     "shape": {
+      "lip": 53.5,
+      "curve": 1,
+      "inlet": 0,
+      "canopy": 22.4,
+      "lagoon": 344.4,
+      "beach": 633,
+      "spurA": 27,
+      "stackA": 25,
+      "crossA": 85.7,
+      "overA": 73.9,
+      "rampA": 76.6,
+      "spurB": 24,
+      "stackB": 13,
+      "crossB": 86,
+      "overB": 73.2,
+      "rampB": 76.6
+     }
+    },
+    {
+     "seed": 11,
+     "accepted": 11,
+     "attempts": 1,
+     "checksum": "2d29ca94",
+     "geometry": "c515e042.d17b2340.fa588a79.9cdbe1ad.12ad1b4b.38699dc5.087122a5.811c9dc5",
+     "orientation": "rot 180° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 332,
+       "length": 56.8,
+       "sinuosity": 1.28,
+       "turns": 0.5,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "A.flank": {
+       "tiles": 404,
+       "length": 71.3,
+       "sinuosity": 1.61,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      },
+      "B.direct": {
+       "tiles": 337,
+       "length": 59.5,
+       "sinuosity": 1.26,
+       "turns": 0.5,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "shore bank along the beach, low bridge, cut ramp"
+      },
+      "B.flank": {
+       "tiles": 412,
+       "length": 71.8,
+       "sinuosity": 1.52,
+       "turns": 1,
+       "rise": 2.1,
+       "fall": 0,
+       "lo": 0.4,
+       "hi": 2.5,
+       "form": "jungle bluff ramp, canopy path, causeway"
+      }
+     },
+     "vertical": {
+      "contestH": 2.5,
+      "stageA": 0.4,
+      "stageB": 0.4,
+      "relief": 2.25,
+      "bands": {
+       "<2": 2205,
+       "2-4": 944,
+       "4-6": 0,
+       "6+": 0
+      },
+      "contestAboveMedian": 2.1
+     },
+     "crossings": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "deckTiles": 62,
+     "heights": "bridge@1.3 causeway@2.5",
+     "cover": {
+      "hardTiles": 23,
+      "softTiles": 16,
+      "spurs": 0,
+      "ringTiles": 754
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 0,
+      "unanswered": 0,
+      "shoreLock": 0.29,
+      "contestUsable": 1,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 2359,
+      "fallsEdges": 8,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 8.5,
+      "timeB": 8.5,
+      "skew": 0,
+      "perches": 0
+     },
+     "shape": {
+      "lip": 54.4,
+      "curve": 3.2,
+      "inlet": -4.5,
+      "canopy": 29.5,
+      "lagoon": 324.3,
+      "beach": 543,
+      "spurA": 19,
+      "stackA": 15,
+      "crossA": 86.6,
+      "overA": 72.3,
+      "rampA": 76.6,
+      "spurB": 21,
+      "stackB": 15,
+      "crossB": 85.7,
+      "overB": 73.3,
+      "rampB": 76.6
+     }
+    }
+   ],
+   "pairs": [
+    {
+     "a": 3,
+     "b": 7,
+     "checksumA": "1972d433",
+     "checksumB": "ecce33e2",
+     "routeOverlap": 0.055,
+     "meanElevDiff": 1.82,
+     "wallTilesDiffer": 0.544,
+     "crossingsA": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "crossingsB": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "coverA": 20,
+     "coverB": 18
+    },
+    {
+     "a": 3,
+     "b": 11,
+     "checksumA": "1972d433",
+     "checksumB": "2d29ca94",
+     "routeOverlap": 0.059,
+     "meanElevDiff": 1.17,
+     "wallTilesDiffer": 0.399,
+     "crossingsA": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "crossingsB": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "coverA": 20,
+     "coverB": 23
+    },
+    {
+     "a": 7,
+     "b": 11,
+     "checksumA": "ecce33e2",
+     "checksumB": "2d29ca94",
+     "routeOverlap": 0.084,
+     "meanElevDiff": 1.1,
+     "wallTilesDiffer": 0.432,
+     "crossingsA": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "crossingsB": {
+      "bridge": 2,
+      "causeway": 2
+     },
+     "coverA": 18,
+     "coverB": 23
+    }
+   ],
+   "sheet": "docs/habaudit/tropical-lagoon-layouts.png"
+  },
+  "spear-sanctuary": {
+   "layouts": [
+    {
+     "seed": 3,
+     "accepted": 3,
+     "attempts": 1,
+     "checksum": "118e923d",
+     "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
+     "orientation": "rot 90° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 599,
+       "length": 112.1,
+       "sinuosity": 1.59,
+       "turns": 1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "A.flank": {
+       "tiles": 670,
+       "length": 122.2,
+       "sinuosity": 1.74,
+       "turns": 0.8,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      },
+      "B.direct": {
+       "tiles": 586,
+       "length": 113.2,
+       "sinuosity": 1.63,
+       "turns": 1.1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "B.flank": {
+       "tiles": 585,
+       "length": 106.3,
+       "sinuosity": 1.53,
+       "turns": 0.6,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      }
+     },
+     "vertical": {
+      "contestH": 9,
+      "stageA": 0,
+      "stageB": 0,
+      "relief": 12.16,
+      "bands": {
+       "<2": 2879,
+       "2-4": 860,
+       "4-6": 80,
+       "6+": 2788
+      },
+      "contestAboveMedian": 6
+     },
+     "crossings": {},
+     "deckTiles": 0,
+     "heights": "",
+     "cover": {
+      "hardTiles": 93,
+      "softTiles": 15,
+      "spurs": 0,
+      "ringTiles": 755
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 44,
+      "unanswered": 0,
+      "contestUsable": 0.89,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 107,
+      "fallsEdges": 0,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 15.7,
+      "timeB": 15.6,
+      "skew": 0.009,
+      "perches": 0,
+      "axisOff": 0,
+      "entry:A": 129,
+      "entryRise:A": 3,
+      "entry:B": 79,
+      "entryRise:B": 3,
+      "exitSeen:A": 0.22,
+      "exitSeen:B": 0.1,
+      "balconyDrops": 1,
+      "counterSee": 1,
+      "counterWalk": 20
+     },
+     "shape": {
+      "axis": 62.1,
+      "foot": 100,
+      "tiers": 65.5,
+      "platW": 18.3,
+      "courtW": 23.8,
+      "thrW": 30.9,
+      "doorA": 35.7,
+      "climbA": 21.8,
+      "legA": 11.1,
+      "doorB": 50.3,
+      "climbB": 23.4,
+      "legB": 10.9,
+      "outcropA": 7,
+      "outcropB": 11,
+      "courtGap": 0.73,
+      "courtSide": 1,
+      "balSide": -1,
+      "balLen": 12.5,
+      "pillars": 20,
+      "walls": 8,
+      "plinths": 3,
+      "walkways": 1,
+      "slabs": 5
+     }
+    },
+    {
+     "seed": 7,
+     "accepted": 7,
+     "attempts": 1,
+     "checksum": "b245e43a",
+     "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
+     "orientation": "rot 270°",
+     "routes": {
+      "A.direct": {
+       "tiles": 560,
+       "length": 106.2,
+       "sinuosity": 1.56,
+       "turns": 1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "A.flank": {
+       "tiles": 545,
+       "length": 99,
+       "sinuosity": 1.45,
+       "turns": 0.6,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      },
+      "B.direct": {
+       "tiles": 585,
+       "length": 111,
+       "sinuosity": 1.63,
+       "turns": 1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "B.flank": {
+       "tiles": 675,
+       "length": 124.5,
+       "sinuosity": 1.82,
+       "turns": 0.8,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      }
+     },
+     "vertical": {
+      "contestH": 9,
+      "stageA": 0,
+      "stageB": 0,
+      "relief": 12.04,
+      "bands": {
+       "<2": 2762,
+       "2-4": 846,
+       "4-6": 80,
+       "6+": 2575
+      },
+      "contestAboveMedian": 6
+     },
+     "crossings": {},
+     "deckTiles": 0,
+     "heights": "",
+     "cover": {
+      "hardTiles": 123,
+      "softTiles": 19,
+      "spurs": 0,
+      "ringTiles": 753
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 46,
+      "unanswered": 0,
+      "contestUsable": 0.9,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 150,
+      "fallsEdges": 0,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 13.9,
+      "timeB": 15.4,
+      "skew": 0.099,
+      "perches": 0,
+      "axisOff": 0,
+      "entry:A": 90,
+      "entryRise:A": 3,
+      "entry:B": 134,
+      "entryRise:B": 3,
+      "exitSeen:A": 0.11,
+      "exitSeen:B": 0.22,
+      "balconyDrops": 3,
+      "counterSee": 1,
+      "counterWalk": 20
+     },
+     "shape": {
+      "axis": 61.7,
+      "foot": 101.2,
+      "tiers": 62.4,
+      "platW": 17.5,
+      "courtW": 24.1,
+      "thrW": 32.8,
+      "doorA": 52.1,
+      "climbA": 23.3,
+      "legA": 11.2,
+      "doorB": 40,
+      "climbB": 21.7,
+      "legB": 10.6,
+      "outcropA": 9,
+      "outcropB": 7,
+      "courtGap": 0.65,
+      "courtSide": -1,
+      "balSide": 1,
+      "balLen": 12.3,
+      "pillars": 18,
+      "walls": 8,
+      "plinths": 3,
+      "walkways": 1,
+      "slabs": 5
+     }
+    },
+    {
+     "seed": 11,
+     "accepted": 11,
+     "attempts": 1,
+     "checksum": "ee4aa98e",
+     "geometry": "0d1fc68f.86736548.8a6a3215.-.10dc701d.38699dc5.7c4ae503.811c9dc5",
+     "orientation": "rot 180° mirrored",
+     "routes": {
+      "A.direct": {
+       "tiles": 579,
+       "length": 108.5,
+       "sinuosity": 1.66,
+       "turns": 1.1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "A.flank": {
+       "tiles": 683,
+       "length": 124.7,
+       "sinuosity": 1.91,
+       "turns": 0.8,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      },
+      "B.direct": {
+       "tiles": 597,
+       "length": 113.3,
+       "sinuosity": 1.7,
+       "turns": 1.1,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "external switchback, threshold stair, forecourt lane, platform stair"
+      },
+      "B.flank": {
+       "tiles": 579,
+       "length": 105,
+       "sinuosity": 1.58,
+       "turns": 0.7,
+       "rise": 9,
+       "fall": 0,
+       "lo": 0,
+       "hi": 9,
+       "form": "dry bedrock gallery, door onto the platform"
+      }
+     },
+     "vertical": {
+      "contestH": 9,
+      "stageA": 0,
+      "stageB": 0,
+      "relief": 11.87,
+      "bands": {
+       "<2": 2653,
+       "2-4": 899,
+       "4-6": 80,
+       "6+": 2649
+      },
+      "contestAboveMedian": 6
+     },
+     "crossings": {},
+     "deckTiles": 0,
+     "heights": "",
+     "cover": {
+      "hardTiles": 112,
+      "softTiles": 24,
+      "spurs": 0,
+      "ringTiles": 755
+     },
+     "optional": "",
+     "metrics": {
+      "highGround": 31,
+      "unanswered": 0,
+      "contestUsable": 0.91,
+      "hazardTiles": 0,
+      "hazardEscape": 0,
+      "fluidTiles": 140,
+      "fallsEdges": 0,
+      "width:A.direct": 3.96,
+      "width:A.flank": 3.96,
+      "width:B.direct": 3.96,
+      "width:B.flank": 3.96,
+      "timeA": 14.6,
+      "timeB": 15.6,
+      "skew": 0.063,
+      "perches": 0,
+      "axisOff": 0,
+      "entry:A": 139,
+      "entryRise:A": 3,
+      "entry:B": 86,
+      "entryRise:B": 3,
+      "exitSeen:A": 0,
+      "exitSeen:B": 0,
+      "balconyDrops": 4,
+      "counterSee": 0.96,
+      "counterWalk": 30
+     },
+     "shape": {
+      "axis": 63.4,
+      "foot": 101.1,
+      "tiers": 64,
+      "platW": 19,
+      "courtW": 22.9,
+      "thrW": 31.5,
+      "doorA": 37.5,
+      "climbA": 23,
+      "legA": 10.4,
+      "doorB": 50.8,
+      "climbB": 22.4,
+      "legB": 11.4,
+      "outcropA": 8,
+      "outcropB": 9,
+      "courtGap": 0.6,
+      "courtSide": 1,
+      "balSide": -1,
+      "balLen": 13,
+      "pillars": 18,
+      "walls": 8,
+      "plinths": 3,
+      "walkways": 1,
+      "slabs": 5
+     }
+    }
+   ],
+   "pairs": [
+    {
+     "a": 3,
+     "b": 7,
+     "checksumA": "118e923d",
+     "checksumB": "b245e43a",
+     "routeOverlap": 0.059,
+     "meanElevDiff": 7.71,
+     "wallTilesDiffer": 0.529,
+     "crossingsA": {},
+     "crossingsB": {},
+     "coverA": 93,
+     "coverB": 123
+    },
+    {
+     "a": 3,
+     "b": 11,
+     "checksumA": "118e923d",
+     "checksumB": "ee4aa98e",
+     "routeOverlap": 0.062,
+     "meanElevDiff": 5.71,
+     "wallTilesDiffer": 0.395,
+     "crossingsA": {},
+     "crossingsB": {},
+     "coverA": 93,
+     "coverB": 112
+    },
+    {
+     "a": 7,
+     "b": 11,
+     "checksumA": "b245e43a",
+     "checksumB": "ee4aa98e",
+     "routeOverlap": 0.078,
+     "meanElevDiff": 5.7,
+     "wallTilesDiffer": 0.395,
+     "crossingsA": {},
+     "crossingsB": {},
+     "coverA": 123,
+     "coverB": 112
+    }
+   ],
+   "sheet": "docs/habaudit/spear-sanctuary-layouts.png"
   }
  },
  "variants": {
@@ -2098,15 +3063,6 @@
     }
    ]
   },
-  "witnesses": {
-   "ash": [
-    "footing in frost (route speed 0.82 → 0.95, off-route 0.993 → 0.83)"
-   ],
-   "snow": [
-    "collision geometry",
-    "legacy-snow:snow under rock (1x1 wall=false platform=0.75) vs bush/bushR (1x1 wall=false platform=0.7)"
-   ]
-  },
   "tidal-cave": {
    "variant": "glimmer",
    "propRuleIssues": [],
@@ -2358,6 +3314,267 @@
      "foot": {}
     }
    ]
+  },
+  "tropical-lagoon": {
+   "variant": "dusk",
+   "propRuleIssues": [],
+   "rows": [
+    {
+     "seed": 1,
+     "issues": [],
+     "base": {
+      "checksum": "35a3f263",
+      "geometry": "62495be0.c8a63b40.87a8a44c.5c342825.ecae655e.38699dc5.6bd9deaf.811c9dc5",
+      "paint": "16ffb74b.f7e42b7c"
+     },
+     "variant": {
+      "checksum": "35a3f263",
+      "geometry": "62495be0.c8a63b40.87a8a44c.5c342825.ecae655e.38699dc5.6bd9deaf.811c9dc5",
+      "paint": "16ffb74b.f7e42b7c"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 2,
+     "issues": [],
+     "base": {
+      "checksum": "6442bba1",
+      "geometry": "9cba821a.e487857a.a995f619.445ffe4f.ffe9c383.38699dc5.61f3d158.811c9dc5",
+      "paint": "679f4c77.22f6a28b"
+     },
+     "variant": {
+      "checksum": "6442bba1",
+      "geometry": "9cba821a.e487857a.a995f619.445ffe4f.ffe9c383.38699dc5.61f3d158.811c9dc5",
+      "paint": "679f4c77.22f6a28b"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 3,
+     "issues": [],
+     "base": {
+      "checksum": "1972d433",
+      "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
+      "paint": "556ea899.7f2e0b6f"
+     },
+     "variant": {
+      "checksum": "1972d433",
+      "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
+      "paint": "556ea899.7f2e0b6f"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 4,
+     "issues": [],
+     "base": {
+      "checksum": "e92797f2",
+      "geometry": "6ad84d3e.5888b0d4.9a2f4a93.52528a5d.86d3664e.38699dc5.edff3e88.811c9dc5",
+      "paint": "69d98bd3.1a479459"
+     },
+     "variant": {
+      "checksum": "e92797f2",
+      "geometry": "6ad84d3e.5888b0d4.9a2f4a93.52528a5d.86d3664e.38699dc5.edff3e88.811c9dc5",
+      "paint": "69d98bd3.1a479459"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 5,
+     "issues": [],
+     "base": {
+      "checksum": "3eb8661b",
+      "geometry": "6aa198ce.3fba67e4.f3bfffa6.f5ccfc45.b50a3d1b.38699dc5.0632b4f9.811c9dc5",
+      "paint": "68341309.770bae23"
+     },
+     "variant": {
+      "checksum": "3eb8661b",
+      "geometry": "6aa198ce.3fba67e4.f3bfffa6.f5ccfc45.b50a3d1b.38699dc5.0632b4f9.811c9dc5",
+      "paint": "68341309.770bae23"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 6,
+     "issues": [],
+     "base": {
+      "checksum": "d694bdfe",
+      "geometry": "8fd6d183.9b828452.086b87e7.e3aaa2a7.be1ce91a.38699dc5.eea6fe50.811c9dc5",
+      "paint": "67572ba1.5e220375"
+     },
+     "variant": {
+      "checksum": "d694bdfe",
+      "geometry": "8fd6d183.9b828452.086b87e7.e3aaa2a7.be1ce91a.38699dc5.eea6fe50.811c9dc5",
+      "paint": "67572ba1.5e220375"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 7,
+     "issues": [],
+     "base": {
+      "checksum": "ecce33e2",
+      "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
+      "paint": "c8d044b5.2c1cf897"
+     },
+     "variant": {
+      "checksum": "ecce33e2",
+      "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
+      "paint": "c8d044b5.2c1cf897"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 8,
+     "issues": [],
+     "base": {
+      "checksum": "7e8bcb3c",
+      "geometry": "47440585.b5c325cc.64d0e2d8.7dd2b237.81bbdb7d.38699dc5.36144561.811c9dc5",
+      "paint": "04742dcb.e484a4cd"
+     },
+     "variant": {
+      "checksum": "7e8bcb3c",
+      "geometry": "47440585.b5c325cc.64d0e2d8.7dd2b237.81bbdb7d.38699dc5.36144561.811c9dc5",
+      "paint": "04742dcb.e484a4cd"
+     },
+     "foot": {}
+    }
+   ]
+  },
+  "spear-sanctuary": {
+   "variant": "snow",
+   "propRuleIssues": [],
+   "rows": [
+    {
+     "seed": 1,
+     "issues": [],
+     "base": {
+      "checksum": "36eb46c5",
+      "geometry": "6ca1d359.2b802ffe.1768f0b4.-.5c7e2bb7.38699dc5.cdbf7a20.811c9dc5",
+      "paint": "871c6552.599ee97e"
+     },
+     "variant": {
+      "checksum": "36eb46c5",
+      "geometry": "6ca1d359.2b802ffe.1768f0b4.-.5c7e2bb7.38699dc5.cdbf7a20.811c9dc5",
+      "paint": "871c6552.599ee97e"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 2,
+     "issues": [],
+     "base": {
+      "checksum": "69c71c0",
+      "geometry": "44b54ade.f110e4d2.db6e7678.-.ca4c110d.38699dc5.53e277e7.811c9dc5",
+      "paint": "a34b4d03.ac04507c"
+     },
+     "variant": {
+      "checksum": "d97e23e",
+      "geometry": "44b54ade.f110e4d2.db6e7678.-.ca4c110d.38699dc5.53e277e7.811c9dc5",
+      "paint": "a34b4d03.11bc89b0"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 3,
+     "issues": [],
+     "base": {
+      "checksum": "118e923d",
+      "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
+      "paint": "6f3d9b2c.f214bb2e"
+     },
+     "variant": {
+      "checksum": "118e923d",
+      "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
+      "paint": "6f3d9b2c.f214bb2e"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 4,
+     "issues": [],
+     "base": {
+      "checksum": "38ae3a21",
+      "geometry": "f0edce60.fdad8570.a30e6e6e.-.bdfdf7b5.38699dc5.0b2a1f35.811c9dc5",
+      "paint": "484c4029.c4e6e313"
+     },
+     "variant": {
+      "checksum": "87d77af9",
+      "geometry": "f0edce60.fdad8570.a30e6e6e.-.bdfdf7b5.38699dc5.0b2a1f35.811c9dc5",
+      "paint": "484c4029.8d96981b"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 5,
+     "issues": [],
+     "base": {
+      "checksum": "a6210687",
+      "geometry": "0fd8b1f1.e19078ae.edffc3fa.-.abc5bc0d.38699dc5.4a7e4d97.811c9dc5",
+      "paint": "83027520.7eb887ba"
+     },
+     "variant": {
+      "checksum": "8835bd7d",
+      "geometry": "0fd8b1f1.e19078ae.edffc3fa.-.abc5bc0d.38699dc5.4a7e4d97.811c9dc5",
+      "paint": "83027520.84881bce"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 6,
+     "issues": [],
+     "base": {
+      "checksum": "18ae5711",
+      "geometry": "d4c7e044.e8b667c3.4c7f1fb6.-.433ee3cd.38699dc5.8b308dff.811c9dc5",
+      "paint": "0c9f0654.6d2a5aef"
+     },
+     "variant": {
+      "checksum": "ac550aa7",
+      "geometry": "d4c7e044.e8b667c3.4c7f1fb6.-.433ee3cd.38699dc5.8b308dff.811c9dc5",
+      "paint": "0c9f0654.234646f7"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 7,
+     "issues": [],
+     "base": {
+      "checksum": "b245e43a",
+      "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
+      "paint": "079bde56.53871d19"
+     },
+     "variant": {
+      "checksum": "bdf1142e",
+      "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
+      "paint": "079bde56.5a631e9d"
+     },
+     "foot": {}
+    },
+    {
+     "seed": 8,
+     "issues": [],
+     "base": {
+      "checksum": "4d81218f",
+      "geometry": "57cd33a3.aa2aea11.d79e0f51.-.fee15f6f.38699dc5.5f33c466.811c9dc5",
+      "paint": "a737e24d.60afc3e1"
+     },
+     "variant": {
+      "checksum": "4c1c8d31",
+      "geometry": "57cd33a3.aa2aea11.d79e0f51.-.fee15f6f.38699dc5.5f33c466.811c9dc5",
+      "paint": "a737e24d.fb154f95"
+     },
+     "foot": {}
+    }
+   ]
+  },
+  "witnesses": {
+   "ash": [
+    "footing in frost (route speed 0.82 → 0.95, off-route 0.993 → 0.83)"
+   ],
+   "snow": [
+    "collision geometry",
+    "legacy-snow:snow under rock (1x1 wall=false platform=0.75) vs bush/bushR (1x1 wall=false platform=0.7)"
+   ]
   }
  },
  "retries": {
@@ -2493,6 +3710,60 @@
      "dialog": "Memorial Ridge could not be generated for seed 9: all 9 candidates, the re-rolls and the known valid seeds, failed the playability checks (fixture ×9). No match was started. Pick another seed or map in Settings → World."
     }
    }
+  ],
+  "tropical-lagoon": [
+   {
+    "requested": 9,
+    "attemptsAsked": [
+     9,
+     2917061395,
+     2052309553,
+     3971438100,
+     1012188843,
+     2355227048,
+     1
+    ],
+    "fallbackUsed": 1,
+    "plaque": "map seed 9 → 1 (9 rejected)",
+    "console": "[map] tropical-lagoon v2 seed 9 — seed 9 was rejected on every attempt (fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected); loaded the known valid seed 1: replay with ?loc=tropical-lagoon&mapseed=9&hv=2 (this layout alone: ?loc=tropical-lagoon&mapseed=1&hv=2)",
+    "checksum": "35a3f263",
+    "directChecksum": "35a3f263",
+    "layoutLink": "?loc=tropical-lagoon&mapseed=1&hv=2",
+    "gates": 16
+   },
+   {
+    "failure": {
+     "candidates": 9,
+     "dialog": "Cascade Lagoon could not be generated for seed 9: all 9 candidates, the re-rolls and the known valid seeds, failed the playability checks (fixture ×9). No match was started. Pick another seed or map in Settings → World."
+    }
+   }
+  ],
+  "spear-sanctuary": [
+   {
+    "requested": 9,
+    "attemptsAsked": [
+     9,
+     2917061395,
+     2052309553,
+     3971438100,
+     1012188843,
+     2355227048,
+     1
+    ],
+    "fallbackUsed": 1,
+    "plaque": "map seed 9 → 1 (9 rejected)",
+    "console": "[map] spear-sanctuary v2 seed 9 — seed 9 was rejected on every attempt (fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected; fixture:rejected); loaded the known valid seed 1: replay with ?loc=spear-sanctuary&mapseed=9&hv=2 (this layout alone: ?loc=spear-sanctuary&mapseed=1&hv=2)",
+    "checksum": "36eb46c5",
+    "directChecksum": "36eb46c5",
+    "layoutLink": "?loc=spear-sanctuary&mapseed=1&hv=2",
+    "gates": 17
+   },
+   {
+    "failure": {
+     "candidates": 9,
+     "dialog": "Spear Sanctuary could not be generated for seed 9: all 9 candidates, the re-rolls and the known valid seeds, failed the playability checks (fixture ×9). No match was started. Pick another seed or map in Settings → World."
+    }
+   }
   ]
  },
  "cache": {
@@ -2510,10 +3781,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 196,
-   "msP95": 385,
-   "msMax": 394,
-   "msMean": 230,
+   "msP50": 205,
+   "msP95": 398,
+   "msMax": 401,
+   "msMean": 237,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.13,
@@ -2563,10 +3834,10 @@
     "15→389790312(2)",
     "27→1971284506(2)"
    ],
-   "msP50": 427,
-   "msP95": 1485,
-   "msMax": 1780,
-   "msMean": 565,
+   "msP50": 391,
+   "msP95": 1406,
+   "msMax": 1640,
+   "msMean": 524,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.059,
@@ -2605,10 +3876,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 40,
-   "msP95": 41,
-   "msMax": 41,
-   "msMean": 40,
+   "msP50": 42,
+   "msP95": 44,
+   "msMax": 45,
+   "msMean": 42,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.113,
@@ -2647,9 +3918,9 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 161,
+   "msP50": 160,
    "msP95": 171,
-   "msMax": 171,
+   "msMax": 173,
    "msMean": 161,
    "variety": {
     "pairs": 435,
@@ -2675,6 +3946,90 @@
       "pairs": 323,
       "mean": 0.256,
       "above50": 33
+     }
+    }
+   }
+  },
+  "tropical-lagoon": {
+   "seeds": 30,
+   "firstAttempt": 30,
+   "retried": 0,
+   "fallbacks": 0,
+   "errors": 0,
+   "attemptsMean": 1,
+   "attemptsMax": 1,
+   "rejectedByGate": {},
+   "retriedSeeds": [],
+   "msP50": 134,
+   "msP95": 284,
+   "msMax": 365,
+   "msMean": 151,
+   "variety": {
+    "pairs": 435,
+    "routeOverlapMedian": 0.067,
+    "routeOverlapMax": 0.728,
+    "pairsAbove50": 43,
+    "pairsAbove80": 0,
+    "orientations": 8,
+    "sameOrientationPairs": 51,
+    "sameOrientationAbove50": 21,
+    "byRelation": {
+     "sameRotSameMirror": {
+      "pairs": 51,
+      "mean": 0.441,
+      "above50": 21
+     },
+     "sameRotOtherMirror": {
+      "pairs": 61,
+      "mean": 0.443,
+      "above50": 22
+     },
+     "otherRot": {
+      "pairs": 323,
+      "mean": 0.057,
+      "above50": 0
+     }
+    }
+   }
+  },
+  "spear-sanctuary": {
+   "seeds": 30,
+   "firstAttempt": 30,
+   "retried": 0,
+   "fallbacks": 0,
+   "errors": 0,
+   "attemptsMean": 1,
+   "attemptsMax": 1,
+   "rejectedByGate": {},
+   "retriedSeeds": [],
+   "msP50": 104,
+   "msP95": 111,
+   "msMax": 113,
+   "msMean": 104,
+   "variety": {
+    "pairs": 435,
+    "routeOverlapMedian": 0.068,
+    "routeOverlapMax": 0.809,
+    "pairsAbove50": 54,
+    "pairsAbove80": 1,
+    "orientations": 8,
+    "sameOrientationPairs": 51,
+    "sameOrientationAbove50": 25,
+    "byRelation": {
+     "sameRotSameMirror": {
+      "pairs": 51,
+      "mean": 0.525,
+      "above50": 25
+     },
+     "sameRotOtherMirror": {
+      "pairs": 61,
+      "mean": 0.518,
+      "above50": 29
+     },
+     "otherRot": {
+      "pairs": 323,
+      "mean": 0.063,
+      "above50": 0
      }
     }
    }

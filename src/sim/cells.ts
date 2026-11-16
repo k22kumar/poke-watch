@@ -10,7 +10,7 @@
 // airborne bodies and Electric types are immune, so Jump is the answer.
 // Everything decays, the active-cell list is capped, and all randomness uses the world RNG stream.
 
-import { partnerRadius } from '../rules/sizing';
+import { navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
 import type { Element } from '../rules/elements';
 import { HAB } from '../rules/habitats';
 import { T, type ArenaMap } from '../world/tiles';
@@ -364,14 +364,15 @@ function settleMelted(ctx: SimContext) {
   for (const k of list) {
     if (C.iceAt(k)) continue; // frozen again before this pass: still ice
     if (actors && ctx.state !== 'dead' && C.tile(P.x, P.z) === k) {
-      const [x, z] = W.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y) ?? W.nearestWalkable(P.x, P.z);
+      const pf = partnerFootprint(ctx.player.species, ctx.rules);
+      const [x, z] = W.shore(P.x, P.z, pf || partnerRadius(ctx.player.species, ctx.rules), P.y) ?? (pf > 0 ? W.nearestFit(P.x, P.z, pf, navWide(pf, ctx.rules)) : W.nearestWalkable(P.x, P.z));
       P.x = x; P.z = z; P.y = W.height(x, z); P.vx = P.vz = P.kx = P.kz = 0; P.vy = 0; P.grounded = true;
       const amt = Math.min(P.maxHp * I.dunk, Math.max(0, (P.hp - 1) / ctx.rules.mode.difficulty));
       if (amt > 0) { const before = P.hp; hurtPlayer(ctx, amt, 'dunk'); if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'dunk', who: 'player', id: -1, amount: before - P.hp, x, z }); }
     }
     for (let e = 0; e < E.hi && actors; e++) {
       if (!E.alive[e] || E.hover[e] > 0 || C.tile(E.x[e], E.z[e]) !== k) continue;
-      const [x, z] = W.shore(E.x[e], E.z[e], E.radius[e], E.y[e] - E.hover[e]) ?? W.nearestWalkable(E.x[e], E.z[e]);
+      const [x, z] = W.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e] - E.hover[e]) ?? (E.foot[e] > 0 ? W.nearestFit(E.x[e], E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules)) : W.nearestWalkable(E.x[e], E.z[e]));
       E.x[e] = E.px[e] = x; E.z[e] = E.pz[e] = z; E.y[e] = E.py[e] = W.height(x, z); E.vx[e] = E.vz[e] = E.kx[e] = E.kz[e] = 0;
       const loss = Math.min(E.maxHp[e] * I.dunk, Math.max(0, E.hp[e] - 1));
       E.hp[e] -= loss; E.flash[e] = 0.12;

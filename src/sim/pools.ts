@@ -39,6 +39,12 @@ export class EnemyPool {
   speed: Float32Array; dmg: Float32Array; radius: Float32Array; size: Float32Array;
   /** vertical hit extent (rules/sizing.ts enemyHeight: class height × role size; the role size itself when size geometry is off) */
   tall: Float32Array;
+  /** movement footprint (rules/sizing.ts footprintOf: the circle walls stop, World.moveBody; 0 = point collision) */
+  foot: Float32Array;
+  /** seconds left on the flow field after the way ahead was last blocked (hysteresis: sim/enemies.ts) */
+  navT: Float32Array;
+  /** seconds a wide body has held with no wide route to the player (sim/enemies.ts relocates it past rules.enemy.holdRelocate) */
+  holdT: Float32Array;
   species: Int16Array; roles: Uint16Array;
   flash: Float32Array; contactCd: Float32Array; attackCd: Float32Array;
   state: Uint8Array; stateT: Float32Array; tx: Float32Array; tz: Float32Array;
@@ -71,7 +77,7 @@ export class EnemyPool {
     this.gen = new Uint32Array(cap);
     this.x = F(); this.y = F(); this.z = F(); this.px = F(); this.pz = F(); this.py = F();
     this.vx = F(); this.vz = F(); this.kx = F(); this.kz = F();
-    this.hp = F(); this.maxHp = F(); this.speed = F(); this.dmg = F(); this.radius = F(); this.size = F(); this.tall = F();
+    this.hp = F(); this.maxHp = F(); this.speed = F(); this.dmg = F(); this.radius = F(); this.size = F(); this.tall = F(); this.foot = F(); this.navT = F(); this.holdT = F();
     this.species = new Int16Array(cap); this.roles = new Uint16Array(cap);
     this.flash = F(); this.contactCd = F(); this.attackCd = F();
     this.state = new Uint8Array(cap); this.stateT = F(); this.tx = F(); this.tz = F();

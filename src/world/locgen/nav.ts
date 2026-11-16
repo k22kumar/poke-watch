@@ -5,6 +5,7 @@
 // reach the spawn and be reached from it, or enemies get trapped and the player finds unreachable perches.
 import { DIRS4, canStep as symStep, navOpen, navTop } from '../gen/util';
 import { T, type ArenaMap } from '../tiles';
+import { blockMask, blockNeighbours, blockNodes, type NavGrid } from '../navblocks';
 
 export const PLAYER_CLIMB = 2.4;
 
@@ -61,26 +62,45 @@ function bfs(m: ArenaMap, src: number, ok: (a: number, b: number) => boolean): U
   return seen;
 }
 
-/** nodes a wide body fits on (the sim's heavy mask, sim/world.ts heavyMask; rules.size.heavyRadius): inside a 2 × 2 block
- *  of open nodes on one layer whose tops differ by at most a step (0.6 m) */
+/** The map as a navigation grid for the shared wide lattice (world/navblocks.ts): symmetric enemy steps (nodeStep). */
+export function navGrid(m: ArenaMap): NavGrid {
+  return { w: m.w, h: m.h, over: m.over ?? null, open: (k) => navOpen(m, k), step: (a, b) => nodeStep(m, a, b) };
+}
+
+/** nodes a wide body fits on: every node of a wide 2 × 2 block (world/navblocks.ts, the sim's wide field reads the same
+ *  lattice) */
 export function wideMask(m: ArenaMap): Uint8Array {
-  const W = m.w, H = m.h, n = W * H, ov = m.over, M = new Uint8Array(nodes(m));
-  for (let j = 0; j < H - 1; j++) for (let i = 0; i < W - 1; i++) {
-    const q = [j * W + i, j * W + i + 1, (j + 1) * W + i, (j + 1) * W + i + 1];
-    if (q.every((k) => navOpen(m, k))) { const t = q.map((k) => navTop(m, k)); if (Math.max(...t) - Math.min(...t) <= 0.6) for (const k of q) M[k] = 1; }
-    if (ov && q.every((k) => ov[k] > 0)) { const t = q.map((k) => ov[k]); if (Math.max(...t) - Math.min(...t) <= 0.6) for (const k of q) M[n + k] = 1; }
-  }
+  const g = navGrid(m), B = blockMask(g), n = m.w * m.h, M = new Uint8Array(nodes(m)), t = new Int32Array(4);
+  for (let b = 0; b < B.length; b++) if (B[b] && blockNodes(g, (b % n) % m.w, ((b % n) / m.w) | 0, (b / n) | 0, t)) for (let q = 0; q < 4; q++) M[t[q]] = 1;
   return M;
 }
 
-/** the hub's strongly connected component for a wide body: enemy movement over wideMask only */
-export function wideCore(m: ArenaMap, hub: number, drop: number): Uint8Array {
-  const M = wideMask(m);
-  const fwd = bfs(m, hub, (a, b) => M[b] === 1 && nodeMove(m, a, b, drop));
-  const back = bfs(m, hub, (a, b) => M[b] === 1 && nodeMove(m, b, a, drop));
-  const out = new Uint8Array(fwd.length);
-  for (let k = 0; k < out.length; k++) out[k] = fwd[k] & back[k];
-  return out;
+/** Wide blocks reachable from the hub through linked wide blocks (the lattice is symmetric, so reach is strong
+ *  connectivity): the block indices, and every node they cover. Seeded from every wide block that covers the hub tile. */
+export function wideBlocksFrom(m: ArenaMap, hub: number, diag = false): { blocks: Uint8Array; nodes: Uint8Array } {
+  const g = navGrid(m), B = blockMask(g), n = m.w * m.h, W = m.w, seen = new Uint8Array(B.length), cover = new Uint8Array(nodes(m));
+  const Q = new Int32Array(B.length), nb = new Int32Array(16), ta = new Int32Array(4), tb = new Int32Array(4);
+  let h = 0, t = 0;
+  const hi = hub % W, hj = (hub / W) | 0;
+  for (let L = 0; L < B.length / n; L++) for (let dj = -1; dj <= 0; dj++) for (let di = -1; di <= 0; di++) {
+    const i = hi + di, j = hj + dj;
+    if (i < 0 || j < 0 || i >= W - 1 || j >= m.h - 1) continue;
+    const b = L * n + j * W + i;
+    if (B[b] && !seen[b]) { seen[b] = 1; Q[t++] = b; }
+  }
+  while (h < t) {
+    const a = Q[h++];
+    const c = blockNeighbours(g, B, a, nb, ta, tb, diag);
+    for (let q = 0; q < c; q++) if (!seen[nb[q]]) { seen[nb[q]] = 1; Q[t++] = nb[q]; }
+  }
+  for (let b = 0; b < B.length; b++) if (seen[b] && blockNodes(g, (b % n) % W, ((b % n) / W) | 0, (b / n) | 0, ta)) for (let q = 0; q < 4; q++) cover[ta[q]] = 1;
+  return { blocks: seen, nodes: cover };
+}
+
+/** the hub's component for a wide body: every node covered by a wide block reachable from the hub (`drop` is unused —
+ *  wide routes take no ledge drops, see world/navblocks.ts) */
+export function wideCore(m: ArenaMap, hub: number, _drop?: number, diag = false): Uint8Array {
+  return wideBlocksFrom(m, hub, diag).nodes;
 }
 
 /** nodes in the hub's strongly connected component under enemy movement (index k < w·h: ground; n + k: decks) */

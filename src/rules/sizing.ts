@@ -7,8 +7,12 @@ import type { SpeciesDef } from './species';
 //
 //   class      from the canonical extent, cut at rules.size.classes[].below — or pinned per species in profiles.ts
 //   visual     the visible core the renderer scales the idle sprite to (src/render/renderer.ts)
-//   radius     collision / hurt radius in the sim (enemies × role size; partners clamped by rules.size.playerRadius)
+//   radius     hurt radius in the sim: what hits it, contact and crowd reach (enemies × role size; partners clamped
+//              by rules.size.playerRadius)
 //   height     vertical hit window in the sim
+//   body       movement footprint: the circle walls, faces and deck slabs stop (World.moveBody) and the navigation
+//              class it routes on. Per class with no tilt (passability is a property of the class); role sizes scale
+//              it up to rules.size.bodyCap. 0 with rules.size.geometry off (the old point collision).
 //
 // All three body values come from the same class row times one bounded tilt factor, so a Pokémon that is drawn
 // bigger is also hit, pushed and routed as bigger. Earlier this file ran a continuous curve (1.25·S^0.45 clamped
@@ -90,6 +94,8 @@ export interface SpeciesBody {
   radius: number;
   /** sim body height before any role multiplier */
   height: number;
+  /** movement footprint radius before any role multiplier (the class's `body`, no tilt) */
+  body: number;
   /** true when the species carries an authored encounter scale (bosses) */
   authored: boolean;
 }
@@ -125,6 +131,8 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
     visualM: authored ? sp.height : C.visual * factor,
     radius: authored ? legacyRadius(sp) : C.radius * factor,
     height: authored ? sp.height : C.height * factor,
+    // an authored boss keeps its encounter-scale hurtbox; its footprint is capped like every role-scaled body
+    body: authored ? Math.min(size.bodyCap, legacyRadius(sp)) : C.body,
     authored,
   };
   m.set(sp.id, body);
@@ -147,6 +155,21 @@ export function partnerHeight(sp: SpeciesDef, rules: Rules = defaultRules): numb
 export function enemyRadius(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
   return (rules.size.geometry ? bodyOf(sp, rules.size).radius : legacyRadius(sp)) * roleSize;
 }
+
+/** A partner's movement footprint: its class `body`, uncapped (an Extra Large partner is physically bigger than a Large
+ *  one), or 0 (point collision) when size geometry is off. */
+export function partnerFootprint(sp: SpeciesDef, rules: Rules = defaultRules): number {
+  return rules.size.geometry ? bodyOf(sp, rules.size).body : 0;
+}
+
+/** An enemy's movement footprint at a role size: class `body` × role size up to rules.size.bodyCap (0 when size
+ *  geometry is off). Bosses use role size 1 on their authored body. */
+export function footprintOf(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
+  return rules.size.geometry ? Math.min(rules.size.bodyCap, bodyOf(sp, rules.size).body * roleSize) : 0;
+}
+
+/** Does a footprint route on the wide (2 × 2 block) navigation field? (rules.size.heavyRadius; docs/SIZING.md) */
+export const navWide = (foot: number, rules: Rules = defaultRules) => foot >= rules.size.heavyRadius;
 
 /** An enemy's vertical hit extent at a role size (the legacy rules used the role size itself as the height). */
 export function enemyHeight(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {

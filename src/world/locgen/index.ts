@@ -19,7 +19,10 @@ import { planTopology } from './topology';
 import { sealPockets, validateLocation, type LocValidation } from './validate';
 import { enemyCore } from './nav';
 
-export const LOC_VERSION = 1;
+// 2: the `wide` gate (validate.ts): the boss hall, every arena and at least three anchors must be reachable on the wide
+// navigation lattice (world/navblocks.ts); seeds where the accepted attempt failed it re-roll (2026-11-15: 13 of 300
+// Viridian Forest seeds and 2 of 300 Mt. Moon seeds changed, Chargestone Cave none)
+export const LOC_VERSION = 2;
 export const MAX_ATTEMPTS = 10;
 
 export interface LocOptions { location: string | LocationDef; seed: number; size?: number }
