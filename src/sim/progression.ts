@@ -66,6 +66,21 @@ export function lineage(sp: SpeciesDef): SpeciesDef[] {
   return out;
 }
 
+/** The first attacks of a Pokémon arriving at `level`: its earliest non-status level-up moves (the first becomes the
+ *  basic attack), else any non-status move it learns. Recruits join with these (sim/squad.ts addMember). */
+export function firstAttacks(sp: SpeciesDef, level: number, count = 2): string[] {
+  const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
+  const out = [...new Set(keys)].slice(0, count);
+  if (!out.length) { const any = learnsetOf(sp).find(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status'); if (any) out.push(any[1]); }
+  return out;
+}
+
+/** The move a run opens with: the species' curated starter, else its line's (an evolved partner picked directly),
+ *  else its first attack, so any species can lead a run (docs/PLAYABILITY.md). */
+export function openingMove(sp: SpeciesDef): string | undefined {
+  return sp.starter ?? lineage(sp)[0].starter ?? firstAttacks(sp, 1, 1)[0];
+}
+
 function moveSlots(ctx: SimContext) {
   const R = ctx.rules.player;
   return ctx.player.level >= R.lateSlotLevel ? R.moveSlotsLate : R.moveSlots;

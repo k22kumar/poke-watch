@@ -257,17 +257,34 @@ input[type=text]:focus-visible { box-shadow: 0 0 0 2px var(--frame), 0 0 0 5px v
 #tuning .row { display: grid; grid-template-columns: 1fr 90px 44px; gap: 6px; align-items: center; margin: 2px 0; }
 #tuning input[type=range] { width: 100%; }
 #tuning .btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#tuning .row.play-as { grid-template-columns: 1fr auto; }
+#tuning select { font: inherit; min-width: 0; }
+
+/* ---------- developer roster (?dev=1, docs/PLAYABILITY.md) */
+.dev-tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.dev-tools input[type=search] { font: inherit; width: min(280px, 60vw); padding: 4px 8px; }
+.dev-count { color: #fff; font-size: 12px; text-shadow: 1px 1px 0 var(--frame); }
+.roster.dev { grid-template-columns: repeat(4, 1fr); gap: 12px; max-height: 62vh; overflow-y: auto; padding: 8px; box-sizing: border-box; }
+.dev-group { grid-column: 1 / -1; margin: 6px 0 0; color: #fff; font-size: 14px; text-shadow: 1px 1px 0 var(--frame); }
+.mon.dev { grid-template-columns: 56px 1fr; gap: 8px; padding: 6px 8px 6px 22px; }
+.mon.dev .pic { width: 56px; height: 56px; }
+.mon.dev .pic canvas { width: 48px; height: 48px; }
+.mon.dev .mon-head b { font-size: 15px; }
+.dev-meta { font-size: 10.5px; color: var(--ink-soft); line-height: 1.25; }
+.dev-why { font-size: 10.5px; color: #b0402c; line-height: 1.25; }
+.mon.dev.tier-partial .pic { box-shadow: inset 0 0 0 2px var(--hp-mid); }
+.mon.dev.tier-unavailable { opacity: .5; cursor: not-allowed; }
 .sub2 { color: var(--muted); }
 
 @media (max-width: 860px) {
-  .roster { grid-template-columns: 1fr 1fr; }
+  .roster, .roster.dev { grid-template-columns: 1fr 1fr; }
   .modes { grid-template-columns: 1fr; }
   .infobox { width: 250px; }
   .slot { width: 92px; } .slot .nm { max-width: 46px; }
 }
 @media (max-width: 560px) {
   #plaque { top: 82px; right: 8px; max-width: calc(100vw - 16px); padding: 5px 8px; font-size: 13px; }
-  .roster { grid-template-columns: 1fr; }
+  .roster, .roster.dev { grid-template-columns: 1fr; }
   .cards { flex-direction: column; align-items: center; }
   .card { width: 88vw; min-height: 0; }
   .hint { display: none; }

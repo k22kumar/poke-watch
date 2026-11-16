@@ -19,7 +19,7 @@ import { spawnBody, TEAM } from './bodies';
 import { resolve, setCastSlot } from './capabilities';
 import { buildRecap, rec, setSrc } from './caplog';
 import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './moves';
-import { learnsetOf, lineage, makeMember, recomputeMember } from './progression';
+import { firstAttacks, lineage, makeMember, recomputeMember } from './progression';
 import { BTN, type Card, type Member, type MoveSpec, type SimContext } from './types';
 import { TB } from '../rules/build';
 import { logTech, techSpec } from './techniques';
@@ -161,10 +161,7 @@ export function addMember(ctx: SimContext, id: string): Member | null {
   recomputeMember(ctx, m);
   m.hp = m.maxHp;
   // its first two attacks from its cross-game level-up moves, the earliest first (it becomes the basic attack)
-  const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(P.level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
-  const moveKeys = [...new Set(keys)].slice(0, 2);
-  if (!moveKeys.length) { const any = learnsetOf(sp).find(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status'); if (any) moveKeys.push(any[1]); }
-  for (const k of moveKeys) { m.moves.push({ key: k, level: 1, cd: 0.3, spec: compileMove(ctx.rules, k), uses: 0 }); m.learned.add(k); }
+  for (const k of firstAttacks(sp, P.level, 2)) { m.moves.push({ key: k, level: 1, cd: 0.3, spec: compileMove(ctx.rules, k), uses: 0 }); m.learned.add(k); }
   applyMastery(ctx); // Phase 8b: recruits' moves follow the squad level too
   ctx.events.push({ t: 'recruit', species: id });
   return m;

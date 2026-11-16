@@ -17,6 +17,8 @@ import { ROLE } from './sim/pools';
 import { spawnBody } from './sim/bodies';
 import { applyAgent } from './sim/cells';
 import { gainXp, xpNext } from './sim/progression';
+import { controlRoster, type ReadinessCheck } from './sim/playability';
+import { defaultRules } from './rules/defaults';
 import { addMember } from './sim/squad';
 import { addTechnique, setTransform } from './sim/build';
 import { startObjective } from './sim/objectives';
@@ -103,7 +105,21 @@ const ui = new UI({
     god: (on) => { god = on; },
     killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i] && !(E.roles[i] & ROLE.boss)) killEnemy(ctx, i); },
   }),
+  dev: params.has('dev'),
+  roster: () => playRoster(),
+  become: (id) => become(id),
 });
+
+// developer roster (docs/PLAYABILITY.md): the sim grades every species; the browser adds that its sprite art loaded
+const ART_CHECK: ReadinessCheck = { id: 'art', severity: 'block', test: (sp) => (renderer?.portrait(sp.id) ? null : 'sprite art not loaded') };
+function playRoster() { return controlRoster(defaultRules, [ART_CHECK]); }
+/** restart the current run (same mode and seed) as another selectable species */
+function become(id: string): boolean {
+  const r = playRoster().find((x) => x.id === id);
+  if (!current || !r || r.tier === 'unavailable') return false;
+  startRun(current.mode, id, current.seed);
+  return true;
+}
 function applyMix() { audio.mix = { master: settings.master, music: settings.music, sfx: settings.volume, cries: settings.cries, muted: settings.muted }; audio.applyVolume(); }
 applyMix();
 
@@ -498,6 +514,10 @@ async function boot() {
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
     cries, MOVE_SFX, TRACKS, advance, damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
     objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
+    // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
+    // it); pokewatch.become('lapras') restarts the current run as that species
+    roster: () => playRoster().map((r) => ({ id: r.id, tier: r.tier, opening: r.opening, reasons: r.reasons.join('; ') })),
+    become,
     // Pokémon locations (docs/LOCATIONS.md): pokewatch.loc() prints the current map's location, gates, metrics and zone
     // graph; pokewatch.locations lists what ?loc= accepts
     loc: () => {

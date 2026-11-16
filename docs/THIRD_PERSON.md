@@ -8,6 +8,7 @@ The design behind the numbers is the "Third-Person Execution Blueprint".
 | Piece | Where |
 |---|---|
 | Rig: states, size framing, collision, climb, slope tilt, aim ray (pure maths, unit-tested); every tuning value in `CHASE_CONFIG` | `src/render/camera.ts`, `tests/chase.test.ts`, `tests/camstability.test.ts` |
+| Host frame order: look → one `ViewSample` → the frame's sim ticks → render | `src/render/hostframe.ts`, `tests/viewsample.test.ts` |
 | What the rig is told about the world each frame (terrain, decks, map edge, props, threat), shared by the renderer and the diagnostics | `src/render/chaseinput.ts` |
 | Camera branch, sky, fog, per-object billboard stretch, sprite direction relative to the camera | `src/render/renderer.ts`, `src/render/tilestage.ts`, `src/render/sky.ts` |
 | Draw culling (lens-centred in third person) | `src/render/view.ts` |
@@ -26,9 +27,11 @@ camera id falls back to Third person.
 Low and behind the Pokémon, on its right shoulder, looking into the world (Garden Warfare's framing: the lens about a head
 above the hero and a body-and-a-half behind, the horizon just above the screen centre, the hero in the lower left third).
 
-- **Update order (one authoritative path).** `main.ts` steps the sim at 60 Hz, then `Renderer.render` interpolates the player
-  between the last two ticks and calls `ChaseRig.update` once per drawn frame with `chaseFrameFor(...)`. Look input changes the
-  rig's yaw at once (`Renderer.look`) so the next sim tick already moves and aims with it. Nothing else writes the camera.
+- **Update order (one authoritative path).** Each animation frame, `main.ts` runs `runFrame` (`src/render/hostframe.ts`):
+  look input goes to the rig (`Renderer.look` → `ChaseRig.look`, yaw and pitch at once), one immutable `ViewSample` is taken
+  (`Renderer.viewSample`), and every 60 Hz sim tick due that frame (zero, one or several) moves and aims with that sample.
+  Then `Renderer.render` interpolates the player between the last two ticks and calls `ChaseRig.update` once with
+  `chaseFrameFor(...)`. Nothing else writes the camera. See "View-state contract" below.
 - **Fixed clock.** Inside `update` the rig steps on its own 120 Hz clock (`CHASE_CONFIG.tick`) whatever the frame rate, with
   the Pokémon's position and the yaw interpolated to each tick's time; the frame shows the rig between its last two ticks (at
   most 8 ms behind) and then turned to the yaw and pitch the player has now, so look input has no added latency. Every hold
@@ -75,6 +78,30 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   the lens' shoulder offset so shots converge on the crosshair. Move direction is camera-relative. The sim still receives an
   ordinary `aimX/aimZ`, so magnetism, Guard, Dash, Tag and every move work unchanged.
 - **Facing:** the sim turns the Pokémon toward its movement direction (and to the aim while a move is winding up), as before.
+
+## View-state contract (Phase 1, 2026-11-16)
+Owner: the render-side rig (`ChaseRig`, `src/render/camera.ts`). The sim never reads it; it receives only the `aimX/aimZ` (and
+camera-relative `mx/mz`) the host writes into each `InputFrame`, so replays depend on recorded input alone.
+
+- **`ChaseRig.look(dyaw, dpitch)`** applies yaw and pitch at once and recomposes the public view (`eye`, `viewPitch`,
+  `target`) exactly as `update()` composes a frame: the lens turned about the pivot by the yaw change and swung up or down by
+  the boom elevation the pitch change gives, the axis tilted by the pitch change. It does not touch the rig's clock or its tick
+  state. The rig's public fields are therefore a coherent view at every instant.
+- **`ChaseRig.sample(width, height)` → `ViewSample`** is a frozen copy: `eye`, unit `dir`, `yaw`, `viewPitch`, `userPitch`,
+  `fov`, viewport `width/height/aspect` and `reticleY`. `chaseAim` takes a sample (or the rig, which has the same fields).
+- **Per frame:** look → one sample → the due ticks, all with that sample → render (`update`, the rig's only clock advance).
+  With no look input the sample is bit-identical to the view drawn the frame before; with look input it is that view plus
+  the input, which is what `update()` with no elapsed time would draw. The view drawn at the end of the frame is the sample
+  advanced by one frame of the rig's own motion (pivot follow, boom easing): same yaw, same look-driven pitch.
+- **Frame composition also swings the lens for pitch.** `update()` already turned the composed lens to the newest yaw; it now
+  also swings it by the boom elevation the pitch input since the last tick gives (`swingLens`, zero once a tick has run with
+  that pitch, and zero under a deck where the slab sets the elevation). Without pitch input nothing changes:
+  `scripts/camstats.ts` is bit-identical before and after.
+- **Fixed sim vs render interpolation stay separate:** the sim steps on its accumulator; the rig steps on its own 120 Hz
+  clock inside `update` only; neither drives the other.
+- Pinned by `tests/viewsample.test.ts` (the real `runFrame` with a real rig and run) and the rewritten
+  "rapid direction changes" test in `tests/camstability.test.ts` (it used to update the rig before aiming, the opposite of
+  the host). Findings and numbers: `docs/THIRD_PERSON_IMPLEMENTATION.md` §11.
 
 ## Renderer changes that were needed
 - No texel snapping, no integer-pixel focus distance; internal resolution is ~400 lines (preset `lines`), integer upscaled.
@@ -163,11 +190,14 @@ frame at 30 fps). Props drawn per frame on the 128 m regions are unchanged (150�
 0.1–0.4 ms median, ≤ 1.2 ms p95. No real-GPU measurements were taken.
 
 ## Diagnostics
-- `npx tsx scripts/camstats.ts [--fps 30,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species …] [--authored] [--noprops] [--noswap]`:
+- `npx tsx scripts/camstats.ts [--fps 30,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species …] [--authored] [--noprops] [--noswap] [--rawsize]`:
   idle drift, turning on the spot, a scripted walk, 30 s of bot combat, and (at other frame rates) the lens path against
   60 fps along the same recorded player path. The column meanings are at the top of the script (`*ElevMax` only counts frames
   with the lens ≥ 1 m from the pivot; `*PitchMax` is how far the view looks down; `*JumpMax` the largest one-frame lens move;
-  `slides` counts the safety net's 120 Hz ticks, not frames, and is not comparable with the old `groundPops`).
+  `slides` counts the safety net's 120 Hz ticks, not frames, and is not comparable with the old `groundPops`). Since
+  2026-11-16 the rig is given the size the renderer submits (idle frame × the species' visible-size scale,
+  `scripts/lib/chasesize.ts`); before, these diagnostics used the raw idle frame (Feraligatr 1.75 m instead of the 2.71 m
+  it is framed at), so the tables above were measured on the wrong sizes. `--rawsize` reproduces the old sizing.
 - `node tools/cap.mjs dist/index.html tools/chasecheck.json out`: idle (two shots 2 s apart: the view must not move; sprites and grass still animate), turning, walking and
   sudden turns in the forest, a large and a flying Pokémon, a squad tag, combat, taking damage, a boss, a cave, terraces,
   snow, and under a deck; `stress-*` run 8–30 s of combat, turning or walking frame by frame in the page and print the
@@ -202,10 +232,13 @@ Right stick turns the camera. If the mouse is not captured, holding the right mo
   performance are unverified.
 
 ## Not in yet (next phases)
+The hero-shooter migration (a 3D aim ray in the sim, attacks from the body, vertical combat, input buffering, shooter
+facing, headroom under decks) is planned in `docs/THIRD_PERSON_IMPLEMENTATION.md`. This file stays canonical for the rig as built.
+
 Rear-arc sim rules, compass, 3D audio (P1/P2); camera-relative sprite directions per creature with hysteresis, lock-on (P1);
 terrain mesh from the tile grid, instanced grass with a trample texture, shadows, the 3D pilot (P3).
 
 ## Checks
-`npm test` (includes `tests/chase.test.ts`, `tests/camstability.test.ts` and `tests/settings.test.ts`), `npx tsx scripts/checksum.ts on` (must match
+`npm test` (includes `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/viewsample.test.ts` and `tests/settings.test.ts`), `npx tsx scripts/checksum.ts on` (must match
 the pre-change hashes), `npx tsx scripts/camstats.ts`, and `node tools/cap.mjs dist/index.html tools/chasecheck.json out`
 (or `tools/chasescenes.json`) for third-person captures.

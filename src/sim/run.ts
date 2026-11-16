@@ -24,7 +24,7 @@ import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { reviveFainted, squadSystem } from './squad';
-import { finishEvolution, handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
+import { finishEvolution, handleCardInput, learnMove, makePlayer, openingMove, pickupSystem, progressionSystem, recompute } from './progression';
 import { NO_INPUT, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
 import { CapLog } from './caplog';
@@ -92,7 +92,9 @@ export function createRun(opts: RunOptions): SimContext {
   ctx.players.push(ctx.player);
   recompute(ctx);
   ctx.player.hp = ctx.player.maxHp;
-  if (species.starter) learnMove(ctx, species.starter);
+  // the opening move: the curated starter, else the line's or the species' first attack (any species can lead a run)
+  const opening = openingMove(species);
+  if (opening) learnMove(ctx, opening);
   startStage(ctx, 0);
   return ctx;
 }

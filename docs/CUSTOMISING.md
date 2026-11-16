@@ -41,6 +41,8 @@ Implemented. Example: Wooper as a Meadow wild Pokémon.
 
 No map, spawning, combat or render code changes. The size class comes from its canonical height (0.4 m: Small). The sim body, drawn size, habitat navigation profile and Tag Action all follow from that.
 
+It also becomes playable on its own: `npx tsx --test tests/playability.test.ts` grades it, and `?dev=1` lists it in the partner screen's All Pokémon view and the tuning panel's Play as list (docs/PLAYABILITY.md). If the test reports it as anything but ready, the reason names what is missing.
+
 ## 2. Change a Pokémon's size class
 
 Implemented. Pin the class in `src/rules/profiles.ts`:

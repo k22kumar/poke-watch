@@ -12,6 +12,8 @@ import { weightClass } from '../rules/species';
 import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
+import { bodyOf } from '../rules/sizing';
+import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
 import { ABILITIES, abilityOf } from '../rules/abilities';
@@ -71,10 +73,18 @@ export interface UIHooks {
   resetSettings(): void;
   preview(kind: 'cry' | 'sfx' | 'music'): void;
   tuning(): { rules: any; ctx: SimContext | null; spawnBoss(): void; addLevel(): void; god(on: boolean): void; killAll(): void };
+  /** developer roster (docs/PLAYABILITY.md): `dev` (?dev=1) adds the All Pokémon view to the partner screen */
+  dev: boolean;
+  /** every species graded for player control, in registry order (sim/playability.ts plus the host's art check) */
+  roster(): ControlReadiness[];
+  /** restart the current run (same mode and seed) as another species; false when there is no run or it is not selectable */
+  become(id: string): boolean;
 }
 
 const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const typeName = (e: Element) => { const t = TYPE_OF[e]; return t[0].toUpperCase() + t.slice(1); };
+/** the species' role in the roster (content/roster.json), for the developer roster */
+const roleOf = (sp: SpeciesDef) => (sp.playable ? 'Starter' : sp.boss ? 'Boss' : sp.behaviour ? 'Wild' : 'Evolution');
 const CLASS_NAME = { physical: 'Physical', special: 'Special', status: 'Status' } as const;
 const SHAPE_NAME: Record<string, string> = {
   strike: 'close strike', dash: 'dash attack', spin: 'spin', bolt: 'fast projectile', orb: 'piercing orb', homing: 'homing shot', barrage: 'multi-shot',
@@ -363,14 +373,66 @@ export class UI {
     let offers = starterChoices(offerSeed);
     let mulligansLeft = 1;
     if (!offers.length) offers = SPECIES.filter((s) => s.playable).map((s) => s.id);
-    if (!offers.includes(this.species)) this.species = offers[0];
+    // ?dev=1: the All Pokémon view lists every species graded for player control (docs/PLAYABILITY.md), filled from the
+    // registry, so a newly generated Pokémon appears here without any UI change
+    let view: 'starters' | 'all' = this.hooks.dev ? 'all' : 'starters';
+    let filter = '';
+    const selectable = () => this.hooks.roster().filter((r) => r.tier !== 'unavailable').map((r) => r.id);
+    const fitView = () => {
+      const ok = view === 'all' ? selectable() : offers;
+      if (!ok.includes(this.species)) this.species = ok[0] ?? offers[0];
+    };
+    fitView();
     const choose = (id: string, card: HTMLElement) => {
       this.species = id; this.hooks.sound('ui'); this.hooks.cry(id);
-      for (const c of roster.children) { c.setAttribute('aria-checked', 'false'); (c as any)._armed = false; }
+      for (const c of roster.querySelectorAll('.mon')) { c.setAttribute('aria-checked', 'false'); (c as any)._armed = false; }
       card.setAttribute('aria-checked', 'true'); (card as any)._armed = true;
     };
     const go = () => { this.hooks.sound('pick'); this.hooks.start(this.mode, this.species, Number(seedIn.value) || 1); };
+    const TIER_TITLE = { ready: 'Ready', partial: 'Partial (plays, with known issues)', unavailable: 'Not playable yet' } as const;
+    const rebuildAll = () => {
+      roster.className = 'roster dev';
+      roster.innerHTML = '';
+      const q = filter.trim().toLowerCase();
+      const all = this.hooks.roster();
+      for (const tier of ['ready', 'partial', 'unavailable'] as const) {
+        const rows = all.filter((r) => r.tier === tier).filter((r) => {
+          if (!q) return true;
+          const sp = SPECIES_BY_ID[r.id];
+          return [sp.id, sp.name, ...(sp.types ?? []), ...sp.elements.map(typeName), roleOf(sp), bodyOf(sp).className].some((s) => s.toLowerCase().includes(q));
+        });
+        if (!rows.length) continue;
+        roster.append(h('h3', { class: 'dev-group' }, `${TIER_TITLE[tier]} · ${rows.length}`));
+        for (const r of rows) roster.append(devCard(r));
+      }
+      if (!roster.querySelector('.mon')) roster.append(h('div', { class: 'dev-group' }, 'No Pokémon match the filter'));
+    };
+    const devCard = (r: ControlReadiness) => {
+      const sp = SPECIES_BY_ID[r.id];
+      const off = r.tier === 'unavailable';
+      const opening = r.opening ? MOVE_BY_KEY[r.opening]?.name ?? r.opening : 'nothing';
+      const meta = [roleOf(sp), bodyOf(sp).className, sp.flying ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
+      const card: HTMLElement = h('button', {
+        type: 'button', class: `box choice mon dev tier-${r.tier}`, role: 'radio', 'aria-checked': String(!off && sp.id === this.species), 'aria-disabled': String(off),
+        'aria-label': `${sp.name}, ${r.tier}${r.reasons.length ? ': ' + r.reasons.join('; ') : ''}`, title: r.reasons.join('\n') || 'Ready to play',
+        onclick: () => {
+          if (off) { this.hooks.sound('denied'); return; }
+          if (this.species === sp.id && card.getAttribute('aria-checked') === 'true' && document.activeElement === card && (card as any)._armed) { go(); return; }
+          choose(sp.id, card);
+        },
+      },
+        h('div', { class: 'pic' }, copyCanvas(this.hooks.portrait(sp.id))),
+        h('div', { class: 'info' },
+          h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
+          h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),
+          h('div', { class: 'dev-meta' }, meta),
+          r.reasons.length ? h('div', { class: 'dev-why' }, r.reasons.join(' · ')) : null),
+      );
+      return card;
+    };
     const rebuildRoster = () => {
+      if (view === 'all') { rebuildAll(); return; }
+      roster.className = 'roster';
       roster.innerHTML = '';
       for (const id of offers) {
         const sp = SPECIES_BY_ID[id];
@@ -414,9 +476,31 @@ export class UI {
       btnText.disabled = true;
     }, 'btn');
     const btnText = mulligan as HTMLButtonElement;
+    const subText = () => view === 'all'
+      ? `Mode: ${this.mode.name} · developer roster: every Pokémon in the game, graded for player control (docs/PLAYABILITY.md)`
+      : `Mode: ${this.mode.name} · pick one of the three starters, or use your single mulligan before starting`;
+    const sub = h('div', { class: 'sub' }, subText());
+    let devTools: HTMLElement | null = null;
+    if (this.hooks.dev) {
+      const toggle = btn('', () => { view = view === 'all' ? 'starters' : 'all'; this.hooks.sound('ui'); sync(); }, 'btn small') as HTMLButtonElement;
+      const search = h('input', { type: 'search', placeholder: 'Filter: name, type, role, size', 'aria-label': 'Filter Pokémon' }) as HTMLInputElement;
+      search.oninput = () => { filter = search.value; rebuildRoster(); };
+      const counts = this.hooks.roster().reduce((n, r) => { n[r.tier]++; return n; }, { ready: 0, partial: 0, unavailable: 0 });
+      devTools = h('div', { class: 'dev-tools' }, toggle, search, h('span', { class: 'dev-count' }, `${counts.ready} ready · ${counts.partial} partial · ${counts.unavailable} not playable`));
+      const sync = () => {
+        fitView();
+        toggle.textContent = view === 'all' ? 'Show starters' : 'All Pokémon (dev)';
+        search.style.display = view === 'all' ? '' : 'none';
+        mulligan.style.display = view === 'all' ? 'none' : '';
+        sub.textContent = subText();
+        rebuildRoster();
+      };
+      sync();
+    }
     scr.append(
       h('h2', { class: 'box heading' }, 'Choose your partner'),
-      h('div', { class: 'sub' }, `Mode: ${this.mode.name} · pick one of the three starters, or use your single mulligan before starting`),
+      sub,
+      ...(devTools ? [devTools] : []),
       roster,
       h('div', { class: 'select-actions' },
         btn('Back', () => this.title()),
@@ -1077,6 +1161,17 @@ export class UI {
         el.append(h('div', { class: 'row' }, h('span', {}, path.split('.')[1]), inp, val));
       }
     }
+    // play as another Pokémon: restarts this run (same mode and seed) as the chosen species; the list is the developer
+    // roster (sim/playability.ts), so it grows with the registry
+    const pick = h('select', { 'aria-label': 'Play as' }) as HTMLSelectElement;
+    for (const r of this.hooks.roster()) {
+      if (r.tier === 'unavailable') continue;
+      const o = h('option', { value: r.id }, `${SPECIES_BY_ID[r.id].name}${r.tier === 'partial' ? ' (partial)' : ''}`) as HTMLOptionElement;
+      if (r.id === T.ctx?.player.species.id) o.selected = true;
+      pick.append(o);
+    }
+    // first under the heading, so it is in view without scrolling the panel
+    el.children[1].after(h('h4', {}, 'Play as'), h('div', { class: 'row play-as' }, pick, btn('Restart as', () => { if (this.hooks.become(pick.value)) this.show('tuning', false); else this.hooks.sound('denied'); }, 'btn small')));
     let god = false;
     el.append(h('div', { class: 'btns' },
       btn('Spawn boss', () => T.spawnBoss(), 'btn small'),

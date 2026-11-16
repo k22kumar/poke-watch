@@ -232,6 +232,7 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/ART_DIRECTION.md`: the expedition art direction (floor/frame/actor/signal layers, per-biome values, decor, the crossroads camp), the before/after measurements and their limits.
 - `docs/POKEMON_FIRST.md`: how to research and adapt Pokémon identities across official appearances.
 - `docs/CAMERA.md`: the camera preset comparison and decision.
+- `docs/THIRD_PERSON_IMPLEMENTATION.md`: the plan for the third-person hero shooter: what was verified, the decision register, the staged roadmap, shared contracts and the replay migration policy.
 - `docs/AUDIO.md`: cries (era audit), every move's sound, music states, mixing, verification.
 - `docs/ICONS.md`: which icons are Pokémon items and why, and which are original.
 - `docs/SPECIES.md`: abilities, curated learnsets, unmodelled move mechanics and cross-game canon.

@@ -16,7 +16,7 @@ Headless-Chromium scripts used to check the build. Each takes the path to `dist/
 | `cap.mjs … sizescenes.json` | Visible size (docs/ART_BIBLE.md §4 "Visible size"): Rattata, Charmander, Charmeleon and Venusaur at one fixed camera, a wild row, a boss at its authored scale, and an evolution transition. The `eval` steps print `pokewatch.renderer.sizes()` |
 | `traycheck.mjs <html>` | The banked-pick tray clears on quit, restart and run end, and takes no picks while paused |
 | `film.mjs <html> <outdir>` | Frame sequences for footage (combat, moving cast, boss, evolution); assemble with ffmpeg |
-| `navcheck.mjs <html>` | Keyboard and virtual-gamepad navigation through every screen (27 steps) |
+| `navcheck.mjs <html>` | Keyboard and virtual-gamepad navigation through every screen (28 steps) |
 | `audiocheck.mjs <html> <phase> <outdir>` | Records the mixer output: `cries`, `cryfix`, `moves`, `music`, `loop`, `play` |
 | `slotcheck.mjs <html>` | Licensed-recording slot looping, with a generated test tone |
 | `musiccheck.mjs <html>` | Actual adaptive stem decoding, loop configuration, melody continuity through intensity changes, mixer, defeat and restart |

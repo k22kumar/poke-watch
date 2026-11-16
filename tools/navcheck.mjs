@@ -54,14 +54,18 @@ results.push(`${z1 < z0 - 0.2 ? 'PASS' : 'FAIL'}  play: W moves the partner nort
 results.splice(results.findIndex((r) => r.includes("W moves the partner north") && !r.includes('z ')), 1);
 const fBefore = await focusText(); await key('Tab'); const fAfter = await focusText();
 results.push(`${fBefore === fAfter || fAfter === 'BODY' ? 'PASS' : 'FAIL'}  play: Tab does not move focus into hidden menus (${fBefore} → ${fAfter})`);
-// level-up cards
+// level-up cards: offers sit in the nonmodal #tray-cards tray and the run keeps going (no focus steal)
+const trayOpen = () => p.evaluate(() => window.pokewatch?.ui?.trayOpen?.() === true);
 await p.evaluate(() => window.pokewatch.addLevel());
 await p.waitForTimeout(700);
-await check('cards: level-up opens with a card focused', () => ({ ok: !document.getElementById('modal-cards').classList.contains('hidden') && document.activeElement?.classList.contains('card'), modal: !document.getElementById('modal-cards').classList.contains('hidden'), focus: document.activeElement?.className, state: window.pokewatch.ctx.state }));
+await check('cards: level-up opens the tray while play continues', () => ({ ok: window.pokewatch.ui.trayOpen() && window.pokewatch.ctx.state === 'play' && document.querySelectorAll('#tray-cards .card').length > 0, tray: window.pokewatch.ui.trayOpen(), cards: document.querySelectorAll('#tray-cards .card').length, state: window.pokewatch.ctx.state }));
+// arrows and Enter act on the tray only once a card has focus (mouse/Tab users); keys 1-3 work without it
+await p.evaluate(() => document.querySelector('#tray-cards .card')?.focus());
 await key('ArrowRight');
-const lvBefore = await p.evaluate(() => window.pokewatch.ctx.player.moves.length + Object.keys(window.pokewatch.ctx.player.vitamins).length + window.pokewatch.ctx.player.moves.reduce((a, m) => a + m.level, 0));
+await check('cards: arrows move focus between tray cards', () => { const i = [...document.querySelectorAll('#tray-cards .card')].indexOf(document.activeElement); return { ok: i === 1, focusIndex: i }; });
 await key('Enter'); await p.waitForTimeout(500);
-await check('cards: Enter picks the focused card and play resumes', () => document.getElementById('modal-cards').classList.contains('hidden') && window.pokewatch.ctx.state === 'play');
+// "Selected …" feedback proves a pick landed even if the idle partner banked another level meanwhile
+await check('cards: Enter picks the focused card and play continues', () => ({ ok: /^Selected /.test(document.getElementById('upgrade-feedback')?.textContent ?? '') && window.pokewatch.ctx.state === 'play', feedback: document.getElementById('upgrade-feedback')?.textContent, state: window.pokewatch.ctx.state }));
 // pause / settings
 await key('Escape'); await p.waitForTimeout(300);
 await check('pause: Esc opens pause with Resume focused', () => !document.getElementById('screen-pause').classList.contains('hidden') && /Resume/.test(document.activeElement?.textContent ?? ''));
@@ -78,8 +82,8 @@ await key('Escape'); await p.waitForTimeout(200);
 await check('settings: Esc returns to pause', () => !document.getElementById('screen-pause').classList.contains('hidden'));
 await key('Escape'); await p.waitForTimeout(300);
 await check('pause: Esc resumes play', () => document.getElementById('screen-pause').classList.contains('hidden') && window.pokewatch.ctx.state === 'play');
-// gamepad (first close a level-up modal the idle partner may have earned meanwhile)
-for (let i = 0; i < 3; i++) { if (await p.evaluate(() => !document.getElementById('modal-cards').classList.contains('hidden'))) { await key('1'); await p.waitForTimeout(300); } }
+// gamepad (first close any level-up tray the idle partner may have earned meanwhile)
+for (let i = 0; i < 3; i++) { if (await trayOpen()) { await key('1'); await p.waitForTimeout(300); } }
 await pad(9); await p.waitForTimeout(500);
 await check('gamepad: Start pauses', () => ({ ok: !document.getElementById('screen-pause').classList.contains('hidden'), menu: window.pokewatch.ui.activeMenu(), state: window.pokewatch.ctx?.state }));
 await pad(13);
@@ -89,9 +93,9 @@ await check('gamepad: B resumes from pause', () => document.getElementById('scre
 // disabled state
 await p.evaluate(() => { window.pokewatch.ctx.cards.rerolls = 0; window.pokewatch.addLevel(); });
 await p.waitForTimeout(700);
-await check('cards: a spent action is disabled and announced', () => { const b = [...document.querySelectorAll('#modal-cards button')].find((x) => /Reroll/.test(x.textContent)); return b && b.disabled && b.getAttribute('aria-disabled') === 'true'; });
+await check('cards: a spent action is disabled and announced', () => { const b = [...document.querySelectorAll('#tray-cards button')].find((x) => /Reroll/.test(x.textContent)); return b && b.disabled && b.getAttribute('aria-disabled') === 'true'; });
 await key('f'); await p.waitForTimeout(150);
-await check('cards: pressing F with no rerolls changes nothing', () => !document.getElementById('modal-cards').classList.contains('hidden'));
+await check('cards: pressing F with no rerolls changes nothing', () => window.pokewatch.ui.trayOpen());
 await key('1'); await p.waitForTimeout(400);
 // defeat → end screen → restart
 const seed0 = await p.evaluate(() => window.pokewatch.ctx.seed);
