@@ -11,7 +11,7 @@
 // The schedule teaches one thing at a time: the first region opens with a Hold and then a Hunt (the first
 // recruit lands around 4:00), the second with a Transport and then a Hunt (the second recruit around 9:00).
 
-import { navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
+import { navWide, partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
 import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
@@ -57,7 +57,7 @@ function site(ctx: SimContext, rMin: number, rMax: number, fromX = ctx.player.x,
   for (let k = 0; k < 40; k++) {
     const a = ctx.rng.spawn.range(0, Math.PI * 2), r = ctx.rng.spawn.range(rMin, rMax);
     const x = Math.floor(clamp(fromX + dsin(a) * r, -b, b)) + 0.5, z = Math.floor(clamp(fromZ + dcos(a) * r, -b, b)) + 0.5;
-    let ok = W.walkable(x, z) && (!wide || W.wideReached(x, z, pf < DIAG_R));
+    let ok = W.walkable(x, z) && (!wide || W.wideReached(x, z, pf < DIAG_R, undefined, partnerHeight(ctx.player.species, ctx.rules)));
     for (let q = 0; q < 8 && ok; q++) ok = W.walkable(x + dsin(q * 0.785) * 2.2, z + dcos(q * 0.785) * 2.2);
     if (ok) return [x, z];
   }

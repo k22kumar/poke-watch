@@ -3,8 +3,10 @@
 // default (generated regions and Pokémon locations; --authored for the hand-made arenas), and reports how much the
 // camera moves that the player did not ask for. See docs/THIRD_PERSON.md, "Diagnostics".
 //   npx tsx scripts/camstats.ts [--fps 60,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species cyndaquil,feraligatr]
-//                               [--authored] [--noprops] [--noswap] [--rawsize] [--json]
+//                               [--authored] [--noprops] [--noswap] [--rawsize] [--legacypitch] [--sweep] [--json]
 // --noprops lets the lens pass through props (CHASE_CONFIG.propsBlockLens = false); --noswap never swaps shoulder.
+// --legacypitch runs the pre-Phase-4A view pitch (CHASE_CONFIG.aimPitch.on = false: automatic tilt, the [-14, 20] window).
+// --sweep adds the sweep* columns: the walk again while the player sweeps the pitch over its whole envelope.
 //
 // Columns (per seed x stage x species x fps):
 //   idleMove        m      how far the lens drifts while nothing is pressed (after 1.5 s)
@@ -22,7 +24,11 @@
 //   slides                 frames the safety net had to slide the lens in along the boom (the eased boom was too slow)
 //   fpsDev          m      largest gap between the lens path at this frame rate and at 60 fps, following the same
 //                          recorded player path (so only the camera's own frame-rate dependence shows)
-import { CHASE_CONFIG, ChaseRig } from '../src/render/camera';
+//   sweep*                 (--sweep) the walk with the view pitch swept from the up limit to the down limit and back
+//                          every 8 s: DvP99 and JumpMax as above, ElevMax, Slides (safety-net slides), Floor (lowest
+//                          lens clearance over the ground under it, m), AxisErr (deg the drawn axis was off the
+//                          player's own pitch: 0 when the player owns the view)
+import { CHASE_CONFIG, ChaseRig, lookPitchRange } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { botInput } from '../src/sim/bot';
 import { createRun, startStage, step } from '../src/sim/run';
@@ -37,6 +43,8 @@ const FPS = arg('fps', '60').split(',').map(Number);
 const AUTHORED = process.argv.includes('--authored');
 if (process.argv.includes('--noprops')) CHASE_CONFIG.propsBlockLens = false;
 if (process.argv.includes('--noswap')) CHASE_CONFIG.swap.below = -1;
+if (process.argv.includes('--legacypitch')) CHASE_CONFIG.aimPitch.on = false;
+const SWEEP = process.argv.includes('--sweep');
 const D2R = Math.PI / 180;
 
 /** the subject size the renderer submits to the rig (idle frame x the species' visible-size scale, scripts/lib/chasesize.ts);
@@ -44,8 +52,8 @@ const D2R = Math.PI / 180;
 const RAW = process.argv.includes('--rawsize');
 const sizeOf = (id: string) => { const s = RAW ? rawFrameSize(id) : rigSize(id); return { h: s.height, w: s.width }; };
 
-interface Sample { t: number; eye: number[]; vp: number; boom: number; fov: number; elev: number; state: string; lift: number; gap: number; off: number[] }
-type Control = (c: SimContext, r: ChaseRig, t: number, dt: number) => { inp: InputFrame; lookYaw?: number };
+interface Sample { t: number; ground?: number; up?: number; eye: number[]; vp: number; boom: number; fov: number; elev: number; state: string; lift: number; gap: number; off: number[] }
+type Control = (c: SimContext, r: ChaseRig, t: number, dt: number) => { inp: InputFrame; lookYaw?: number; lookPitch?: number };
 
 /** one scenario at a render rate: like main.ts, the sim steps at 60 Hz from an accumulator and the rig sees the player
  *  interpolated between the last two ticks */
@@ -60,15 +68,17 @@ function run(ctx: SimContext, fps: number, secs: number, control: Control) {
     const real = 1 / fps;
     t += real;
     const ctl = control(ctx, rig, t, real);
-    if (ctl.lookYaw) rig.look(ctl.lookYaw, 0); // Renderer.look
+    if (ctl.lookYaw || ctl.lookPitch) rig.look(ctl.lookYaw ?? 0, ctl.lookPitch ?? 0); // Renderer.look
     acc += real;
     // the same tolerance main.ts would need to step exactly once per tick at 60 fps
     while (acc >= ctx.dt - 1e-9) { step(ctx, ctl.inp); acc -= ctx.dt; }
     const alpha = Math.max(0, Math.min(1, acc / ctx.dt));
     const px = P.px + (P.x - P.px) * alpha, py = P.py + (P.y - P.py) * alpha, pz = P.pz + (P.z - P.pz) * alpha;
-    rig.update(chaseFrameFor(ctx, { dt: real, x: px, y: py, z: pz, height: sz.h, width: sz.w, lookPitch: 0 }));
+    const cf = chaseFrameFor(ctx, { dt: real, x: px, y: py, z: pz, height: sz.h, width: sz.w, lookPitch: 0 });
+    rig.update(cf);
     const dx = rig.eye[0] - rig.px, dz = rig.eye[2] - rig.pz;
-    out.push({ t, eye: rig.eye.slice(), vp: rig.viewPitch / D2R, boom: rig.boomUsed, fov: rig.fov / D2R, elev: Math.atan2(rig.eye[1] - rig.py - rig.pivotH, Math.hypot(dx, dz)) / D2R, state: rig.state, lift: rig.liftDeg, gap: rig.lensGap, off: [rig.eye[0] - px, rig.eye[1] - py, rig.eye[2] - pz] });
+    // the ground under the lens as the rig itself sees it (the Pokémon's layer: render/chaseinput.ts)
+    out.push({ t, ground: cf.ground(rig.eye[0], rig.eye[2]), up: rig.userPitch, eye: rig.eye.slice(), vp: rig.viewPitch / D2R, boom: rig.boomUsed, fov: rig.fov / D2R, elev: Math.atan2(rig.eye[1] - rig.py - rig.pivotH, Math.hypot(dx, dz)) / D2R, state: rig.state, lift: rig.liftDeg, gap: rig.lensGap, off: [rig.eye[0] - px, rig.eye[1] - py, rig.eye[2] - pz] });
   }
   return { s: out, pops: rig.groundPops };
 }
@@ -100,6 +110,12 @@ function fresh(seed: number, stage: number, species: string, calm: boolean) {
 
 // the scripted walk: forward along the camera while it swings slowly left and right
 const walkCtl: Control = (_c, r, t, dt) => ({ inp: { ...NO_INPUT, mx: Math.sin(r.yaw), mz: Math.cos(r.yaw) }, lookYaw: Math.sin(t * 0.7) * 0.9 * dt });
+/** the same walk while the player sweeps the pitch over the whole band in force (lookPitchRange), up first, every 8 s */
+const sweepCtl: Control = (c, r, t, dt) => {
+  const [lo, hi] = lookPitchRange(), mid = (lo + hi) / 2, amp = (hi - lo) / 2;
+  const want = mid - amp * Math.sin((t * 2 * Math.PI) / 8 + Math.asin(Math.max(-1, Math.min(1, mid / amp))));
+  return { ...walkCtl(c, r, t, dt), lookPitch: (Math.max(lo, Math.min(hi, want)) - r.userPitch) * D2R };
+};
 /** the walk's yaw as a function of time (the integral of walkCtl's look input) */
 const walkYaw = (t: number) => Math.PI - (0.9 / 0.7) * (1 - Math.cos(t * 0.7));
 
@@ -146,6 +162,16 @@ for (const fps of FPS) for (const seed of SEEDS) for (const stage of STAGES) for
     fightFlips: flips(fight), fightDvP99: +pct(df, 0.99).toFixed(2), fightBoomTravel: +travel(fight, (s) => s.boom).toFixed(1), fightFovRange: +range(fight.map((s) => s.fov)).toFixed(1), fightElevMax: +elevMax(fight).toFixed(1), fightPitchMax: +Math.max(...fight.map((s) => s.vp)).toFixed(1), fightJumpMax: +jumpMax(fight).toFixed(2),
     slides: w.pops + fr.pops, fpsDev: +fpsDev.toFixed(3),
   });
+  if (SWEEP) {
+    const sw = run(fresh(seed, stage, sp, true), fps, 20, sweepCtl), sweep = sw.s.filter((s) => s.t > 1), ds = dv(sweep);
+    const A = CHASE_CONFIG.aimPitch;
+    Object.assign(rows[rows.length - 1], {
+      sweepDvP99: +pct(ds, 0.99).toFixed(2), sweepJumpMax: +jumpMax(sweep).toFixed(2), sweepElevMax: +elevMax(sweep).toFixed(1),
+      sweepSlides: sw.pops, sweepFloor: +Math.min(...sweep.map((s) => s.eye[1] - (s.ground ?? 0))).toFixed(2),
+      sweepAxisErr: A.on ? +Math.max(...sweep.map((s) => Math.abs(s.vp - (A.neutral + (s.up ?? 0))))).toFixed(6) : -1,
+      sweepPitch: `${Math.min(...sweep.map((s) => s.vp)).toFixed(0)}..${Math.max(...sweep.map((s) => s.vp)).toFixed(0)}`,
+    });
+  }
 }
 if (!process.argv.includes('--quiet')) console.table(rows);
 const num = Object.keys(rows[0]).filter((k) => typeof rows[0][k] === 'number' && !['fps', 'seed', 'stage'].includes(k));

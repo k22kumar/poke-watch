@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import { defaultRules } from '../src/rules/defaults';
 import { BIOMES } from '../src/rules/stages';
-import { World } from '../src/sim/world';
+import { HEAD_EPS, World } from '../src/sim/world';
+import { partnerHeight } from '../src/rules/sizing';
 import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { shootHostile } from '../src/sim/enemies';
@@ -264,7 +265,7 @@ function deckTile(W: World): { x: number; z: number; deck: number; ground: numbe
   throw new Error('no deck');
 }
 
-test('decks in the sim: height and collision follow the walker’s level; a jump from beneath never reaches the deck', () => {
+test('decks in the sim: height and collision follow the walker’s level; a jump from beneath never reaches the deck, and the head stops at the slab', () => {
   const run = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'chargestone-cave' } } } as never });
   const W = run.world, D = deckTile(W);
   assert.ok(W.over);
@@ -278,8 +279,13 @@ test('decks in the sim: height and collision follow the walker’s level; a jump
   const P = run.player;
   P.x = P.px = D.x; P.z = P.pz = D.z; P.y = P.py = D.ground; P.vy = 0;
   let top = -Infinity;
-  for (let t = 0; t < 180; t++) { step(run, { mx: 0, mz: 0, ax: 0, az: 1, jump: t % 20 === 0, dash: false } as never); top = Math.max(top, P.y); }
+  // (the last jump at tick 120: a jump stopped by the slab lands sooner, so every jump has landed by the end)
+  for (let t = 0; t < 180; t++) { step(run, { mx: 0, mz: 0, ax: 0, az: 1, jump: t % 20 === 0 && t <= 120, dash: false } as never); top = Math.max(top, P.y); }
   assert.ok(top < D.deck - 0.9, `jump apex ${top.toFixed(2)} stays under the deck at ${D.deck}`);
+  // headroom (R1): the head (feet + the class height) stops at the slab's underside; a free jump would put it 0.4 m in
+  const head = top + partnerHeight(P.species, run.rules), under = W.ceilingAt(D.x, D.z, D.ground);
+  assert.ok(head <= under + HEAD_EPS, `head ${head.toFixed(3)} at most the underside ${under.toFixed(3)}`);
+  assert.ok(D.ground + partnerHeight(P.species, run.rules) + 1.84 > under, 'the jump would reach the slab without the clamp');
   assert.ok(Math.abs(P.y - D.ground) < 0.05, 'lands back on the ground');
   // stand on top: the player stays on the deck
   P.y = P.py = D.deck; P.vy = 0;

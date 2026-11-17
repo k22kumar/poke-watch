@@ -45,8 +45,11 @@ const which = process.argv[2] ?? 'all';
 // Spatial aim (Phase 2B): `aim` covers it (the bot plus a crosshair ray); `aim-off` must print the `on` hashes exactly.
 // Spatial beams and the foliage cover rule (Phase 2C): `aim` covers them too; `aim-2b` (beams planar, foliage as cover)
 // must print the Phase 2B `aim` hashes exactly.
-const CLASSIC = { spawning: { regions: CLASSIC_REGIONS } };
-const SIZE_OFF = { size: { geometry: false }, ...CLASSIC };
+// Headroom (R1, docs/SIZING.md "Headroom"): bodies meet deck slabs. Only maps with decks change (`gen`); `gen-headroom-off`
+// must print the `gen` hashes from before it, and every older set turns it off too.
+const HEADROOM_OFF = { headroom: false };
+const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF };
+const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
 const SETS: Record<string, object | undefined> = {
   off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
   'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
@@ -57,15 +60,17 @@ const SETS: Record<string, object | undefined> = {
   on: undefined,
   gen: { worldgen: { mode: 'generated' } },
   // the classic generator everywhere (Pokémon locations off): must print the pre-location `gen` hashes exactly
-  'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } },
+  'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } }, size: HEADROOM_OFF },
   'gen-size-off': { worldgen: { mode: 'generated' }, ...SIZE_OFF },
+  // R1: `gen` with bodies' heads passing through deck slabs again
+  'gen-headroom-off': { worldgen: { mode: 'generated' }, size: HEADROOM_OFF },
   // Phase 2B (docs/THIRD_PERSON_IMPLEMENTATION.md §13): the bot never aims, so no set above reaches the spatial aim. `aim`
   // replays the `on` bot with a chase-style crosshair ray added to each input (withAim below): the direct shots then take
   // the spatial path. `aim-off` sends the same rays with rules.aim.spatial off and must print the `on` hashes exactly
   aim: undefined,
   'aim-off': { aim: { spatial: false } },
   // Phase 2C (§14): beams back on the planar path and foliage back to cover: the Phase 2B `aim` hashes exactly
-  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true } },
+  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true }, size: HEADROOM_OFF },
 };
 const AIMED = new Set(['aim', 'aim-off', 'aim-2b']);
 

@@ -25,6 +25,9 @@ export const DECK_REACH = 0.9;
 /** an overhead deck is a slab this thick: solid from its underside (top − DECK_SLAB) to its top (render/tilestage.ts
  *  draws the same 0.6 m). DECK_REACH is the layer-selection reach, not geometry */
 export const DECK_SLAB = 0.6;
+/** headroom (rules.size.headroom): a head may reach this far above a slab's underside (float32 positions and heights;
+ *  an Extra Large body of exactly the class height, 2.4 m, fits the generators' 2.4 m gap under a 3.0 m deck) */
+export const HEAD_EPS = 1e-3;
 
 export class World {
   readonly size: number;
@@ -71,7 +74,8 @@ export class World {
   /** size-aware navigation (docs/SIZING.md "Navigation classes"): the wide 2 × 2 blocks (world/navblocks.ts), built on
    *  first use and dropped whenever navigation changes, and block fields over them toward the player and toward a
    *  habitat contest, one per link rule ([0] orthogonal links only, [1] with diagonal-only links for footprints under
-   *  DIAG_R). A field is current while its generation matches flowGen (the ordinary field's rebuild count). */
+   *  DIAG_R) and height class (index + 2 × class, built on demand: class 0 fits under every deck, see heightClass). A
+   *  field is current while its generation matches flowGen (the ordinary field's rebuild count). */
   private wideOpen: Uint8Array | null = null;
   private wideFlow: (Uint16Array | null)[] = [null, null];
   private wideGen = [-1, -1];
@@ -89,6 +93,9 @@ export class World {
   private readonly blkNb = new Int32Array(16);
   /** rules.hazards.enabled: liquids are entered (not walls) and chasms are open air (sim/hazards.ts) */
   readonly hazards: boolean;
+  /** rules.size.headroom: a body height passed to the collision and wide-routing queries meets deck slabs (R1, docs/SIZING.md
+   *  "Headroom"). Off, every `tall` argument is ignored and the queries are the ones before it */
+  readonly headroom: boolean;
   /** location maps with hazards on: chasm tiles (1 = open air, no supporting floor), else null */
   readonly voids: Uint8Array | null = null;
   /** an actor below this height has fallen out of the map (hazards on: the lowest floor minus rules.hazards.killDepth) */
@@ -136,6 +143,7 @@ export class World {
     this.anchors = loc ? loc.anchors.map(([x, y]) => [x - this.w / 2 + 0.5, y - this.h / 2 + 0.5] as [number, number]) : [];
     this.hab = this.map.gen?.hab ?? null;
     this.hazards = rules.hazards.enabled;
+    this.headroom = rules.size.headroom;
     const chasm = this.hazards ? loc?.chasm ?? [] : [];
     if (chasm.length) { this.voids = new Uint8Array(this.w * this.h); for (const k of chasm) this.voids[k] = 1; }
     this.hazard = null;
@@ -192,13 +200,14 @@ export class World {
   /** true when a walker with its feet at `feet` cannot occupy (x, z), or should not walk there on its own: walls,
    *  faces higher than a step, open liquid and open air (a chasm). Steering, bodies and the bot read this; actors'
    *  own collision reads `collides` (only what is actually solid), so they can be carried into a liquid or a drop. */
-  blocks(x: number, z: number, feet: number, step: number): boolean {
+  blocks(x: number, z: number, feet: number, step: number, tall?: number): boolean {
     const k = this.tile(x, z);
     if (k < 0) return true;
     if (this.over) {
       // on a deck: the deck is the floor (never a wall); under it: the ground rules, and the deck is out of reach
       const ov = this.over[k];
       if (ov > 0 && feet >= ov - DECK_REACH) return ov > feet + step;
+      if (ov > 0 && tall !== undefined && this.headroom && this.underSlab(x, z, ov, feet, tall)) return true;
     }
     if (this.map.wall[k] || (this.map.terrain[k] === T.water && !this.cells.iceAt(k))) return true;
     return this.height(x, z) > feet + step;
@@ -206,17 +215,43 @@ export class World {
 
   /** Solid geometry only: a wall, a face higher than `step` above `feet`, a deck's slab in the way. Open liquid and open
    *  air are not solid (hazards on); with hazards off this is `blocks` exactly. */
-  collides(x: number, z: number, feet: number, step: number): boolean {
-    if (!this.hazards) return this.blocks(x, z, feet, step);
+  collides(x: number, z: number, feet: number, step: number, tall?: number): boolean {
+    if (!this.hazards) return this.blocks(x, z, feet, step, tall);
     const k = this.tile(x, z);
     if (k < 0) return true;
     if (this.over) {
       const ov = this.over[k];
       if (ov > 0 && feet >= ov - DECK_REACH) return ov > feet + step;
+      if (ov > 0 && tall !== undefined && this.headroom && this.underSlab(x, z, ov, feet, tall)) return true;
     }
     if (this.voids && this.voids[k]) return false; // open air: nothing to bump into
     if (this.map.wall[k]) return true;
     return this.height(x, z) > feet + step;
+  }
+
+  /** Headroom (rules.size.headroom): would a body `tall` m high, feet at `feet` below the deck `ov` at (x, z), have its
+   *  head in the slab? It stands at its feet or on the ground there, whichever is higher (a grounded body steps up onto
+   *  it; a face too high to step is the caller's wall test), so a body taller than the gap under a deck cannot enter
+   *  it, walking or airborne, and one already under it is not stopped by a slab it fits under. */
+  private underSlab(x: number, z: number, ov: number, feet: number, tall: number): boolean {
+    return Math.max(feet, this.height(x, z)) + tall > ov - DECK_SLAB + HEAD_EPS;
+  }
+
+  /** Headroom over a body (rules.size.headroom): the lowest deck underside above feet at `feet` over any tile a circle of
+   *  radius r at (x, z) covers (the centre's tile when r = 0); Infinity where there is none or headroom is off. A
+   *  rising body clamps its head here (sim/player.ts). */
+  headroomAt(x: number, z: number, feet: number, r = 0): number {
+    if (!this.over || !this.headroom) return Infinity;
+    const gx = x + this.half, gz = z + this.half, E = 1e-4;
+    let top = Infinity;
+    for (let j = Math.floor(gz - r); j <= Math.floor(gz + r); j++) for (let i = Math.floor(gx - r); i <= Math.floor(gx + r); i++) {
+      if (i < 0 || j < 0 || i >= this.w || j >= this.h) continue;
+      const qx = Math.min(i + 1 - E, Math.max(i + E, gx)), qz = Math.min(j + 1 - E, Math.max(j + E, gz));
+      if (r > 0 && (gx - qx) * (gx - qx) + (gz - qz) * (gz - qz) >= r * r && !(i === Math.floor(gx) && j === Math.floor(gz))) continue;
+      const ov = this.over[j * this.w + i];
+      if (ov > 0 && feet < ov - DECK_REACH) top = Math.min(top, ov - DECK_SLAB);
+    }
+    return top;
   }
 
   /** a chasm tile (open air, no floor) */
@@ -601,10 +636,46 @@ export class World {
       this.wideLink = new Uint32Array(M.length);
       // each wide block's four nodes, so neighbour and link tests are array compares (the predicate stays navblocks')
       for (let b = 0; b < M.length; b++) if (M[b] && blockNodes(this.grid, (b % n) % W, ((b % n) / W) | 0, (b / n) | 0, t)) C.set(t, b * 4);
-      this.wideGen[0] = this.wideGen[1] = this.goalWideGen[0] = this.goalWideGen[1] = -1;
+      this.wideGen.fill(-1); this.goalWideGen.fill(-1);
+      // headroom: each wide block's lowest gap under a deck (ground nodes beneath one), and the distinct gaps on the map
+      this.bclear = null; this.clearSteps = []; this.lowFns = [];
+      if (this.headroom && this.over) {
+        const BC = (this.bclear = new Float32Array(M.length).fill(Infinity)), ov = this.over, steps = new Set<number>();
+        for (let b = 0; b < M.length; b++) {
+          if (!M[b]) continue;
+          for (let q = 0; q < 4; q++) { const a = C[b * 4 + q]; if (a < n && ov[a] > 0) BC[b] = Math.min(BC[b], ov[a] - DECK_SLAB - this.navTop[a]); }
+          if (BC[b] < Infinity) steps.add(BC[b]);
+        }
+        this.clearSteps = [...steps].sort((p, q) => p - q);
+      }
     }
     return this.wideOpen;
   }
+  /** headroom (rules.size.headroom): per wide block, the lowest gap (m) between a deck's underside and the ground under it
+   *  among its four nodes (Infinity: none of its nodes is under a deck); null when headroom is off or the map has no
+   *  decks. Filled with the mask */
+  private bclear: Float32Array | null = null;
+  /** the distinct finite gaps of bclear, ascending: a body's height class is how many of them it does not fit */
+  private clearSteps: number[] = [];
+
+  /** a body's height class for wide routing (0 = it fits under every deck; the fields for class c leave out the blocks
+   *  whose gap is one of the c lowest). Always 0 with headroom off, on a map with no decks, or with no height given */
+  private heightClass(tall?: number): number {
+    if (tall === undefined || !this.bclear) return 0;
+    const S = this.clearSteps;
+    let c = 0;
+    while (c < S.length && S[c] + HEAD_EPS < tall) c++;
+    return c;
+  }
+  /** blocks a body of height class c may not enter (a gap under a deck lower than it), or undefined for class 0; one
+   *  predicate per class, made once per mask (wide steering asks every tick) */
+  private lowFor(c: number): ((b: number) => boolean) | undefined {
+    if (c === 0 || !this.bclear) return undefined;
+    let f = this.lowFns[c];
+    if (!f) { const BC = this.bclear, top = this.clearSteps[c - 1]; f = this.lowFns[c] = (b) => BC[b] <= top; }
+    return f;
+  }
+  private lowFns: ((b: number) => boolean)[] = [];
   /** the four nodes of wide blocks (index b·4 + q), filled with the mask */
   private bnodes = new Int32Array(0);
   /** each wide block's links, filled on first use and dropped with the mask (so with every navigation change): bit s·2 + L
@@ -702,9 +773,9 @@ export class World {
    *  every wide block within rules.size.wideSeed ordinary-field steps of the player, at that distance, so where the player
    *  stands somewhere a wide body does not fit, it still comes as close as the ground allows. Rebuilt with the ordinary
    *  field. */
-  private wideField(diag: boolean): Uint16Array | null {
+  private wideField(diag: boolean, tall?: number): Uint16Array | null {
     if (this.flowFrom < 0) return null;
-    const M = this.wideMask(), c = diag ? 1 : 0;
+    const M = this.wideMask(), hc = this.heightClass(tall), c = (diag ? 1 : 0) + 2 * hc, low = this.lowFor(hc);
     let F = this.wideFlow[c];
     const W = this.w, n = W * this.h, src = this.flowFrom % n, si = src % W, sj = (src / W) | 0, R = this.wideSeed + 1, t = this.blk;
     // kept while the player stays within a tile of where it was built, on the same layer (it is seeded around the player,
@@ -721,7 +792,7 @@ export class World {
     for (let L = 0; L < M.length / n; L++) for (let bj = sj - R; bj <= sj + R; bj++) for (let bi = si - R; bi <= si + R; bi++) {
       if (bi < 0 || bj < 0 || bi >= W - 1 || bj >= this.h - 1) continue;
       const b = L * n + bj * W + bi;
-      if (!M[b]) continue;
+      if (!M[b] || (low && low(b))) continue;
       t.set(this.bnodes.subarray(b * 4, b * 4 + 4));
       const own = t[0] === this.flowFrom || t[1] === this.flowFrom || t[2] === this.flowFrom || t[3] === this.flowFrom;
       const v = own ? 0 : Math.min(this.flow[t[0]], this.flow[t[1]], this.flow[t[2]], this.flow[t[3]]);
@@ -729,7 +800,7 @@ export class World {
       if (v < best) { best = v; seeds.length = 0; }
       seeds.push(b, v);
     }
-    this.blockSearch(F, seeds, diag);
+    this.blockSearch(F, seeds, diag, low);
     this.wideGen[c] = this.flowGen;
     return F;
   }
@@ -799,15 +870,15 @@ export class World {
 
   /** Steering toward the player for a wide body (footprint ≥ rules.size.heavyRadius): see blockSteer. `diag` for
    *  footprints under DIAG_R. */
-  wideDir(x: number, z: number, out: [number, number], y?: number, diag = false): -1 | 0 | 1 {
-    const F = this.wideField(diag);
+  wideDir(x: number, z: number, out: [number, number], y?: number, diag = false, tall?: number): -1 | 0 | 1 {
+    const F = this.wideField(diag, tall);
     return F ? this.blockSteer(F, x, z, y, out, diag) : 0;
   }
 
   /** Is the ground at (x, z) on the wide field toward the player (a wide body there has a route to the player, and so
    *  the player to it: the lattice is symmetric)? Any of the up to eight blocks covering the tile counts. */
-  wideReached(x: number, z: number, diag = false, y?: number): boolean {
-    const F = this.wideField(diag), a = this.node(x, z, y);
+  wideReached(x: number, z: number, diag = false, y?: number, tall?: number): boolean {
+    const F = this.wideField(diag, tall), a = this.node(x, z, y);
     if (!F || a < 0) return false;
     const M = this.wideMask(), n = this.w * this.h, k = a % n, i = k % this.w, j = (k / this.w) | 0, t = this.blk;
     for (let L = 0; L < M.length / n; L++) for (let dj = -1; dj <= 0; dj++) for (let di = -1; di <= 0; di++) {
@@ -970,9 +1041,9 @@ export class World {
    *  rules.size.heavyRadius), as wideDir: the block field seeded from the wide blocks beside the contest. Blocks holding a
    *  vent tile are left out of every route; a body already inside one has no route and holds (the vent field is a few
    *  tiles, and the ordinary walkers' rule for it is in goalDir). */
-  wideGoalDir(x: number, z: number, out: [number, number], y?: number, diag = false): -1 | 0 | 1 {
+  wideGoalDir(x: number, z: number, out: [number, number], y?: number, diag = false, tall?: number): -1 | 0 | 1 {
     if (!this.hab) return 0;
-    const M = this.wideMask(), c = diag ? 1 : 0;
+    const M = this.wideMask(), hc = this.heightClass(tall), c = (diag ? 1 : 0) + 2 * hc, low = this.lowFor(hc);
     let F = this.goalWide[c];
     if (!F || this.goalWideGen[c] !== 0) {
       if (!F) F = this.goalWide[c] = new Uint16Array(M.length);
@@ -981,11 +1052,12 @@ export class World {
         const bi = Math.floor(C.x) + di, bj = Math.floor(C.y) + dj;
         if (bi < 0 || bj < 0 || bi >= W - 1 || bj >= this.h - 1) continue;
         const b = L * n + bj * W + bi;
-        if (!M[b] || Math.hypot(bi + 1 - C.x, bj + 1 - C.y) > 2.5 || Math.abs(this.nodeTop(this.bnodes[b * 4]) - C.h) > 0.7) continue;
+        if (!M[b] || (low && low(b)) || Math.hypot(bi + 1 - C.x, bj + 1 - C.y) > 2.5 || Math.abs(this.nodeTop(this.bnodes[b * 4]) - C.h) > 0.7) continue;
         seeds.push(b, 0);
       }
       const hz = this.hazard;
-      this.blockSearch(F, seeds, diag, hz ? (b) => { const v = this.bnodes, o = b * 4; return !!(hz[v[o] % n] || hz[v[o + 1] % n] || hz[v[o + 2] % n] || hz[v[o + 3] % n]); } : undefined);
+      const vent = hz ? (b: number) => { const v = this.bnodes, o = b * 4; return !!(hz[v[o] % n] || hz[v[o + 1] % n] || hz[v[o + 2] % n] || hz[v[o + 3] % n]); } : undefined;
+      this.blockSearch(F, seeds, diag, vent && low ? (b) => vent(b) || low(b) : vent ?? low);
       this.goalWideGen[c] = 0;
     }
     return this.blockSteer(F, x, z, y, out, diag);
@@ -999,7 +1071,7 @@ export class World {
    *  open to the body (it already stands partly on them): on a diagonal ramp that corner tile is one step above them,
    *  not a face, which is the edge rule of a wide block (world/navblocks.ts). Footprints stay under 1 m, so only the
    *  centre's tile and its eight neighbours are ever covered. */
-  private overlap(x: number, z: number, feet: number, step: number, r: number, out?: [number, number], ref?: number): number {
+  private overlap(x: number, z: number, feet: number, step: number, r: number, out?: [number, number], ref?: number, tall?: number): number {
     let pen = 0, px = 0, pz = 0;
     const gx = x + this.half, gz = z + this.half, E = 1e-4, ci = Math.floor(gx), cj = Math.floor(gz);
     // fast path: a tile whose eight neighbours are open ground level with it within a step has nothing a sub-metre circle
@@ -1022,10 +1094,10 @@ export class World {
         // the two orthogonal tiles between the centre's tile and this one, each read at its point nearest the circle
         const ax = Math.min(i + 1 - E, Math.max(i + E, gx)) - this.half, az = Math.min(cj + 1 - E, Math.max(cj + E, gz)) - this.half;
         const bx = Math.min(ci + 1 - E, Math.max(ci + E, gx)) - this.half, bz = Math.min(j + 1 - E, Math.max(j + E, gz)) - this.half;
-        if (!this.collides(ax, az, feet, step)) f = Math.max(f, this.height(ax, az, feet));
-        if (!this.collides(bx, bz, feet, step)) f = Math.max(f, this.height(bx, bz, feet));
+        if (!this.collides(ax, az, feet, step, tall)) f = Math.max(f, this.height(ax, az, feet));
+        if (!this.collides(bx, bz, feet, step, tall)) f = Math.max(f, this.height(bx, bz, feet));
       }
-      if (!this.collides(qx - this.half, qz - this.half, f, step)) continue;
+      if (!this.collides(qx - this.half, qz - this.half, f, step, tall)) continue;
       const p = r - d;
       if (p > pen) pen = p;
       if (d > 1e-6) { px += (dx / d) * p; pz += (dz / d) * p; }
@@ -1054,8 +1126,8 @@ export class World {
   private freeFor: Uint8Array | null = null;
 
   /** Does a body of footprint r stand clear of solid geometry at (x, z) with its feet at `feet`? */
-  fits(x: number, z: number, feet: number, r: number, step = 0.6): boolean {
-    return !this.collides(x, z, feet, step) && this.overlap(x, z, feet, step, r) <= 1e-4;
+  fits(x: number, z: number, feet: number, r: number, step = 0.6, tall?: number): boolean {
+    return !this.collides(x, z, feet, step, tall) && this.overlap(x, z, feet, step, r, undefined, undefined, tall) <= 1e-4;
   }
 
   /**
@@ -1069,32 +1141,33 @@ export class World {
    * before: a body left in a tight spot (an evolution inside a corridor) can walk out of it but never further in.
    * r = 0 is the point collision used with rules.size.geometry off.
    */
-  moveBody(x: number, z: number, dx: number, dz: number, feet: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean) {
+  moveBody(x: number, z: number, dx: number, dz: number, feet: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean, tall?: number) {
     const L = Math.max(Math.abs(dx), Math.abs(dz)), N = Math.max(1, Math.ceil(L / 0.25)), sx = dx / N, sz = dz / N, P = this.pushTmp;
+    if (!this.headroom || !this.over) tall = undefined;
     let cx = x, cz = z;
     for (let s = 0; s < N; s++) {
-      const pen0 = r > 0 ? this.overlap(cx, cz, feet, step, r) : 0;
+      const pen0 = r > 0 ? this.overlap(cx, cz, feet, step, r, undefined, undefined, tall) : 0;
       let moved = false;
       for (let tryk = 0; tryk < 3 && !moved; tryk++) {
         let nx = tryk === 2 ? cx : cx + sx, nz = tryk === 1 ? cz : cz + sz;
         if (tryk > 0 && (tryk === 1 ? sx === 0 : sz === 0)) continue;
-        if (this.collides(nx, nz, feet, step) || (stop && stop(nx, nz))) continue;
+        if (this.collides(nx, nz, feet, step, tall) || (stop && stop(nx, nz))) continue;
         if (r > 0) {
           // a grounded body stepping off a ledge (a drop the step rule allows on location maps) lands clear of the lip it
           // left: the push is measured from the surface it lands on, not from its feet still level with the lip
           const s0 = this.height(cx, cz, feet), s1 = this.height(nx, nz, feet);
           const land = feet - s0 <= step && s0 - s1 > step ? s1 : undefined;
           for (let it = 0; it < 2; it++) {
-            const before = this.overlap(nx, nz, feet, step, r, P, land);
+            const before = this.overlap(nx, nz, feet, step, r, P, land, tall);
             if (before <= 1e-4) break;
             const qx = nx + P[0], qz = nz + P[1];
-            if (this.collides(qx, qz, feet, step) || (stop && stop(qx, qz))) break;
+            if (this.collides(qx, qz, feet, step, tall) || (stop && stop(qx, qz))) break;
             // only a push that clears something (a body wedged between two faces is not shoved back along its way)
-            if (this.overlap(qx, qz, feet, step, r, undefined, land) >= before - 1e-4) break;
+            if (this.overlap(qx, qz, feet, step, r, undefined, land, tall) >= before - 1e-4) break;
             nx = qx; nz = qz;
           }
           // a drop is taken only where the body fits once it lands (a wide body does not drop into a one-tile slot)
-          if (this.overlap(nx, nz, feet, step, r, undefined, land) > pen0 + 1e-4) continue;
+          if (this.overlap(nx, nz, feet, step, r, undefined, land, tall) > pen0 + 1e-4) continue;
         }
         cx = nx; cz = nz; moved = true;
       }
@@ -1109,10 +1182,10 @@ export class World {
    *  that is walkable and fits, searching outward in rings; the nearest walkable tile when nothing fits within 20. A
    *  wide body is only put on a block the wide field toward the player reaches (once there is one), so it is never left in
    *  a pocket that only narrow routes join. */
-  nearestFit(x: number, z: number, r: number, wide: boolean, reach = true): [number, number] {
+  nearestFit(x: number, z: number, r: number, wide: boolean, reach = true, tall?: number): [number, number] {
     if (r <= 0) return this.walkable(x, z) ? [x, z] : this.nearestWalkable(x, z);
-    const diag = r < DIAG_R, F = wide ? this.wideField(diag) : null;
-    if (this.walkable(x, z) && this.fits(x, z, this.height(x, z), r) && (!F || !reach || this.wideReached(x, z, diag))) return [x, z];
+    const diag = r < DIAG_R, F = wide ? this.wideField(diag, tall) : null;
+    if (this.walkable(x, z) && this.fits(x, z, this.height(x, z), r, 0.6, tall) && (!F || !reach || this.wideReached(x, z, diag, undefined, tall))) return [x, z];
     const M = wide ? this.wideMask() : null, W = this.w, n = W * this.h;
     const ox = Math.floor(x + this.half - (wide ? 0.5 : 0)), oz = Math.floor(z + this.half - (wide ? 0.5 : 0));
     for (let rr = 0; rr < 20; rr++)
@@ -1124,10 +1197,10 @@ export class World {
           if (M && !M[j * W + i]) continue;
           if (F && reach && F[j * W + i] === UNREACHED && !(M && M.length > n && M[n + j * W + i] && F[n + j * W + i] !== UNREACHED)) continue;
           const px = i - this.half + (wide ? 1 : 0.5), pz = j - this.half + (wide ? 1 : 0.5);
-          if (this.walkable(px, pz) && this.fits(px, pz, this.height(px, pz), r)) return [px, pz];
+          if (this.walkable(px, pz) && this.fits(px, pz, this.height(px, pz), r, 0.6, tall)) return [px, pz];
         }
     // a wide body is never put where it does not fit: wide ground off the field before any narrow tile
-    if (F && reach) return this.nearestFit(x, z, r, wide, false);
+    if (F && reach) return this.nearestFit(x, z, r, wide, false, tall);
     return this.nearestWalkable(x, z);
   }
 

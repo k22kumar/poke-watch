@@ -34,7 +34,7 @@ const len = (a: V3) => Math.hypot(a[0], a[1], a[2]);
 const norm = (a: V3): V3 => { const L = len(a); return [a[0] / L, a[1] / L, a[2] / L]; };
 
 /** Phase 2B: beams planar (not on the spatial path), foliage cover */
-const PHASE2B: DeepPartial<Rules> = { aim: { archetypes: ['bolt', 'orb'], foliageCover: true } };
+const PHASE2B: DeepPartial<Rules> = { aim: { archetypes: ['bolt', 'orb'], foliageCover: true, deviceAssist: false } };
 /** the beam fires on the press tick (no wind-up): the relocation case calls movesSystem directly */
 const NOWIND: DeepPartial<Rules> = { feel: { windup: { beam: 0 } } };
 

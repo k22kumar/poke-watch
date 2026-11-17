@@ -62,7 +62,9 @@ export interface UISettings { volume: number; music: number; master: number; cri
 export interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
   card(action: 'pick' | 'reroll' | 'skip' | 'banish', index: number): void;
-  resume(): void;
+  /** `via`: 'click' from the Resume button (a user gesture, so the mouse can be captured in it), 'key' from Esc / Backspace
+   *  in the pause menu (no user activation: browsers refuse a pointer lock from an Esc keydown) */
+  resume(via: 'click' | 'key'): void;
   restart(): void;
   quit(): void;
   portrait(id: string): HTMLCanvasElement | undefined;
@@ -945,19 +947,27 @@ export class UI {
     scr.append(h('div', { class: 'box menu' },
       h('h2', {}, 'Paused'),
       ctx ? h('div', { class: 'statsgrid' }, ...this.statRows(ctx)) : null,
-      btn('Resume', () => { this.hooks.sound('pick'); this.hooks.resume(); }, 'btn primary'),
+      btn('Resume', () => { this.hooks.sound('pick'); this.hooks.resume('click'); }, 'btn primary'),
+      h('p', { class: 'pause-note hidden', id: 'pause-note', role: 'status', 'aria-live': 'polite' }),
       btn('Settings', () => this.openSettings('screen-pause')),
       btn('Controls', () => this.openHelp('screen-pause')),
       btn('Restart run', () => this.hooks.restart()),
       btn('Quit to title', () => this.hooks.quit()),
       btn('Tuning panel', () => this.toggleTuning(), 'btn small'),
     ));
-    this.backs['screen-pause'] = () => this.hooks.resume();
+    this.backs['screen-pause'] = () => this.hooks.resume('key');
     this.tray.classList.add('suspended'); // the tray sits under the pause menu and takes no picks while paused
     this.show('screen-pause');
     this.focusDefault('screen-pause');
   }
-  unpause() { this.tray.classList.remove('suspended'); this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-help', false); this.show('screen-credits', false); }
+  /** a line under Resume in the pause menu ('' hides it): why the game is still paused */
+  pauseNote(text: string) {
+    const el = document.getElementById('pause-note');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('hidden', !text);
+  }
+  unpause() { this.pauseNote(''); this.tray.classList.remove('suspended'); this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-help', false); this.show('screen-credits', false); }
 
   private statRows(ctx: SimContext) {
     const s = ctx.stats;

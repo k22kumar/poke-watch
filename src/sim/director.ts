@@ -22,7 +22,7 @@ import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
 import { habitatSpawnFactor } from '../rules/profiles';
 import { canSpawnOn } from '../rules/spawning';
-import { footprintOf, navWide } from '../rules/sizing';
+import { enemyHeight, footprintOf, navWide } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
 
 export function freshBeat(): Beat {
@@ -161,7 +161,8 @@ function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize =
   if (!canSpawnOn(id, W.habitatAt(sx, sz))) return false;
   const sp = SPECIES_BY_ID[id];
   const foot = ctx.rules.size.geometry && sp && !sp.flying ? footprintOf(sp, roleSize, ctx.rules) : 0;
-  if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R)) return false;
+  // headroom: a body taller than a deck's gap does not route under it, so it is judged on its own height's field
+  if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R, undefined, enemyHeight(sp, roleSize, ctx.rules))) return false;
   return true;
 }
 

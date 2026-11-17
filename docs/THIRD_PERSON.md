@@ -7,7 +7,7 @@ The design behind the numbers is the "Third-Person Execution Blueprint".
 ## What is in
 | Piece | Where |
 |---|---|
-| Rig: states, size framing, collision, climb, slope tilt, aim ray (pure maths, unit-tested); every tuning value in `CHASE_CONFIG` | `src/render/camera.ts`, `tests/chase.test.ts`, `tests/camstability.test.ts` |
+| Rig: states, size framing, collision, climb, player-owned view pitch (slope tilt: legacy), aim ray (pure maths, unit-tested); every tuning value in `CHASE_CONFIG` | `src/render/camera.ts`, `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/freelook.test.ts` |
 | Host frame order: look → one `ViewSample` → the frame's sim ticks → render | `src/render/hostframe.ts`, `tests/viewsample.test.ts` |
 | What the rig is told about the world each frame (terrain, decks, map edge, props, threat), shared by the renderer and the diagnostics | `src/render/chaseinput.ts` |
 | Camera branch, sky, fog, per-object billboard stretch, sprite direction relative to the camera | `src/render/renderer.ts`, `src/render/tilestage.ts`, `src/render/sky.ts` |
@@ -38,12 +38,24 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   timer and threshold (shoulder swap, climb, state, collision) is decided at the same instants at 30, 60 or 144 fps.
 - **States** (critically damped blend: 0.25 s towards a busier state, 0.6 s back; entry and exit thresholds apart):
 
-  | State | Boom elevation | Boom | FOV | View tilt below horizon | Enter | Leave |
+  | State | Boom elevation | Boom | FOV | View tilt below horizon (legacy only, see "Free look") | Enter | Leave |
   |---|---|---|---|---|---|---|
   | Explore | 9° | 4.2 m | 64° | 6° | — | — |
   | Combat | 13° | 5 m | 68° | 7.5° | a hostile within 20 m | none within 26 m for 3 s |
   | Pressure | 17° | 6.2 m | 72° | 10° | a boss within 25 m, or crowd weight ≥ 20 within 12 m (fodder 1, elite 3, alpha 4, boss 8) | boss beyond 32 m and weight < 12 for 2 s |
-- **Player input:** mouse / right stick turn yaw (free) and pitch (−14°..+20° around the state's elevation). FOV offset −10..+12 (setting).
+- **Player input:** mouse / right stick turn yaw (free) and pitch: the view looks from 60° above the horizon to 50° below it
+  (`CHASE_CONFIG.aimPitch`), 6° below with no input. FOV offset −10..+12 (setting).
+- **Free look (Phase 4A, 2026-11-16; `docs/THIRD_PERSON_IMPLEMENTATION.md` §16).** The player owns the view direction. The view
+  axis, which is also the crosshair ray the sim receives, is `aimPitch.neutral + userPitch` and nothing else. The state blend,
+  the slope ahead, the climb over a wall behind, a jump, the shake, the shoulder swap and boom collision move the lens, and the
+  ray moves with it, but none of them turns the axis. The boom elevation still follows the pitch (state elevation + the
+  player's pitch offset, kept within 2°..40°, plus any climb), so for a given input the lens sits where it always did. With no
+  input, every state and size frames exactly as before: the lens, boom, shoulder and FOV are bit-identical. Explore on level
+  ground also looks the same (6°). Combat and Pressure now look at 6° instead of 7.5° and 10°, so the horizon sits slightly
+  higher. Bounds: past ~48–50° down, even the highest boom's crosshair lands behind the Pokémon on level ground. Past ~31–35°
+  up, the Pokémon has left the bottom of the frame. 60° up still reaches an enemy on an 8 m ledge 1 m ahead (53–56°).
+  `aimPitch.on = false` restores the pre-4A rig (the axis is state tilt + userPitch + slope + 0.7 × climb, with userPitch
+  in −14°..+20° around the state).
 - **Size:** boom × clamp((framing size / 1.2 m)^0.55, 0.7, 1.8), framing size = max(sprite height, 0.6 × sprite width), so a
   wide, low Pokémon is framed like a tall one. The pivot sits at 0.8 × height (fliers 0.9). Tagging another squad member
   eases size, pivot and boom over 0.45 s.
@@ -68,8 +80,9 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   has held for 1 s, over 0.8 s.
 - **Shoulder swap:** to the left when the right side has left less than 80 % of the boom open, and the left 25 % more, for 0.2 s;
   at most once a second; glides over 0.25 s.
-- **Slope tilt:** follows the walkable ground ahead for up to 10 m (a rise of more than 0.6 m between metres is a wall and ends
-  it); tilts the view by −0.5 × that slope (−9°..+8°), smoothed over 0.5 s. A wall ahead never tips the view.
+- **Slope tilt (legacy, `aimPitch.on = false` only):** follows the walkable ground ahead for up to 10 m (a rise of more than
+  0.6 m between metres is a wall and ends it); tilts the view by −0.5 × that slope (−9°..+8°), smoothed over 0.5 s. A wall
+  ahead never tips the view. Under free look the slope turns nothing, and neither does the climb (its 0.7 × view tilt).
 - **Close lens:** at under ~0.95 m from the pivot (a wall or deck right behind the Pokémon) the Pokémon dissolves (ordered dither)
   rather than filling the screen: 75 % by 0.45 m, 95 % at the 0.3 m near plane. The x-ray silhouette is not drawn while it
   dissolves (with the sprite at the near plane it filled the screen with cyan stipple).
@@ -84,6 +97,9 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   crosshair point, stop on the first wall, rise, slab or cliff their core meets, touch only bodies the core can see within
   their width, and are drawn exactly from the muzzle to that end (§14). Foliage (bushes, hedges) is not cover for these
   attacks; trees, rocks and walls are. Every other move still reads `aimX/aimZ`.
+  **Phase 3 (input acceptance, §15):** on those other (planar) moves the aiming device decides the assistance
+  (`rules.aim.assist`): the mouse aims directly (no magnetism, no lead), the stick and touch bend toward an enemy within
+  12° (strikes, cones 28°) that the partner can see, and a brief pale ring marks the enemy an assisted cast bent to.
 - **Facing:** the sim turns the Pokémon toward its movement direction (and to the aim while a move is winding up), as before.
 
 ## View-state contract (Phase 1, 2026-11-16)
@@ -198,7 +214,7 @@ frame at 30 fps). Props drawn per frame on the 128 m regions are unchanged (150�
 0.1–0.4 ms median, ≤ 1.2 ms p95. No real-GPU measurements were taken.
 
 ## Diagnostics
-- `npx tsx scripts/camstats.ts [--fps 30,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species …] [--authored] [--noprops] [--noswap] [--rawsize]`:
+- `npx tsx scripts/camstats.ts [--fps 30,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species …] [--authored] [--noprops] [--noswap] [--rawsize] [--legacypitch] [--sweep]`:
   idle drift, turning on the spot, a scripted walk, 30 s of bot combat, and (at other frame rates) the lens path against
   60 fps along the same recorded player path. The column meanings are at the top of the script (`*ElevMax` only counts frames
   with the lens ≥ 1 m from the pivot; `*PitchMax` is how far the view looks down; `*JumpMax` the largest one-frame lens move;
@@ -206,6 +222,9 @@ frame at 30 fps). Props drawn per frame on the 128 m regions are unchanged (150�
   2026-11-16 the rig is given the size the renderer submits (idle frame × the species' visible-size scale,
   `scripts/lib/chasesize.ts`); before, these diagnostics used the raw idle frame (Feraligatr 1.75 m instead of the 2.71 m
   it is framed at), so the tables above were measured on the wrong sizes. `--rawsize` reproduces the old sizing.
+  `--legacypitch` runs the pre-4A view pitch: its output equals the pre-4A tool's output. `--sweep` adds `sweep*` columns: the walk
+  again while the player sweeps the pitch over its whole envelope (lens smoothness, slides, lowest lens clearance, and
+  `sweepAxisErr`, which is how far the drawn axis was from the player's own pitch; it is 0 under free look).
 - `node tools/cap.mjs dist/index.html tools/chasecheck.json out`: idle (two shots 2 s apart: the view must not move; sprites and grass still animate), turning, walking and
   sudden turns in the forest, a large and a flying Pokémon, a squad tag, combat, taking damage, a boss, a cave, terraces,
   snow, and under a deck; `stress-*` run 8–30 s of combat, turning or walking frame by frame in the page and print the
@@ -214,7 +233,17 @@ frame at 30 fps). Props drawn per frame on the 128 m regions are unchanged (150�
   turning among trees, idle in forest, badlands and cave, the replayed walk at 30 / 144 / jittery fps).
 
 ## Controls
-Click the game once to capture the mouse (a hint shows until you do); that click only captures it and does not attack. Esc releases it and pauses; resuming recaptures it.
+Start run (and Restart) capture the mouse inside their own click, so a run starts with mouse look. Otherwise click the game
+once to capture it (a hint shows until you do); that click only captures it and does not attack. Esc releases it and
+pauses. **Resume waits for the mouse** (2026-11-16, `main.ts` `resumeFromMenu`): in third person with a mouse, the game stays
+paused until the browser grants the pointer lock (`Input.onLockGained`). A refusal keeps the pause menu up with a note,
+"Click Resume again". Chrome refuses a re-lock for about a second after Esc. Before this, a refused Resume left a running
+game with a free cursor, dead mouse look and a first click that attacked. Esc in the pause menu does not resume in third
+person (an Esc keydown cannot grant the lock, and the same Esc that released it could reach the menu); click Resume or
+press Enter on it. One refused request no longer makes clicks attack: the next click captures again. Only a page refused
+twice before it ever locked, or three times in a row after, gives up on the lock (`Input.lockUnavailable`: a frame without
+pointer-lock permission). Clicks then attack, Resume no longer waits, and right-drag looks. With a gamepad connected, and in
+the fixed views, nothing waits for a lock. Pinned by `tests/pointerlock.test.ts`.
 Right stick turns the camera. If the mouse is not captured, holding the right mouse button and dragging still turns the camera.
 
 ## Known limits
@@ -232,7 +261,15 @@ Right stick turns the camera. If the mouse is not captured, holding the right mo
 - **30 fps input sampling.** The rig decides at the same instants at any frame rate, but at 30 fps it sees the player only
   every other sim tick (interpolated between frames), so near a wall it can take a slide a moment earlier or later than at
   60 fps (0.54 m worst, 0.05 m median).
-- Turning on the spot on a genuine ramp (Mt. Moon) tilts the view by up to 5.5°: that is the slope tilt, by design.
+- Turning on the spot on a genuine ramp (Mt. Moon) tilted the view by up to 5.5° (the slope tilt). Under free look (Phase 4A)
+  it tilts nothing.
+- **Free look moves the ray when the lens moves.** The axis is the player's, but the lens still rises and backs off for Combat
+  and Pressure, climbs over a wall behind, follows a jump and swaps shoulder. The crosshair ray moves with the lens (it is
+  parallel to its old position). With no input, entering Pressure raises the ray 15 m ahead by 0.87 m for Cyndaquil and by
+  1.52 m for Feraligatr. The old automatic tilt turned the ray down instead: −0.58 m and −0.21 m at the same point. See
+  `docs/THIRD_PERSON_IMPLEMENTATION.md` §16.5 and Q11.
+- **Looking up past ~33°** the Pokémon leaves the bottom of the frame (the boom cannot go below 2° of elevation). At the 60°
+  limit the frame can be all sky.
 - Sprite edges still crawl by a pixel as the camera moves (nearest sampling at ~400 lines, no anti-aliasing): that is the
   pixel-art look, not a defect, but it reads as shimmer on high-contrast edges.
 - **Not validated by hand.** All of the above comes from headless runs, scripted browser probes and screenshots. Nobody has
@@ -242,12 +279,12 @@ Right stick turns the camera. If the mouse is not captured, holding the right mo
 ## Not in yet (next phases)
 The hero-shooter migration (a 3D aim ray in the sim, attacks from the body, vertical combat, input buffering, shooter
 facing, headroom under decks) is planned in `docs/THIRD_PERSON_IMPLEMENTATION.md`; the aim ray and body-launched 3D direct
-shots landed in Phase 2B (its §13), beams in Phase 2C (its §14); the other move families have not moved yet. This file stays canonical for the rig as built.
+shots landed in Phase 2B (its §13), beams in Phase 2C (its §14), player-owned free look in Phase 4A (its §16); the other move families have not moved yet. This file stays canonical for the rig as built.
 
 Rear-arc sim rules, compass, 3D audio (P1/P2); camera-relative sprite directions per creature with hysteresis, lock-on (P1);
 terrain mesh from the tile grid, instanced grass with a trample texture, shadows, the 3D pilot (P3).
 
 ## Checks
-`npm test` (includes `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/viewsample.test.ts` and `tests/settings.test.ts`), `npx tsx scripts/checksum.ts on` (must match
+`npm test` (includes `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/viewsample.test.ts`, `tests/freelook.test.ts` and `tests/settings.test.ts`), `npx tsx scripts/checksum.ts on` (must match
 the pre-change hashes), `npx tsx scripts/camstats.ts`, and `node tools/cap.mjs dist/index.html tools/chasecheck.json out`
 (or `tools/chasescenes.json`) for third-person captures.

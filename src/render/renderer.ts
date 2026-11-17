@@ -27,7 +27,7 @@ import { skyFor } from './sky';
 
 /** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
 const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
-import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, RING, ringAdd, wobble, type CameraPreset, type ViewSample } from './camera';
+import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, RING, ringAdd, wobble, type CameraPreset, type ViewSample } from './camera';
 import { chaseFrameFor, chaseSubjectSize } from './chaseinput';
 import { SPRITE_SAMPLE_GLSL } from './spritesample';
 
@@ -387,7 +387,13 @@ export class Renderer {
           break;
         }
         case 'windup': this.playerAttack(e.archetype, e.dur); break;
-        case 'cast': this.castFx(ctx, e); if (this.pAnim.until < this.time || this.pAnim.state === 'hurt') this.playerAttack(e.archetype, 0); break;
+        case 'cast': {
+          this.castFx(ctx, e); if (this.pAnim.until < this.time || this.pAnim.state === 'hurt') this.playerAttack(e.archetype, 0);
+          // Phase 3: device aim assistance bent this cast (stick / touch): a brief ring under the enemy it bent to
+          const a = e.assist, E = ctx.enemies;
+          if (a !== undefined && E.alive[a]) this.rings.push({ x: E.x[a], z: E.z[a], r: E.radius[a] + 0.4, c: [0.6, 0.9, 1], life: 0.25, max: 0.25, kind: 2, grow: false });
+          break;
+        }
         case 'beam': {
           // Phase 2C: a spatial beam is drawn exactly where the sim traced it (muzzle to where its core stopped); a planar
           // one at the partner's chest
@@ -609,7 +615,7 @@ export class Renderer {
       rig.update(chaseFrameFor(ctx, {
         dt, x: px, y: cy, z: pz, height: subject.height, width: subject.width,
         lookPitch: 0, shake: [sx, sy, sz],
-      }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: this.fovOffset });
+      }), { pitchRange: lookPitchRange(), fovOffset: this.fovOffset });
       this.yaw = rig.yaw; this.pitch = rig.viewPitch; this.dist = rig.boomUsed;
       fov = rig.fov; [tx, ty, tz] = rig.target;
       [fx, fz] = rig.forward();

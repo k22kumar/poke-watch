@@ -67,8 +67,19 @@ export const CHASE_CONFIG = {
    *  `confirm` s; at most once every `every` s; the swap glides over `settle` s */
   shoulder: 0.24,
   swap: { below: 0.8, gain: 0.25, every: 1, settle: 0.25, confirm: 0.2 },
-  /** the player's own pitch window around the state's pitch (deg); + looks down */
+  /** the player's own pitch window around the state's pitch (deg); + looks down. Read only with aimPitch.on false: use
+   *  lookPitchRange() for the band in force */
   pitchRange: [-14, 20] as [number, number],
+  /** Phase 4A (docs/THIRD_PERSON_IMPLEMENTATION.md §16): the player owns the view direction. With `on`, the view axis (the
+   *  crosshair ray) is `neutral` + the player's pitch and nothing else, inside `up` degrees above and `down` degrees below
+   *  the horizon. The state tilt, the slope tilt and the climb over a wall behind no longer turn it: they move only the lens
+   *  (boom elevation and length), and look input alone turns the axis. `neutral` is the Explore tilt, so a rig with no
+   *  input frames Explore on level ground exactly as before. The boom elevation still follows the pitch (state pitch +
+   *  userPitch, inside `elevation`), so the lens placement for a given input is unchanged. The bounds come from the
+   *  measurements in §16.3: past ~48° down even the highest boom's crosshair falls behind the Pokémon on level ground, and
+   *  past ~31° up the Pokémon has left the bottom of the frame. With `on` false: the pre-4A rig (axis = state tilt +
+   *  userPitch + slope + liftTilt × climb, userPitch inside pitchRange) */
+  aimPitch: { on: true, neutral: 6, up: 60, down: 50 },
   /** the boom elevation is kept inside this (deg) */
   elevation: [2, 40] as [number, number],
   /** a tall wall or cliff right behind the Pokémon: the boom may climb this much (deg) before it only shortens. Climbing
@@ -211,6 +222,15 @@ export const wobble = (t: number, seed: number) => (Math.sin(t * 1.0 + seed) * 0
 const D2R = Math.PI / 180;
 const CFG = CHASE_CONFIG;
 
+/** the band (deg, + looks down) the player's pitch offset `userPitch` is clamped to: under CHASE_CONFIG.aimPitch the
+ *  absolute view limits expressed around the neutral pitch, else the legacy window around the state's pitch */
+export function lookPitchRange(): [number, number] {
+  const A = CFG.aimPitch;
+  return A.on ? [-A.up - A.neutral, A.down - A.neutral] : CFG.pitchRange;
+}
+/** the view axis' pitch below the horizon (rad) for the player's pitch offset under CHASE_CONFIG.aimPitch */
+const ownedPitch = (userPitch: number) => (CFG.aimPitch.neutral + userPitch) * D2R;
+
 interface TickOut { px: number; py: number; pz: number; pivotH: number; eye: [number, number, number]; viewPitch: number; fov: number; boom: number; shoulder: number; gap: number; yaw: number; up: number }
 const blankTick = (): TickOut => ({ px: 0, py: 0, pz: 0, pivotH: 0.9, eye: [0, 0, 0], viewPitch: 0.1, fov: 64 * D2R, boom: 4.2, shoulder: 0, gap: 4, yaw: Math.PI, up: 0 });
 
@@ -302,7 +322,7 @@ export class ChaseRig {
    *  collision) is then decided at the same instants on the same inputs at 30, 60 or 144 fps; stepping once per frame,
    *  a 30 fps run and a 144 fps run swapped shoulder or cut the boom at different moments. The yaw and the player's
    *  pitch are applied on top at the frame itself, so look input has no added latency. */
-  update(f: ChaseFrame, opt: ChaseSettings = { pitchRange: CFG.pitchRange, fovOffset: this.fovOffset }) {
+  update(f: ChaseFrame, opt: ChaseSettings = { pitchRange: lookPitchRange(), fovOffset: this.fovOffset }) {
     if (!this.ready) this.snapTo(f.x, f.y, f.z);
     const dt = clamp(f.dt, 0, 0.25), h = CFG.tick;
     const y1 = Math.atan2(Math.sin(this.yaw - f.lookYaw), Math.cos(this.yaw - f.lookYaw));
@@ -329,7 +349,8 @@ export class ChaseRig {
     this.yaw = y1;
     this.px = mix(A.px, B.px); this.py = mix(A.py, B.py); this.pz = mix(A.pz, B.pz); this.pivotH = mix(A.pivotH, B.pivotH);
     this.boomUsed = mix(A.boom, B.boom); this.shoulderUsed = mix(A.shoulder, B.shoulder); this.lensGap = mix(A.gap, B.gap); this.fov = mix(A.fov, B.fov);
-    this.viewPitch = mix(A.viewPitch, B.viewPitch) + (this.userPitch - mix(A.up, B.up)) * D2R;
+    // the axis: player-owned (aimPitch), or the ticks' automatic tilt with the pitch input since them on top (legacy)
+    this.viewPitch = CFG.aimPitch.on ? ownedPitch(this.userPitch) : mix(A.viewPitch, B.viewPitch) + (this.userPitch - mix(A.up, B.up)) * D2R;
     const d = Math.atan2(Math.sin(y1 - yawAt), Math.cos(y1 - yawAt)), cd = Math.cos(d), sd = Math.sin(d);
     const ex = mix(A.eye[0], B.eye[0]) - this.px, ez = mix(A.eye[2], B.eye[2]) - this.pz;
     this.eye = [this.px + ex * cd + ez * sd, mix(A.eye[1], B.eye[1]), this.pz - ex * sd + ez * cd];
@@ -590,20 +611,27 @@ export class ChaseRig {
     this.lensGap = Math.hypot(ex - ox, ey - oy, ez - oz);
     this.eye = [ex, ey, ez];
 
-    // view axis: parallel to the yaw, `tilt` below the horizon. Slopes tilt it (uphill looks up so the crest shows, a
-    // drop looks down so what is below does); climbing a wall rotates it with the boom so the Pokémon keeps its place in frame
-    const S = CFG.slope;
-    const g0 = f.ground(this.px, this.pz);
-    let run = 0, h = g0;
-    for (let d = 1; d <= S.probe; d++) {
-      const gd = f.ground(this.px + sy * d, this.pz + cy * d);
-      if (gd - h > S.step) break; // a wall or a cliff face: the walkable ground ends here
-      h = gd; run = d;
+    if (CFG.aimPitch.on) {
+      // view axis (Phase 4A): parallel to the yaw, at the player's own pitch. Nothing automatic turns it: the state, the
+      // slope ahead and the climb have moved the lens above, and the crosshair ray only moves with them, never turns
+      this.viewPitch = ownedPitch(this.userPitch);
+    } else {
+      // view axis (legacy): parallel to the yaw, `tilt` below the horizon. Slopes tilt it (uphill looks up so the crest
+      // shows, a drop looks down so what is below does); climbing a wall rotates it with the boom so the Pokémon keeps
+      // its place in frame
+      const S = CFG.slope;
+      const g0 = f.ground(this.px, this.pz);
+      let run = 0, h = g0;
+      for (let d = 1; d <= S.probe; d++) {
+        const gd = f.ground(this.px + sy * d, this.pz + cy * d);
+        if (gd - h > S.step) break; // a wall or a cliff face: the walkable ground ends here
+        h = gd; run = d;
+      }
+      const slopeDeg = run >= S.minRun ? Math.atan2(h - g0, run) / D2R : 0;
+      [this.slope, this.slopeV] = smoothDamp(this.slope, clamp(-S.gain * slopeDeg, S.range[0], S.range[1]), this.slopeV, S.settle, dt);
+      const tilt = this.cur.tilt + this.userPitch + this.slope + this.lift * CFG.liftTilt;
+      this.viewPitch = clamp(tilt, -40, 70) * D2R;
     }
-    const slopeDeg = run >= S.minRun ? Math.atan2(h - g0, run) / D2R : 0;
-    [this.slope, this.slopeV] = smoothDamp(this.slope, clamp(-S.gain * slopeDeg, S.range[0], S.range[1]), this.slopeV, S.settle, dt);
-    const tilt = this.cur.tilt + this.userPitch + this.slope + this.lift * CFG.liftTilt;
-    this.viewPitch = clamp(tilt, -40, 70) * D2R;
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
     this.target = [ex + sy * vc * 20, ey - vs * 20, ez + cy * vc * 20];
     this.fov = clamp(this.cur.fov + this.fovOffset, CFG.fovRange[0], CFG.fovRange[1]) * D2R;
@@ -617,8 +645,8 @@ export class ChaseRig {
    *  the lens turned about the pivot by the yaw change and swung up or down by the boom elevation the pitch change
    *  gives, the axis tilted by the pitch change. So the rig's public view is
    *  coherent at every instant, a sample taken now aims where update() with no elapsed time would draw, and the rig's
-   *  clock does not move (only update() advances it). The pitch is clamped to `range` (CHASE_CONFIG.pitchRange). */
-  look(dyaw: number, dpitch: number, range: [number, number] = CFG.pitchRange) {
+   *  clock does not move (only update() advances it). The pitch is clamped to `range` (lookPitchRange()). */
+  look(dyaw: number, dpitch: number, range: [number, number] = lookPitchRange()) {
     const y0 = this.yaw, up0 = this.userPitch;
     this.yaw = Math.atan2(Math.sin(y0 - dyaw), Math.cos(y0 - dyaw));
     this.userPitch = clamp(up0 + dpitch / D2R, range[0], range[1]);
@@ -627,7 +655,7 @@ export class ChaseRig {
     const ex = this.eye[0] - this.px, ez = this.eye[2] - this.pz;
     this.eye = [this.px + ex * cd + ez * sd, this.eye[1], this.pz - ex * sd + ez * cd];
     this.swingLens(this.elevFor(this.userPitch) - this.elevFor(up0));
-    this.viewPitch += (this.userPitch - up0) * D2R;
+    this.viewPitch = CFG.aimPitch.on ? ownedPitch(this.userPitch) : this.viewPitch + (this.userPitch - up0) * D2R;
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
     this.target = [this.eye[0] + Math.sin(this.yaw) * vc * 20, this.eye[1] - vs * 20, this.eye[2] + Math.cos(this.yaw) * vc * 20];
   }

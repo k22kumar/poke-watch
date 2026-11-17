@@ -10,7 +10,7 @@
 // Guard deflects a body no heavier than the guard's own Weight class; Brace halves the hit.
 // Every change of owner costs a quarter of its integrity, so nothing can be passed back and forth forever.
 
-import { partnerFootprint, partnerRadius } from '../rules/sizing';
+import { partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { capOf, deriveHold, derivePush } from '../rules/capabilities';
@@ -446,8 +446,9 @@ export const bodySystem = {
         // resting bodies are solid: push the player out
         const d = Math.sqrt(dp2), push = rs - d;
         const qx = P.x + (dxp / d) * push, qz = P.z + (dzp / d) * push;
-        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, PUSH); P.x = PUSH[0]; P.z = PUSH[1]; }
-        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        const ph = partnerHeight(ctx.player.species, ctx.rules); // headroom: the partner's height meets deck slabs
+        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, PUSH, undefined, ph); P.x = PUSH[0]; P.z = PUSH[1]; }
+        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
       }
     }
   },

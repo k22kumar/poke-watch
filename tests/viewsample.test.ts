@@ -8,7 +8,7 @@
 // rig's own clock, once; the sim depends only on the recorded InputFrames.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHASE_CONFIG, ChaseRig, chaseAim, type ViewSample } from '../src/render/camera';
+import { CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, type ViewSample } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { lookDelta, runFrame } from '../src/render/hostframe';
 import { createRun, startStage, step } from '../src/sim/run';
@@ -86,7 +86,7 @@ class Host {
   /** Renderer.render, chase branch: the player interpolated by acc / dt, the rig advanced by the frame time */
   render(real: number) {
     const c = this.ctx, P = c.player, a = clamp(this.acc / c.dt, 0, 1);
-    this.rig.update(chaseFrameFor(c, { dt: real, x: P.px + (P.x - P.px) * a, y: P.py + (P.y - P.py) * a, z: P.pz + (P.z - P.pz) * a, height: this.size.height, width: this.size.width, lookPitch: 0 }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: 0 });
+    this.rig.update(chaseFrameFor(c, { dt: real, x: P.px + (P.x - P.px) * a, y: P.py + (P.y - P.py) * a, z: P.pz + (P.z - P.pz) * a, height: this.size.height, width: this.size.width, lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
   }
   settle(secs: number, fps = 60) { for (let t = 0; t < secs; t += 1 / fps) this.frame(1 / fps); }
 }
@@ -106,7 +106,7 @@ test('host order: a turn or a pitch on this frame reaches this frame\'s aim, the
     const v = f.view!;
     // the sample carries this frame's look input, both axes
     assert.ok(Math.abs(wrap(v.yaw - (yaw0 - look[0]))) < 1e-9, `${label}: sample yaw`);
-    assert.ok(Math.abs(v.userPitch - clamp(up0 + look[1] / D2R, ...CHASE_CONFIG.pitchRange)) < 1e-9, `${label}: sample pitch`);
+    assert.ok(Math.abs(v.userPitch - clamp(up0 + look[1] / D2R, ...lookPitchRange())) < 1e-9, `${label}: sample pitch`);
     // and it is internally consistent: the axis is the yaw and the pitch it states
     assert.ok(Math.abs(v.dir[0] - Math.sin(v.yaw) * Math.cos(v.viewPitch)) < 1e-12 && Math.abs(v.dir[1] + Math.sin(v.viewPitch)) < 1e-12 && Math.abs(v.dir[2] - Math.cos(v.yaw) * Math.cos(v.viewPitch)) < 1e-12, `${label}: dir`);
     // the lens is behind the Pokémon for the new yaw (not where the old yaw left it)
@@ -227,6 +227,10 @@ test('shoulder swaps, camera collision and species sizes: walking and turning, t
     for (let i = 0; i < 60 * 8; i++) {
       const t = i / 60, prev = h.rig.sample(h.width, h.height);
       const look: [number, number] | null = i % 3 === 2 ? null : [Math.sin(t * 1.3) * 0.05, Math.cos(t * 0.9) * 0.01];
+      // the pitch gesture integrates to about ±25°; this test was written when the pre-4A window [-14, 20] clipped it, so
+      // it is kept inside that window and the walk takes the lens path it always took. The wider Phase 4A envelope's lens
+      // stability is measured by scripts/camstats.ts --sweep (docs/THIRD_PERSON_IMPLEMENTATION.md §16.6)
+      if (look) look[1] = (clamp(h.rig.userPitch + look[1] / D2R, ...CHASE_CONFIG.pitchRange) - h.rig.userPitch) * D2R;
       const f = h.frame(1 / 60, look, 0, i % 120 < 80 ? 'fwd' : 'right');
       if (!f.view) continue;
       const v = f.view, r = h.rig;

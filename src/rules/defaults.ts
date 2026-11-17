@@ -77,6 +77,21 @@ export const defaultRules = {
      *  mushrooms) is cover for every spatial trace, as in Phase 2B; false = it is open air above its ground (the
      *  authored material rule). Tree trunks, rock masses, buildings, rocks and grave markers block either way */
     foliageCover: false,
+    /** [C] Phase 3 (docs/THIRD_PERSON_IMPLEMENTATION.md §15): aim assistance per aiming device, for casts on the planar
+     *  path (every family not in `archetypes`) whose input names its device (InputFrame.aimDev). `shotDeg` / `meleeDeg`:
+     *  the cone (degrees) inside which the aim bends to the enemy nearest the aim line (0 = never: no cone and no
+     *  width snap); `lead`: shots and lobs lead the enemy they bent to; `los`: only an enemy the partner's chest can see
+     *  (sim/spatial.ts segmentClear, the attack cover policy) can bend it. A bent cast names its enemy in the cast event
+     *  (`assist`). Input with no aimDev (the bot, scripted input, older replays) keeps combat.magnetDeg / meleeMagnetDeg
+     *  with lead and no sight test. The spatial path (bolt, orb, beam through the chase crosshair) has none for any device */
+    /** [C] Phase 3: false = `assist` is ignored and every planar cast keeps the legacy cone whatever its device (the
+     *  Phase 2C behaviour exactly; the older test layers set it) */
+    deviceAssist: true,
+    assist: {
+      mouse: { shotDeg: 0, meleeDeg: 0, lead: false, los: true },
+      stick: { shotDeg: 12, meleeDeg: 28, lead: true, los: true },
+      touch: { shotDeg: 12, meleeDeg: 28, lead: true, los: true },
+    } as Record<'mouse' | 'stick' | 'touch', { shotDeg: number; meleeDeg: number; lead: boolean; los: boolean }>,
   },
   player: {
     radius: 0.55, // [C]
@@ -181,6 +196,11 @@ export const defaultRules = {
     // location and habitat gates guarantee to every essential space (a body ≥ 1 m needs three tiles; docs/SIZING.md)
     bodyCap: 0.95,
     wideSeed: 4, // [B] tiles (ordinary-field steps) around the player that seed the wide field when the player stands where a wide body does not fit
+    /** [C] R1 headroom (docs/SIZING.md "Headroom"): a body's sim height (class height × tilt × role size) meets deck
+     *  slabs. A jump stops with the head at the underside, a body taller than the gap under a deck cannot walk in
+     *  (World.moveBody), and wide routing leaves such gaps out for that body. false = heads pass through slabs, as before
+     *  (the older checksum layers set it) */
+    headroom: true,
   },
   director: {
     hpN: [1, 5.5, 13, 20], // [C] per stage
@@ -286,6 +306,14 @@ export const defaultRules = {
     meleeMagnetDeg: 28, // strikes, cones and spins
     manualCdMult: 1.5, // Move A / B / Signature on their buttons: longer cooldown... (never the basic attack)
     manualDmgMult: 1.5, // ...and harder hits, so damage per second matches the automatic tuning
+    /** [C] Phase 3 fire buffer, s per slot (basic attack, Move A, Move B, Signature): a press (InputFrame.press) that
+     *  arrives while the slot is no more than this from ready (cooldown, or wind-up then cooldown) is queued and casts
+     *  exactly once on the ready tick, even if the button was let go. Earlier presses are dropped ('early'), a second
+     *  press while one waits adds nothing, and Tag or carrying the egg cancels it. 0 = no buffer (presses during the
+     *  cooldown are dropped, the rule before Phase 3). Holding still repeats on the cooldown either way. Only explicit
+     *  presses queue: the bot and scripted input that send no `press` never do, so no replay hash depends on it.
+     *  Move A / B and the Signature stay 0 until playtested (the Signature's button is also Tag) */
+    fireBuffer: [0.15, 0, 0, 0] as number[],
     reflexCharges: 2,
     reflexRecharge: 1.8, // s per charge
     guardWindow: 0.15, // s: deflect / parry window at the start of a Guard

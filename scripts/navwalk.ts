@@ -18,7 +18,7 @@ import { LOCATIONS } from '../src/world/locations';
 import { HABITATS } from '../src/world/habitat';
 import { navGrid, wideCore, pathBetween, enemyCore } from '../src/world/locgen/nav';
 import { blockMask, blockNeighbours, blockNodes, DIAG_R } from '../src/world/navblocks';
-import { navWide, partnerFootprint } from '../src/rules/sizing';
+import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
 
@@ -50,8 +50,9 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
   P.x = P.px = x; P.z = P.pz = z; P.y = P.py = deck ? W.height(x, z, 1e9) : W.height(x, z); P.vx = P.vz = P.vy = P.kx = P.kz = 0; P.grounded = true;
 }
 
-/** the footprint clears solid geometry (a tiny tolerance for float32 positions) */
-const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3);
+/** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height (rules.size.headroom)
+ *  its head clears deck slabs too */
+const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
 
@@ -73,7 +74,7 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
     if (!E.alive[e]) return { arrived: false, t: ctx.time - t0, pen, note: 'died' };
     // grounded walkers only: a body falling past a cliff (knocked off, or dropping further than it planned) is pushed off
     // the face as it falls, and must be clear again by the time it stands
-    if (E.fallV[e] === 0 && !clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e])) {
+    if (E.fallV[e] === 0 && !clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e])) {
       if (!pen && DEBUG) console.log([...ring, `overlap ${species} at ${E.x[e]},${E.z[e]} y ${E.y[e]} h ${ctx.world.height(E.x[e], E.z[e], E.y[e])} foot ${E.foot[e]} collides ${ctx.world.collides(E.x[e], E.z[e], E.y[e], 0.6)} from ${E.px[e]},${E.pz[e]} hz ${E.hzKind[e]}`].join('\n'));
       pen = true; note = `overlap at ${E.x[e].toFixed(2)},${E.z[e].toFixed(2)}`;
     }
@@ -148,7 +149,7 @@ function driveTrainer(ctx: SimContext, path: [number, number][], budget: number)
     }
     const dx = tx - P.x, dz = tz - P.z, L = Math.hypot(dx, dz) || 1;
     step(ctx, { ...NO_INPUT, mx: dx / L, mz: dz / L });
-    if (!clearAt(ctx, P.x, P.z, P.y, foot)) { pen = true; note = `overlap at ${P.x.toFixed(2)},${P.z.toFixed(2)}`; }
+    if (!clearAt(ctx, P.x, P.z, P.y, foot, partnerHeight(P.species, ctx.rules))) { pen = true; note = `overlap at ${P.x.toFixed(2)},${P.z.toFixed(2)}`; }
     if (i > bestI) { bestI = i; lastProgress = ctx.time; }
     if (i >= path.length - 1 && Math.hypot(path[path.length - 1][0] - P.x, path[path.length - 1][1] - P.z) < 1.2) return { arrived: true, t: ctx.time - t0, pen, note };
     if (ctx.time - lastProgress > 6) return { arrived: false, t: ctx.time - t0, pen, note: note || `stuck at ${P.x.toFixed(2)},${P.z.toFixed(2)} (waypoint ${i}/${path.length})` };

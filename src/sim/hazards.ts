@@ -313,7 +313,7 @@ function exposeEnemies(ctx: SimContext, dt: number) {
       if (!E.hzKind[e]) {
         E.hzT[e] = 0; E.hzAcc[e] = 0; E.hzCue[e] = 0; E.hzCueT[e] = 0;
         // the way out: the nearest dry shore with room, on the level it is swimming at
-        const s = W.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e]) ?? (E.foot[e] > 0 ? W.nearestFit(E.x[e], E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules)) : W.nearestWalkable(E.x[e], E.z[e]));
+        const s = W.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e]) ?? (E.foot[e] > 0 ? W.nearestFit(E.x[e], E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules), true, E.tall[e]) : W.nearestWalkable(E.x[e], E.z[e]));
         E.hzX[e] = s[0]; E.hzZ[e] = s[1];
         ctx.events.push({ t: 'hazard', kind: KIND_NAME[kind] as 'water' | 'lava', phase: 'enter', who: 'enemy', id: e, lethal: lethalOf(ctx, kind), x: E.x[e], z: E.z[e] });
       }

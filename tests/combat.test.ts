@@ -132,13 +132,19 @@ test('primary fire: holding repeats on the cooldown; releasing starts nothing ne
   assert.ok(sum(after, 'cast') <= 1, 'at most the wind-up already under way lands');
 });
 
-test('primary fire: a press only during the cooldown is dropped (no buffer)', () => {
-  const ctx = calm('cyndaquil');
-  const aim = target(ctx);
-  basicLog(ctx, [{ ...aim, btn: BTN.basic }]);
-  const log = basicLog(ctx, [...Array(10).fill(aim), { ...aim, btn: BTN.basic }, ...Array(120).fill(aim)]);
-  assert.ok(ctx.player.moves[0].cd <= 0);
-  assert.equal(sum(log, 'windup'), 0, 'the mid-cooldown press started nothing');
+test('primary fire: a press only during the cooldown is dropped (fireBuffer 0, or a press far from ready)', () => {
+  // the rule before Phase 3, kept as rules.combat.fireBuffer 0; with the default buffer a press 10 ticks after the
+  // accept is still ~27 ticks from ready, outside the window, so it is dropped too (tests/primaryfire.test.ts has the
+  // buffered cases)
+  for (const fireBuffer of [[0, 0, 0, 0], undefined]) {
+    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, combat: fireBuffer ? { fireBuffer } : {} } as never });
+    steps(ctx, 30);
+    const aim = target(ctx);
+    basicLog(ctx, [{ ...aim, btn: BTN.basic, press: BTN.basic }]);
+    const log = basicLog(ctx, [...Array(10).fill(aim), { ...aim, btn: BTN.basic, press: BTN.basic }, ...Array(120).fill(aim)]);
+    assert.ok(ctx.player.moves[0].cd <= 0);
+    assert.equal(sum(log, 'windup'), 0, 'the mid-cooldown press started nothing');
+  }
 });
 
 test('primary fire: a click at empty ground fires along the aim; basicNeedsTarget restores the old rule', () => {

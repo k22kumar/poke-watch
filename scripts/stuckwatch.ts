@@ -18,7 +18,7 @@ import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
 import { HABITATS } from '../src/world/habitat';
 import { LOCATIONS } from '../src/world/locations';
-import { navWide, partnerFootprint } from '../src/rules/sizing';
+import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { DIAG_R } from '../src/world/navblocks';
 import { stateHash } from '../src/sim/checksum';
 import { safeIn } from '../src/sim/hazards';
@@ -39,7 +39,7 @@ export const TRAP_ROOM = 48;
  *  Reads the world only: moveBody and support write nothing, and the wide field (which a query could rebuild early, and
  *  so change later steering) is never touched. */
 export function escapeOf(ctx: SimContext): { free: number; room: number; trapped: boolean } {
-  const W = ctx.world, P = ctx.player, r = partnerFootprint(P.species, ctx.rules), st = ctx.rules.player.stepHeight;
+  const W = ctx.world, P = ctx.player, r = partnerFootprint(P.species, ctx.rules), st = ctx.rules.player.stepHeight, tall = partnerHeight(P.species, ctx.rules);
   const standable = (x: number, z: number, feet: number) => {
     const g = W.support(x, z, feet);
     if (g === -Infinity) return -Infinity;
@@ -49,7 +49,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
   let free = 0;
   for (let h = 0; h < 16; h++) {
     const a = (h * Math.PI) / 8;
-    W.moveBody(P.x, P.z, Math.sin(a) * 0.3, Math.cos(a) * 0.3, P.y, st, r, OUT);
+    W.moveBody(P.x, P.z, Math.sin(a) * 0.3, Math.cos(a) * 0.3, P.y, st, r, OUT, undefined, tall);
     if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], P.y) > -Infinity) free++;
   }
   // the lattice is the world's 0.5 m points (tile centres and corners: the middle of a one-tile and of a two-tile passage,
@@ -57,7 +57,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
   const key = (i: number, j: number) => (i + 2048) * 4096 + (j + 2048);
   const cap = TRAP_ROOM * 4, seen = new Map<number, number>(), Q: number[] = [];
   const reach = (x: number, z: number, feet: number, tx: number, tz: number) => {
-    W.moveBody(x, z, tx - x, tz - z, feet, st, r, OUT);
+    W.moveBody(x, z, tx - x, tz - z, feet, st, r, OUT, undefined, tall);
     return Math.hypot(OUT[0] - tx, OUT[1] - tz) <= 0.05 ? standable(tx, tz, feet) : -Infinity;
   };
   const i0 = Math.round(P.x * 2), j0 = Math.round(P.z * 2);
@@ -117,7 +117,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
         || E.sleep[e] > 0 || E.stun[e] > 0 || E.root[e] > 0 || Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 4;
       if (skip) { eAnchor.delete(key); continue; }
       const wide = E.foot[e] > 0 && navWide(E.foot[e], ctx.rules);
-      const route = wide ? W.wideDir(E.x[e], E.z[e], NAV, E.y[e], E.foot[e] < DIAG_R) : W.flowDist(E.x[e], E.z[e], E.y[e]) < Infinity ? 1 : -1;
+      const route = wide ? W.wideDir(E.x[e], E.z[e], NAV, E.y[e], E.foot[e] < DIAG_R, E.tall[e]) : W.flowDist(E.x[e], E.z[e], E.y[e]) < Infinity ? 1 : -1;
       if (route < 0) {
         if (wide) {
           R.holding++;

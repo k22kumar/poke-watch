@@ -29,8 +29,19 @@ export class Input {
   /** combat buttons pressed since the last sample: a click or tap that goes down and up between two sim ticks
    *  still reaches the sim as one tick of the button held (so it casts once when ready) */
   private btnLatch = 0;
-  /** the browser refused the pointer lock; clicks then attack without waiting for it */
+  /** combat buttons that went down since the last sample (rising edges, BTN bits): InputFrame.press. Unlike btnLatch it
+   *  also catches a release and re-press inside one sample, which `btn` shows as still held */
+  private pressLatch = 0;
+  /** the pad's combat buttons at the last sample (its edges: a pad is polled, so a press shorter than a frame is missed) */
+  private padPrev = 0;
+  /** pointer lock is unavailable here (never supported, or refused again and again: a sandboxed frame); clicks then
+   *  attack without waiting for it. One refusal is not enough: Chrome refuses a re-lock for about a second after the
+   *  player leaves it with Esc, and a request made from an Esc keydown has no user activation, so a single refusal is
+   *  usually transient and the next click should capture, not attack */
   private lockFailed = false;
+  /** consecutive refused lock requests, and whether this page has held the lock at all */
+  private refusals = 0;
+  private everLocked = false;
   /** which device aimed last: the cursor, the right stick, or nothing yet */
   aimSource: 'none' | 'mouse' | 'stick' = 'none';
   /** right-stick aim direction in world space (unit), valid while aimSource is 'stick' */
@@ -40,6 +51,9 @@ export class Input {
   chase = false;
   /** called when the browser takes the pointer lock away during play (Esc): the host pauses */
   onLockLost?: () => void;
+  /** called when the pointer lock is granted, and when a request for it is refused (the host's resume waits on these) */
+  onLockGained?: () => void;
+  onLockError?: () => void;
   private expectUnlock = false;
   bindings = DEFAULT_BINDINGS;
   private dashLatch = false;
@@ -64,7 +78,7 @@ export class Input {
       if (firstPress) this.pressed.add(e.code);
       this.keys.add(e.code);
       if (this.is('dash', e.code)) this.dashLatch = true;
-      if (firstPress) for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.is(a, e.code)) this.btnLatch |= bit;
+      if (firstPress) for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.is(a, e.code)) { this.btnLatch |= bit; this.pressLatch |= bit; }
       if (firstPress) for (const [a, codes] of Object.entries(this.bindings)) if (codes.includes(e.code)) this.onAction?.(a);
       // during play, keep movement keys from scrolling or moving focus to hidden menu buttons
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
@@ -79,7 +93,7 @@ export class Input {
       // third person: the click that captures the mouse only captures it (no stray attack before you can aim)
       if (this.chase && !this.locked && !this.lockFailed) { this.capture(); return; }
       const bit = mouseBits(e.button);
-      this.mouseBtn |= bit; this.btnLatch |= bit;
+      this.mouseBtn |= bit; this.btnLatch |= bit; this.pressLatch |= bit;
       this.capture();
     });
     window.addEventListener('mouseup', (e) => {
@@ -87,7 +101,12 @@ export class Input {
       this.mouseBtn &= ~mouseBits(e.button);
     });
     window.addEventListener('blur', () => this.clearButtons());
-    document.addEventListener('pointerlockerror', () => { this.lockFailed = true; });
+    document.addEventListener('pointerlockerror', () => {
+      this.refusals++;
+      // a page that has never held the lock is likely not allowed it at all (a frame without pointer-lock permission)
+      if (this.refusals >= (this.everLocked ? 3 : 2)) this.lockFailed = true;
+      this.onLockError?.();
+    });
     el.addEventListener('mousemove', (e) => {
       const r = el.getBoundingClientRect();
       this.mouseX = e.clientX - r.left; this.mouseY = e.clientY - r.top;
@@ -97,7 +116,7 @@ export class Input {
     document.addEventListener('pointerlockchange', () => {
       const was = this.locked;
       this.locked = document.pointerLockElement === el;
-      if (this.locked) this.lockFailed = false;
+      if (this.locked) { this.lockFailed = false; this.refusals = 0; this.everLocked = true; if (!was) this.onLockGained?.(); }
       if (was && !this.locked) {
         this.clearButtons(); // nothing keeps firing once the mouse is let go (menus, pause, Esc)
         // a release the host asked for (menus, pause) is not a pause request; the browser's own Esc release is
@@ -113,7 +132,7 @@ export class Input {
       if (!action) return;
       this.touchButtons[action] = down;
       if (down && action === 'dash') this.dashLatch = true;
-      if (down) this.btnLatch |= ACTION_BTN[action] ?? 0;
+      if (down) { this.btnLatch |= ACTION_BTN[action] ?? 0; this.pressLatch |= ACTION_BTN[action] ?? 0; }
     };
     document.addEventListener('pointerdown', (e) => {
       const btn = (e.target as HTMLElement | null)?.closest<HTMLElement>('[data-touch-action]');
@@ -181,15 +200,19 @@ export class Input {
 
   /** let go of every combat button (focus lost, pointer released, a menu or pause took over) */
   clearButtons() {
-    this.mouseBtn = 0; this.btnLatch = 0;
+    this.mouseBtn = 0; this.btnLatch = 0; this.pressLatch = 0;
     for (const k of Object.keys(this.touchButtons)) this.touchButtons[k] = false;
   }
 
   releaseLock() { if (document.pointerLockElement) { this.expectUnlock = true; document.exitPointerLock(); } }
 
-  /** third person: take the mouse so it can turn the camera (needs a user gesture; browsers may refuse right after Esc) */
-  capture() {
-    if (!this.chase || this.locked || this.context !== 'play') return;
+  /** the pointer lock cannot be had here: the host stops waiting for it (mouse look falls back to right-drag) */
+  get lockUnavailable() { return this.lockFailed || typeof (this.el as { requestPointerLock?: unknown }).requestPointerLock !== 'function'; }
+
+  /** third person: take the mouse so it can turn the camera (needs a user gesture; browsers may refuse right after Esc).
+   *  `force`: ask even though a menu still owns the input (the Start and Resume buttons, inside their own click) */
+  capture(force = false) {
+    if (!this.chase || this.locked || (!force && this.context !== 'play')) return;
     try { const r = this.el.requestPointerLock() as unknown; if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(() => { /* refused: the next click retries */ }); } catch { /* unsupported */ }
   }
 
@@ -223,27 +246,29 @@ export class Input {
     let jump = this.down('jump');
     let dash = this.dashLatch;
     let btn = this.mouseBtn | this.btnLatch;
+    let press = this.pressLatch;
     for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.down(a)) btn |= bit;
-    this.btnLatch = 0;
+    this.btnLatch = 0; this.pressLatch = 0;
     const Fx = Math.sin(yaw), Fz = Math.cos(yaw);
     const Rx = -Math.cos(yaw), Rz = Math.sin(yaw);
     if (pad) {
       f += -pad.ly; s += pad.lx;
       jump = jump || pad.a;
       dash = dash || pad.b;
-      btn |= (pad.rt ? BTN.basic : 0) | (pad.lt ? BTN.a : 0) | (pad.rb ? BTN.b : 0) | (pad.y ? BTN.sig : 0) | (pad.guard ? BTN.guard : 0);
+      const pb = (pad.rt ? BTN.basic : 0) | (pad.lt ? BTN.a : 0) | (pad.rb ? BTN.b : 0) | (pad.y ? BTN.sig : 0) | (pad.guard ? BTN.guard : 0);
+      btn |= pb; press |= pb & ~this.padPrev; this.padPrev = pb;
       if (!this.chase && Math.hypot(pad.rx, pad.ry) > 0.35) {
         const af = -pad.ry, as = pad.rx;
         const ax = Fx * af + Rx * as, az = Fz * af + Rz * as, L = Math.hypot(ax, az) || 1;
         this.stickAim = [ax / L, az / L];
         this.aimSource = 'stick';
       } else if (!this.chase && this.aimSource === 'stick') this.aimSource = 'none'; // idle stick: auto-aim
-    }
+    } else this.padPrev = 0;
     this.dashLatch = false;
     let mx = Fx * f + Rx * s, mz = Fz * f + Rz * s;
     const L = Math.hypot(mx, mz);
     if (L > 1) { mx /= L; mz /= L; }
-    return { mx, mz, jump, dash, btn };
+    return press ? { mx, mz, jump, dash, btn, press } : { mx, mz, jump, dash, btn };
   }
 
   consumeMouse() {

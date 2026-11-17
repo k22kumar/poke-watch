@@ -21,6 +21,11 @@ export interface InputFrame {
   aimZ?: number;
   /** buttons held this tick, as BTN bits */
   btn?: number;
+  /** buttons that went down since the previous sample (rising edges, BTN bits; input/input.ts Input.sample). A deliberate
+   *  press, even one that went down and up between two samples, or a release and re-press inside one sample that `btn`
+   *  alone shows as "held". Absent (the bot, older replays) = no presses: only `btn` drives the slots, as before Phase 3.
+   *  The fire buffer (rules.combat.fireBuffer, sim/moves.ts) reads only this field */
+  press?: number;
   card?: { action: 'pick' | 'reroll' | 'skip' | 'banish'; index: number };
   /** the third-person crosshair ray (the camera's lens and the unit direction through the crosshair, each through
    *  Math.fround: render/hostframe.ts aimRayOf), or absent (fixed views, the bot). Under rules.aim.spatial the sim traces
@@ -82,6 +87,9 @@ export interface MoveSlot {
   spec: MoveSpec; // compiled at level 1 (with its transform, if any)
   /** >0 while the move winds up (pose playing, release pending) */
   windup?: number;
+  /** Phase 3: ctx.tick of a press queued by the fire buffer (rules.combat.fireBuffer): the slot casts once when it
+   *  becomes ready, held or not. Undefined = nothing queued. Consumed by that cast, dropped by Tag, carrying or age */
+  queued?: number;
   /** Phase 8b: the transform taken for this move (id in rules/build.ts), and casts so far ("used for a while") */
   xf?: string;
   uses?: number;
@@ -253,13 +261,21 @@ export type SimEvent =
   | { t: 'hit'; x: number; y: number; z: number; amount: number; crit: boolean; eff: number; element: Element; enemy: number }
   | { t: 'kill'; x: number; y: number; z: number; species: number; roles: number; element: Element }
   /** `o`: a cast on the spatial path (Phase 2B): the muzzle `o`, the aim point `t`, what the crosshair met (`kind`, SK
-   *  bit, 0 = nothing) and whether the muzzle's line to the aim point is obstructed */
-  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string; o?: { o: [number, number, number]; t: [number, number, number]; kind: number; blocked: boolean } }
+   *  bit, 0 = nothing) and whether the muzzle's line to the aim point is obstructed.
+   *  `assist` (Phase 3): the enemy a device's aim assistance (rules.aim.assist) bent this planar cast to */
+  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string; o?: { o: [number, number, number]; t: [number, number, number]; kind: number; blocked: boolean }; assist?: number }
   /** a spatial (3D) player shot ended: on a world solid (`kind`: SK bit), on the actor that used up its pierce
    *  ('actor'), or at the end of its reach ('range'), at (x, y, z) */
   | { t: 'shotEnd'; why: 'world' | 'actor' | 'range'; kind: number; x: number; y: number; z: number; element: Element }
   | { t: 'ability'; name: string; x: number; z: number; enemy: number }
-  | { t: 'windup'; archetype: string; element: Element; slot: number; dur: number; tx: number; tz: number; key: string }
+  /** a slot accepted its button and started its wind-up (`queued`: the accept spent a buffered press, Phase 3) */
+  | { t: 'windup'; archetype: string; element: Element; slot: number; dur: number; tx: number; tz: number; key: string; queued?: boolean }
+  /** Phase 3 input acceptance (sim/moves.ts): a press on a slot that was not ready was queued, to cast in `wait` ticks */
+  | { t: 'fireQueued'; slot: number; wait: number }
+  /** a press that will not cast: 'early' (the slot is more than the fire buffer from ready; `wait` ticks), 'queued' (a
+   *  press is already queued: exactly one is kept), 'cancel' (Tag held, or the egg carried, took the slot), 'expired' (the
+   *  queued press outlived its bound without the slot casting) */
+  | { t: 'fireDropped'; slot: number; why: 'early' | 'queued' | 'cancel' | 'expired'; wait: number }
   /** a beam: from (x1, z1) to (x2, z2), `width` its half-width. Phase 2C (spatial beams): y1 / y2 are the muzzle and end
    *  heights, the end is where the core stopped (`why`: 'world' on a solid of SK kind `kind`, 'actor' on the body that
    *  used up its pierce, 'range' at its length), and `hits` counts the bodies it damaged. Without y1 the beam is planar

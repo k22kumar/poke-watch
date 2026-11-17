@@ -233,6 +233,7 @@ input[type=text]:focus-visible { box-shadow: 0 0 0 2px var(--frame), 0 0 0 5px v
 .menu h3 { margin: 6px 0 0; font-size: 15px; color: var(--ink-soft); border-bottom: 2px solid var(--paper-2); padding-bottom: 2px; }
 .statsgrid { display: grid; grid-template-columns: 1fr auto; gap: 3px 20px; font-weight: 600; margin: 4px 0 8px; font-size: 14px; }
 .statsgrid span:nth-child(odd) { color: var(--muted); }
+.pause-note { margin: 2px 0 6px; max-width: 30ch; font-size: 13px; font-weight: 600; color: var(--muted); text-align: center; }
 .recap { text-align: left; margin: 2px 0 10px; max-width: 520px; }
 .recap h3 { font-size: 14px; margin: 0 0 4px; color: var(--muted); }
 .recap ul { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.35; }

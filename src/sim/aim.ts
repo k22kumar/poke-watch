@@ -58,6 +58,14 @@ function muzzleOf(ctx: SimContext, s: MoveSpec): { up: number; fwd: number } {
   return by ? { up: by.up ?? R.muzzle.up, fwd: by.fwd ?? R.muzzle.fwd } : R.muzzle;
 }
 
+/** Phase 3 device assistance (rules.aim.assist `los`): whether the partner's chest (its muzzle height for this move, on
+ *  its centre) sees enemy e's centre, under the attack cover policy. An enemy behind cover cannot bend a planar aim */
+export function assistSees(ctx: SimContext, s: MoveSpec, e: number): boolean {
+  const P = ctx.player, E = ctx.enemies;
+  const up = partnerHeight(P.species, ctx.rules) * muzzleOf(ctx, s).up;
+  return segmentClear(ctx.world, P.x, P.y + up, P.z, E.x[e], E.y[e] + E.tall[e] / 2, E.z[e], MASK.los, combatFlags(ctx));
+}
+
 /** the distance a spatial shot of this move flies from its muzzle (the legacy flight of the same move) */
 export function shotReach(ctx: SimContext, s: MoveSpec): number {
   return s.range * ctx.rules.aim.reachMult + s.speed * ctx.rules.aim.reachPad;

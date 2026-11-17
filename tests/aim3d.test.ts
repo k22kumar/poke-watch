@@ -23,7 +23,7 @@ import { projectileSystem } from '../src/sim/effects';
 import { PK } from '../src/sim/pools';
 import { SK } from '../src/sim/spatial';
 import { BTN, NO_INPUT, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
-import { CHASE_CONFIG, ChaseRig, chaseAim, type AimView } from '../src/render/camera';
+import { ChaseRig, chaseAim, lookPitchRange, type AimView } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { rigSize } from '../scripts/lib/chasesize';
 import { aimRayOf } from '../src/render/hostframe';
@@ -113,7 +113,8 @@ function fire(ctx: SimContext, lensAt: (k: number) => { eye: V3; dir: V3; view: 
 const hitsOn = (log: Log, e: number) => log.events.filter((v) => v.t === 'hit' && v.enemy === e).length;
 const casts = (log: Log) => log.events.filter((v): v is Extract<SimEvent, { t: 'cast' }> => v.t === 'cast');
 const ends = (log: Log) => log.events.filter((v): v is Extract<SimEvent, { t: 'shotEnd' }> => v.t === 'shotEnd');
-const LEGACY: DeepPartial<Rules> = { aim: { spatial: false } };
+// Phase 3 device assistance (rules.aim.deviceAssist) is part of the newer layer: legacy turns it off too (§6.1 rule 3)
+const LEGACY: DeepPartial<Rules> = { aim: { spatial: false, deviceAssist: false } };
 
 // ------------------------------------------------------------------------------------------------ the prior defects
 
@@ -418,7 +419,7 @@ test('the host adapter: the crosshair ray of a real ChaseRig sample, quantised; 
   // the rig settled behind the partner as the renderer drives it (its own probes, the size the renderer submits)
   const rig = new ChaseRig(), size = rigSize(ctx.player.species.id);
   rig.snapTo(P[0], P[1], P[2], 0);
-  for (let f = 0; f < 120; f++) rig.update(chaseFrameFor(ctx, { dt: 1 / 60, x: P[0], y: P[1], z: P[2], height: size.height, width: size.width, lookPitch: 0 }), { pitchRange: CHASE_CONFIG.pitchRange, fovOffset: 0 });
+  for (let f = 0; f < 120; f++) rig.update(chaseFrameFor(ctx, { dt: 1 / 60, x: P[0], y: P[1], z: P[2], height: size.height, width: size.width, lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
   const v = rig.sample(1280, 720), ray = aimRayOf(v);
   for (const [k, want] of [['ox', v.eye[0]], ['oy', v.eye[1]], ['oz', v.eye[2]], ['dx', v.dir[0]], ['dy', v.dir[1]], ['dz', v.dir[2]]] as [keyof typeof ray, number][]) {
     assert.equal(ray[k], Math.fround(want), `${k} is the sample's, through Math.fround`);

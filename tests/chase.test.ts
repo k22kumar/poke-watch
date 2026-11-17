@@ -1,7 +1,7 @@
 // Third-person camera rig (render/camera.ts): pure maths, no GL. Run with `npm test`.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ChaseRig, CHASE_CONFIG, CHASE_STATES, NO_THREAT, RING, RETICLE_Y, bearingOf, chaseAim, cameraPreset, CAMERA_PRESETS, ringAdd, type ChaseFrame } from '../src/render/camera';
+import { ChaseRig, CHASE_CONFIG, CHASE_STATES, NO_THREAT, RING, RETICLE_Y, bearingOf, chaseAim, cameraPreset, CAMERA_PRESETS, lookPitchRange, ringAdd, type ChaseFrame } from '../src/render/camera';
 
 const flat = () => 0;
 const frame = (o: Partial<ChaseFrame> = {}): ChaseFrame => ({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1.1, threat: NO_THREAT, lookYaw: 0, lookPitch: 0, ground: flat, ...o });
@@ -9,6 +9,8 @@ const settle = (r: ChaseRig, f: Partial<ChaseFrame>, secs: number) => { for (let
 const D2R = Math.PI / 180;
 /** run `fn` with the shoulder offset (and nothing else) changed, then restore it */
 const withShoulder = (v: number, fn: () => void) => { const was = CHASE_CONFIG.shoulder; CHASE_CONFIG.shoulder = v; try { fn(); } finally { CHASE_CONFIG.shoulder = was; } };
+/** run `fn` with the Phase 4A player-owned view pitch on or off (CHASE_CONFIG.aimPitch.on), then restore it */
+function withAimPitch<T>(on: boolean, fn: () => T): T { const was = CHASE_CONFIG.aimPitch.on; CHASE_CONFIG.aimPitch.on = on; try { return fn(); } finally { CHASE_CONFIG.aimPitch.on = was; } }
 /** a tree: a solid cylinder of radius r around (cx, cz), `top` metres tall */
 const trunk = (cx: number, cz: number, r: number, top = 4) => (x: number, y: number, z: number) => y < top && Math.hypot(x - cx, z - cz) < r;
 
@@ -216,25 +218,47 @@ test('under a deck the boom stays low and flat', () => {
   assert.ok(r.eye[1] < 2.4, `eye ${r.eye[1].toFixed(2)} under the slab`);
 });
 
-test('pitch input is clamped to the player band', () => {
+test('pitch input is clamped to the player band: absolute view limits (aimPitch), or the legacy window around the state', () => {
+  // Phase 4A: the band is the absolute envelope [-up, +down] about the horizon, expressed around the neutral pitch
   const r = new ChaseRig();
   settle(r, { lookPitch: 1 }, 0.1);
-  assert.ok(r.userPitch <= CHASE_CONFIG.pitchRange[1] + 1e-9);
+  assert.ok(r.userPitch <= lookPitchRange()[1] + 1e-9);
+  assert.ok(Math.abs(r.viewPitch - CHASE_CONFIG.aimPitch.down * D2R) < 1e-9, `down limit ${r.viewPitch / D2R}`);
   r.userPitch = 0;
   settle(r, { lookPitch: -1 }, 0.1);
-  assert.ok(r.userPitch >= CHASE_CONFIG.pitchRange[0] - 1e-9);
-  // looking down raises the lens and tips the view down; looking up lowers it and tips the view up
-  const a = new ChaseRig(), b = new ChaseRig();
-  a.userPitch = 12; b.userPitch = -10;
-  settle(a, {}, 1); settle(b, {}, 1);
-  assert.ok(a.eye[1] > b.eye[1] && a.viewPitch > b.viewPitch);
+  assert.ok(r.userPitch >= lookPitchRange()[0] - 1e-9);
+  assert.ok(Math.abs(r.viewPitch + CHASE_CONFIG.aimPitch.up * D2R) < 1e-9, `up limit ${r.viewPitch / D2R}`);
+  // looking down raises the lens and tips the view down; looking up lowers it and tips the view up (both modes)
+  for (const on of [true, false]) withAimPitch(on, () => {
+    const a = new ChaseRig(), b = new ChaseRig();
+    a.userPitch = 12; b.userPitch = -10;
+    settle(a, {}, 1); settle(b, {}, 1);
+    assert.ok(a.eye[1] > b.eye[1] && a.viewPitch > b.viewPitch);
+  });
+  // the legacy window (aimPitch off) is unchanged: [-14, 20] around the state's own pitch
+  withAimPitch(false, () => {
+    assert.deepEqual(lookPitchRange(), CHASE_CONFIG.pitchRange);
+    const c = new ChaseRig();
+    settle(c, { lookPitch: 1 }, 0.1);
+    assert.ok(c.userPitch <= CHASE_CONFIG.pitchRange[1] + 1e-9);
+    c.userPitch = 0;
+    settle(c, { lookPitch: -1 }, 0.1);
+    assert.ok(c.userPitch >= CHASE_CONFIG.pitchRange[0] - 1e-9);
+  });
 });
 
-test('slopes: the view tilts up towards a rise and down over a drop, then settles', () => {
-  const flatR = new ChaseRig(), up = new ChaseRig(), down = new ChaseRig();
-  settle(flatR, {}, 3);
-  settle(up, { ground: (_x, z) => Math.max(0, -z * 0.4) }, 3); // rising to the north, where the camera looks
-  settle(down, { ground: (_x, z) => Math.min(0, z * 0.4) }, 3); // falling away to the north
+test('slopes: the lens may move but the view never tilts for them (aimPitch); legacy tilts up towards a rise and down over a drop', () => {
+  const run = () => {
+    const flatR = new ChaseRig(), up = new ChaseRig(), down = new ChaseRig();
+    settle(flatR, {}, 3);
+    settle(up, { ground: (_x, z) => Math.max(0, -z * 0.4) }, 3); // rising to the north, where the camera looks
+    settle(down, { ground: (_x, z) => Math.min(0, z * 0.4) }, 3); // falling away to the north
+    return { flatR, up, down };
+  };
+  const o = withAimPitch(true, run);
+  assert.equal(o.up.viewPitch, o.flatR.viewPitch, 'owned: no tilt up the rise');
+  assert.equal(o.down.viewPitch, o.flatR.viewPitch, 'owned: no tilt over the drop');
+  const { flatR, up, down } = withAimPitch(false, run);
   assert.ok(up.viewPitch < flatR.viewPitch - 3 * D2R, 'looks up at the crest');
   assert.ok(down.viewPitch > flatR.viewPitch + 2 * D2R, 'looks down over the drop');
   assert.ok(Math.abs(up.viewPitch - flatR.viewPitch) < CHASE_CONFIG.slope.range[1] * D2R + 10 * D2R, 'within the configured range');

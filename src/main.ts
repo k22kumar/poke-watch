@@ -79,10 +79,11 @@ function ui_applySettings() {
   try { localStorage.setItem('poke-watch.settings', JSON.stringify(settings)); } catch { /* storage unavailable */ }
 }
 const ui = new UI({
-  start: (mode, species, seed) => startRun(mode, species, seed),
+  // Start / Restart run inside the button's click (a user gesture): take the mouse there, so the run starts with mouse look
+  start: (mode, species, seed) => { startRun(mode, species, seed); captureForPlay(); },
   card: (action, index) => { pendingCard = { action, index }; },
-  resume: () => setPaused(false),
-  restart: () => { if (current) startRun(current.mode, current.species, (current.seed + 1) >>> 0); },
+  resume: (via) => resumeFromMenu(via),
+  restart: () => { if (current) { startRun(current.mode, current.species, (current.seed + 1) >>> 0); captureForPlay(); } },
   quit: () => { cancelEnd(); ctx = null; (window as any).pokewatch.ctx = null; paused = false; pendingCard = undefined; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
   portrait: (id) => renderer?.portrait(id),
   sound: (k) => { audio.unlock(); if (k === 'ui' || k === 'move') audio.uiMove(); else if (k === 'back') audio.uiBack(); else if (k === 'denied') audio.uiDenied(); else audio.uiConfirm(); },
@@ -140,7 +141,30 @@ input.onAction = (a) => {
 };
 window.addEventListener('pointerdown', () => audio.unlock());
 
+/** third person with the mouse: play needs the pointer lock to look and aim (a pad turns the camera with its stick; the
+ *  fixed views never lock; where the lock cannot be had at all, right-drag still looks) */
+function wantsLock() { return !!renderer?.chase && !input.pad() && !input.lockUnavailable; }
+/** a Resume is waiting for the browser to grant the pointer lock */
+let resumePending = false;
+/** after a Start / Restart click: ask for the pointer lock inside that click (the host still treats the run as live
+ *  without it: a refusal leaves the lock hint up, and the next click on the game captures) */
+function captureForPlay() { if (ctx && wantsLock()) { input.context = 'play'; input.capture(true); } }
+/** Resume from the pause menu. In third person with the mouse the game stays paused until the lock is granted
+ *  (input.onLockGained): unpausing first and capturing after left a refused request (Chrome refuses a re-lock for about a
+ *  second after Esc) as a running game with a free cursor, a dead mouse look and a first click that attacked. Esc in the
+ *  pause menu does not resume there: an Esc keydown carries no user activation, so its lock request is always refused, and
+ *  the same Esc that released the lock could reach the menu and close it again */
+function resumeFromMenu(via: 'click' | 'key') {
+  if (!paused) return;
+  if (!wantsLock()) { setPaused(false); return; }
+  if (via === 'key') { ui.pauseNote('Click Resume (or press Enter) to capture the mouse'); return; }
+  resumePending = true;
+  ui.pauseNote('');
+  input.capture(true);
+}
+
 function setPaused(p: boolean) {
+  resumePending = false;
   paused = p;
   audio.setPaused(p);
   if (p) { ui.pause(ctx); input.releaseLock(); input.clearButtons(); } else { ui.unpause(); input.context = 'play'; input.capture(); }
@@ -223,7 +247,9 @@ function sampleInput(c: SimContext, view: ViewSample | null): InputFrame {
   if (renderer.chase) aim = renderer.chaseAim(c, view);
   else if (input.aimSource === 'mouse' && input.mouseSeen) aim = renderer.groundAt(input.mouseX, input.mouseY, P.y);
   else if (input.aimSource === 'stick') aim = [P.x + input.stickAim[0] * 8, P.z + input.stickAim[1] * 8];
-  if (aim && c.rules.combat.mode !== 'auto') { inp.aimX = aim[0]; inp.aimZ = aim[1]; }
+  // the aiming device rides along (Phase 3, rules.aim.assist): the cursor aims directly (no magnetism), the stick or
+  // touch with visible, sight-checked assistance. Chase overrides it below from the camera's own device
+  if (aim && c.rules.combat.mode !== 'auto') { inp.aimX = aim[0]; inp.aimZ = aim[1]; inp.aimDev = input.aimSource === 'stick' ? 'stick' : 'mouse'; }
   // third person: the crosshair ray itself (InputFrame.aim). The sim traces it for the direct shots under
   // rules.aim.spatial (sim/aim.ts); every other move keeps reading aimX/aimZ
   if (renderer.chase && view && c.rules.combat.mode !== 'auto') { inp.aim = aimRayOf(view); inp.aimDev = input.pad() || input.aimSource === 'stick' ? 'stick' : 'mouse'; }
@@ -513,6 +539,14 @@ async function boot() {
   renderer.fovOffset = settings.fov;
   input.chase = renderer.chase;
   input.onLockLost = () => { if (ctx && !paused && (ctx.state === 'play' || ctx.state === 'dead') && !ui.menuOpen()) setPaused(true); };
+  input.onLockGained = () => { if (resumePending && paused) setPaused(false); };
+  input.onLockError = () => {
+    if (!resumePending) return;
+    resumePending = false;
+    // nowhere to get it from (a frame without pointer-lock permission): play on, right-drag looks
+    if (input.lockUnavailable) setPaused(false);
+    else ui.pauseNote('The browser did not give the mouse back yet. Click Resume again');
+  };
   resize();
   window.addEventListener('resize', resize);
   (window as any).pokewatch = {

@@ -61,6 +61,7 @@ Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The cl
 | Spatial shot and beam muzzle (Phase 2B, beams Phase 2C) | class height × `rules.aim.muzzle.up` (0.6) above the feet, footprint × `muzzle.fwd` (0.9) ahead | `src/sim/aim.ts` (`resolveSpatial`); beams `src/sim/moves.ts` (`beam3D`) |
 | Spatial beam contact (Phase 2C) | enemy cylinder `E.y .. E.y + E.tall` × `E.radius` (class × role) met by the beam's half-width, up and sideways | `src/sim/moves.ts` (`beam3D`) through `src/sim/spatial.ts` `sweep` |
 | Wall and terrain collision | footprint (`footprintOf`, `partnerFootprint`) | `World.moveBody`, read by `player.ts`, `enemies.ts`, `bodies.ts` (resting-body contact) |
+| Headroom under decks (R1) | sim height: partner `partnerHeight`, enemy `E.tall` (class height × tilt × role size) | `World.collides` / `moveBody` / `fits` / `nearestFit`, `World.headroomAt` (jump clamp in `player.ts`), wide fields per height class (`World.wideDir`, `wideGoalDir`, `wideReached`), `director.ts` spawn gate |
 | Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
 | Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
@@ -97,7 +98,8 @@ Every ground body collides with solid geometry as a circle of its footprint (`Wo
 - **Escape.** A move is accepted when the overlap does not grow, so a body left in a tight spot (an evolution inside a corridor) walks out of it and never further in. A push is applied only when it clears something.
 - **Resting bodies.** A loose rock pushes the partner out by rock radius plus footprint. The hurtbox only decides what a thrown body hits. Loose rocks (`seedBodies`) are only scattered where a 7 × 7 patch is walkable, so a wide route always goes round one.
 
-With size geometry off, every footprint is 0 and the old point collision runs unchanged.
+With size geometry off, every footprint is 0 and the old point collision runs unchanged. Headroom is a separate flag
+(`rules.size.headroom`); every older checksum layer turns it off too.
 
 ### Navigation classes
 
@@ -125,6 +127,41 @@ The same pass fixed four pursuit defects, all present with point collision too a
 - A walker does not steer straight off a ledge (ground more than 0.6 m below its feet at the near probe) toward a player who is not below it. A Sandshrew that had climbed a ramp to the player's terrace walked off the terrace edge, landed at the ramp's foot and climbed again, round and round (tropical-lagoon seed 3). With the player below, the drop is still the short way down.
 
 Earlier both the sim and the validator accepted a 2 × 2 block only when the spread of its four heights was ≤ 0.6 m. On a diagonal ramp the orthogonal steps are ≤ 0.45 m but the diagonal spans 0.61–0.67 m. Every ramp tile read as too narrow, and a bridge abutment (two ground tiles, two deck tiles) fitted neither layer. That is why a two-tile boss route looked missing on 27–63 % of location seeds. With the edge rule it exists on 30 of 30 seeds in each location (wideAnchors 99–100 %).
+
+## Headroom
+
+A body's sim height meets deck slabs (`rules.size.headroom`, on by default; R1 of the spatial roadmap, ledger Stage 6C in
+`docs/THIRD_PERSON_IMPLEMENTATION.md`). The height is the one the hurt window already uses: the class height with its tilt,
+times the role size for enemies (`E.tall`), the class height for the partner (`partnerHeight`).
+
+- **Gaps.** A deck is a 0.6 m slab (`DECK_SLAB`). The generators keep every deck top 2.9 m above the ground under it
+  (`CLEARANCE` in `locgen/decks.ts` and `habitat/validate.ts`, a rule against hopping on from below), so the gap under the
+  slab is at least 2.3 m. On the shipped maps it is exactly 2.40 m on Viridian Forest, Chargestone Cave, River Gorge and
+  Tidal Cave (a 3.0 m deck on flat ground) and at least 2.9 m on Mt. Moon and Volcanic Ridge (5 seeds each, 2026-11-16).
+- **Who fits.** Every Tiny, Small, Medium and Large body, and every Extra Large one except Onix (2.59 m), fits a 2.4 m
+  gap. An Extra Large body at exactly the class height (2.4 m) fits it (`HEAD_EPS`, 1 mm, absorbs float32 heights). Elites
+  from Medium up (2.26–5.18 m), alphas and bosses (3.4–4.5 m) do not.
+- **Movement.** `World.collides` treats a deck tile as solid for a body whose head would be in the slab: it stands at its
+  feet or on the ground there, whichever is higher, plus its height. Through `World.moveBody` the footprint test applies
+  it to every tile the circle covers, so a tall body stops with its edge at the deck's edge, walking or in the air.
+- **Jumps.** A rising head stops at the lowest underside over the footprint (`World.headroomAt`); the jump's speed is
+  spent and gravity brings the body down. A falling body is never clamped. A head already inside a slab (a body evolved
+  under one) rises no further.
+- **Routing.** The wide fields come in height classes. Each wide block knows its lowest gap under a deck; the distinct
+  gaps of the map are the class steps, and a body's class is how many of them it is taller than. The fields for class
+  *c* leave out the blocks whose gap is one of the *c* lowest. So a body routes under a deck it fits and round one it does
+  not, and the director's spawn gate (`allowedAt`) and placement (`nearestFit`) judge reach the same way. Maps without
+  decks, and bodies that fit every gap, have one class (0), which is the field from before.
+- **The ordinary field has no height classes.** That is sound while no narrow body (footprint under `heavyRadius`) is
+  taller than the lowest gap the generators allow. `tests/headroom.test.ts` asserts it for every species and role size.
+- **What it changed.** `navwalk all 5`: every mandatory space is still reached by every class, including Onix and a
+  Heracross elite (3.38 m); no mandatory route needs the space under a deck. Only the `gen` checksum set moves (two of its
+  four runs): an elite reroutes round a low gap, and a generated map's spawn spot drops Onix from the pool where its
+  height class has no route (the same draw then picks another species). `gen-headroom-off` prints the earlier `gen`
+  hashes.
+- **Not covered here.** Enemy fliers hover with no wall or slab test (R7 moves them onto the shared movement). The chase
+  camera's pivot follows the drawn sprite, not the sim height, so an Extra Large partner that fits a gap can still fold
+  the lens under a slab (ledger F5); that is a camera matter.
 
 ## Turning it off
 

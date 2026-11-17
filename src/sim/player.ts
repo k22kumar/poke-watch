@@ -8,7 +8,8 @@ import { footing } from './cells';
 import { TB } from '../rules/build';
 import { logTech } from './techniques';
 import { liquidMotion, playerLiquid } from './hazards';
-import { navWide, partnerFootprint } from '../rules/sizing';
+import { navWide, partnerFootprint, partnerHeight } from '../rules/sizing';
+import { HEAD_EPS } from './world';
 
 const MOVE: [number, number] = [0, 0];
 
@@ -126,13 +127,16 @@ export const playerSystem = {
     const stepX = (P.vx + P.kx) * dt, stepZ = (P.vz + P.kz) * dt;
     const feet = P.y;
     const stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight; // climbing out of a liquid
-    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp);
+    // headroom (rules.size.headroom, docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller
+    // than the gap under a deck does not walk (or jump) in under it. Undefined = heads pass through slabs, as before
+    const tall = W.headroom && W.over ? partnerHeight(P.species, ctx.rules) : undefined;
+    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall);
     let nx = P.x + stepX, nz = P.z + stepZ;
     const foot = partnerFootprint(P.species, ctx.rules);
     if (foot > 0) {
       // size geometry on: the partner's footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"):
       // it glides round corners, never cuts one, and a Large or Extra Large partner does not fit a one-tile gap
-      W.moveBody(P.x, P.z, stepX, stepZ, feet, stepUp, foot, MOVE);
+      W.moveBody(P.x, P.z, stepX, stepZ, feet, stepUp, foot, MOVE, undefined, tall);
       nx = MOVE[0]; nz = MOVE[1];
     } else {
       const ahead = 0.35;
@@ -163,12 +167,19 @@ export const playerSystem = {
     P.vy -= R.gravity * dt;
     if (P.species.flying && inp.jump && P.vy < -R.glideFallSpeed) P.vy = -R.glideFallSpeed;
     P.y += P.vy * dt;
+    // headroom: a rising head stops at the lowest deck underside over the footprint (the jump's speed is spent there, then
+    // gravity brings it down). A head already in a slab (a body evolved under one) rises no further. Falling is never
+    // clamped: a body dropping past a deck's edge is not pulled down by it
+    if (tall !== undefined && P.vy > 0) {
+      const top = W.headroomAt(P.x, P.z, feet, foot);
+      if (P.y + tall > top + HEAD_EPS) { P.y = Math.max(feet, top - tall); P.vy = 0; }
+    }
     // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
     const g = W.support(P.x, P.z, P.y);
     if (P.y <= g) {
       // landing from a fall or a drop: clear the footprint of the ground it landed on (faces were measured from the feet
       // on the way down, so it may stand in the lip; World.moveBody's push)
-      if (foot > 0 && !P.grounded && P.py - g > 0.3) { W.moveBody(P.x, P.z, 0, 0, g, R.stepHeight, foot, MOVE); P.x = MOVE[0]; P.z = MOVE[1]; }
+      if (foot > 0 && !P.grounded && P.py - g > 0.3) { W.moveBody(P.x, P.z, 0, 0, g, R.stepHeight, foot, MOVE, undefined, tall); P.x = MOVE[0]; P.z = MOVE[1]; }
       P.y = g;
       P.vy = 0;
       P.grounded = true;
@@ -183,7 +194,7 @@ export const playerSystem = {
     // (a walker standing on a deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so
     // this only matters where a habitat causeway spans sealed ground)
     if (W.los && W.wallAt(P.x, P.z) && !(W.over && W.node(P.x, P.z, P.y) >= W.w * W.h)) {
-      [P.x, P.z] = foot > 0 ? W.nearestFit(P.x, P.z, foot, navWide(foot, ctx.rules)) : W.nearestWalkable(P.x, P.z);
+      [P.x, P.z] = foot > 0 ? W.nearestFit(P.x, P.z, foot, navWide(foot, ctx.rules), true, tall) : W.nearestWalkable(P.x, P.z);
       P.y = W.height(P.x, P.z, P.y); P.vy = 0; P.grounded = true;
     }
 

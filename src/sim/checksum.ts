@@ -22,7 +22,8 @@ export function stateHash(ctx: SimContext): number {
     h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.xp);
     for (const m of P.squad) {
       h.num(m.hp).num(m.grey).num(m.coat).num(m.coatT);
-      for (const s of m.moves) h.num(s.cd).num(s.level);
+      // a queued press (Phase 3 fire buffer) is play state; a slot with none hashes as before
+      for (const s of m.moves) { h.num(s.cd).num(s.level); if (s.queued !== undefined) h.num(s.queued); }
     }
   }
   const E = ctx.enemies;

@@ -7,7 +7,7 @@ import { clamp } from '../core/util';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, bst, weightClass, type SpeciesDef } from '../rules/species';
-import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
+import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
 import { damageEnemy, damagePlayer, enemyAttackMult, killEnemy, playerAbility } from './combat';
 const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
@@ -77,7 +77,7 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (roles & ROLE.boss) speed *= 0.8;
   // a ground body with a footprint (size geometry on) is put down where it fits: a tile centre, or a wide block's centre
   const foot = sp.flying ? 0 : footprintOf(sp, size, ctx.rules);
-  if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules));
+  if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
   else if (!sp.flying && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
   E.x[i] = x; E.z[i] = z; E.px[i] = x; E.pz[i] = z;
   E.hover[i] = sp.flying ? 0.9 + ((i * 37) % 10) * 0.05 : 0;
@@ -230,11 +230,11 @@ export const enemySystem = {
         E.holdT[i] = 0;
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
-        if (E.foot[i] > 0) [nx, nz] = W.nearestFit(nx, nz, E.foot[i], navWide(E.foot[i], ctx.rules));
+        if (E.foot[i] > 0) [nx, nz] = W.nearestFit(nx, nz, E.foot[i], navWide(E.foot[i], ctx.rules), true, E.tall[i]);
         else if (!sp.flying && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
         // a holder is only moved onto ground with a wide route to the player; with none anywhere near (the player is in a
         // pocket only small bodies fit) it keeps holding
-        if (!far && !W.wideReached(nx, nz, E.foot[i] < DIAG_R)) { nx = E.x[i]; nz = E.z[i]; }
+        if (!far && !W.wideReached(nx, nz, E.foot[i] < DIAG_R, undefined, E.tall[i])) { nx = E.x[i]; nz = E.z[i]; }
         E.x[i] = nx; E.z[i] = nz;
         E.px[i] = E.x[i]; E.pz[i] = E.z[i];
         continue;
@@ -277,7 +277,7 @@ export const enemySystem = {
         if (ahead || fireAhead) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
           if (wide) {
-            const r = W.wideDir(E.x[i], E.z[i], NAV, feet, f < DIAG_R);
+            const r = W.wideDir(E.x[i], E.z[i], NAV, feet, f < DIAG_R, E.tall[i]);
             if (r === 1) { ux = NAV[0]; uz = NAV[1]; } else if (r < 0) speed = 0;
             E.holdT[i] = r < 0 ? E.holdT[i] + dt : 0;
           } else if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
@@ -309,7 +309,7 @@ export const enemySystem = {
         const gf = E.foot[i];
         if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && sized && navWide(gf, ctx.rules)) {
           // a wide Raider walks the wide block field to the point; with no wide route it holds (docs/SIZING.md)
-          const r = W.wideGoalDir(E.x[i], E.z[i], NAV, E.y[i], gf < DIAG_R);
+          const r = W.wideGoalDir(E.x[i], E.z[i], NAV, E.y[i], gf < DIAG_R, E.tall[i]);
           if (r === 1) { ux = NAV[0]; uz = NAV[1]; flowed = true; } else if (r < 0) { speed = 0; flowed = true; }
         } else if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && W.goalDir(E.x[i], E.z[i], NAV, E.y[i])) {
           ux = NAV[0]; uz = NAV[1]; flowed = true;
@@ -421,13 +421,15 @@ export const enemySystem = {
         // (knockback past rules.hazards.forcedKnock carries it over the lip)
         const forced = W.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
         const up = W.hazards && W.liquidAt(ox, oz, feet, ctx.rules.hazards.contact) ? Math.max(0.6, ctx.rules.hazards.climbOut) : 0.6; // climbing out of a liquid
+        // headroom: its height meets deck slabs (World ignores it with rules.size.headroom off, as before)
+        const tall = E.tall[i];
         const stop = W.hazards
-          ? (x: number, z: number) => W.collides(x, z, feet, up) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
-          : (x: number, z: number) => W.blocks(x, z, feet, 0.6);
+          ? (x: number, z: number) => W.collides(x, z, feet, up, tall) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
+          : (x: number, z: number) => W.blocks(x, z, feet, 0.6, tall);
         if (E.foot[i] > 0) {
           // its footprint against walls and faces (World.moveBody); the centre-point rules (no walking into open air or a
           // liquid on its own) stay as `stop`
-          W.moveBody(ox, oz, nx - ox, nz - oz, feet, W.hazards ? up : 0.6, E.foot[i], MOVE, W.hazards && !forced ? (x, z) => avoidsStep(ctx, i, ox, oz, x, z, feet) : undefined);
+          W.moveBody(ox, oz, nx - ox, nz - oz, feet, W.hazards ? up : 0.6, E.foot[i], MOVE, W.hazards && !forced ? (x, z) => avoidsStep(ctx, i, ox, oz, x, z, feet) : undefined, tall);
           const fx = Math.fround(MOVE[0]), fz = Math.fround(MOVE[1]);
           if (stop(fx, fz) && !stop(ox, oz)) { nx = ox; nz = oz; } else { nx = fx; nz = fz; }
         } else if (stop(nx, nz)) {
@@ -448,7 +450,7 @@ export const enemySystem = {
         // landed this tick (a ledge drop or a fall): faces were measured from its feet on the way down, so it may stand in
         // the lip of the ground it landed on; clear the footprint now (World.moveBody's push), not on its next move
         if (E.foot[i] > 0 && E.fallV[i] === 0 && E.py[i] - E.y[i] > 0.3) {
-          W.moveBody(E.x[i], E.z[i], 0, 0, E.y[i], 0.6, E.foot[i], MOVE);
+          W.moveBody(E.x[i], E.z[i], 0, 0, E.y[i], 0.6, E.foot[i], MOVE, undefined, E.tall[i]);
           E.x[i] = Math.fround(MOVE[0]); E.z[i] = Math.fround(MOVE[1]);
         }
       } else {
@@ -467,8 +469,9 @@ export const enemySystem = {
         const push = (cr - dist) / cr;
         const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
         const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
-        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE); P.x = MOVE[0]; P.z = MOVE[1]; }
-        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight)) { P.x = qx; P.z = qz; }
+        const ph = partnerHeight(P.species, ctx.rules); // headroom: the partner's height meets deck slabs
+        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
+        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen) {
           E.contactCd[i] = R.contactCooldown;
           const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);

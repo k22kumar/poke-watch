@@ -18,7 +18,7 @@ import { forceOnPropsIn } from './props';
 import { shotWeight } from '../rules/capabilities';
 import { agentOf, applyAgent } from './cells';
 import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
-import { beamLength, combatFlags, resolveSpatial, shotReach, spatialFor } from './aim';
+import { assistSees, beamLength, combatFlags, resolveSpatial, shotReach, spatialFor } from './aim';
 import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
 import { TB } from '../rules/build';
 import { tech, techSpec } from './techniques';
@@ -246,8 +246,10 @@ function spawnZone(ctx: SimContext, kind: number, spec: MoveSpec, x: number, z: 
 // Every cast reads one resolved aim: a direction, a point and (optionally) a target enemy.
 // Aimed mode: the player's aim, bent toward an enemy close to the aim line (magnetism).
 // Assist/auto, or no aim input (bot, idle stick): the nearest enemy, as the original game did.
-interface Aim { manual: boolean; t: number; ux: number; uz: number; px: number; pz: number }
-const AIM: Aim = { manual: false, t: -1, ux: 0, uz: 1, px: 0, pz: 0 };
+// Phase 3: `lead` = shots and lobs may lead the target (false under a device policy without lead); `assist` = the enemy a
+// device policy (rules.aim.assist) bent this cast's aim to, else -1 (named in the cast event so the HUD can show it)
+interface Aim { manual: boolean; t: number; ux: number; uz: number; px: number; pz: number; lead: boolean; assist: number }
+const AIM: Aim = { manual: false, t: -1, ux: 0, uz: 1, px: 0, pz: 0, lead: true, assist: -1 };
 /** Phase 2B: the spatial aim of the cast being resolved (sim/aim.ts); A3.on only while that cast is on the spatial path */
 const A3 = freshAimState();
 const MELEE = new Set(['strike', 'cone', 'spin', 'dash', 'aura', 'nova']);
@@ -298,7 +300,7 @@ function aimedFor(ctx: SimContext, basic: boolean): boolean {
 export function resolveAim(ctx: SimContext, s: MoveSpec, manual: boolean, basic: boolean): boolean {
   const P = ctx.player, E = ctx.enemies, C = ctx.rules.combat;
   const reach = Math.max(s.range, 3) + 1;
-  AIM.manual = manual;
+  AIM.manual = manual; AIM.lead = true; AIM.assist = -1;
   // Phase 2B: a direct shot aimed through the chase camera: the sim's own trace of the crosshair ray, no magnetism
   A3.on = false;
   if (spatialFor(ctx, s, manual, basic) && resolveSpatial(ctx, s, A3)) {
@@ -317,22 +319,31 @@ export function resolveAim(ctx: SimContext, s: MoveSpec, manual: boolean, basic:
     return true;
   }
   const [ux, uz] = aimDir(ctx);
-  // magnetism: the enemy closest to the aim line, within the cone or within its own width of the line
-  const cosMax = dcos(((MELEE.has(s.archetype) ? C.meleeMagnetDeg : C.magnetDeg) * Math.PI) / 180);
-  const n = ctx.grid.query(P.x, P.z, reach + 2);
-  let best = -1, bestScore = -Infinity;
-  for (let k = 0; k < n; k++) {
-    const e = ctx.grid.result[k];
-    if (!E.alive[e] || E.spawnT[e] < 0.25) continue;
-    const dx = E.x[e] - P.x, dz = E.z[e] - P.z, d = dhypot(dx, dz) || 1e-3;
-    if (d > reach + E.radius[e]) continue;
-    const along = (dx * ux + dz * uz) / d;
-    const perp = Math.abs(dx * uz - dz * ux);
-    if (along <= 0 || (along < cosMax && perp > E.radius[e] + 0.6)) continue;
-    const score = along - d * 0.002;
-    if (score > bestScore) { bestScore = score; best = e; }
+  // magnetism: the enemy closest to the aim line, within the cone or within its own width of the line. Phase 3: input
+  // that names its aiming device takes that device's policy (rules.aim.assist): a 0° cone is no magnetism at all (the
+  // mouse by default), and `los` admits only enemies the partner can see. Input without a device keeps the legacy cone
+  const dev = ctx.rules.aim.deviceAssist ? ctx.input.aimDev : undefined, pol = dev ? ctx.rules.aim.assist[dev] : undefined;
+  const melee = MELEE.has(s.archetype);
+  const deg = pol ? (melee ? pol.meleeDeg : pol.shotDeg) : melee ? C.meleeMagnetDeg : C.magnetDeg;
+  if (pol) AIM.lead = pol.lead;
+  let best = -1;
+  if (!pol || deg > 0) {
+    const cosMax = dcos((deg * Math.PI) / 180);
+    const n = ctx.grid.query(P.x, P.z, reach + 2);
+    let bestScore = -Infinity;
+    for (let k = 0; k < n; k++) {
+      const e = ctx.grid.result[k];
+      if (!E.alive[e] || E.spawnT[e] < 0.25) continue;
+      const dx = E.x[e] - P.x, dz = E.z[e] - P.z, d = dhypot(dx, dz) || 1e-3;
+      if (d > reach + E.radius[e]) continue;
+      const along = (dx * ux + dz * uz) / d;
+      const perp = Math.abs(dx * uz - dz * ux);
+      if (along <= 0 || (along < cosMax && perp > E.radius[e] + 0.6)) continue;
+      const score = along - d * 0.002;
+      if (score > bestScore && (!pol?.los || assistSees(ctx, s, e))) { bestScore = score; best = e; }
+    }
   }
-  if (best >= 0) { setAimAt(ctx, best); return true; }
+  if (best >= 0) { setAimAt(ctx, best); if (pol) AIM.assist = best; return true; }
   AIM.t = -1; AIM.ux = ux; AIM.uz = uz;
   const ax = ctx.input.aimX! - P.x, az = ctx.input.aimZ! - P.z, al = Math.min(dhypot(ax, az), reach);
   AIM.px = P.x + ux * al; AIM.pz = P.z + uz * al;
@@ -349,7 +360,7 @@ const P = (ctx: SimContext) => ctx.player;
 const face = (ctx: SimContext) => { ctx.player.facing = datan2(AIM.ux, AIM.uz); };
 const castEv = (ctx: SimContext, s: MoveSpec, tx = AIM.px, tz = AIM.pz) => {
   const p = ctx.player;
-  ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx, tz, key: s.key });
+  ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx, tz, key: s.key, ...(AIM.assist >= 0 ? { assist: AIM.assist } : {}) });
 };
 /** target for a cast that needs one: the aimed enemy, else the enemy nearest the aim point */
 function needTarget(ctx: SimContext, s: MoveSpec, around = 5): number {
@@ -461,7 +472,8 @@ export const ARCHETYPES: Record<string, Archetype> = {
       const p = P(ctx), E = ctx.enemies;
       const t = AIM.t;
       if (t < 0 && !AIM.manual) return false;
-      const cx = t >= 0 ? E.x[t] + E.vx[t] * 0.5 : AIM.px, cz = t >= 0 ? E.z[t] + E.vz[t] * 0.5 : AIM.pz;
+      const ld = AIM.lead ? 0.5 : 0;
+      const cx = t >= 0 ? E.x[t] + E.vx[t] * ld : AIM.px, cz = t >= 0 ? E.z[t] + E.vz[t] * ld : AIM.pz;
       for (let k = 0; k < s.count; k++) {
         const tx = cx + (k ? ctx.rng.combat.range(-3, 3) : 0), tz = cz + (k ? ctx.rng.combat.range(-3, 3) : 0);
         const dx = tx - p.x, dz = tz - p.z, d = dhypot(dx, dz);
@@ -680,7 +692,8 @@ export const ARCHETYPES: Record<string, Archetype> = {
       let fired = 0;
       if (AIM.manual) {
         // aimed: the first meteor lands on the aim point (or the enemy there), the rest scatter around it
-        const cx = AIM.t >= 0 ? E.x[AIM.t] + E.vx[AIM.t] * 0.4 : AIM.px, cz = AIM.t >= 0 ? E.z[AIM.t] + E.vz[AIM.t] * 0.4 : AIM.pz;
+        const ld = AIM.lead ? 0.4 : 0;
+        const cx = AIM.t >= 0 ? E.x[AIM.t] + E.vx[AIM.t] * ld : AIM.px, cz = AIM.t >= 0 ? E.z[AIM.t] + E.vz[AIM.t] * ld : AIM.pz;
         for (let c = 0; c < s.count; c++) {
           const ox = c ? ctx.rng.combat.range(-3, 3) : 0, oz = c ? ctx.rng.combat.range(-3, 3) : 0;
           const z = spawnZone(ctx, ZK.meteor, s, cx + ox, cz + oz, s.radius, s.duration, slot);
@@ -839,7 +852,7 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   if (t >= 0) {
     // lead the target a little
     const dist = dhypot(E.x[t] - p.x, E.z[t] - p.z);
-    const lead = dist / Math.max(1, s.speed);
+    const lead = AIM.lead ? dist / Math.max(1, s.speed) : 0;
     base = datan2(E.x[t] + E.vx[t] * lead - p.x, E.z[t] + E.vz[t] * lead - p.z);
   } else base = datan2(AIM.ux, AIM.uz);
   const sp = s.spread ?? spread;
@@ -881,7 +894,11 @@ export const movesSystem = {
     ctx.aim.on = false;
     if (p.m.fainted) return;
     // while Tag is held, primary and secondary fire (basic attack, Move A) pick a reserve instead of casting
-    const btn = (ctx.input.btn ?? 0) & ((ctx.input.btn ?? 0) & BTN.sig ? ~(BTN.basic | BTN.a | BTN.b) : ~0);
+    const raw = ctx.input.btn ?? 0;
+    const tagMask = raw & BTN.sig ? ~(BTN.basic | BTN.a | BTN.b) : ~0;
+    const btn = raw & tagMask;
+    // Phase 3: the presses (rising edges) of this sample; only these can queue a cast (rules.combat.fireBuffer)
+    const press = (ctx.input.press ?? 0) & tagMask;
     // Pressure (Articuno): within 12 m, cooldowns recover 15% slower (there is no PP to drain)
     let pressure = 1;
     { const E = ctx.enemies, b = ctx.director.bossIndex; if (b >= 0 && E.alive[b] && E.ability[b] === AB_PRESSURE && dhypot(E.x[b] - p.x, E.z[b] - p.z) < 12) pressure = 0.85; }
@@ -899,35 +916,57 @@ export const movesSystem = {
       const spec = slotSpec(ctx, i);
       const impl = ARCHETYPES[spec.archetype];
       if (!impl) continue;
+      const bit = SLOT_BTN[i] ?? 0;
+      // Phase 3 fire buffer: the window (ticks before ready) in which a press queues; a queued press older than twice
+      // that (Tag-swapped out, fainted, evolving, a cooldown stretched by Pressure) is stale and dropped
+      const win = byButton ? Math.round((ctx.rules.combat.fireBuffer[i] ?? 0) / dt) : 0;
+      const pressed = byButton && (press & bit) !== 0;
+      if (slot.queued !== undefined && (ctx.tick - slot.queued > 2 * win + 1 || !byButton)) dropQueued(ctx, slot, i, 'expired');
+      // Tag held takes primary and secondary fire for the reserve pick: a queued press is cancelled, not deferred
+      if (slot.queued !== undefined && (raw & BTN.sig) && bit !== BTN.sig) dropQueued(ctx, slot, i, 'cancel');
       // carrying the Transport egg: only the basic attack (Move A and B wait, still cooling)
-      if (ctx.player.carrying && i > 0) { if (slot.cd > 0) slot.cd -= dt * pressure; slot.windup = undefined; continue; }
+      if (ctx.player.carrying && i > 0) {
+        if (slot.cd > 0) slot.cd -= dt * pressure;
+        slot.windup = undefined;
+        if (slot.queued !== undefined) dropQueued(ctx, slot, i, 'cancel');
+        if (pressed) ctx.events.push({ t: 'fireDropped', slot: i, why: 'cancel', wait: 0 });
+        continue;
+      }
       if (slot.windup !== undefined && slot.windup > 0) {
         // release on the frame the wind-up ends (the HitFrame of the attack clip), at the aim of that moment
         slot.windup -= dt;
-        if (slot.windup > 0) continue;
         const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
+        if (slot.windup > 0) {
+          // a press during the wind-up: ready after the rest of it and the refunded cooldown
+          if (pressed) offerQueue(ctx, slot, i, slot.windup + Math.max(0.05, spec.cd - w) / pressure, win);
+          continue;
+        }
         slot.windup = 0;
         if (resolveAim(ctx, spec, aimed, i === 0) && fire(ctx, impl, spec, i)) slot.cd = Math.max(0.05, spec.cd - w);
         else slot.cd = 0.1;
+        if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win);
         continue;
       }
       if (slot.cd > 0) slot.cd -= dt * pressure;
-      if (slot.cd > 0) continue;
+      if (slot.cd > 0) { if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win); continue; }
       // button-cast slots wait, ready, until their button is held (holding repeats on cooldown; releasing starts
-      // nothing new, though a wind-up already under way still lands)
-      if (byButton && !(btn & (SLOT_BTN[i] ?? 0))) { slot.cd = 0; continue; }
+      // nothing new, though a wind-up already under way still lands) or a buffered press is queued (it casts once)
+      const fromQueue = slot.queued !== undefined;
+      if (byButton && !(btn & bit) && !fromQueue) { slot.cd = 0; continue; }
       if (!aimed) {
         // automatic casts only when something is in reach; otherwise retry soon
         const reach = Math.max(spec.range, spec.radius * 1.5, 8);
         if (nearestEnemy(ctx, p.x, p.z, reach) < 0) { slot.cd = 0.1; continue; }
       }
       if (!resolveAim(ctx, spec, aimed, i === 0)) { slot.cd = 0.1; continue; }
+      // accepted: a queued press is spent by this cast (exactly one per press)
+      slot.queued = undefined;
       const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
       if (w <= 0) { if (fire(ctx, impl, spec, i)) slot.cd = spec.cd; else slot.cd = 0.1; continue; }
       slot.windup = w;
       p.aimFacing = datan2(AIM.ux, AIM.uz);
       p.aimT = w + 0.18;
-      ctx.events.push({ t: 'windup', archetype: spec.archetype, element: spec.element, slot: i, dur: w, tx: AIM.px, tz: AIM.pz, key: spec.key });
+      ctx.events.push({ t: 'windup', archetype: spec.archetype, element: spec.element, slot: i, dur: w, tx: AIM.px, tz: AIM.pz, key: spec.key, ...(fromQueue ? { queued: true } : {}) });
     }
     presentAim(ctx);
     // trail emitter
@@ -956,6 +995,21 @@ function presentAim(ctx: SimContext) {
     if (spatialFor(ctx, s, needsButton(ctx) && !(i === 0 && ctx.rules.combat.basicNeedsTarget), i === 0)) resolveSpatial(ctx, s, ctx.aim);
     return;
   }
+}
+
+/** Phase 3 fire buffer: a press on slot i, which is `ttr` s of sim time from ready. Within `win` ticks of ready it is
+ *  queued (one at most); otherwise it is dropped as early. Every outcome is an event, so no press vanishes silently */
+function offerQueue(ctx: SimContext, slot: MoveSlot, i: number, ttr: number, win: number) {
+  const wait = Math.max(1, Math.ceil(ttr / ctx.dt - 1e-6));
+  if (wait > win) { ctx.events.push({ t: 'fireDropped', slot: i, why: 'early', wait }); return; }
+  if (slot.queued !== undefined) { ctx.events.push({ t: 'fireDropped', slot: i, why: 'queued', wait }); return; }
+  slot.queued = ctx.tick;
+  ctx.events.push({ t: 'fireQueued', slot: i, wait });
+}
+
+function dropQueued(ctx: SimContext, slot: MoveSlot, i: number, why: 'cancel' | 'expired') {
+  slot.queued = undefined;
+  ctx.events.push({ t: 'fireDropped', slot: i, why, wait: 0 });
 }
 
 /** cast slot i (Phase 8b bookkeeping around the archetype: uses, Pressure Jet's root, Slipstream's copied coat) */
