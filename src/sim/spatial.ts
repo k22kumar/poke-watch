@@ -7,7 +7,10 @@
 // Geometry model (one rule per thing, read live from the World every call, so ice, tides and W4 blocks are current):
 //   tile        the half-open box [i, i + 1) × [j, j + 1) in grid coordinates (World.tile's rule): a point belongs to
 //               exactly one tile
-//   wall        a wall tile (not a chasm) is a column from -∞ to +∞, or up to a deck's underside when one is over it
+//   wall        a wall tile (not a chasm) is a column from -∞ to +∞, or up to a deck's underside when one is over it;
+//               with QF.tops (R1b wall tops, rules.world.wallTops) a wall-prop tile ends at its World.wallTop (the prop's
+//               measured height above its footing, world/tiles.ts wallTopsOf), so a line above a fence, a boulder or a
+//               canopy passes; a bare wall (rock mass, cave wall) stays infinite either way
 //   terrain     every other tile is solid below World.height(x, z) with no reference (ground, low props, ice, a stairs
 //               ramp as its sloped plane); open water is the same column reported as `liquid`; a chasm (hazards on) has
 //               no floor at all
@@ -24,6 +27,10 @@
 // QF.foliage, open air above the ground under it: its wall column or low-prop platform is not cover. Every other wall
 // tile (tree trunks, rock masses, buildings, thickets with no material row) and low prop (rocks, stumps, logs, grave
 // markers) stays solid. Without the flag (World.sight parity, the oracles, movement-adjacent callers) foliage is solid.
+//
+// Wall tops (R1b): the player's attack traces opt in with QF.tops (sim/aim.ts combatFlags: the camera trace, the muzzle,
+// shot flight, beams, device assist and the aimbot). World.sight, enemy fire, planar shots and the map validators do not,
+// and keep every wall infinite until R7 (enemy sight and fire move together) and the validator unification.
 //
 // World solids are open sets: a contact needs a positive length of the query inside the solid, so a ray lying in a
 // floor's plane or along a wall face does not hit it. One exception, the corner seal: a point ray that passes exactly
@@ -97,7 +104,11 @@ export const QF = {
   sight: 4,
   /** foliage (props whose material does not block shots) is open air above its ground (header, Phase 2C) */
   foliage: 8,
+  /** wall props are solid only up to their World.wallTop (header, R1b); bare walls stay infinite */
+  tops: 16,
 } as const;
+/** the query flags a world test carries through to an internal cast (segmentClear, an overlap's sight line) */
+const QF_WORLD = QF.foliage | QF.tops;
 
 const RANK = new Uint8Array(256);
 for (let b = 0; b < 8; b++) RANK[1 << b] = b;
@@ -199,6 +210,8 @@ class Geo {
   /** 1 = the tile is covered by foliage (a prop whose material does not block shots; the last prop placed on a tile
    *  owns it, as sim/props.ts PropField.at): static per map, the wall and platform arrays say whether it still stands */
   readonly soft: Uint8Array;
+  /** R1b: the World's wallTop array (written in place by World.setBlock), or an all-Infinity one with the flag off */
+  readonly top: Float64Array;
   readonly cells: CellField;
   constructor(W: World) {
     const M = W.map, n = W.w * W.h;
@@ -207,6 +220,7 @@ class Geo {
     this.wall = M.wall; this.terrain = M.terrain; this.elev = M.elev; this.platform = M.platform; this.stairs = M.stairs;
     this.over = W.over ?? new Float32Array(n); this.voids = W.voids ?? new Uint8Array(n);
     this.wlevel = M.wlevel ?? new Float32Array(n).fill(WATER_Y);
+    this.top = W.wallTop ?? new Float64Array(n).fill(Infinity);
     this.soft = new Uint8Array(n);
     for (const p of M.props ?? []) {
       const pm = PROP_MATERIALS[p.kind];
@@ -233,6 +247,8 @@ const CLO = new Float64Array(3), CHI = new Float64Array(3), CK = new Uint8Array(
 let CN = 0, CST = -1;
 /** the cast in progress treats foliage as open (QF.foliage): set by every public entry before it reads a column */
 let SOFT = false;
+/** the cast in progress ends wall-prop columns at their tops (QF.tops, R1b): set with SOFT */
+let TOPS = false;
 
 /** a stairs tile's ramp as top = SA + SB·(zg − j): world/tiles.ts stairEdges, without its tuple */
 function stairPlane(G: Geo, i: number, j: number) {
@@ -251,7 +267,11 @@ function column(G: Geo, k: number, i: number, j: number, mask: number) {
   const ov = G.over[k], soft = SOFT && G.soft[k] === 1;
   if (G.voids[k] !== 1) {
     if (G.wall[k] === 1 && !soft) {
-      if (mask & SK.wall) { CLO[CN] = -Infinity; CHI[CN] = ov > 0 ? ov - DECK_SLAB : Infinity; CK[CN] = SK.wall; CN++; }
+      if (mask & SK.wall) {
+        let hi = ov > 0 ? ov - DECK_SLAB : Infinity;
+        if (TOPS) { const t = G.top[k]; if (t < hi) hi = t; }
+        CLO[CN] = -Infinity; CHI[CN] = hi; CK[CN] = SK.wall; CN++;
+      }
     } else {
       const t = G.terrain[k], water = t === T.water, ice = water && G.cells.iceAt(k), kind = water && !ice ? SK.liquid : SK.terrain;
       if (mask & kind) {
@@ -285,7 +305,7 @@ function solidIn(G: Geo, k: number, i: number, j: number, mask: number): number 
  *  the renderer may call it. */
 export function solidAt(W: World, x: number, y: number, z: number, mask: number = SK_WORLD, flags = 0): number {
   const G = geoOf(W), gx = x + G.half, gz = z + G.half, i = Math.floor(gx), j = Math.floor(gz);
-  F[PZG] = gz; F[PY] = y; SOFT = (flags & QF.foliage) !== 0;
+  F[PZG] = gz; F[PY] = y; SOFT = (flags & QF.foliage) !== 0; TOPS = (flags & QF.tops) !== 0;
   return solidIn(G, i < 0 || j < 0 || i >= G.w || j >= G.h ? -1 : j * G.w + i, i, j, mask);
 }
 
@@ -416,7 +436,7 @@ let tileStamp = new Uint32Array(0), tileGen = 0, stampW = 0;
  *  coordinates: the nearest contact of the masked world kinds into H */
 function castWorld(G: Geo, mask: number, flags: number, H: RayHit): boolean {
   H.t = Infinity; H.kind = 0; H.id = -1; H.flags = 0;
-  SOFT = (flags & QF.foliage) !== 0;
+  SOFT = (flags & QF.foliage) !== 0; TOPS = (flags & QF.tops) !== 0;
   let maxT = F[MAXT];
   if (!(maxT >= 0)) maxT = 0;
   if (maxT === Infinity) maxT = 2 * (G.w + G.h) + 64;
@@ -505,7 +525,7 @@ export function segmentClear(W: World, x0: number, y0: number, z0: number, x1: n
   const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
   if (L === 0) return solidAt(W, x0, y0, z0, mask, flags) === 0;
   F[OX] = x0; F[OY] = y0; F[OZ] = z0; F[DX] = dx / L; F[DY] = dy / L; F[DZ] = dz / L; F[MAXT] = L; F[RAD] = 0; F[HH] = 0;
-  return !castWorld(geoOf(W), mask, flags & QF.foliage, LOS_HIT);
+  return !castWorld(geoOf(W), mask, flags & QF_WORLD, LOS_HIT);
 }
 
 // ---------------------------------------------------------------------------------------------------- actors
@@ -767,7 +787,7 @@ function overlapActor(out: Contacts, kind: number, id: number) {
 /** the shape is in F[Q*] */
 function overlap(ctx: SimContext, q: SpatialQuery, out: Contacts): number {
   out.n = 0; out.truncated = false; out.occluded = 0; out.stop = -1; out.stopT = F[QR];
-  QW = geoOf(ctx.world); QLOS = (q.flags & QF.sight) !== 0 ? q.mask & SK_WORLD : 0; QLOSF = q.flags & QF.foliage;
+  QW = geoOf(ctx.world); QLOS = (q.flags & QF.sight) !== 0 ? q.mask & SK_WORLD : 0; QLOSF = q.flags & QF_WORLD;
   if (q.mask & SK.enemy) {
     const E = ctx.enemies, G = ctx.grid, cell = G.cell, ext = G.extent / 2, dim = G.dim, x = F[QX], z = F[QZ];
     const BR = enemyBroad(ctx), mark = BR.mark, sg = BR.stamp;

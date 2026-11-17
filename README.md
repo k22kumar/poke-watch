@@ -129,7 +129,7 @@ npm run build        # -> dist/index.html (single file, ~1.9 MB with the Pokémo
 npm run dev          # rebuild-on-change server at http://localhost:5173
 npm run check        # typecheck, tests, and production build
 npm test             # every tests/*.test.ts suite (headless, deterministic); one suite: npx tsx --test tests/<name>.test.ts
-npx tsx scripts/checksum.ts    # replay checksums (same seed + inputs => same hashes); "off" must equal v10, "build-off" must equal Phase 8a; "aim" adds a crosshair ray to the bot (spatial aim and beams), "aim-off" must equal "on", "aim-2b" must equal Phase 2B's "aim", "gen-headroom-off" must equal "gen" before headroom, "aim-pole-off" must equal "aim" before pole-safe aim maths
+npx tsx scripts/checksum.ts    # replay checksums (same seed + inputs => same hashes); "off" must equal v10, "build-off" must equal Phase 8a; "aim" adds a crosshair ray to the bot (spatial aim and beams), "aim-off" must equal "on", "aim-2b" must equal Phase 2B's "aim", "gen-headroom-off" must equal "gen" before headroom, "aim-pole-off" must equal "aim" before pole-safe aim maths, "aim-tops-off" must equal "aim" before wall tops
 npx tsx scripts/shotbench.ts --gate # player shots over a ~475-enemy crowd: planar vs 3D swept (docs/THIRD_PERSON_IMPLEMENTATION.md §13)
 npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim
 npx tsx scripts/h2.ts           # H2: damage gain from rotating Tag for cooldowns (ceiling 15%)

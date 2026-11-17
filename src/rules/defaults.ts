@@ -34,6 +34,12 @@ export const defaultRules = {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
     gridCell: 3, // [C] spatial grid cell (m)
     chests: 6, // [B] drawn from each arena's designed chest spots
+    /** [C] R1b wall tops (docs/SIZING.md "Wall tops"): a wall prop (tree, fence, boulder, building) is solid only up to
+     *  its measured height (PROP_RULES top, World.wallTop) for every reader that opts in: the player's spatial attack
+     *  traces (QF.tops through combatFlags), the chase lens, and a body given the crossing permission (no driver gives it
+     *  before R6d). Bare walls, enemy sight and fire, planar shots and the map validators keep walls infinite. false =
+     *  every wall infinite for everyone (the checksum sets older than R1b, `aim-tops-off`) */
+    wallTops: true,
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.

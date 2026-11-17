@@ -45,7 +45,7 @@ export function chaseSubjectSize(f: { w: number; h: number } | undefined, scale:
 
 /** the rig's input for this frame: the subject plus the world probes (terrain, decks, solid props, threat) */
 export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
-  const W = ctx.world, wall = W.map.wall, py = s.y;
+  const W = ctx.world, wall = W.map.wall, tops = W.wallTop, py = s.y;
   return {
     dt: s.dt, x: s.x, y: s.y, z: s.z, height: s.height, width: s.width, flying: traversalOf(ctx.player.species, ctx.rules).air,
     threat: threatOf(ctx, s.x, s.z), lookYaw: 0, lookPitch: s.lookPitch,
@@ -56,9 +56,17 @@ export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
     // lens stays above the lip rather than dropping into the chasm
     ground: (x, z) => { const k = W.tile(x, z); return k < 0 ? EDGE_WALL : W.isVoid(k) && W.support(x, z, py + 1) === -Infinity ? py : W.height(x, z, py + 1); },
     ceiling: W.over ? (x, z) => W.ceilingAt(x, z, py) : undefined,
-    // props (trees, boulders, buildings: billboards that dissolve near the lens) only when CHASE_CONFIG.propsBlockLens
+    // props (trees, boulders, buildings: billboards that dissolve near the lens) only when CHASE_CONFIG.propsBlockLens.
+    // R1b wall tops (rules.world.wallTops): a wall prop is solid to its World.wallTop, the height bodies and shots read;
+    // a bare wall (rock, cave wall: Infinity there) keeps the lens margin of CHASE_CONFIG.lens.solidTop above its ground,
+    // a presentation clearance and not a second obstacle height (so the boom does not shorten looking over a rock rim)
     solid: CHASE_CONFIG.propsBlockLens
-      ? (x, y, z) => { const k = W.tile(x, z); return k >= 0 && wall[k] === 1 && y < W.height(x, z) + CHASE_CONFIG.lens.solidTop; }
+      ? (x, y, z) => {
+        const k = W.tile(x, z);
+        if (k < 0 || wall[k] !== 1) return false;
+        const top = tops ? tops[k] : Infinity;
+        return y < (top < Infinity ? top : W.height(x, z) + CHASE_CONFIG.lens.solidTop);
+      }
       : undefined,
     shake: s.shake,
   };

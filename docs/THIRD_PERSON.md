@@ -85,7 +85,14 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   wall, a building), on a gentler channel (in 0.3 s, out 0.8 s after 0.5 s) and never below 45 % of the boom. A lone tree or
   rock never moves the boom: the lens passes through it while it dissolves (props within 4 m of the lens dither away; props
   between the lens and the Pokémon are screen-doored). `CHASE_CONFIG.propsBlockLens = false` lets the lens pass through all
-  props. The boom is also tested from where the Pokémon will be (motion towards or across the lens only) and where the camera
+  props. How high a prop blocks (R1b wall tops, `rules.world.wallTops`, docs/SIZING.md "Wall tops"): a wall prop is solid
+  to its measured top (`World.wallTop`: a fence 0.9 m, a tree 2.75 m, the elder 5.2 m), the height bodies and the
+  player's shots read; a bare wall (rock, cave wall) keeps the older margin, `lens.solidTop` (2.4 m) above its ground, as
+  a lens comfort clearance, not an obstacle height. With the flag off every wall uses the 2.4 m margin, as before. The
+  effect (`camstats --sweep`, 2026-11-17): Small and Medium partners unchanged; an Extra Large lens meets 2.75 m canopies
+  it passed under the 2.4 m margin (authored fight boom travel +34 %) and stays out over low props it used to fold in for
+  (Mt. Moon, a 1.6 m boulder); no new safety-net slides. Billboards stretched for a steep view (up to 1.6×) and leaning
+  back past 51° are drawn taller than their collision: the lens and shots follow the unstretched art. The boom is also tested from where the Pokémon will be (motion towards or across the lens only) and where the camera
   will point (turn rate × 0.35 s), so walking backwards or turning into a cliff pulls the lens in ahead of it.
 - **Safety net (slide).** Where the end of the boom would still be within 0.2 m of the ground, inside a rise or against a
   deck's underside (a Pokémon backed against a terrace closer than the shortest boom; the eased boom still catching up), the

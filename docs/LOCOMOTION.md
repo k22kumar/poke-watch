@@ -34,6 +34,15 @@ footprint through `World.moveBody`, the centre-point look-ahead with size geomet
 row, headroom, the support (landing with the footprint clear, slope stick, leaving the support), and the rock recovery on
 location maps. A scripted tick keeps gravity and support under it: a dash off a ledge falls, a grounded dash can jump.
 
+**Crossing above wall tops (R1b, docs/SIZING.md "Wall tops").** `LocoTick.over` is an explicit permission to cross above
+a wall prop's finite top. It is separate from the integrator: no integrator grants it by itself, and no driver sets it
+before R6d, where a traversal template that needs it adds the policy (with its first user, not before). With it, the
+planar move passes over a top the feet clear (`World.moveBody` / `collides` with `over`), a descent stops at the top
+(`World.topUnder`, from the feet at the start of the tick: downward speed spent, `grounded`, the integrator and the
+support untouched, so it is a stop and not a landing), and the rock recovery leaves a body above a top alone
+(`World.inRock`). Absent: every wall is solid to any height and every path is the one before R1b (the per-tick oracle in
+ledger §23). Losing the permission while above a prop is R6d's declared transition (T31).
+
 The integrator a tick runs is `selectIntegrator(scripted, grounded)` from the body's state at the start of the tick
 (scripted wins, then support). Transitions within a tick: supported → ballistic (jump pressed, support ends), ballistic →
 supported (contact). `Player.loco.integrator` records the state at the end of the player tick; other systems that change

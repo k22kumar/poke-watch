@@ -115,6 +115,12 @@ export interface LocoTick {
   tall: number | undefined;
   /** navigation lattice for the rock recovery (wide footprints route on navblocks) */
   wide: boolean;
+  /** R1b wall tops (docs/SIZING.md "Wall tops"): the explicit permission to cross above a wall prop's finite top
+   *  (World.wallTop). With it the planar move passes over a top the feet clear, a descent stops at the top without
+   *  landing (World.topUnder: the body keeps its integrator and is not grounded), and the rock recovery leaves a body
+   *  above a top alone. Absent or false: walls are solid to any height, as before. No driver sets it before R6d, where a
+   *  traversal template grants it */
+  over?: boolean;
 }
 
 /** what the step did, for the caller's events */
@@ -215,10 +221,11 @@ function movePlanar(W: World, b: LocoBody, t: LocoTick, dt: number) {
   if (t.foot > 0) {
     // size geometry on: the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides
     // round corners, never cuts one, and a Large or Extra Large body does not fit a one-tile gap
-    W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall);
+    W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
     nx = MOVE[0]; nz = MOVE[1];
   } else {
-    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall);
+    const over = t.over;
+    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall, over);
     const ax = Math.sign(stepX) * AHEAD, az = Math.sign(stepZ) * AHEAD;
     if (blocked(nx + ax, nz + az)) {
       if (!blocked(nx + ax, b.z)) nz = b.z;
@@ -259,6 +266,13 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
     const top = W.headroomAt(b.x, b.z, y0, t.foot);
     if (b.y + tall > top + HEAD_EPS) { b.y = Math.max(y0, top - tall); b.vy = 0; }
   }
+  // R1b: a body with the crossing permission that was over a wall prop's top before this move stops at it (swept: from
+  // its feet at the start of the tick). Only the downward speed is spent; grounded, the integrator and the support below
+  // are untouched, so this is not a landing (standing on tops is a later phase)
+  if (t.over) {
+    const top = W.topUnder(b.x, b.z, t.foot, y0);
+    if (b.y < top) { b.y = top; if (b.vy < 0) b.vy = 0; }
+  }
   // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
   const g = W.support(b.x, b.z, b.y);
   if (b.y <= g) {
@@ -278,7 +292,9 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
  *  deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so this only matters where a
  *  habitat causeway spans sealed ground) */
 function recoverFromRock(W: World, b: LocoBody, t: LocoTick) {
-  if (!(W.los && W.wallAt(b.x, b.z) && !(W.over && W.node(b.x, b.z, b.y) >= W.w * W.h))) return;
+  // R1b: World.inRock is World.wallAt for a body without the crossing permission; with it, a body at or above a wall
+  // prop's top is over the rock, not in it
+  if (!(W.los && W.inRock(b.x, b.z, b.y, t.over) && !(W.over && W.node(b.x, b.z, b.y) >= W.w * W.h))) return;
   [b.x, b.z] = t.foot > 0 ? W.nearestFit(b.x, b.z, t.foot, t.wide, true, t.tall) : W.nearestWalkable(b.x, b.z);
   b.y = W.height(b.x, b.z, b.y); b.vy = 0; b.grounded = true;
 }

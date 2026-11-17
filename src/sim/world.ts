@@ -9,7 +9,7 @@ import { Rng, streamSeed } from '../core/rng';
 import type { Rules } from '../rules/defaults';
 import type { BiomeDef } from '../rules/stages';
 import { regionMap } from '../world/maps';
-import { T, WATER_Y, ICE_LIFT, deckTop, stairEdges, type ArenaMap, type ArenaProp } from '../world/tiles';
+import { T, WATER_Y, ICE_LIFT, deckTop, stairEdges, wallTopsOf, type ArenaMap, type ArenaProp } from '../world/tiles';
 import { CellField, CS } from './cells';
 import { PropField } from './props';
 import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../world/navblocks';
@@ -98,6 +98,11 @@ export class World {
   readonly headroom: boolean;
   /** location maps with hazards on: chasm tiles (1 = open air, no supporting floor), else null */
   readonly voids: Uint8Array | null = null;
+  /** R1b wall tops (rules.world.wallTops; docs/SIZING.md "Wall tops"): per tile, the absolute height up to which its
+   *  wall column is solid (world/tiles.ts wallTopsOf: a wall prop's footing + its PROP_RULES top; Infinity for a bare
+   *  wall). The one height source: the spatial queries with QF.tops, the chase lens and a body with the crossing
+   *  permission (`over` below) read it, nothing else does. Read only on a wall tile. null with the flag off */
+  readonly wallTop: Float64Array | null;
   /** an actor below this height has fallen out of the map (hazards on: the lowest floor minus rules.hazards.killDepth) */
   readonly killY: number = -Infinity;
   /** habitat maps with a tide (HabMeta.tide, hazards on): the tiles high water covers, their dry terrain and fluid
@@ -144,6 +149,7 @@ export class World {
     this.hab = this.map.gen?.hab ?? null;
     this.hazards = rules.hazards.enabled;
     this.headroom = rules.size.headroom;
+    this.wallTop = rules.world.wallTops ? wallTopsOf(this.map) : null;
     const chasm = this.hazards ? loc?.chasm ?? [] : [];
     if (chasm.length) { this.voids = new Uint8Array(this.w * this.h); for (const k of chasm) this.voids[k] = 1; }
     this.hazard = null;
@@ -199,8 +205,10 @@ export class World {
 
   /** true when a walker with its feet at `feet` cannot occupy (x, z), or should not walk there on its own: walls,
    *  faces higher than a step, open liquid and open air (a chasm). Steering, bodies and the bot read this; actors'
-   *  own collision reads `collides` (only what is actually solid), so they can be carried into a liquid or a drop. */
-  blocks(x: number, z: number, feet: number, step: number, tall?: number): boolean {
+   *  own collision reads `collides` (only what is actually solid), so they can be carried into a liquid or a drop.
+   *  `over` (R1b): the body may cross above a wall prop's top (World.wallTop) once its feet are at or above it; without
+   *  it every wall tile is solid to any height, as before. No driver passes it before R6d */
+  blocks(x: number, z: number, feet: number, step: number, tall?: number, over?: boolean): boolean {
     const k = this.tile(x, z);
     if (k < 0) return true;
     if (this.over) {
@@ -209,14 +217,14 @@ export class World {
       if (ov > 0 && feet >= ov - DECK_REACH) return ov > feet + step;
       if (ov > 0 && tall !== undefined && this.headroom && this.underSlab(x, z, ov, feet, tall)) return true;
     }
-    if (this.map.wall[k] || (this.map.terrain[k] === T.water && !this.cells.iceAt(k))) return true;
+    if ((this.map.wall[k] && !(over && this.clearsTop(k, feet))) || (this.map.terrain[k] === T.water && !this.cells.iceAt(k))) return true;
     return this.height(x, z) > feet + step;
   }
 
   /** Solid geometry only: a wall, a face higher than `step` above `feet`, a deck's slab in the way. Open liquid and open
-   *  air are not solid (hazards on); with hazards off this is `blocks` exactly. */
-  collides(x: number, z: number, feet: number, step: number, tall?: number): boolean {
-    if (!this.hazards) return this.blocks(x, z, feet, step, tall);
+   *  air are not solid (hazards on); with hazards off this is `blocks` exactly. `over`: as `blocks` (R1b) */
+  collides(x: number, z: number, feet: number, step: number, tall?: number, over?: boolean): boolean {
+    if (!this.hazards) return this.blocks(x, z, feet, step, tall, over);
     const k = this.tile(x, z);
     if (k < 0) return true;
     if (this.over) {
@@ -225,8 +233,52 @@ export class World {
       if (ov > 0 && tall !== undefined && this.headroom && this.underSlab(x, z, ov, feet, tall)) return true;
     }
     if (this.voids && this.voids[k]) return false; // open air: nothing to bump into
-    if (this.map.wall[k]) return true;
+    if (this.map.wall[k] && !(over && this.clearsTop(k, feet))) return true;
     return this.height(x, z) > feet + step;
+  }
+
+  /** R1b: feet at `feet` are at or above wall tile k's finite top (never for a bare wall, or with the flag off) */
+  private clearsTop(k: number, feet: number): boolean {
+    return this.wallTop !== null && feet >= this.wallTop[k];
+  }
+
+  /** R1b wall tops: the height up to which the wall at (x, z) is solid: its World.wallTop on a wall-prop tile; Infinity
+   *  for a bare wall, outside the map or with the flag off; -Infinity where there is no wall (a chasm is open air) */
+  wallTopAt(x: number, z: number): number {
+    const k = this.tile(x, z);
+    if (k < 0) return Infinity;
+    if (this.map.wall[k] !== 1 || (this.voids && this.voids[k])) return -Infinity;
+    return this.wallTop ? this.wallTop[k] : Infinity;
+  }
+
+  /** Is a body at (x, z) with its feet at `y` inside a wall's rock (World.wallAt), for the rock recovery? Without `over`
+   *  this is wallAt exactly, at any height. With it (R1b, the crossing permission) a body at or above the wall's finite
+   *  top is in the open air over it, not in the rock */
+  inRock(x: number, z: number, y: number, over?: boolean): boolean {
+    if (!this.wallAt(x, z)) return false;
+    return !(over && y >= this.wallTopAt(x, z));
+  }
+
+  /** R1b: the swept vertical stop for a body with the crossing permission: the highest finite wall top under a circle of
+   *  radius r at (x, z) (its centre's tile when r = 0) that the body's feet at `from` are at or above (it was over it
+   *  before this tick's vertical move), or -Infinity where there is none. A descending body stops there. It is not a
+   *  support: World.height, support and navigation never report a wall top (standing and landing on tops are later
+   *  phases), so a body held at a top keeps its own integrator and is never grounded by it */
+  topUnder(x: number, z: number, r: number, from: number): number {
+    const T0 = this.wallTop;
+    if (!T0) return -Infinity;
+    const gx = x + this.half, gz = z + this.half, E = 1e-4, M = this.map;
+    let top = -Infinity;
+    for (let j = Math.floor(gz - r); j <= Math.floor(gz + r); j++) for (let i = Math.floor(gx - r); i <= Math.floor(gx + r); i++) {
+      if (i < 0 || j < 0 || i >= this.w || j >= this.h) continue;
+      const qx = Math.min(i + 1 - E, Math.max(i + E, gx)), qz = Math.min(j + 1 - E, Math.max(j + E, gz));
+      if (r > 0 && (gx - qx) * (gx - qx) + (gz - qz) * (gz - qz) >= r * r && !(i === Math.floor(gx) && j === Math.floor(gz))) continue;
+      const k = j * this.w + i;
+      if (M.wall[k] !== 1 || (this.voids && this.voids[k])) continue;
+      const t = T0[k];
+      if (t <= from && t > top) top = t;
+    }
+    return top;
   }
 
   /** Headroom (rules.size.headroom): would a body `tall` m high, feet at `feet` below the deck `ov` at (x, z), have its
@@ -426,6 +478,8 @@ export class World {
   /** W4: the only writer of the wall/platform overlay; keeps navigation in step and forces a new flow field. */
   setBlock(k: number, wall: number, platform: number) {
     this.map.wall[k] = wall; this.map.platform[k] = platform;
+    // R1b: a tile that is no longer a wall carries no wall top (W4 only ever clears walls: a burnt or broken prop)
+    if (this.wallTop && !wall) this.wallTop[k] = Infinity;
     const t = this.map.terrain[k];
     this.navOpen[k] = wall || (t === T.water && !this.cells.iceAt(k)) || platform > 0.6 ? 0 : 1;
     const i = k % this.w, j = (k / this.w) | 0;
@@ -1071,7 +1125,7 @@ export class World {
    *  open to the body (it already stands partly on them): on a diagonal ramp that corner tile is one step above them,
    *  not a face, which is the edge rule of a wide block (world/navblocks.ts). Footprints stay under 1 m, so only the
    *  centre's tile and its eight neighbours are ever covered. */
-  private overlap(x: number, z: number, feet: number, step: number, r: number, out?: [number, number], ref?: number, tall?: number): number {
+  private overlap(x: number, z: number, feet: number, step: number, r: number, out?: [number, number], ref?: number, tall?: number, over?: boolean): number {
     let pen = 0, px = 0, pz = 0;
     const gx = x + this.half, gz = z + this.half, E = 1e-4, ci = Math.floor(gx), cj = Math.floor(gz);
     // fast path: a tile whose eight neighbours are open ground level with it within a step has nothing a sub-metre circle
@@ -1094,10 +1148,10 @@ export class World {
         // the two orthogonal tiles between the centre's tile and this one, each read at its point nearest the circle
         const ax = Math.min(i + 1 - E, Math.max(i + E, gx)) - this.half, az = Math.min(cj + 1 - E, Math.max(cj + E, gz)) - this.half;
         const bx = Math.min(ci + 1 - E, Math.max(ci + E, gx)) - this.half, bz = Math.min(j + 1 - E, Math.max(j + E, gz)) - this.half;
-        if (!this.collides(ax, az, feet, step, tall)) f = Math.max(f, this.height(ax, az, feet));
-        if (!this.collides(bx, bz, feet, step, tall)) f = Math.max(f, this.height(bx, bz, feet));
+        if (!this.collides(ax, az, feet, step, tall, over)) f = Math.max(f, this.height(ax, az, feet));
+        if (!this.collides(bx, bz, feet, step, tall, over)) f = Math.max(f, this.height(bx, bz, feet));
       }
-      if (!this.collides(qx - this.half, qz - this.half, f, step, tall)) continue;
+      if (!this.collides(qx - this.half, qz - this.half, f, step, tall, over)) continue;
       const p = r - d;
       if (p > pen) pen = p;
       if (d > 1e-6) { px += (dx / d) * p; pz += (dz / d) * p; }
@@ -1125,9 +1179,9 @@ export class World {
   }
   private freeFor: Uint8Array | null = null;
 
-  /** Does a body of footprint r stand clear of solid geometry at (x, z) with its feet at `feet`? */
-  fits(x: number, z: number, feet: number, r: number, step = 0.6, tall?: number): boolean {
-    return !this.collides(x, z, feet, step, tall) && this.overlap(x, z, feet, step, r, undefined, undefined, tall) <= 1e-4;
+  /** Does a body of footprint r stand clear of solid geometry at (x, z) with its feet at `feet`? (`over`: R1b, as `blocks`) */
+  fits(x: number, z: number, feet: number, r: number, step = 0.6, tall?: number, over?: boolean): boolean {
+    return !this.collides(x, z, feet, step, tall, over) && this.overlap(x, z, feet, step, r, undefined, undefined, tall, over) <= 1e-4;
   }
 
   /**
@@ -1139,35 +1193,36 @@ export class World {
    * through a corner. Each step tries the full move, then each axis alone, pushing the circle out of whatever it
    * overlaps (it glides round a corner into a passage it fits), and accepts the first whose overlap is no deeper than
    * before: a body left in a tight spot (an evolution inside a corridor) can walk out of it but never further in.
-   * r = 0 is the point collision used with rules.size.geometry off.
+   * r = 0 is the point collision used with rules.size.geometry off. `over` (R1b): the crossing permission of `blocks`,
+   * for the footprint too (no driver passes it before R6d).
    */
-  moveBody(x: number, z: number, dx: number, dz: number, feet: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean, tall?: number) {
+  moveBody(x: number, z: number, dx: number, dz: number, feet: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean, tall?: number, over?: boolean) {
     const L = Math.max(Math.abs(dx), Math.abs(dz)), N = Math.max(1, Math.ceil(L / 0.25)), sx = dx / N, sz = dz / N, P = this.pushTmp;
     if (!this.headroom || !this.over) tall = undefined;
     let cx = x, cz = z;
     for (let s = 0; s < N; s++) {
-      const pen0 = r > 0 ? this.overlap(cx, cz, feet, step, r, undefined, undefined, tall) : 0;
+      const pen0 = r > 0 ? this.overlap(cx, cz, feet, step, r, undefined, undefined, tall, over) : 0;
       let moved = false;
       for (let tryk = 0; tryk < 3 && !moved; tryk++) {
         let nx = tryk === 2 ? cx : cx + sx, nz = tryk === 1 ? cz : cz + sz;
         if (tryk > 0 && (tryk === 1 ? sx === 0 : sz === 0)) continue;
-        if (this.collides(nx, nz, feet, step, tall) || (stop && stop(nx, nz))) continue;
+        if (this.collides(nx, nz, feet, step, tall, over) || (stop && stop(nx, nz))) continue;
         if (r > 0) {
           // a grounded body stepping off a ledge (a drop the step rule allows on location maps) lands clear of the lip it
           // left: the push is measured from the surface it lands on, not from its feet still level with the lip
           const s0 = this.height(cx, cz, feet), s1 = this.height(nx, nz, feet);
           const land = feet - s0 <= step && s0 - s1 > step ? s1 : undefined;
           for (let it = 0; it < 2; it++) {
-            const before = this.overlap(nx, nz, feet, step, r, P, land, tall);
+            const before = this.overlap(nx, nz, feet, step, r, P, land, tall, over);
             if (before <= 1e-4) break;
             const qx = nx + P[0], qz = nz + P[1];
-            if (this.collides(qx, qz, feet, step, tall) || (stop && stop(qx, qz))) break;
+            if (this.collides(qx, qz, feet, step, tall, over) || (stop && stop(qx, qz))) break;
             // only a push that clears something (a body wedged between two faces is not shoved back along its way)
-            if (this.overlap(qx, qz, feet, step, r, undefined, land, tall) >= before - 1e-4) break;
+            if (this.overlap(qx, qz, feet, step, r, undefined, land, tall, over) >= before - 1e-4) break;
             nx = qx; nz = qz;
           }
           // a drop is taken only where the body fits once it lands (a wide body does not drop into a one-tile slot)
-          if (this.overlap(nx, nz, feet, step, r, undefined, land, tall) > pen0 + 1e-4) continue;
+          if (this.overlap(nx, nz, feet, step, r, undefined, land, tall, over) > pen0 + 1e-4) continue;
         }
         cx = nx; cz = nz; moved = true;
       }

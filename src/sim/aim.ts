@@ -18,7 +18,7 @@
 // Beams (Phase 2C, §14) resolve the same way: the same camera trace, muzzle and launch direction, with the beam's length
 // (range × area) as the reach and its own world radius (rules.aim.beamWorldRadius); moves.ts beam3D casts it.
 // Every trace here and in the shots and beams uses one cover policy (combatFlags): foliage is open unless
-// rules.aim.foliageCover (sim/spatial.ts header).
+// rules.aim.foliageCover, and wall props end at their measured tops with rules.world.wallTops (R1b; sim/spatial.ts header).
 //
 // Nothing here bends the aim toward an enemy (no magnetism) or leads a moving one: the shot goes where the crosshair is.
 // The bot and the fixed views send no ray and stay on moves.ts's planar path (magnetism, lead), as every checksum set
@@ -36,10 +36,12 @@ const CAMQ = spatialQuery({ mask: MASK.camera & ~SK.bounds, block: SK.enemy | SK
 /** the muzzle trace: the shot's own volume (radius set per call) */
 const MUZQ = spatialQuery({ mask: MASK.shot, block: SK.enemy | SK.body, pierce: Infinity, selfKind: SK.player, selfId: 0 });
 
-/** the query flags of every player attack trace (camera, muzzle, shot flight, beam): foliage is open air unless the
- *  rules make it cover (rules.aim.foliageCover, the Phase 2B behaviour) */
+/** the query flags of every player attack trace (camera, muzzle, shot flight, beam, device assist, the aimbot): foliage
+ *  is open air unless the rules make it cover (rules.aim.foliageCover, the Phase 2B behaviour); with R1b wall tops
+ *  (rules.world.wallTops) a wall prop is solid only up to its measured top, so a shot that clears a fence, a boulder or a
+ *  canopy passes over it (sim/spatial.ts QF.tops) */
 export function combatFlags(ctx: SimContext): number {
-  return ctx.rules.aim.foliageCover ? 0 : QF.foliage;
+  return (ctx.rules.aim.foliageCover ? 0 : QF.foliage) | (ctx.rules.world.wallTops ? QF.tops : 0);
 }
 
 /** a beam's length from its muzzle: the move's range × the partner's area multiplier (the planar beam's length) */

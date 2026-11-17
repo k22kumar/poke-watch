@@ -163,6 +163,59 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
   camera's pivot follows the drawn sprite, not the sim height, so an Extra Large partner that fits a gap can still fold
   the lens under a slab (ledger F5); that is a camera matter.
 
+## Wall tops
+
+A wall prop (tree, fence, boulder, building) is solid only up to its measured height, for every reader that opts in
+(`rules.world.wallTops`, on by default; R1b of the spatial roadmap, ledger §23 in `docs/THIRD_PERSON_IMPLEMENTATION.md`).
+Before it every wall tile was a column of infinite height for bodies, shots and the lens.
+
+- **One height per kind.** `PROP_RULES[kind].top` (`world/tiles.ts`): the tallest drawn variant over the eight biome
+  palettes, unstretched (the sprite's opaque rows at the billboard shader's alpha cut, ÷ 16 px per m), rounded **up** to
+  0.05 m so the art never pokes out of the collision. `tests/walltops.test.ts` re-measures the painters and fails when the
+  table and the art drift apart. Values (m): fence 0.90 · hedge 1.00 · sign 1.10 · thicket 1.20 · crystal 1.35 · boulder,
+  berry 1.60 · lantern 1.65 · well 1.90 · tent 1.95 · pillar, stalagmite, moonstone 2.00 · lamp 2.40 · statue 2.50 ·
+  shrine 2.60 · blossom 2.65 · round 2.70 · tree, tree2, icepine, magnetite 2.75 · deadtree 2.95 · gatehouse 3.20 ·
+  cabin 3.75 · elder 5.20.
+- **Per tile.** `World.wallTop` (`wallTopsOf`): a footprint tile's top is the prop's footing (the elevation of its
+  bottom-left tile, where the renderer stands the card) plus its `top`, and never less than the tile's own ground (a prop
+  forced across a cliff keeps the higher tile's rock). A tile with no wall prop is `Infinity`. A prop that burns or breaks
+  clears its tiles' tops in the same `World.setBlock` call.
+- **Bare walls stay infinite.** Rock masses, cave walls, sealed ground, the map edge, and the habitat's low ruin, broken
+  and cemetery walls (1.1–1.4 m, stored as wall tiles with raised elevation and no prop): containment, the validators'
+  reachability and sealed zones assume them. The low walls are a recorded limitation, for when generation, navigation and
+  validation change together.
+- **No roofs.** Caves are open-top by design (the dark vault, `docs/LOCATIONS.md`); nothing overhead exists for a roof to
+  follow. A flier's altitude limit is R6d's movement rule.
+
+Who reads the tops (everyone else keeps every wall infinite):
+
+| Reader | How it opts in |
+|---|---|
+| The player's attack traces: the camera trace, the muzzle, bolt and orb flight, beams, device assist, and the aimbot of the `aim` sets | `QF.tops` from `combatFlags` (`sim/aim.ts`) on `sim/spatial.ts`'s wall column |
+| The chase lens's prop probe | `render/chaseinput.ts`: a wall prop is solid to its `wallTop`. A bare wall keeps the old margin, `CHASE_CONFIG.lens.solidTop` (2.4 m) above its ground: a lens comfort clearance, not an obstacle height |
+| A body with the crossing permission | `over` on `World.blocks` / `collides` / `fits` / `moveBody` and `LocoTick.over`. **No driver passes it before R6d** (a traversal template grants it); walking, jumping, gliding and every enemy meet walls as before |
+
+- **Crossing above a top** (bodies with the permission): the feet must be at or above the top. The swept vertical move
+  stops a descending body at the top (`World.topUnder`) without grounding it: a top is not a support (`World.height`,
+  `support` and navigation never report one), the body keeps its integrator, and nothing relocates it. The rock recovery
+  (`World.inRock`) leaves a permitted body above a top alone and snaps everything else exactly as before. Losing the
+  permission while above a prop (a Tag swap, a capability ending) is R6d's declared transition (T31).
+- **Level fire over low cover** (muzzle = 0.6 × class height): Large (1.02 m) and Extra Large (1.44 m) clear a fence;
+  Extra Large alone clears a sign, a thicket and a crystal; no class fires level over a boulder (1.60 m). Hedges and berry
+  bushes are foliage, already open to the player's shots at any height (Phase 2C); their tops matter to the lens and to
+  permitted bodies. A shot
+  clears a prop only where its own line is above the top at the prop: an aimed-up shot passes a boulder, a level one stops
+  on it (`tests/walltops.test.ts`, G11).
+- **Steep views.** Billboards stretch up to 1.6× (third person) and lean back past 51°, so from above a canopy is drawn
+  taller than its collision. The collision follows the unstretched art and never grows to match the presentation: a shot
+  seen from overhead can pass through the top of a drawn crown it physically clears.
+- **Not changed here.** `World.sight` (enemy line of sight) and enemy fire stay infinite until R7 moves both together;
+  planar player families (homing, boomerang, lob…) until R4; enemy fliers skip every wall (R7); the habitat and location
+  validators (`sightAbs`, `laneField`, `sightTiles`) keep infinite walls, so on some lines combat and validation now
+  disagree (the cover report, `scripts/covercheck.ts`).
+- **Hashes.** Only `aim` moves (one run, a Water Gun bolt passing 6.6 m over a border tree); `aim-tops-off` prints the
+  `aim` hashes from before, and every older set turns the flag off.
+
 ## Turning it off
 
 `rules.size.geometry: false` brings back the pre-size-class sim:
@@ -176,7 +229,10 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
 
 ## Checking it
 
-- `npx tsx --test tests/sizing.test.ts tests/navsize.test.ts tests/footprint.test.ts`
+- `npx tsx --test tests/sizing.test.ts tests/navsize.test.ts tests/footprint.test.ts tests/walltops.test.ts`
+- `npx tsx scripts/covercheck.ts [seeds] [pairs]` reports what wall tops change for cover: the census, which barrier props
+  each class fires over level, sampled lines of fire opened by the tops, and the objective sightlines where combat and the
+  validators now disagree. Report only.
 - `npx tsx scripts/navwalk.ts [location|habitat|all] [seeds]` drives real walkers of every class (Medium, Large, Extra Large, an elite) and the trainer (Small and Extra Large) to every target. Mandatory targets must be reached. A size-restricted optional target must be reached by the narrow body and refused by the wide ones. No grounded walker may end a tick overlapping solid geometry.
 - `npx tsx scripts/stuckwatch.ts [map|all] [seeds] [seconds]` watches live bot runs for movement deadlocks of the bot and of enemies that have a route. A relocated enemy (far or holding) starts a new episode. A bot episode is `pinned` when the bot also walked under 2 m in the 5 s; the others are the bot walking back and forth between threats or shoved in a crowd. Every bot episode is also checked for a way out (`escapeOf`, with the partner's own footprint through `World.moveBody`). It is `TRAPPED` when no heading moves it onto ground it may stand on, or when the ground it can walk to is a pocket under 48 tiles (`World.shore`'s trap size). The walk is a flood over the world's 0.5 m points (tile centres and corners, the middles of one- and two-tile passages), so a one-tile exit lets a Small partner out but not an Extra Large one (`tests/footprint.test.ts`). The probe only reads: `STUCK_PROBE_ALL=1` runs it every window, and the end states match a run without it. `TRAPPED` must be 0. `all 3` on 2026-11-16: 34 bot episodes (1 pinned, 0 trapped), 1 enemy episode in 114,805 enemy-seconds; with `STUCK_RULES='{"size":{"geometry":false}}'`, 55 bot and 796 enemy episodes.
   - The pinned one (tropical-lagoon seed 3, Totodile, at -24.4,-21.4) is the bot's heading search: the only way out is a one-tile strip due south, and none of the sampled turns points down it. The partner fits the strip (`escapeOf`: 9 of 16 headings free, 48+ tiles). This is a limit of the bot (`?autoplay` and the test driver, not play), and the bot is left as it is: changing it would move every bot-driven replay hash to make a harness look better.

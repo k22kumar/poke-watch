@@ -18,6 +18,11 @@ Hidden-ground is the share of walkable tiles in the central 64 × 64 area that s
 - **Jumps.** Steeper pitch shrinks the on-screen height of a jump (26 px per metre against 32 px). Wide is 21 px per metre because of the smaller pixel scale; the shadow staying on the ground keeps height readable.
 - **Occlusion and comfort.** Pitch made little difference to occlusion. None of the presets rotate or zoom automatically; camera shake now has a Reduced/Off setting.
 
+Prop heights (R1b, 2026-11-17): the comparison above predates wall tops. A wall prop now blocks the chase lens, bodies and
+the player's shots up to its measured height (docs/SIZING.md "Wall tops"; docs/THIRD_PERSON.md "Collision" for the lens).
+Billboard stretch and lean at steep views are presentation only: from above a canopy is drawn taller than the height that
+blocks, and collision is never enlarged to match it.
+
 ## Decision
 
 Default to **Wide** (49°, ~330 target lines, framed 2 m south). Classic and Overhead remain selectable in Settings for players who prefer bigger sprites, and `?cam=classic|steep|wide` selects one for testing. This choice comes from the measurements and seeded frames above, not from long playtests by players. Testing on real hardware with real players is still worth doing.

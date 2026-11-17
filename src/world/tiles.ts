@@ -25,25 +25,31 @@ export interface PropRule {
   w: number; h: number;
   /** wall = never passable; platform height (m) = can be jumped onto; 0 = walkable */
   wall?: boolean; platform?: number;
+  /** wall props (R1b, rules.world.wallTops; docs/SIZING.md "Wall tops"): the physical height (m) of the prop above its
+   *  footing, the one height every reader that opts in shares (World.wallTop). It is the tallest drawn variant over every
+   *  biome palette, unstretched (the sprite's opaque rows ÷ 16 px per m, the shader's alpha cut), rounded up to 0.05 m;
+   *  tests/walltops.test.ts measures the painters and fails when art and table drift apart. Billboard stretch and lean at
+   *  steep views are presentation only and never raise it */
+  top?: number;
 }
 
 export const PROP_RULES: Record<ArenaPropKind, PropRule> = {
-  tree: { w: 2, h: 2, wall: true }, tree2: { w: 2, h: 2, wall: true }, round: { w: 2, h: 2, wall: true },
-  blossom: { w: 2, h: 2, wall: true }, elder: { w: 4, h: 3, wall: true }, deadtree: { w: 2, h: 2, wall: true },
-  icepine: { w: 2, h: 2, wall: true },
+  tree: { w: 2, h: 2, wall: true, top: 2.75 }, tree2: { w: 2, h: 2, wall: true, top: 2.75 }, round: { w: 2, h: 2, wall: true, top: 2.7 },
+  blossom: { w: 2, h: 2, wall: true, top: 2.65 }, elder: { w: 4, h: 3, wall: true, top: 5.2 }, deadtree: { w: 2, h: 2, wall: true, top: 2.95 },
+  icepine: { w: 2, h: 2, wall: true, top: 2.75 },
   bush: { w: 1, h: 1, platform: 0.7 }, bushR: { w: 1, h: 1, platform: 0.7 }, bushB: { w: 1, h: 1, platform: 0.7 },
-  rock: { w: 1, h: 1, platform: 0.75 }, boulder: { w: 2, h: 2, wall: true }, stump: { w: 1, h: 1, platform: 0.65 },
-  log: { w: 2, h: 1, platform: 0.65 }, berry: { w: 1, h: 1, wall: true },
-  sign: { w: 1, h: 1, wall: true }, lantern: { w: 1, h: 1, wall: true }, pillar: { w: 1, h: 1, wall: true },
-  pillarBroken: { w: 1, h: 1, platform: 0.8 }, statue: { w: 2, h: 2, wall: true }, shrine: { w: 3, h: 2, wall: true },
-  crystal: { w: 1, h: 1, wall: true }, vent: { w: 1, h: 1, platform: 0.5 }, mushroom: { w: 1, h: 1, platform: 0.7 },
-  cabin: { w: 4, h: 3, wall: true }, hedge: { w: 1, h: 1, wall: true }, fence: { w: 1, h: 1, wall: true }, well: { w: 2, h: 2, wall: true },
-  lamp: { w: 1, h: 1, wall: true }, bench: { w: 2, h: 1, platform: 0.5 },
+  rock: { w: 1, h: 1, platform: 0.75 }, boulder: { w: 2, h: 2, wall: true, top: 1.6 }, stump: { w: 1, h: 1, platform: 0.65 },
+  log: { w: 2, h: 1, platform: 0.65 }, berry: { w: 1, h: 1, wall: true, top: 1.6 },
+  sign: { w: 1, h: 1, wall: true, top: 1.1 }, lantern: { w: 1, h: 1, wall: true, top: 1.65 }, pillar: { w: 1, h: 1, wall: true, top: 2 },
+  pillarBroken: { w: 1, h: 1, platform: 0.8 }, statue: { w: 2, h: 2, wall: true, top: 2.5 }, shrine: { w: 3, h: 2, wall: true, top: 2.6 },
+  crystal: { w: 1, h: 1, wall: true, top: 1.35 }, vent: { w: 1, h: 1, platform: 0.5 }, mushroom: { w: 1, h: 1, platform: 0.7 },
+  cabin: { w: 4, h: 3, wall: true, top: 3.75 }, hedge: { w: 1, h: 1, wall: true, top: 1 }, fence: { w: 1, h: 1, wall: true, top: 0.9 }, well: { w: 2, h: 2, wall: true, top: 1.9 },
+  lamp: { w: 1, h: 1, wall: true, top: 2.4 }, bench: { w: 2, h: 1, platform: 0.5 },
   flowerR: { w: 1, h: 1 }, flowerW: { w: 1, h: 1 }, flowerY: { w: 1, h: 1 }, flowerB: { w: 1, h: 1 },
   tall: { w: 1, h: 1 }, reeds: { w: 1, h: 1 }, lily: { w: 1, h: 1 },
-  thicket: { w: 1, h: 1, wall: true }, stalagmite: { w: 1, h: 1, wall: true }, moonstone: { w: 2, h: 2, wall: true },
-  magnetite: { w: 2, h: 2, wall: true }, fossil: { w: 1, h: 1, platform: 0.45 }, crate: { w: 1, h: 1, platform: 0.8 },
-  gatehouse: { w: 4, h: 3, wall: true }, tent: { w: 2, h: 2, wall: true }, ladder: { w: 1, h: 1 },
+  thicket: { w: 1, h: 1, wall: true, top: 1.2 }, stalagmite: { w: 1, h: 1, wall: true, top: 2 }, moonstone: { w: 2, h: 2, wall: true, top: 2 },
+  magnetite: { w: 2, h: 2, wall: true, top: 2.75 }, fossil: { w: 1, h: 1, platform: 0.45 }, crate: { w: 1, h: 1, platform: 0.8 },
+  gatehouse: { w: 4, h: 3, wall: true, top: 3.2 }, tent: { w: 2, h: 2, wall: true, top: 1.95 }, ladder: { w: 1, h: 1 },
   // a grave marker's height is its own (ArenaProp.top, one of GRAVE_TOP); this is the headstone default
   grave: { w: 1, h: 1, platform: 0.9 },
 };
@@ -91,6 +97,31 @@ export interface ArenaMap {
 export const WATER_Y = -0.25;
 /** a frozen water tile's surface sits this far above the water it covers (sim: World.height; the validator's frozen state) */
 export const ICE_LIFT = 0.25;
+
+/**
+ * R1b wall tops (docs/SIZING.md "Wall tops"): the absolute height (m) up to which each tile's wall column is solid.
+ * A tile under a wall prop gets its footing plus the kind's `top`, the footing being the elevation the renderer stands
+ * the prop's card on (its bottom-left tile, render/tilestage.ts), and never less than the tile's own ground (a prop
+ * forced across a cliff keeps the higher tile's rock). Every other tile is Infinity: a bare wall (rock mass, cave wall,
+ * the habitat's low ruin and cemetery walls) stays solid to any height; readers consult the value on wall tiles only.
+ * Built once per World; a prop that burns or breaks clears its tiles' walls and tops in one World.setBlock call.
+ * Float64, so a top is exactly its footing + the table's height (a body or a line at that height clears it).
+ */
+export function wallTopsOf(m: ArenaMap): Float64Array {
+  const W = m.w, out = new Float64Array(W * m.h).fill(Infinity);
+  for (const p of m.props) {
+    const top = PROP_RULES[p.kind].top;
+    if (!PROP_RULES[p.kind].wall || top === undefined) continue;
+    const bj = Math.min(m.h - 1, p.y + p.h - 1), bi = Math.max(0, Math.min(W - 1, p.x));
+    const base = m.elev[bj * W + bi] + top;
+    for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) {
+      if (i < 0 || j < 0 || i >= W || j >= m.h) continue;
+      const k = j * W + i;
+      if (m.wall[k] === 1) out[k] = Math.max(m.elev[k], base);
+    }
+  }
+  return out;
+}
 
 /** Standing height of a bridge (wood) tile: river bridges sit at 0.05 m; elevated decks (location maps) at their elev. */
 export const deckTop = (elev: number) => (elev > 0.05 ? elev : 0.05);

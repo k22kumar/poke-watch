@@ -49,8 +49,12 @@ const which = process.argv[2] ?? 'all';
 // must print the `gen` hashes from before it, and every older set turns it off too.
 // Pole-safe aim maths (R2, docs/THIRD_PERSON_IMPLEMENTATION.md §18): only `aim` reaches it (multi-shot fans at a pitch);
 // `aim-pole-off` must print the `aim` hashes from before it, and `aim-2b` turns it off too.
+// Wall tops (R1b, docs/SIZING.md "Wall tops"): the player's spatial attack traces end a wall prop at its measured top.
+// Only the spatial sets can reach it, and of those only `aim` is current: `aim-tops-off` must print the `aim` hashes from
+// before it, and every older set (all but `on`, `gen`, `aim`, `aim-off`) turns it off too.
 const HEADROOM_OFF = { headroom: false };
-const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF };
+const TOPS_OFF = { wallTops: false };
+const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF, world: TOPS_OFF };
 const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
 const SETS: Record<string, object | undefined> = {
   off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
@@ -62,21 +66,23 @@ const SETS: Record<string, object | undefined> = {
   on: undefined,
   gen: { worldgen: { mode: 'generated' } },
   // the classic generator everywhere (Pokémon locations off): must print the pre-location `gen` hashes exactly
-  'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } }, size: HEADROOM_OFF },
+  'gen-classic': { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } }, size: HEADROOM_OFF, world: TOPS_OFF },
   'gen-size-off': { worldgen: { mode: 'generated' }, ...SIZE_OFF },
   // R1: `gen` with bodies' heads passing through deck slabs again
-  'gen-headroom-off': { worldgen: { mode: 'generated' }, size: HEADROOM_OFF },
+  'gen-headroom-off': { worldgen: { mode: 'generated' }, size: HEADROOM_OFF, world: TOPS_OFF },
   // Phase 2B (docs/THIRD_PERSON_IMPLEMENTATION.md §13): the bot never aims, so no set above reaches the spatial aim. `aim`
   // replays the `on` bot with a chase-style crosshair ray added to each input (withAim below): the direct shots then take
   // the spatial path. `aim-off` sends the same rays with rules.aim.spatial off and must print the `on` hashes exactly
   aim: undefined,
   'aim-off': { aim: { spatial: false } },
   // Phase 2C (§14): beams back on the planar path and foliage back to cover: the Phase 2B `aim` hashes exactly
-  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true, poleSafe: false }, size: HEADROOM_OFF },
+  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true, poleSafe: false }, size: HEADROOM_OFF, world: TOPS_OFF },
   // R2 (§18): `aim` with the pre-R2 muzzle and fan maths
-  'aim-pole-off': { aim: { poleSafe: false } },
+  'aim-pole-off': { aim: { poleSafe: false }, world: TOPS_OFF },
+  // R1b: `aim` with every wall infinite again (the pre-R1b `aim` hashes exactly)
+  'aim-tops-off': { world: TOPS_OFF },
 };
-const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off']);
+const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off', 'aim-tops-off']);
 
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of CONFIGS) {

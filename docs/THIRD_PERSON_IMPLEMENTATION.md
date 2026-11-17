@@ -647,7 +647,7 @@ adds `aim.poleSafe: false`; every other set is byte-identical to before.
 | Q1 | Should a press during cooldown be buffered? The current test says no on purpose | Phase 3: yes, 0.15 s for the basic attack only (`fireBuffer` `[0.15, 0, 0, 0]`; 0 restores the old rule) | product owner after a playtest |
 | Q2 | Mouse magnetism: zero, or a small amount for feel? | 0° for shots, 8° for melee. Phase 2B: 0° and no lead for direct shots on the spatial path for **every** device (the brief's policy); pad and touch assistance return only as explicit Stage 5A policies | product owner after a playtest |
 | Q7 | On classic (authored) arenas, legacy player shots pass through wall tiles and ignore height; spatial shots stop on both (§13.9). Keep that? | Yes: it is the 3D model the plan adopts (D4) | product owner after a playtest |
-| Q3 | Can players shoot over low props (bushes, rocks)? It needs prop heights in `spatial` | Low props are terrain of their platform height (a ray passes over them). Wall tiles stay infinite-height columns: a tree's whole 2 × 2 footprint, canopy included, is cover to any height (Phase 2C: foliage props are open, tree crowns are not, §14.8) | deferred |
+| Q3 | Can players shoot over low props (bushes, rocks)? It needs prop heights in `spatial` | Low props are terrain of their platform height (a ray passes over them). Wall tiles stay infinite-height columns: a tree's whole 2 × 2 footprint, canopy included, is cover to any height (Phase 2C: foliage props are open, tree crowns are not, §14.8) | resolved by R1b (§23): a wall prop is solid to its measured top for the player's attack traces |
 | Q8 | Foliage (bushes, hedges, berry bushes, mushrooms: `blocksShots: false`) is open to player attacks on the spatial path; enemy fire (`World.sight`, `shootHostile`) still treats it as cover | Yes for the player (the authored material rule); enemy parity in Stage 7A | product owner after a playtest |
 | Q10 | A beam aimed down at a near target now ends on the ground behind it (its line meets the terrain); to rake a whole line the player aims level. 78 % of aimbot beams on generated maps end on the world (§14.7). Keep, or let beams hug the ground past the aim point? | Keep (it is what the crosshair says) | product owner after a playtest |
 | Q9 | Retire the planar player attacks (traj 0 shots, the 2D beam) once nothing but old checksum sets reaches them? | Yes in 7B (§14.9); the older sets keep their recorded hashes by turning the spatial flags off, so the code stays until those sets are frozen or dropped | product owner (which historical sets to keep) |
@@ -1311,7 +1311,7 @@ One rule, read by the camera trace, the muzzle, linear shots and beams (`aim.ts`
   enemy fire are unchanged; enemy parity is Stage 7A (Q8). The test "foliage on real maps" checks every leaf tile is open
   and every other wall or low-prop tile stays solid on the meadow and dusk classic maps and generated Viridian Forest and
   Mt. Moon.
-- Tree crowns: a tree is a 2 × 2 wall footprint, an infinite column, so its crown is cover to any height (Q3).
+- Tree crowns: a tree is a 2 × 2 wall footprint, an infinite column, so its crown is cover to any height (Q3; R1b, §23, ends it at the tree's 2.75 m top).
 
 ### 14.4 The beam contract (`moves.ts` `beam3D`)
 A cast takes it when `spatialFor` holds (flag, ray, player-aimed, `'beam'` in `rules.aim.archetypes`). Then:
@@ -1414,7 +1414,7 @@ identical hashes: the planar path); Pressure Jet.
 | Planar shots (traj 0) keep N1 (pierce in grid order) and N2 (tunnelling) | `effects.ts` | 7A / 7B | the two cases in `tests/spatial.test.ts` pin both paths; §14.9 |
 | `World.sight` I1 / I2 | enemy line of fire | 7A | the `todo` tests active; one enemy hash migration |
 | Enemy fire treats foliage as cover (asymmetric with the player since this phase) | `World.sight`, `shootHostile` | 7A (Q8) | enemy fire on `segmentClear` with `combatFlags` |
-| Tree crowns are cover to any height | `spatial.ts` wall column | deferred (Q3) | prop heights in the geometry |
+| Tree crowns are cover to any height | `spatial.ts` wall column | done in R1b (§23) | `QF.tops`: a wall prop ends at its `World.wallTop` |
 | A beam's ground agents, its Push / Hold on enemy shots and its knockback are planar (under the clipped beam, along its heading) | `beam3D` | agents 5C; interception 7A | a beam over a gap paints nothing under it; shots met in 3D |
 | Beams aimed down end on the ground behind the target | the D3 aim model | product (Q10) | playtest |
 | `thicket` has no material row, so it is cover | `rules/surfaces.ts` | content | add a row if it is meant as foliage |
@@ -2421,3 +2421,146 @@ a real keyboard, pad and screen reader. T20 (R3) is still owed independently.
 **Next.** R6d: act on `ACT.takeoff` (→ volume × air), read `my` in `stepVolume`, the volume rows of §12.6 (ascend,
 descend, landing on support contact while descending, `idle`, `settle`), show the touch Descend button for volume
 bodies, T33's take-off / ascend / descend / landing half, T34.
+
+## 23. R1b: wall tops, finite obstacle heights (2026-11-17)
+
+A wall prop (tree, fence, boulder, building) is solid only up to its measured height for every reader that opts in;
+bare walls and the map edge stay infinite. Doc: `docs/SIZING.md` "Wall tops". Flag `rules.world.wallTops` (on).
+Implemented on 5d85b19; nothing committed.
+
+### 23.1 Owner decisions (`/grilling`, Q1–Q26)
+
+| # | Decision |
+|---|---|
+| Q1, Q2, Q26 | Only an explicitly permitted body crosses above a top; permission is separate from the integrator (not every volume mode crosses). R1b ships it as an explicit parameter (`World.blocks` / `collides` / `fits` / `moveBody` `over`, `LocoTick.over`) that no driver passes; the traversal policy field arrives in R6d with the first template that sets it. Jumping, gliding, walking and every enemy meet walls as before |
+| Q3, Q11, Q12 | No standing or landing on tops. A permitted descent is a swept stop at the top: integrator, `grounded` and support untouched, no relocation. No reserved schema field: one height source that later support rules can read. Capability loss above a prop is R6d's (T31: Tag swap, expiry) |
+| Q4, Q13 | One top per kind: the tallest unstretched drawn variant over the eight palettes, rounded up to 0.05 m. Billboard stretch (≤ 1.6× third person) and lean are presentation only and never enlarge collision; the mismatch is documented |
+| Q5 | The six location-kit kinds with no material row keep blocking shots; the lamp stays a full-tile column (2.40 m); sub-tile shapes out of scope |
+| Q6, Q16 | A report-only cover comparison (`scripts/covercheck.ts`), including where combat and the validators now disagree. Validators (`sightAbs`, `laneField`, `sightTiles`) unchanged; no generator, layout or version change |
+| Q7, Q24, Q25 | Default on. Historical checksum sets pin `wallTops: false`; `aim-tops-off` prints the old `aim`; only `aim` may move, every moved run explained. Flag-off equivalence also by a per-tick oracle |
+| Q8, Q15 | Enemy fliers unchanged (they skip every wall; R7). `World.sight` and enemy fire stay infinite and move to R7 together, so enemies never see over cover their shots cannot pass |
+| Q9, Q19 | No roofs: no map has overhead geometry and caves are open-top by design. A flier's altitude limit is R6d's movement rule; any future real ceiling is authored geometry |
+| Q10, Q18 | The chase lens reads `wallTop` for wall props; bare walls keep the `height + 2.4 m` lens margin (presentation clearance, not an obstacle height) |
+| Q14 | Per-query opt-in: `QF.tops`, through `combatFlags`, for the player's attack traces only |
+| Q17 | Every bare wall stays infinite, including the habitat's low ruin, broken and cemetery walls (1.1–1.4 m): a recorded limitation |
+| Q20 | Rock recovery: a permitted body at or above a top is not in rock; everything else as before; tests for both |
+| Q21 | `top` beside `w` / `h` / `platform` in `PROP_RULES`; `World.wallTop` derived per tile; `setBlock` keeps it in step |
+| Q22 | A Node test measures the painters (ImageData shim, the shader's alpha cut, 16 px per m) against the table |
+| Q23 | Pre-existing limitations recorded apart from anything R1b introduces (23.7) |
+
+Revisions to the audit's R1b text (§9): `World.sight` moves to R7 with enemy fire (it was listed as an R1b reader);
+roofs are dropped; habitat ruin walls stay infinite (the audit gave them top = rise); no reserved field; the permission is
+a parameter until R6d; heights re-measured (tree 2.75 m with the `tree3` variant, not 2.70) and rounded up, not to the
+nearest 0.05 m.
+
+### 23.2 What changed
+
+- `src/world/tiles.ts`: `PropRule.top` on every wall kind; `wallTopsOf(map)`: footing (the card's bottom-left tile) +
+  top per footprint tile, never below the tile's own ground (props forced across a cliff on River Gorge and Cascade
+  Lagoon span up to 6 m of relief), Infinity elsewhere. Float64, so a top is exactly footing + table value.
+- `src/rules/defaults.ts`: `rules.world.wallTops: true`.
+- `src/sim/world.ts`: `World.wallTop` (null with the flag off); `over` on `blocks`, `collides`, `fits`, `moveBody` and the
+  private `overlap`; `wallTopAt`, `inRock`, `topUnder`; `setBlock` clears a cleared wall's top.
+- `src/sim/locomotion.ts`: `LocoTick.over`; the planar move passes it on; `moveVertical` stops a permitted descent at
+  `topUnder` (downward speed only); `recoverFromRock` reads `inRock`.
+- `src/sim/spatial.ts`: `QF.tops`; the wall column ends at `Geo.top` when the cast carries it; `segmentClear` and the
+  overlap sight line pass it through (`QF_WORLD`).
+- `src/sim/aim.ts`: `combatFlags` adds `QF.tops` with the flag (camera trace, muzzle, bolt/orb flight, beams, device
+  assist, the aimbot).
+- `src/render/chaseinput.ts`, `src/render/camera.ts` (doc): the lens prop probe.
+- `scripts/checksum.ts`: `TOPS_OFF` in every historical set; `aim-tops-off`. `scripts/covercheck.ts` (new, report only).
+- `tests/walltops.test.ts` (new, 14 tests). Docs: SIZING, THIRD_PERSON, CAMERA, LOCOMOTION, README, CLAUDE.md.
+
+### 23.3 Measured heights (m, rounded up)
+
+fence 0.90 · hedge 1.00 · sign 1.10 · thicket 1.20 · crystal 1.35 · boulder, berry 1.60 · lantern 1.65 · well 1.90 ·
+tent 1.95 · pillar, stalagmite, moonstone 2.00 · lamp 2.40 · statue 2.50 · shrine 2.60 · blossom 2.65 · round 2.70 ·
+tree, tree2, icepine, magnetite 2.75 · deadtree 2.95 · gatehouse 3.20 · cabin 3.75 · elder 5.20.
+
+### 23.4 Determinism and hashes
+
+- **G1 checksums.** 60 lines before, 64 after. 59 of the 60 earlier lines byte-identical; `aim-tops-off` prints the four
+  earlier `aim` lines exactly. Moved: `aim totodile seed 7 classic` (`266edfa0 end=d5109b20 lvl=4 kills=64` →
+  `68888ab7 end=1aae2dec lvl=2 kills=33`). The other three `aim` runs, every `gen*`, `on`, `aim-off` (= `on`), `aim-2b`
+  and `aim-pole-off` line unchanged.
+- **G3 cause.** First divergence at tick 1771: a spatial Water Gun bolt (`traj 1`) the Small Totodile fired at tick 1439
+  climbing about 19° from a 0.72 m muzzle reached the meadow's border forest at 9.3 m and crossed a `round` tree (tile
+  (8, 78), top 2.70 m). The infinite column ended it there; with tops it flew on 6.6 m above the canopy and expired at
+  its range a tick later. The projectile pool and hit timing diverge from there (a cascade, not further causes).
+- **G2 oracle (Q25).** A per-tick hash of every player motion field, every live enemy (x, y, z, vx, vz, hover, footprint,
+  roles, hp) and every live projectile (position, velocity, life, kind, pierce, hits) plus jump, hit, kill and hurt
+  events, 60 s, 8 species (Tiny to Extra Large, gliders and a levitating ghost), 6 rule sets (`on`, `off`, `size-off`,
+  `gen` = Viridian Forest, Mt. Moon, Memorial Ridge), inputs bot / held jump / aimbot / aimbot + jump: 192 runs. The R1b
+  tree with the flag off equals the pre-R1b tree on all 192. With the flag on, all 96 non-aim runs are identical too (no
+  body or enemy path reads the tops); the aim runs move.
+- **Every enabled-state difference explained.** A classifier ran each aim run with tops on and off in lockstep on a
+  full-state hash and named the first cause: 54 of 96 runs diverge within 60 s — aimbot sight 20, camera trace 15, shot
+  flight 18, muzzle obstruction 1 — each a tops-flagged line crossing a wall-prop tile at or above its top (margin 0 to
+  6.63 m). None crosses below a top, none passes a bare wall, none is unexplained. (An earlier pass flagged six cases;
+  each was its own detection lag or endpoint artefact and is resolved in the record.)
+
+### 23.5 Tests and gates
+
+| Gate | Result |
+|---|---|
+| G4 one height, every reader (T37) | `tests/walltops.test.ts`: a permitted body, a `QF.tops` line and the lens agree at top − 1 cm (solid), at the top and + 1 cm (clear) for all 26 wall kinds, on flat ground and a 2 m plateau; without the opt-in all three stay solid 50 m up. Each reader keeps its own volume (footprint, ray, lens point) |
+| G4 muzzle heights | a level line at each class's muzzle (0.36 / 0.54 / 0.72 / 1.02 / 1.44 m) clears exactly the kinds lower than it: fence → Large, Extra Large; sign, thicket, crystal → Extra Large; boulder → none |
+| G5 no permission | `collides` / `blocks` solid at feet 0–50 m over a fence; a footprint at feet 1.0 m stops at a 0.90 m fence without the permission, crosses with it. Real `step()`: a jumping Cyndaquil (apex 1.84 m) never passes a fence; a gliding Charizard off a 6 m ledge and a walker on a 4 m tier never pass a 2.75 m tree |
+| G6 permitted body | at 3.0 m it crosses a 2.75 m tree, at 2.0 m it stops at the trunk; a fall from 4 m stops exactly at 2.75 m with `vy` 0, `grounded` false, integrator ballistic, x / z unchanged, held Jump never jumps, `support` and `height` still the ground. Without the permission the same fall reaches the ground as before |
+| G7 rock recovery | hovering 1 m over a canopy on a location-rules map: permitted, untouched; unpermitted (false or absent), snapped to footing as before; inside the trunk both are recovered identically |
+| G8 bare walls | a bare wall tile is solid 100 m up for a permitted body and 60 m up for a `QF.tops` line; the lens keeps its 2.4 m margin there; the map edge is solid at any height. On the authored meadow, Mt. Moon and Memorial Ridge every wall tile with no wall prop over it has an infinite top |
+| G9 burn / break | `setBlock(k, 0, 0.65)`: the tile's top is gone, a line over the 0.65 m stump passes and one through it does not; the rest of the tree keeps its top |
+| G10 painter drift | every wall kind equals ceil₀.₀₅(tallest drawn height over 8 palettes); the test also pins the conventions it copies (tree / tree3 variants, 16 px per m, alpha ≥ 0.5, the card's bottom-left footing) |
+| G11 shots and beams | real flight, both ways, the line's height at the cover's face checked against the result: Extra Large level over a fence hits; Small level into it stops on the fence below the top; Extra Large level into a boulder stops; Extra Large and Small aimed at a flier 3–4 m over a boulder's far side hit; a Medium at a flier 1.5 m behind a tree stops on the trunk, at one 6 m up hits over the canopy; flag off, the Extra Large fence shot stops on the infinite wall above the fence's top. Ice Beam: Extra Large over a fence hits, Small stops at it. `spatial.test.ts:487` (sight vs `segmentClear` without the flag) still green |
+| G12 camera | `freelook`, `camstability`, `chase` green. `camstats --sweep` (36 generated + 36 authored rows) against the pre-R1b tree: no new safety-net slides (generated worst 815 → 814, the known F5 Feraligatr row; sweep 557 → 557; authored 3 → 3, 0 → 0), worst jumps and worst velocity changes unchanged, Small and Medium boom travel within 1 %. Extra Large boom travel rises (generated walk +11 %, fight +4 %; authored fight 212 → 284 m): its lens now meets 2.75 m canopies it passed under the old 2.4 m margin. Mt. Moon seed 1 Feraligatr `walkDvMax` 1.99 → 7.92: the lens stays out over a 1.6 m boulder it used to fold in for (mean boom 3.77 → 3.94 m) and is then pulled in by the rock rim on the existing terrain response |
+| G13 captures | private build, `tools/cap.mjs`, 10 scenes (scratchpad `walltopscenes.json`): fence, boulder, cabin, elder, tree (Small and Extra Large), thicket and a Mt. Moon rim at 0°, 30°, 50° and 80° down; 34 rig reports, 0 safety-net slides. Level fire at a fence: a Small Ember bursts on the rails, an Extra Large Water Gun leaves over them. For the owner's review: the canopy cards lean back and stretch at 50°+ (taller than their collision), the elder dissolves near an overhead lens |
+| G14 suite, types, build, perf | `npm run typecheck` clean. Tests 585: 579 pass, 4 fail, 2 todo; pre-R1b 571: 565 / 4 / 2. The same four `tests/pointerlock.test.ts` failures (5, 7, 8, 9), no new failure, 14 new tests. `npm run check` therefore stops before its build; the production build (`scripts/build.mjs`, output redirected to a private directory) passes. `perf-sim 500 --repeat 3 --gate`: p95 0.493 / p99 0.835 ms (pre 0.494 / 0.837), PASS; `--aim` p95 0.489 / p99 0.851, PASS. `spatialbench --gate`: every family within noise of pre, no allocation, PASS |
+| G15 movement | `navwalk all 5`: output byte-identical to pre-R1b, 0 failures. `stuckwatch all 3`: byte-identical, TRAPPED 0 |
+| G16 habitats | `habstate` 24 / 24, `hazplay` 49 / 49, `habplay all 6 1 --raid` 72 / 72: each output byte-identical to the pre-R1b tree. `habaudit`: all checks passed; its rewrite of `docs/habaudit/baseline.json` changed only the date and timings (no checksum, accepted seed or attempt), and was reverted. No `HAB_VERSION` / `LOC_VERSION` change |
+| G17 cover report | 23.6 (`scripts/covercheck.ts`), report only |
+| G18 docs | `docs/SIZING.md` "Wall tops" (heights, readers, crossing rule, cover table, steep views, limitations, hashes) and "Checking it"; `docs/THIRD_PERSON.md` lens collision; `docs/CAMERA.md`; `docs/LOCOMOTION.md` (`LocoTick.over`); README and CLAUDE.md checksum lists; this section; Q3 and the tree-crown rows of §8, §14 point here |
+
+### 23.6 Cover report (Q6, `npx tsx scripts/covercheck.ts 2 400`, report only)
+
+Four authored arenas, three locations and six habitat recipes at seeds 1–2; 400 seeded lines of fire per map between open
+tiles 4–20 m apart, from each class's muzzle to a Medium body's centre, with walls infinite (the rule before R1b and the
+validators' rule) and with the player's attack policy (foliage open in both, so only the tops differ).
+
+- **Level fire over barrier props:** only Extra Large clears signs, thickets and crystals; Large and Extra Large clear
+  fences (none on these maps; the classic regions have them); no class clears a boulder or a lantern. The kit thickets are
+  the bulk of it: Viridian Forest 637–641, River Gorge 157–738, Memorial Ridge 72–99, Cascade Lagoon 1 583–1 627 thickets.
+- **Sampled lines opened by the tops** (blocked with walls infinite, clear now): over all maps 3 / 3 489 Tiny, 3 / 3 417
+  Small, 3 / 3 328 Medium, 5 / 3 120 Large, 18 / 3 014 Extra Large (0.1–0.6 %). Viridian Forest and Cascade Lagoon carry
+  most of them (Extra Large 2.2–3.6 %, over thickets), then a sign, a boulder and a tree2. Authored arenas, Mt. Moon,
+  Chargestone, Volcanic Ridge, Memorial Ridge, Shoal Grotto and Spear Sanctuary: 0–1 line each.
+- **Objective sightlines where combat and the validators now disagree:** River Gorge seed 2, staging B → point, and
+  Cascade Lagoon seed 1, staging B → point: blocked for the validators, open now for Large and Extra Large muzzles.
+  No location entry → spawn line changed. Every other staging line is unchanged.
+- No asset, layout, validator or version was changed. Proposed for review, not done: whether the two staging lines should
+  stay open (they are a Large / Extra Large advantage over thicket-height cover), and whether the kit thicket (1.20 m)
+  should stay below the Extra Large muzzle (1.44 m) on lane maps.
+
+### 23.7 Limitations (pre-existing, owned by later phases; not R1b defects)
+
+- Enemy fliers skip every wall test and ride over trees and raised rock (`enemies.ts`): R7.
+- `World.sight` (ranged enemy line of sight) and enemy fire keep walls infinite, so a player can now fire over a fence at an
+  enemy that cannot fire back over it: R7, both together (decision Q15).
+- `World.sight` treats the 0.9 m `DECK_REACH` band as slab where spatial uses the 0.6 m slab (todo I1): R7.
+- Lobs arc to about 5.1 m with no wall test at all; planar player families end on walls at any height: R4.
+- The habitat's low ruin, broken and cemetery walls (1.1–1.4 m) stay infinite (Q17).
+- Five copies of the infinite-wall rule remain (`World.sight`, `sightAbs`, `laneField`, `sightTiles`, and the spatial
+  column without `QF.tops`); 23.6 shows where they now disagree with combat.
+- Billboards drawn taller than their collision at steep views (by design, Q13).
+- The four `tests/pointerlock.test.ts` failures (a separate baseline issue).
+
+Introduced by R1b and open for the owner: none found as a defect. Behaviour changes to judge: the Extra Large lens zooms
+more beside 2.75 m canopies (23.5 G12), and the two staging sightlines (23.6).
+
+### 23.8 Owed and next
+
+- **Owed (hands-on):** the G13 frames and a short mouse playtest beside a fence line, a forest edge and a boulder with a
+  Small and an Extra Large partner: does the Extra Large lens feel busier in forests; does firing over a fence read
+  correctly; is the canopy stretch at 50°+ acceptable. The cover report's two staging lines.
+- **R6d inherits:** `over` / `LocoTick.over` (its first template sets it), `World.topUnder` (the stop at a top),
+  `World.inRock` (recovery), T31 (capability loss above a prop), the sky ceiling.
+- **Next:** owner review of R1b; R6d once authorised.

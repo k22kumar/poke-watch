@@ -110,7 +110,9 @@ export const CHASE_CONFIG = {
   /** how much of the climb the view axis follows (the rest drops the Pokémon lower in frame) */
   liftTilt: 0.7,
   /** lens clearances (m): over the ground (`inside`: how deep into a rise counts as a wall rather than a skim),
-   *  under a deck; solids count up to `solidTop` above the ground. The lens' own floor over the ground under it
+   *  under a deck; solids count up to `solidTop` above the ground (with R1b wall tops on, only bare walls do: a wall
+   *  prop counts up to its World.wallTop, the obstacle height bodies and shots read; solidTop is a lens margin, not an
+   *  obstacle height, render/chaseinput.ts). The lens' own floor over the ground under it
    *  is `ground` (eased over `floorTime` s when the ground steps up under it), never less than `hardFloor` */
   lens: { ground: 0.4, inside: 0.5, ceiling: 0.35, solidTop: 2.4, floorTime: 0.06, hardFloor: 0.2 },
   /** what may block the lens. Terrain, deck undersides and the map edge always do, on the quick `boomTime` response.
