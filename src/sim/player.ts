@@ -1,17 +1,20 @@
-// Player controller. Gravity 30 m/s² [C]; flyers holding jump clamp fall speed to 2 m/s [C];
-// a move is blocked when the ground just ahead is more than 0.6 m above the feet [C].
+// Player controller: Reflex, Guard and Dash, the player's speed rules, facing and regen. Body motion (gravity 30 m/s² [C],
+// flyers holding jump clamp fall speed to 2 m/s [C], the 0.6 m step rule [C]) is the shared step in sim/locomotion.ts.
 
-import { datan2, dcos, dexp, dhypot, dsin } from '../core/detmath';
-import { clamp } from '../core/util';
+import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BTN, type SimContext } from './types';
 import { footing } from './cells';
 import { TB } from '../rules/build';
 import { logTech } from './techniques';
 import { liquidMotion, playerLiquid } from './hazards';
 import { navWide, partnerFootprint, partnerHeight } from '../rules/sizing';
-import { HEAD_EPS } from './world';
+import { traversalOf } from '../rules/profiles';
+import { LOCO, mediumAt, selectIntegrator, stepBallistic, stepScripted, stepSupported, type LocoIntent, type LocoResult, type LocoTick } from './locomotion';
 
-const MOVE: [number, number] = [0, 0];
+// per-tick scratch for the shared locomotion step (no allocation)
+const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false };
+const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, stepUp: 0, foot: 0, tall: undefined, wide: false };
+const STEP: LocoResult = { jumped: false };
 
 /** release Guard; a tap that caught nothing costs a short lockout */
 export function endGuard(ctx: SimContext) {
@@ -94,12 +97,27 @@ export const playerSystem = {
       ctx.events.push({ t: 'guard', x: P.x, z: P.z });
     }
 
-    if (P.dashT > 0) {
+    // locomotion (sim/locomotion.ts): the integrator follows from the body's state at the start of the tick; the dash
+    // (and dash-shaped moves) is the scripted case. Player-only rules (Dash, Brace, footing, liquids, buffs) become the
+    // tick's numbers here; the body step itself is shared
+    const integ = selectIntegrator(P.dashT > 0, P.grounded);
+    const it = INTENT, t = TICK;
+    it.mx = mx; it.mz = mz; it.jump = inp.jump;
+    // climbing out of a liquid
+    t.stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight;
+    // headroom (rules.size.headroom, docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller
+    // than the gap under a deck does not walk (or jump) in under it. Undefined = heads pass through slabs, as before
+    t.tall = W.headroom && W.over ? partnerHeight(P.species, ctx.rules) : undefined;
+    t.foot = partnerFootprint(P.species, ctx.rules);
+    t.wide = navWide(t.foot, ctx.rules);
+    t.canJump = canJump;
+    t.lift = traversalOf(P.species, ctx.rules).glide !== null; // the glide row (rules/traversal.ts)
+    t.speed = speed;
+    if (integ === LOCO.scripted) {
       P.dashT -= dt;
-      P.vx = P.dashDx * R.dashSpeed;
-      P.vz = P.dashDz * R.dashSpeed;
       // Slipstream: dashing through a coated enemy copies its coat onto the next Move A or B
       if (tm & TB.slipstream && P.reflexDash && !P.slipAg) slipCopy(ctx);
+      stepScripted(W, P, it, P.dashDx, P.dashDz, R.dashSpeed, t, R, dt, STEP);
     } else {
       const dashCost = tm & TB.slipstream ? BT.slipstream.dashCost : 1;
       if (inp.dash && P.guardT < 0 && P.guardLock <= 0 && P.reflex >= dashCost) {
@@ -111,92 +129,17 @@ export const playerSystem = {
         P.iframes = Math.max(P.iframes, dashTime + 0.08);
         ctx.events.push({ t: 'dash' });
       }
-      const brace = P.guardT > C.guardWindow ? C.braceSpeed : 1;
-      // ice is slippery (low grip), rubble is slow
-      const [footSpeed, grip] = P.grounded ? footing(ctx, P.x, P.z, P.species.elements) : [1, 1];
-      const accel = Math.min(1, (P.grounded ? 16 * grip : 7) * dt) ;
-      mx *= footSpeed; mz *= footSpeed;
-      P.vx += (mx * speed * brace - P.vx) * accel;
-      P.vz += (mz * speed * brace - P.vz) * accel;
+      t.stance = P.guardT > C.guardWindow ? C.braceSpeed : 1;
+      if (integ === LOCO.supported) {
+        // ice is slippery (low grip), rubble is slow
+        [t.footSpeed, t.grip] = footing(ctx, P.x, P.z, P.species.elements);
+        stepSupported(W, P, it, t, R, dt, STEP);
+      } else { t.footSpeed = 1; t.grip = 1; stepBallistic(W, P, it, t, R, dt, STEP); }
+      mx = it.mx; mz = it.mz; // the wish the body was driven by (footing scales it): facing turns toward it
     }
-    const kd = dexp(-8 * dt);
-    P.kx *= kd; P.kz *= kd;
-
-    // horizontal move with terrain step rule, axis-separated sliding. Only solid geometry stops it (World.collides):
-    // open liquid and open air are entered, by walking or by being knocked
-    const stepX = (P.vx + P.kx) * dt, stepZ = (P.vz + P.kz) * dt;
-    const feet = P.y;
-    const stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight; // climbing out of a liquid
-    // headroom (rules.size.headroom, docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller
-    // than the gap under a deck does not walk (or jump) in under it. Undefined = heads pass through slabs, as before
-    const tall = W.headroom && W.over ? partnerHeight(P.species, ctx.rules) : undefined;
-    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall);
-    let nx = P.x + stepX, nz = P.z + stepZ;
-    const foot = partnerFootprint(P.species, ctx.rules);
-    if (foot > 0) {
-      // size geometry on: the partner's footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"):
-      // it glides round corners, never cuts one, and a Large or Extra Large partner does not fit a one-tile gap
-      W.moveBody(P.x, P.z, stepX, stepZ, feet, stepUp, foot, MOVE, undefined, tall);
-      nx = MOVE[0]; nz = MOVE[1];
-    } else {
-      const ahead = 0.35;
-      const ax = Math.sign(stepX) * ahead, az = Math.sign(stepZ) * ahead;
-      if (blocked(nx + ax, nz + az)) {
-        if (!blocked(nx + ax, P.z)) nz = P.z;
-        else if (!blocked(P.x, nz + az)) nx = P.x;
-        else { nx = P.x; nz = P.z; }
-      }
-      // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
-      // cutting); beside a chasm that would drop the player into it, so test where the step actually lands too
-      if (W.los && blocked(nx, nz)) {
-        if (!blocked(nx, P.z)) nz = P.z;
-        else if (!blocked(P.x, nz)) nx = P.x;
-        else { nx = P.x; nz = P.z; }
-      }
-    }
-    const b = W.bound;
-    P.x = clamp(nx, -b, b);
-    P.z = clamp(nz, -b, b);
-
-    // vertical
-    if (inp.jump && P.grounded && canJump) {
-      P.vy = R.jumpVelocity;
-      P.grounded = false;
-      ctx.events.push({ t: 'jump' });
-    }
-    P.vy -= R.gravity * dt;
-    if (P.species.flying && inp.jump && P.vy < -R.glideFallSpeed) P.vy = -R.glideFallSpeed;
-    P.y += P.vy * dt;
-    // headroom: a rising head stops at the lowest deck underside over the footprint (the jump's speed is spent there, then
-    // gravity brings it down). A head already in a slab (a body evolved under one) rises no further. Falling is never
-    // clamped: a body dropping past a deck's edge is not pulled down by it
-    if (tall !== undefined && P.vy > 0) {
-      const top = W.headroomAt(P.x, P.z, feet, foot);
-      if (P.y + tall > top + HEAD_EPS) { P.y = Math.max(feet, top - tall); P.vy = 0; }
-    }
-    // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
-    const g = W.support(P.x, P.z, P.y);
-    if (P.y <= g) {
-      // landing from a fall or a drop: clear the footprint of the ground it landed on (faces were measured from the feet
-      // on the way down, so it may stand in the lip; World.moveBody's push)
-      if (foot > 0 && !P.grounded && P.py - g > 0.3) { W.moveBody(P.x, P.z, 0, 0, g, R.stepHeight, foot, MOVE, undefined, tall); P.x = MOVE[0]; P.z = MOVE[1]; }
-      P.y = g;
-      P.vy = 0;
-      P.grounded = true;
-    } else if (P.grounded && P.y - g < 0.35 && P.vy <= 0) {
-      P.y = g; P.vy = 0; // stick to slopes going down
-    } else {
-      P.grounded = false;
-    }
-
-    // location maps: never left inside rock (a shove or knockback through a corner): back to footing. A chasm is not
-    // rock (hazards on: World.wallAt is false there), so a real fall is never pulled back to the lip.
-    // (a walker standing on a deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so
-    // this only matters where a habitat causeway spans sealed ground)
-    if (W.los && W.wallAt(P.x, P.z) && !(W.over && W.node(P.x, P.z, P.y) >= W.w * W.h)) {
-      [P.x, P.z] = foot > 0 ? W.nearestFit(P.x, P.z, foot, navWide(foot, ctx.rules), true, tall) : W.nearestWalkable(P.x, P.z);
-      P.y = W.height(P.x, P.z, P.y); P.vy = 0; P.grounded = true;
-    }
+    if (STEP.jumped) ctx.events.push({ t: 'jump' });
+    P.loco.integrator = selectIntegrator(P.dashT > 0, P.grounded);
+    P.loco.medium = mediumAt(W, P, ctx.rules.hazards.contact);
 
     if (P.aimT > 0) P.aimT -= dt;
     if ((P.moving || P.aimT > 0) && P.dashT <= 0) {

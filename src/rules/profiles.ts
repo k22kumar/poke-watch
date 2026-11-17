@@ -2,8 +2,10 @@
 //
 // A profile keeps three kinds of fact apart, because spawning, traversal and (later) AI read them differently:
 //
-//   capability   what the Pokémon CAN do        fly (roster.json `flying`), swim (rules.hazards.water: Water type or
-//                                               knows a safe move — a rule, not a per-species flag)
+//   capability   what the Pokémon CAN do        traversal templates (`traversalOf`, src/rules/traversal.ts): glide,
+//                                               hover, swim; defaults from the roster's legacy `flying` flag and the
+//                                               swimming types (rules.hazards.water.safeTypes), replaced per species by
+//                                               `traversal`. Knowing a safe move (Surf) also swims (`canSwim`)
 //   preference   what it TENDS to favour        `prefers`: habitat tags whose tiles raise its encounter odds
 //                                               (rules.spawning.preference) — never required
 //   restriction  what MUST or MUST NOT hold     `requires` / `avoids`: habitat tags a spawn tile must have / must not
@@ -16,6 +18,7 @@ import { defaultRules, type Rules } from './defaults';
 import { HAB } from './habitats';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from './species';
 import type { SizeClassId } from './sizing';
+import { RESERVED_KINDS, type Traversal, type TraversalTemplate } from './traversal';
 
 export interface SpeciesOverride {
   /** habitat tags (HAB bits) that raise encounter odds */
@@ -28,11 +31,15 @@ export interface SpeciesOverride {
   mender?: boolean;
   /** pin the size class instead of deriving it from the canonical extent (docs/SIZING.md) */
   sizeClass?: SizeClassId;
+  /** traversal template ids (rules.locomotion.templates), replacing the derived list entirely ([] = none). At most one
+   *  template per kind (docs/LOCOMOTION.md "Capabilities") */
+  traversal?: string[];
+  /** habitat vents do not hurt it on the ground (default: it holds an air capability) */
+  ventImmune?: boolean;
 }
 
 export interface SpeciesProfile {
   id: string;
-  fly: boolean;
   prefers: number;
   requires: number;
   avoids: number;
@@ -89,7 +96,6 @@ export function speciesProfile(sp: SpeciesDef | string): SpeciesProfile {
   const o = SPECIES_OVERRIDES[id] ?? {};
   const p: SpeciesProfile = {
     id,
-    fly: !!def?.flying,
     prefers: o.prefers ?? 0,
     requires: o.requires ?? 0,
     avoids: o.avoids ?? 0,
@@ -100,10 +106,61 @@ export function speciesProfile(sp: SpeciesDef | string): SpeciesProfile {
   return p;
 }
 
-/** Capability: can a Pokémon of these types and moves swim safely? The rule lives in rules.hazards.water. */
-export function canSwim(species: { elements: readonly string[] }, moves?: readonly { key: string }[], rules: Rules = defaultRules): boolean {
-  const W = rules.hazards.water;
-  return species.elements.some((e) => W.safeTypes.includes(e as never)) || (!!moves && moves.some((s) => W.safeMoves.includes(s.key as never)));
+/** Templates a species holds when it has no `traversal` override: the roster's legacy `flying` flag meant both the
+ *  player's glide and the wild float, so it maps to both rows; a swimming type (rules.hazards.water.safeTypes, the
+ *  Water type) swims. Nothing else is derived from type. */
+export const LEGACY_FLYING: readonly string[] = ['glider', 'fixed-hover'];
+export const LEGACY_SWIM: readonly string[] = ['surface-swimmer'];
+
+/** what traversalOf reads from a species: its id (for the override), its types (for the swimming default) and the
+ *  roster's legacy flag. Test fixtures may pass a bare `{ elements }` */
+export type TraversalSource = { readonly id?: string; readonly elements: readonly string[]; readonly flying?: boolean };
+
+const traversals = new WeakMap<Rules, WeakMap<TraversalSource, Traversal>>();
+
+/** the template ids a species holds, before resolution */
+export function traversalIds(sp: TraversalSource, rules: Rules = defaultRules): readonly string[] {
+  const o = sp.id !== undefined ? SPECIES_OVERRIDES[sp.id]?.traversal : undefined;
+  if (o) return o;
+  const ids: string[] = [];
+  if (sp.flying) ids.push(...LEGACY_FLYING);
+  if (sp.elements.some((e) => rules.hazards.water.safeTypes.includes(e))) ids.push(...LEGACY_SWIM);
+  return ids;
+}
+
+/** Capability: a species' traversal, resolved against these rules' template rows. The one accessor for movement
+ *  eligibility (sim, world, render and UI alike); cached per rules object and species object. Throws on an unknown
+ *  template id, a reserved kind or two templates of one kind (validateTraversal reports the same up front). */
+export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): Traversal {
+  let byRules = traversals.get(rules);
+  if (!byRules) traversals.set(rules, (byRules = new WeakMap()));
+  const hit = byRules.get(sp);
+  if (hit) return hit;
+  const ids = traversalIds(sp, rules);
+  const rows: Partial<Record<TraversalTemplate['kind'], TraversalTemplate>> = {};
+  for (const tid of ids) {
+    const row = (rules.locomotion.templates as Record<string, TraversalTemplate | undefined>)[tid];
+    const who = sp.id ?? sp.elements.join('/');
+    if (!row) throw new Error(`${who}: unknown traversal template '${tid}'`);
+    if (RESERVED_KINDS[row.kind]) throw new Error(`${who}: template '${tid}' is a '${row.kind}' row, which arrives in ${RESERVED_KINDS[row.kind]}`);
+    if (rows[row.kind]) throw new Error(`${who}: two '${row.kind}' templates`);
+    rows[row.kind] = row;
+  }
+  const glide = (rows.glide as Traversal['glide']) ?? null, hover = (rows.hover as Traversal['hover']) ?? null;
+  const air = glide !== null || hover !== null;
+  const t: Traversal = {
+    id: sp.id ?? '', templates: ids, glide, hover, swim: (rows.swim as Traversal['swim']) ?? null,
+    air, groundNav: hover === null,
+    ventImmune: (sp.id !== undefined ? SPECIES_OVERRIDES[sp.id]?.ventImmune : undefined) ?? air,
+  };
+  byRules.set(sp, t);
+  return t;
+}
+
+/** Capability: can a Pokémon of this species and these moves swim safely? A swim template (traversalOf), or a
+ *  rules.hazards.water.safeMoves move in its move set (knowing Surf lends it, cooling down or not). */
+export function canSwim(species: TraversalSource, moves?: readonly { key: string }[], rules: Rules = defaultRules): boolean {
+  return traversalOf(species, rules).swim !== null || (!!moves && moves.some((s) => rules.hazards.water.safeMoves.includes(s.key)));
 }
 
 /** Preference: encounter-odds factor of a species on a tile with these habitat tags. Never 0: preference is not
@@ -137,6 +194,42 @@ export function validateProfiles(): string[] {
     }
     if (o.requires && o.avoids && (o.requires & ~o.avoids) === 0) out.push(`${id}: every required habitat is also avoided, so it can never spawn`);
     if (o.sizeClass !== undefined && !SIZE_IDS.has(o.sizeClass)) out.push(`${id}.sizeClass: unknown class '${o.sizeClass}'`);
+  }
+  return out;
+}
+
+const KINDS = new Set(['glide', 'hover', 'swim', 'fly', 'levitate', 'dive']);
+const finite = (v: unknown, min: number) => typeof v === 'number' && Number.isFinite(v) && v >= min;
+
+/** Problems with the traversal templates of these rules and with every species' template list, as readable messages
+ *  (tests/traversal.test.ts asserts none for the shipped rules). */
+export function validateTraversal(rules: Rules = defaultRules): string[] {
+  const out: string[] = [];
+  const T = rules.locomotion.templates as Record<string, TraversalTemplate>;
+  for (const [tid, row] of Object.entries(T)) {
+    if (!KINDS.has(row.kind)) { out.push(`template ${tid}: unknown kind '${row.kind}'`); continue; }
+    if (RESERVED_KINDS[row.kind]) out.push(`template ${tid}: kind '${row.kind}' arrives in ${RESERVED_KINDS[row.kind]}`);
+    if (row.kind === 'hover') {
+      if (!finite(row.height, 0) || row.height <= 0) out.push(`template ${tid}.height: ${row.height} (a hover row rests above the terrain, > 0)`);
+      if (!finite(row.step, 0)) out.push(`template ${tid}.step: ${row.step}`);
+      if (!Number.isInteger(row.levels) || row.levels < 1) out.push(`template ${tid}.levels: ${row.levels} (a whole number ≥ 1)`);
+      if (!finite(row.bob, 0) || row.bob >= row.height) out.push(`template ${tid}.bob: ${row.bob} (≥ 0 and below the rest height)`);
+      if (!finite(row.bobRate, 0)) out.push(`template ${tid}.bobRate: ${row.bobRate}`);
+    }
+  }
+  for (const [id, o] of Object.entries(SPECIES_OVERRIDES)) {
+    if (o.traversal === undefined) continue;
+    if (!Array.isArray(o.traversal)) { out.push(`${id}.traversal: a list of template ids`); continue; }
+    const kinds = new Set<string>();
+    for (const tid of o.traversal) {
+      const row = T[tid];
+      if (!row) { out.push(`${id}.traversal: unknown template '${tid}'`); continue; }
+      if (kinds.has(row.kind)) out.push(`${id}.traversal: two '${row.kind}' templates`);
+      kinds.add(row.kind);
+    }
+  }
+  if (!out.length) for (const sp of SPECIES) {
+    try { traversalOf(sp, rules); } catch (e) { out.push((e as Error).message); }
   }
   return out;
 }

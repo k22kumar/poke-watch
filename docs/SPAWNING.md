@@ -24,9 +24,9 @@ With no restriction configured, nothing is re-rolled. The random draws are then 
 
 Each species profile (`speciesProfile`) keeps three kinds of fact apart:
 
-- **Capability**: what it can do.
-  - `fly` comes from `flying` in `content/roster.json`.
-  - Swimming comes from `canSwim`: a Water type, or a Pokémon that knows a move in `rules.hazards.water.safeMoves`. This is a rule, not a per-species flag.
+- **Capability**: what it can do. Movement capabilities are traversal templates resolved by `traversalOf` (docs/LOCOMOTION.md "Capabilities").
+  - A spawn pool's `fly` filter splits by navigation class: `fly: true` selects species whose wild body hovers (`traversalOf(sp).groundNav` false), `fly: false` the ground walkers. The roster's `flying` flag is the default source of the hover row.
+  - Swimming comes from `canSwim`: a swim template (by default every type in `rules.hazards.water.safeTypes`, the Water type), or a Pokémon that knows a move in `rules.hazards.water.safeMoves`. A `traversal` override in `SPECIES_OVERRIDES` replaces the default per species.
 - **Preference**: `prefers` is a set of habitat tags (`HAB` in `src/rules/habitats.ts`). It raises the odds on matching tiles and never makes a species ineligible anywhere.
 - **Restriction**: `requires` (a spawn tile must carry one of these tags) and `avoids` (it must carry none of them). These are the only hard environmental rules. None are set by default, and none are ever derived from type.
 

@@ -5,7 +5,7 @@
 
 import type { Element } from './elements';
 import { SPECIES_BY_ID, type SpeciesDef } from './species';
-import { speciesProfile } from './profiles';
+import { speciesProfile, traversalOf } from './profiles';
 import type { StageDef } from './stages';
 
 /** a member's job: who can fill it */
@@ -80,7 +80,7 @@ export function fits(sp: SpeciesDef, m: MemberDef): boolean {
     case 'tank': return b === 'tank';
     case 'mender': return b === 'healer' || speciesProfile(sp).mender;
     case 'hexer': return agentElement(sp) !== null;
-    case 'raider': return (b === 'chase' || b === 'swarm' || b === 'charger') && !sp.flying;
+    case 'raider': return (b === 'chase' || b === 'swarm' || b === 'charger') && traversalOf(sp).groundNav;
   }
 }
 

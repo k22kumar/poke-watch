@@ -9,6 +9,7 @@ import { ELEMENTS, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, bst, weightClass, type SpeciesDef } from '../rules/species';
 import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
+import { clearLanding } from './locomotion';
 import { damageEnemy, damagePlayer, enemyAttackMult, killEnemy, playerAbility } from './combat';
 const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
 const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.indexOf('effect_spore') + 1;
@@ -17,6 +18,7 @@ import { spawnBody, TEAM } from './bodies';
 import { applyAgent, agentOf, footing } from './cells';
 import { coatMember } from './coats';
 import { agentElement } from '../rules/compositions';
+import { traversalOf } from '../rules/profiles';
 import { agentIndex } from '../rules/reactions';
 import type { SimContext } from './types';
 import { shotWeight } from '../rules/capabilities';
@@ -68,7 +70,9 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (beh === 'ranged') roles |= ROLE.ranged;
   if (beh === 'healer') roles |= ROLE.healer;
   if (beh === 'swarm') roles |= ROLE.swarm;
-  if (sp.flying) roles |= ROLE.flying;
+  // traversal (rules/traversal.ts): a hovering wild body floats over the terrain with no footprint or ground placement
+  const tv = traversalOf(sp, ctx.rules), hv = tv.hover;
+  if (hv) roles |= ROLE.flying;
   const hp = (R.hpBase + b * R.hpPerBst) * hpMultiplier(ctx) * toughness(ctx) * hpRole * diff;
   let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe) * speedFactor(ctx) * Math.sqrt(diff);
   if (beh === 'tank') speed *= 0.72;
@@ -76,11 +80,11 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (beh === 'ranged') speed *= 0.85;
   if (roles & ROLE.boss) speed *= 0.8;
   // a ground body with a footprint (size geometry on) is put down where it fits: a tile centre, or a wide block's centre
-  const foot = sp.flying ? 0 : footprintOf(sp, size, ctx.rules);
+  const foot = tv.groundNav ? footprintOf(sp, size, ctx.rules) : 0;
   if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
-  else if (!sp.flying && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
+  else if (tv.groundNav && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
   E.x[i] = x; E.z[i] = z; E.px[i] = x; E.pz[i] = z;
-  E.hover[i] = sp.flying ? 0.9 + ((i * 37) % 10) * 0.05 : 0;
+  E.hover[i] = hv ? hv.height + ((i * 37) % hv.levels) * hv.step : 0;
   E.y[i] = ctx.world.height(x, z) + E.hover[i]; E.py[i] = E.y[i];
   E.hp[i] = E.maxHp[i] = hp;
   E.speed[i] = speed;
@@ -231,7 +235,7 @@ export const enemySystem = {
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
         if (E.foot[i] > 0) [nx, nz] = W.nearestFit(nx, nz, E.foot[i], navWide(E.foot[i], ctx.rules), true, E.tall[i]);
-        else if (!sp.flying && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
+        else if (traversalOf(sp, ctx.rules).groundNav && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
         // a holder is only moved onto ground with a wide route to the player; with none anywhere near (the player is in a
         // pocket only small bodies fit) it keeps holding
         if (!far && !W.wideReached(nx, nz, E.foot[i] < DIAG_R, undefined, E.tall[i])) { nx = E.x[i]; nz = E.z[i]; }
@@ -450,12 +454,15 @@ export const enemySystem = {
         // landed this tick (a ledge drop or a fall): faces were measured from its feet on the way down, so it may stand in
         // the lip of the ground it landed on; clear the footprint now (World.moveBody's push), not on its next move
         if (E.foot[i] > 0 && E.fallV[i] === 0 && E.py[i] - E.y[i] > 0.3) {
-          W.moveBody(E.x[i], E.z[i], 0, 0, E.y[i], 0.6, E.foot[i], MOVE, undefined, E.tall[i]);
+          clearLanding(W, E.x[i], E.z[i], E.y[i], 0.6, E.foot[i], E.tall[i], MOVE); // shared with the player (sim/locomotion.ts)
           E.x[i] = Math.fround(MOVE[0]); E.z[i] = Math.fround(MOVE[1]);
         }
       } else {
         const g = W.over ? W.height(E.x[i], E.z[i], E.y[i] - E.hover[i]) : W.height(E.x[i], E.z[i]);
-        if (!(roles & ROLE.boss && E.state[i] === 5)) E.y[i] = g + E.hover[i] + (E.hover[i] > 0 ? dsin(ctx.time * 3 + i) * 0.15 : 0);
+        if (!(roles & ROLE.boss && E.state[i] === 5)) {
+          const hv = E.hover[i] > 0 ? traversalOf(sp, ctx.rules).hover : null; // the hover row's bob
+          E.y[i] = g + E.hover[i] + (hv ? dsin(ctx.time * hv.bobRate + i) * hv.bob : 0);
+        }
       }
 
       const vlen = dhypot(E.vx[i], E.vz[i]);

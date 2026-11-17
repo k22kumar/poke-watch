@@ -2278,3 +2278,69 @@ the framing of every body that fits. Not essential to R3: the collapse is pitch-
    objective arrow still behave; trees and enemies seen from above read as cards lying back, with no flicker at 51°
    (toggle `pokewatch.chase.lean` to compare); the frame's edges at 89° down show no missing props.
 9. For each, note anything disorienting, any pop, and whether the 40°–50° band (now higher than before) feels right.
+
+## 20. R6a: shared locomotion seam, no behaviour change (2026-11-17)
+
+Baseline: commit 060f184 (R3 committed by the owner; its T20 hands-on playtest, 19.11, is still owed and R6a does not
+depend on it: R3 gates R6d). R6a touches no camera, render, input or UI file.
+
+**Landed.** `src/sim/locomotion.ts` (contract: `docs/LOCOMOTION.md`): `LocoBody` / `LocoIntent` / `LocoNumbers` /
+`LocoTick`, the `supported`, `ballistic` and `scripted` (Dash, dash-shaped moves) integrators over one shared body step,
+`selectIntegrator`, `mediumAt`, `clearLanding`. `src/sim/player.ts` keeps Reflex, Guard, Dash start, the speed rules and
+facing, and calls the shared step; it no longer holds gravity, jump, glide, support, headroom or wall arithmetic.
+`Player.loco = { integrator, medium }` (record only; nothing reads it yet). The literals 16 / 7 / 8 became
+`rules.player.groundAccel / airAccel / knockDecay`. Enemy motion is unchanged; only the landing clear (already the same
+`World.moveBody` call) is shared. Everything else waits for R7 (§12.10).
+
+**Evidence.** Every `scripts/checksum.ts` line identical (56 of 56). The checksum skips `vy`, knockback and `grounded`,
+and the bot never jumps, so a stricter oracle hashed every player motion field and every enemy's height each tick with
+the bot plus injected jumps (Charizard for the glide row) over seven rule sets: 56 of 56 identical to 060f184.
+`navwalk all 5` (0 failures) and `stuckwatch all 3` (TRAPPED 0), `hazplay` (49/49), `habstate` (24/24): output identical
+to 060f184. `perf-sim 500 --repeat 3 --gate`: p95 0.513 ms / p99 0.879 ms (060f184: 0.517 / 0.866), PASS.
+`tests/locomotion.test.ts` (+9): integrator table, fall and landing, jump apex, lift row, grip and footing, scripted
+under gravity, medium, the player controller vs a plain body on the shared step (bit-identical), and the T38 source
+gate for `player.ts`. `npm test`: 525, 519 pass, 4 fail — the same four pointer-lock tests that fail at 060f184.
+
+**Next.** R6b (capability data, `traversalOf()` for the nine `species.flying` readers; `LocoTick.lift` is the first).
+
+## 21. R6b: traversal capability data, no behaviour change (2026-11-17)
+
+Baseline: the R6a working tree (§20; uncommitted on 060f184, so R6b is layered on it and was compared against a
+snapshot of it). R6b touches no camera, input or pointer-lock code; the render and UI edits are one-line reader swaps.
+
+**Landed.** `src/rules/traversal.ts`: capability kinds `glide`, `hover`, `swim` (implemented as today) and `fly`,
+`levitate`, `dive` (reserved for R6d, R6e, R8; the validator rejects a row of those kinds), the row types and the
+shipped templates `glider`, `fixed-hover`, `surface-swimmer` in `rules.locomotion.templates`. `src/rules/profiles.ts`:
+`traversalOf(species, rules)` (cached per rules object and species object), `traversalIds`, `validateTraversal`,
+`SPECIES_OVERRIDES[id].traversal` (a template list replacing the derived one) and `.ventImmune`; `canSwim` reads the
+swim row (plus the Surf move rule, unchanged). The `fly` field left `SpeciesProfile` (only a test read it). Derived
+defaults: the roster's `flying: true` → `glider` + `fixed-hover` (the two things it meant), a type in
+`rules.hazards.water.safeTypes` → `surface-swimmer`. Policies kept apart in `Traversal`: `air` (camera framing,
+roster label), `groundNav` (footprint, walkable placement, relocation, spawn room, Hold raiders, habitat ground
+profiles, spawn-pool `fly` filter), `ventImmune` (habitat vents, player). The hover literals 0.9 / 0.05 / 10 / 0.15 / 3
+became the `fixed-hover` row. Readers migrated (all twelve, not the nine the audit counted): `player.ts` lift,
+`enemies.ts` role / footprint / placement / hover height / relocation / bob, `director.ts` standAt / allowedAt,
+`hazards.ts` vent, `spawning.ts` filter, `compositions.ts` raider, `habitat/mode.ts` ground profiles, `chaseinput.ts`
+camera flag, `ui.ts` label. `tests/traversal.test.ts` gates the source: only `profiles.ts` reads `.flying`.
+
+**Evidence.** Every `scripts/checksum.ts` line identical to the R6a tree (60 of 60). A stricter oracle extended R6a's:
+per tick, every player motion field and every enemy's x / y / z / hover height / footprint / roles / HP plus hazard
+events, bot input with and without injected jumps, eight partners (gliders Charizard, Gastly, Haunter, Koffing; swimmers
+Totodile, Squirtle; walkers) over nine rule sets including Cinder Crater (vents) and Shrine Gorge (river): 144 of 144
+identical. Pure readers (spawn tables for every preset × stage × `fly` filter and every map pool, composition jobs
+for every species, habitat ground profiles under three rule sets, `canSwim` with and without Surf, `spawnEnemy`
+placement / hover / footprint / roles for every species on three maps, the camera's air flag): 1576 of 1576 lines
+identical. Every species as the partner on a Cinder Crater vent through an eruption: 72 of 72 identical (24 immune,
+48 hit five times, so the check discriminates). `navwalk all 5` (0 failures), `stuckwatch all 3` (TRAPPED 0),
+`hazplay` (49/49), `habstate` (24/24), `habplay all 6 1 --raid` (72/72): output identical to the R6a tree.
+`habaudit`: all checks pass, identical apart from timings (its rewrite of `docs/habaudit/baseline.json`, timings and
+date only, was reverted). `perf-sim 500 --repeat 3 --gate`: p95 0.499 ms / p99 0.844 ms (R6a tree 0.501 / 0.846),
+PASS. `tests/traversal.test.ts` (+10): templates and validation, the legacy mapping, T25 (Doduo: Flying type, no
+capability; Gastly, Koffing …: air capability, no Flying type; Gengar: none), several capabilities on one species,
+overrides and independent policies, per-rules numbers, the wild hover reading the row, player glide vs wild hover as
+separate rows, and the source gate. `npm test`: 535, 529 pass, 4 fail — the same four pointer-lock tests as R6a and
+060f184. `npm run build` passes.
+
+**Next.** R6c (input: `my?`, `jumpPressed?`, descend binding, the bindings table) depends on R6a only. R6d consumes the
+reserved `fly` kind: it adds a `wings` row and the volume integrator, and is the first phase whose templates carry body
+numbers (speeds per axis, limits).

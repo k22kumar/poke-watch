@@ -154,7 +154,8 @@ src/
              handcrafted arenas (arenas.ts), the classic generator (gen/), Pokémon locations as data
              (locations/) and the location generator (locgen/)
   sim/       renderer-free deterministic simulation: world.ts (tile collision, platforms,
-             stairs, BFS / fire-weighted flow field), run.ts, pools.ts, player.ts, enemies.ts
+             stairs, BFS / fire-weighted flow field), run.ts, pools.ts, locomotion.ts (the shared
+             body step: integrators, medium), player.ts, enemies.ts
              (director, AI, flow-field navigation, bosses), moves.ts (classifier + 23 archetypes),
              effects.ts, combat.ts, bodies.ts, capabilities.ts (the capability resolver,
              interception), caplog.ts (capability event log, death recap), build.ts (offers, transforms,
@@ -192,7 +193,7 @@ The rules that keep it modular:
 
 **Add a Pokémon.** Add its name to `content/roster.json` (as a partner, or as a wild Pokémon with a behaviour: chase, tank, swarm, ranged, charger, healer), then `npm run fetch-sources && npm run content`, and add it to a spawn preset in `src/rules/spawning.ts` (it is already in `all-wild`). Missing animation states come from the fallback table in `src/assets/art.ts`; a Tag Action is derived from its own moves. Step by step: `docs/CUSTOMISING.md`.
 
-**Spawn pools, sizes, preferences.** `src/rules/spawning.ts` (presets, region tables), `src/rules/profiles.ts` (habitat preferences and restrictions, size-class pins), `rules.size` in `src/rules/defaults.ts` (size-class targets). See `docs/SPAWNING.md` and `docs/SIZING.md`.
+**Spawn pools, sizes, preferences.** `src/rules/spawning.ts` (presets, region tables), `src/rules/profiles.ts` (habitat preferences and restrictions, size-class pins, traversal templates per species: `traversalOf`), `rules.size` in `src/rules/defaults.ts` (size-class targets). See `docs/SPAWNING.md` and `docs/SIZING.md`.
 
 **Change an arena.** Edit `src/world/arenas.ts` (builder calls: `blob`, `path`, `river`, `bridge`, `elevBlob`, `stairs`, `prop`, `clump`, `tall`, `scatter`, `border`). `npm test` checks every walkable tile stays reachable.
 
@@ -240,6 +241,7 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/PIPELINE.md`: how PokéAPI, SpriteCollab and cries become the built-in roster.
 - `docs/CUSTOMISING.md`: step-by-step: add a Pokémon, change its size class, size-class targets, capabilities, maps, spawn pools, presets, restrictions, AI hooks.
 - `docs/SIZING.md`: size classes: drawn size, sim bodies, partner radius, wide-body navigation, the `size-off` flag.
+- `docs/LOCOMOTION.md`: the shared locomotion foundation (`src/sim/locomotion.ts`): body, intent, integrators, medium, the contract player and AI drivers share; traversal capabilities (`rules.locomotion.templates`, `traversalOf`).
 - `docs/SPAWNING.md`: spawn pools and presets; eligibility, selection, location and compatibility; capability vs preference vs restriction.
 - `docs/MAPLEBROOK.md`: the overworld visual spec, reference comparison and feature list.
 - `docs/LOCATIONS.md`: the Pokémon-location generator: audit of the old maps, pipeline, engine rules, gates, measurements, canon vs interpretation, how to add a location.

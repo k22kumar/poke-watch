@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HAB } from '../src/rules/habitats';
-import { SPECIES_OVERRIDES, canSwim, habitatAllows, habitatSpawnFactor, speciesProfile, validateProfiles } from '../src/rules/profiles';
+import { SPECIES_OVERRIDES, canSwim, habitatAllows, habitatSpawnFactor, speciesProfile, traversalOf, validateProfiles } from '../src/rules/profiles';
 import { TAG_ACTIONS, tagLineOf } from '../src/rules/tags';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
@@ -39,7 +39,7 @@ test('capability, preference and restriction stay separate: a Water type swims b
   for (const sp of SPECIES) {
     const p = speciesProfile(sp);
     assert.equal(p.requires, SPECIES_OVERRIDES[sp.id]?.requires ?? 0, `${sp.id}: no hidden requirement`);
-    assert.equal(p.fly, !!sp.flying, `${sp.id}: fly comes from the roster`);
+    assert.equal(traversalOf(sp).air, !!sp.flying, `${sp.id}: the roster's legacy flag maps to the glide and hover rows`);
   }
 });
 

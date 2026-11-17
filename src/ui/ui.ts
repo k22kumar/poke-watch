@@ -13,6 +13,7 @@ import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
 import { bodyOf } from '../rules/sizing';
+import { traversalOf } from '../rules/profiles';
 import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
@@ -413,7 +414,7 @@ export class UI {
       const sp = SPECIES_BY_ID[r.id];
       const off = r.tier === 'unavailable';
       const opening = r.opening ? MOVE_BY_KEY[r.opening]?.name ?? r.opening : 'nothing';
-      const meta = [roleOf(sp), bodyOf(sp).className, sp.flying ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
+      const meta = [roleOf(sp), bodyOf(sp).className, traversalOf(sp).air ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
       const card: HTMLElement = h('button', {
         type: 'button', class: `box choice mon dev tier-${r.tier}`, role: 'radio', 'aria-checked': String(!off && sp.id === this.species), 'aria-disabled': String(off),
         'aria-label': `${sp.name}, ${r.tier}${r.reasons.length ? ': ' + r.reasons.join('; ') : ''}`, title: r.reasons.join('\n') || 'Ready to play',

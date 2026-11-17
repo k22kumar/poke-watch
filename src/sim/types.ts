@@ -6,6 +6,7 @@ import type { SpeciesDef } from '../rules/species';
 import type { StageDef } from '../rules/stages';
 import type { Hooks } from '../mods/types';
 import type { World } from './world';
+import type { LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
 import type { MoveFlags } from '../rules/build';
 
@@ -130,6 +131,9 @@ export class Player {
   vx = 0; vz = 0; vy = 0;
   kx = 0; kz = 0;
   grounded = true;
+  /** locomotion state after the last player tick (sim/locomotion.ts): the integrator the next tick runs unless another
+   *  system changes the body first (a lunge, a respawn), and the medium the body ended in. Read-only outside player.ts */
+  loco: LocoState = { integrator: 0, medium: 0 }; // LOCO.supported, MEDIUM.support (type-only import: no cycle)
   facing = 0;
   moving = false;
   animT = 0;

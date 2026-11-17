@@ -19,7 +19,7 @@
 // then `elites` / `boss` (replace). A layer that does not mention something leaves it as it was.
 import { SPECIES, SPECIES_BY_ID, type Behaviour, type SpeciesDef } from './species';
 import { bodyOf, type SizeClassId } from './sizing';
-import { habitatAllows } from './profiles';
+import { habitatAllows, traversalOf } from './profiles';
 import type { StageDef } from './stages';
 import { defaultRules } from './defaults';
 
@@ -30,7 +30,7 @@ export interface SpawnFilter {
   behaviours?: Behaviour[];
   /** keep species of these size classes */
   sizeClasses?: SizeClassId[];
-  /** true: flyers only; false: ground only */
+  /** true: flyers only; false: ground only (a wild body's navigation class: traversalOf(sp).groundNav) */
   fly?: boolean;
 }
 
@@ -116,7 +116,7 @@ function passes(sp: SpeciesDef, f: SpawnFilter): boolean {
   if (f.types && !(sp.types ?? []).some((t) => f.types!.includes(t))) return false;
   if (f.behaviours && !f.behaviours.includes(sp.behaviour ?? 'chase')) return false;
   if (f.sizeClasses && !f.sizeClasses.includes(bodyOf(sp).sizeClass)) return false;
-  if (f.fly !== undefined && !!sp.flying !== f.fly) return false;
+  if (f.fly !== undefined && !traversalOf(sp).groundNav !== f.fly) return false;
   return true;
 }
 

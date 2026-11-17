@@ -20,7 +20,7 @@ import type { Member, SimContext, System } from './types';
 import { faint, onHpLoss } from './squad';
 import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
-import { canSwim } from '../rules/profiles';
+import { canSwim, traversalOf } from '../rules/profiles';
 
 export type VentPhase = 'dormant' | 'warn' | 'active';
 
@@ -64,7 +64,7 @@ export const hazardSystem: System = {
     for (let i = 0; i < hz.length; i++) if (phase === 'active' || i % 3 === 0) steamAt(ctx, hz[i]);
     if (phase !== 'active' || !ventTick(ctx)) return;
     const P = ctx.player;
-    if (P.faintT < 0 && W.hazardAt(P.x, P.z) && P.y <= W.height(P.x, P.z) + 0.3 && !P.species.flying && !P.species.elements.includes('blaze')) {
+    if (P.faintT < 0 && W.hazardAt(P.x, P.z) && P.y <= W.height(P.x, P.z) + 0.3 && !traversalOf(P.species, ctx.rules).ventImmune && !P.species.elements.includes('blaze')) {
       const before = P.hp;
       hurtPlayer(ctx, P.maxHp * V.pct, 'vent');
       if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'vent', who: 'player', id: -1, amount: before - P.hp, x: P.x, z: P.z });

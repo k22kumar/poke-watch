@@ -1,4 +1,5 @@
 import type { SpawnPoolDef } from './spawning';
+import { TRAVERSAL_TEMPLATES } from './traversal';
 // Every tunable number lives here. Systems read ctx.rules, never literals.
 // Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/ANALYSIS.md),
 // [I] inferred, [B] Poke-Watch's own choice where the original is unknown.
@@ -109,6 +110,9 @@ export const defaultRules = {
     jumpVelocity: 10.5, // [B]
     glideFallSpeed: 2, // [C] flyers holding jump
     stepHeight: 0.6, // [C] blocked if ground ahead rises more than this
+    groundAccel: 16, // [C] 1/s: planar velocity response on a support (× the surface's grip; sim/locomotion.ts)
+    airAccel: 7, // [C] 1/s: planar velocity response in the air (air control)
+    knockDecay: 8, // [C] knockback decays by exp(-8*dt)
     baseSpeed: 7.2, // [B]
     iframes: 0.55, // [B]
     knockback: 9, // [B]
@@ -458,6 +462,12 @@ export const defaultRules = {
     /** s between damage-number cues while exposed */
     cueEvery: 0.25,
     recover: 'lastSafe' as 'lastSafe',
+  },
+  // [C] Traversal capability templates (src/rules/traversal.ts, docs/LOCOMOTION.md "Capabilities"). A species names
+  // template ids (src/rules/profiles.ts `traversalOf`); these rows hold their numbers. Retuning a row changes every
+  // species that holds it; a species that needs different numbers names a template of its own.
+  locomotion: {
+    templates: TRAVERSAL_TEMPLATES,
   },
   surfaces: {
     enabled: true,

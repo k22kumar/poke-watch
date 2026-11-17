@@ -13,6 +13,7 @@ import { defaultRules, type Rules } from '../../rules/defaults';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../../rules/species';
 import { enemyRadius, footprintOf, partnerFootprint, partnerRadius } from '../../rules/sizing';
 import { spawnableSpecies, type SpawnPoolDef } from '../../rules/spawning';
+import { traversalOf } from '../../rules/profiles';
 import { LOCATIONS } from '../locations';
 import { HABITATS } from './recipes';
 import type { BodyProfile, EdgeReq, ModeGraph } from './types';
@@ -79,9 +80,9 @@ export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfi
   const bodyR = (s: SpeciesDef, size: number) => (foot ? footprintOf(s, size, rules) : enemyRadius(s, size, rules));
   const pools: SpawnPoolDef[] = [...Object.values(LOCATIONS), ...Object.values(HABITATS)].flatMap((d) => (d.spawns ? [d.spawns] : []));
   const fielded = spawnableSpecies(pools);
-  const ground = (ids: Set<string>) => [...ids].map((id) => SPECIES_BY_ID[id]).filter((s): s is SpeciesDef => !!s && !s.boss && !s.flying);
+  const ground = (ids: Set<string>) => [...ids].map((id) => SPECIES_BY_ID[id]).filter((s): s is SpeciesDef => !!s && !s.boss && traversalOf(s, rules).groundNav);
   const wild = ground(fielded.spawns), elites = ground(fielded.elites);
-  const bosses = SPECIES.filter((s) => s.boss && !s.flying);
+  const bosses = SPECIES.filter((s) => s.boss && traversalOf(s, rules).groundNav);
   const eliteSize = rules.enemy.roles.elite.size;
   // VALIDATED_ELITE_R is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against. The
   // gate keeps it as a floor so a roster or pool change cannot quietly loosen the approaches; raising it is a deliberate

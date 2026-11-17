@@ -20,7 +20,7 @@ import { objectiveDue, startObjective } from './objectives';
 import { ROLE } from './pools';
 import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
-import { habitatSpawnFactor } from '../rules/profiles';
+import { habitatSpawnFactor, traversalOf } from '../rules/profiles';
 import { canSpawnOn } from '../rules/spawning';
 import { enemyHeight, footprintOf, navWide } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
@@ -150,7 +150,8 @@ function weatherTick(ctx: SimContext) {
  *  or out of water to the nearest walkable tile, so compatibility is judged there (flyers hover where they appear) */
 function standAt(ctx: SimContext, id: string, x: number, z: number): [number, number] {
   const W = ctx.world;
-  if (SPECIES_BY_ID[id]?.flying || W.walkable(x, z)) return [x, z];
+  const sp = SPECIES_BY_ID[id];
+  if ((sp && !traversalOf(sp, ctx.rules).groundNav) || W.walkable(x, z)) return [x, z];
   return W.nearestWalkable(x, z);
 }
 /** compatibility at (x, z): the species' habitat restrictions, and (size geometry on) room for a ground body whose
@@ -160,7 +161,7 @@ function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize =
   const [sx, sz] = standAt(ctx, id, x, z), W = ctx.world;
   if (!canSpawnOn(id, W.habitatAt(sx, sz))) return false;
   const sp = SPECIES_BY_ID[id];
-  const foot = ctx.rules.size.geometry && sp && !sp.flying ? footprintOf(sp, roleSize, ctx.rules) : 0;
+  const foot = ctx.rules.size.geometry && sp && traversalOf(sp, ctx.rules).groundNav ? footprintOf(sp, roleSize, ctx.rules) : 0;
   // headroom: a body taller than a deck's gap does not route under it, so it is judged on its own height's field
   if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R, undefined, enemyHeight(sp, roleSize, ctx.rules))) return false;
   return true;

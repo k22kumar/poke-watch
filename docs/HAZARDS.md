@@ -23,7 +23,7 @@ knockback can carry a creature over a lip that it would never walk over by choic
 | | Water | Lava |
 | --- | --- | --- |
 | Entry | Anyone can enter, by walking, falling or being knocked in | Same |
-| Safe | Water type (either slot of a dual type), or `surf` anywhere in the move set. Surf does not have to be pressed, and its cooldown doesn't matter. | Only species in `rules.hazards.lava.safeSpecies`. The list is empty, so every Pokémon is vulnerable. A Fire-type rule would be a design decision. |
+| Safe | A swim template (`traversalOf(species).swim`; by default the Water type, either slot of a dual type: docs/LOCOMOTION.md "Capabilities"), or `surf` anywhere in the move set. Surf does not have to be pressed, and its cooldown doesn't matter. | Only species in `rules.hazards.lava.safeSpecies`. The list is empty, so every Pokémon is vulnerable. A Fire-type rule would be a design decision. |
 | `lethal` (s to knockout) | **5** | **3** |
 | Drain | 20 % of max HP per second | 33⅓ % of max HP per second |
 | Wading speed (exposed / safe) | ×0.75 / ×0.95 | ×0.7 / ×0.9 |

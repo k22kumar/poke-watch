@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { REGION_BIOMES, SPAWN_PRESETS, isWild, resolveSpawnTable, spawnableSpecies, validateSpawnConfig, type SpawnPoolDef } from '../src/rules/spawning';
-import { SPECIES_OVERRIDES } from '../src/rules/profiles';
+import { SPECIES_OVERRIDES, traversalOf } from '../src/rules/profiles';
 import { HAB } from '../src/rules/habitats';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../src/rules/species';
 import { STAGES } from '../src/rules/stages';
@@ -63,7 +63,10 @@ test('filters select by type, behaviour, size class and flight, never by map', (
   assert.ok(ids(water).length > 0);
   for (const id of ids(water)) assert.ok(SPECIES_BY_ID[id].types?.includes('water'), id);
   const flyers = resolveSpawnTable(0, undefined, { preset: 'all-wild', filter: { fly: true } });
-  for (const id of ids(flyers)) assert.ok(SPECIES_BY_ID[id].flying, id);
+  assert.ok(ids(flyers).length > 0);
+  for (const id of ids(flyers)) assert.ok(!traversalOf(SPECIES_BY_ID[id]).groundNav, id);
+  const walkers = resolveSpawnTable(0, undefined, { preset: 'all-wild', filter: { fly: false } });
+  for (const id of ids(walkers)) assert.ok(traversalOf(SPECIES_BY_ID[id]).groundNav, id);
   const small = resolveSpawnTable(0, undefined, { preset: 'all-wild', filter: { sizeClasses: ['tiny', 'small'] } });
   assert.ok(ids(small).includes('rattata') && !ids(small).includes('onix'));
   const chargers = resolveSpawnTable(0, undefined, { preset: 'all-wild', filter: { behaviours: ['charger'] } });

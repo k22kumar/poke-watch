@@ -3,6 +3,7 @@
 // Reads the sim, never writes it.
 import { TEXELS_PER_METRE } from '../assets/art';
 import { ROLE } from '../sim/pools';
+import { traversalOf } from '../rules/profiles';
 import type { SimContext } from '../sim/types';
 import { CHASE_CONFIG, NO_THREAT, type ChaseFrame, type ChaseThreat } from './camera';
 
@@ -46,7 +47,7 @@ export function chaseSubjectSize(f: { w: number; h: number } | undefined, scale:
 export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
   const W = ctx.world, wall = W.map.wall, py = s.y;
   return {
-    dt: s.dt, x: s.x, y: s.y, z: s.z, height: s.height, width: s.width, flying: !!ctx.player.species.flying,
+    dt: s.dt, x: s.x, y: s.y, z: s.z, height: s.height, width: s.width, flying: traversalOf(ctx.player.species, ctx.rules).air,
     threat: threatOf(ctx, s.x, s.z), lookYaw: 0, lookPitch: s.lookPitch,
     // the floor at the Pokémon's own layer (a deck when it stands on one, the ground under it otherwise); beyond the
     // map edge a wall the lens never enters (a cave's border is raised rock, and nothing out there is meant to be seen

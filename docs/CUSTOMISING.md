@@ -74,9 +74,13 @@ To change only how big things look and leave the sim alone, change `visual` only
 
 ## 4. Configure movement or environmental capabilities
 
-- **Flying.** Implemented. Set `"flying": true/false` in `content/roster.json`, then `npm run content`. A flyer hovers and ignores walls, water, footprints and wide-body routing.
+- **Traversal templates.** Movement capabilities are reusable template rows in `rules.locomotion.templates` (`src/rules/traversal.ts`): `glider` (the player's glide: holding Jump in the air clamps the fall), `fixed-hover` (the wild float: no footprint, no wall test, height and bob from the row), `surface-swimmer` (safe in open water). A species holds a list of them; `traversalOf(species, rules)` in `src/rules/profiles.ts` resolves it, and every system reads that, never the type. docs/LOCOMOTION.md "Capabilities" has the full table.
+  - Default list: `"flying": true` in `content/roster.json` gives `glider` + `fixed-hover` (what the flag always meant); a type in `rules.hazards.water.safeTypes` (the Water type) gives `surface-swimmer`. Nothing else is derived from type: Doduo is a Flying type with no capability, Koffing floats with no Flying type.
+  - Per species: `traversal: ['glider', 'surface-swimmer']` in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`) replaces the derived list entirely (`[]` grounds a species). At most one template per kind. `ventImmune: true/false` sets the habitat-vent policy separately (default: any air template). Run `npx tsx --test tests/traversal.test.ts`: `validateTraversal()` names unknown templates, duplicates and reserved kinds.
+  - Different numbers for one species: add a template row of its own (for example `'high-hover': { kind: 'hover', height: 2, … }`) and name it. Retuning a shipped row changes every species that holds it.
+  - Not yet: `fly` (sustained flight, R6d), `levitate` (R6e) and `dive` (R8) are reserved kinds; the validator rejects a row of those kinds until their mechanics land.
 - **Size and passability.** A physical capability, set per class (`body` in section 3), or per species by pinning its class (section 2). It is not inferred from type.
-- **Swimming.** Implemented as a rule, not per species. A Pokémon of a type in `rules.hazards.water.safeTypes`, or knowing a move in `rules.hazards.water.safeMoves` (`src/rules/defaults.ts`), swims safely. Everything else has the liquid's `lethal` seconds to reach a bank. `canSwim()` in `src/rules/profiles.ts` answers it.
+- **Swimming.** A swim template (above), or knowing a move in `rules.hazards.water.safeMoves` (`src/rules/defaults.ts`; Surf lends it), swims safely. Everything else has the liquid's `lethal` seconds to reach a bank. `canSwim()` in `src/rules/profiles.ts` answers it.
 - **Burrowing, aquatic-only movement.** Not implemented. There is no burrow or swim-only locomotion in the sim. A water-only Pokémon would need a new movement mode in `src/sim/enemies.ts`. Until then, use the spawn restriction in section 10 to keep it to water tiles.
 
 ## 5. Create a new map
@@ -147,7 +151,7 @@ An override replaces defaults field by field: whatever it leaves out keeps its d
 Partly implemented: the inputs exist, the planner does not.
 - **Today's behaviour.** One of six presets per wild Pokémon (`behaviour` in `content/roster.json`), implemented as one priority chain in `src/sim/enemies.ts`. Bosses use attack kits (`bosses` in `content/roster.json`, `bossThink`).
 - **What an HTN domain would read, all already available:**
-  - capabilities, preferences and restrictions: `speciesProfile(id)`, `canSwim(...)`;
+  - capabilities, preferences and restrictions: `traversalOf(species, rules)`, `speciesProfile(id)`, `canSwim(...)`;
   - body size: `bodyOf(sp)`, `enemyRadius(...)`;
   - the move set and its interaction verbs: `src/rules/capabilities.ts`, `src/sim/capabilities.ts`;
   - world affordances: `World.habitatAt`, `walkable`, `fitsHeavy`, `flowDir`, `wideDir`, `goalDir`, `wideGoalDir`, `nearestFit`, `shore`, location anchors (`World.anchors`);
