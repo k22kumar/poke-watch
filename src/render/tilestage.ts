@@ -33,6 +33,24 @@ vec3 applyFog(vec3 col, vec3 w){
   float veil = clamp((d - uFogR.y) / (${FOG_VEIL.toFixed(3)} * uFogR.y), 0.0, 1.0);
   return mix(col, uFog.rgb, f * f * uFog.a + (1.0 - uFog.a) * veil);
 }`;
+/** R3 (CHASE_CONFIG.lean, docs/THIRD_PERSON_IMPLEMENTATION.md §19): the up axis of an upright card seen along d (lens →
+ *  card) whose screen right is the camera's right. Third person stretches a card by 1 / cos of the elevation it is seen
+ *  at, capped at 1.6, which squares texels up to acos(1 / 1.6) = 51.3°. Seen from steeper than `lim` (rad; that angle),
+ *  the card leans back about the camera's right axis by the excess: its top along the camera's horizontal forward `fwd`
+ *  when seen from above, toward the lens when seen from below. Its screen height then stays what it is at `lim`. Not
+ *  steeper, or lim <= 0: exactly upright */
+export const LEAN_GLSL = `
+vec3 leanUp(vec3 d, vec3 fwd, float lim){
+  if (lim <= 0.0) return vec3(0.0, 1.0, 0.0);
+  float el = atan(-d.y, length(d.xz));
+  float ex = sign(el) * max(0.0, abs(el) - lim);
+  if (ex == 0.0) return vec3(0.0, 1.0, 0.0);
+  return vec3(fwd.x * sin(ex), cos(ex), fwd.z * sin(ex));
+}`;
+/** the seen elevation (rad) up to which the 1.6 stretch cap of the billboard shaders keeps texels square */
+export const LEAN_FROM = Math.acos(1 / 1.6);
+/** no lean (the fixed views, CHASE_CONFIG.lean false) */
+export const NO_LEAN = { fwd: [0, 0, 1], from: 0 };
 const MESH_FS = `
 in vec2 vUV; in float vS; in vec3 vW; uniform sampler2D uTex; uniform vec3 uTint; uniform float uGlow; out vec4 o;
 ${FOG_GLSL}
@@ -45,13 +63,17 @@ layout(location=1) in vec4 iA;  // x y z w
 layout(location=2) in vec4 iB;  // h flip sway shade
 layout(location=3) in vec4 iUV; // u0 v0 u1 v1
 uniform mat4 uVP; uniform vec3 uRight; uniform float uStretch; uniform float uTime; uniform vec3 uFogCam;
+uniform vec3 uFwd; uniform float uLean;
 out vec2 vUV; flat out vec4 vRect; out float vS; out vec3 vW;
+${LEAN_GLSL}
 void main(){
   // fixed views: one stretch for the whole screen; third person (uStretch <= 0): 1/cos of the elevation the camera
   // sees this object at, so far props are not stretched and texels stay square
-  float st = uStretch;
-  if (st <= 0.0) { vec3 d = iA.xyz - uFogCam; st = clamp(length(d) / max(length(d.xz), 0.5), 1.0, 1.6); }
+  float st = uStretch; vec3 up = vec3(0.0, 1.0, 0.0);
+  if (st <= 0.0) { vec3 d = iA.xyz - uFogCam; st = clamp(length(d) / max(length(d.xz), 0.5), 1.0, 1.6); up = leanUp(d, uFwd, uLean); }
   vec3 w = iA.xyz + uRight * (aCorner.x * iA.w) + vec3(0.0, aCorner.y * iB.x * st, 0.0);
+  // R3: seen steeper than the stretch can square, the card leans back (LEAN_GLSL)
+  if (up.y < 1.0) w = iA.xyz + uRight * (aCorner.x * iA.w) + up * (aCorner.y * iB.x * st);
   w += uRight * iB.z * aCorner.y * aCorner.y * sin(uTime * 1.7 + iA.x * 0.37 + iA.z * 0.21) * 0.07;
   float u = aCorner.x + 0.5; if (iB.y > 0.5) u = 1.0 - u;
   vUV = vec2(mix(iUV.x, iUV.z, u), mix(iUV.w, iUV.y, aCorner.y)); vRect = iUV;
@@ -514,7 +536,7 @@ export class TileStage {
     if (this.map.terrain[k] === T.tall) this.rustle.set(k, 0.45);
   }
 
-  draw(VP: Float32Array, right: number[], stretch: number, cam: number[], player: number[], time: number, dt: number, view: StageView, fog: Fog = NO_FOG) {
+  draw(VP: Float32Array, right: number[], stretch: number, cam: number[], player: number[], time: number, dt: number, view: StageView, fog: Fog = NO_FOG, lean: { fwd: number[]; from: number } = NO_LEAN) {
     const gl = this.gl;
     const tint = this.dir.world;
     const mp = this.mesh.use();
@@ -595,6 +617,8 @@ export class TileStage {
     gl.uniformMatrix4fv(bp.loc('uVP'), false, VP);
     gl.uniform3fv(bp.loc('uRight'), right);
     gl.uniform1f(bp.loc('uStretch'), stretch);
+    gl.uniform3fv(bp.loc('uFwd'), lean.fwd);
+    gl.uniform1f(bp.loc('uLean'), lean.from);
     gl.uniform1f(bp.loc('uTime'), time);
     gl.uniform3fv(bp.loc('uTint'), tint);
     gl.uniform3fv(bp.loc('uFrameCool'), this.dir.frameCool);

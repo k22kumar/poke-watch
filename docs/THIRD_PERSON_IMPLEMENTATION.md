@@ -27,6 +27,10 @@ R1 (2026-11-16, the audit roadmap's first phase) landed roadmap Stage 6C: bodies
 wide routing has height classes. Only the `gen` set moves; `gen-headroom-off` reproduces it (§17).
 R2 (2026-11-16) made the aim maths pole-safe (audit F6, F7, F8): a continuous muzzle, a fan that keeps its spread at any
 pitch, a view basis from the yaw. Only the `aim` set moves (pitched multi-shot fans); `aim-pole-off` reproduces it (§18).
+R3 (2026-11-16, completed 2026-11-17) widened the envelope to ±89° (audit F4, F9; owner decisions B, C, E): past 40° down
+the lens rises with the view (owner-approved, replacing the first draft's 50° start), looking up an edge cue shows the body,
+billboards lean back past 51.3° of seen elevation. Render only: every checksum set unchanged; from 60° up to 40° down the
+rig is the R2 rig bit for bit (§19).
 
 **Phases and stages are different numbers.** A *phase* is a work order (Phase 0, 1, 2A, 2B, …); a *stage* is a roadmap row
 in §5. They do not line up: Phase 1 = Stage 2A and part of Stage 1; Phase 2A = Stage 3; Phase 2B = Stage 2B + Stage 4A
@@ -429,7 +433,7 @@ stage's flag on** (with it off, every set must match).
 | 5A | Device assistance policies (magnetism, lead, LOS) | 4A | flag on: no (bot has no `aim`) | ◐ (Phase 2B: the spatial path has none for any device; Phase 3: per-device policies on the planar path, `rules.aim.assist`; spatial-path pad assistance open) |
 | 5B | Beam and chain in 3D with cover | 3, 4A | flag on: yes | ◐ (Phase 2C: beams; chain open) |
 | 5C | Melee and area verticality and cover (anatomical bands) | 3, 4A | flag on: yes | ☐ |
-| 6A | Player-owned camera pitch, wider range | 2A | no (render) | ☑ (Phase 4A, §16) |
+| 6A | Player-owned camera pitch, wider range | 2A | no (render) | ☑ (Phase 4A, §16; full ±89° envelope in R3, §19) |
 | 6B | Shooter facing and strafing; exploration mode | 2B, 4A | flag on: no (bot) | ☐ |
 | 6C | Headroom: ceilings for bodies, size gate under decks | 3 | flag on: yes | ☑ (R1, §17: bodies, jumps, wide routing, spawn gate. The camera half of F5 is split off as its own open item, §17.7; enemy fliers go with 7A) |
 | 7A | Enemy and bot parity (enemies on `spatial`; bot sends `aim`) | 4B, 5B, 5C | yes | ☐ |
@@ -2017,3 +2021,260 @@ objective code), browser captures (18.7).
   fan outer angle within 0.5° at 0 / 45 / 80 / 89° (identical); view matrix orthonormal at ±89.9° (and ±90°). The `aim`
   migration followed decision G. Nothing committed.
 - **Next:** R3 (full-sphere envelope) now has its prerequisite. R1b still needs its `/grilling`. Neither started.
+
+## 19. R3: the full-sphere envelope (roadmap Stage 6A extended, 2026-11-16 / 17)
+
+Audit problems F4 (the envelope stopped at 60° up / 50° down) and F9 (billboards foreshorten at steep elevation). Owner
+decisions B (aim nearly straight up even if the body leaves the frame, with an unobtrusive off-screen indicator), C (the lens
+may go overhead for steep down-aim; today's behaviour kept inside today's envelope; smooth transitions, collision
+avoidance, aim alignment), E (±89°). Render only: no file under `src/sim/` or `src/world/` changed. A completion review on
+2026-11-17 (19.11) replaced the first draft's overhead mapping, with the owner's approval, and fixed two new camera pops.
+
+Files: `src/render/camera.ts` (`aimPitch` up 89 / down 89 + `overhead`, `boomElevation`, the rig's overhead easing, climb
+cap, pitch and forward-walk anticipation, `lean`, `cue`, `offFrameCue`), `src/render/renderer.ts` (lean uniform, culling
+`behind`, `selfCue`), `src/render/tilestage.ts` (`LEAN_GLSL`, `LEAN_FROM`, prop shader lean), `src/render/view.ts`
+(`chaseBehind`, `StageView.behind`), `src/ui/ui.ts` (`selfCue`), `src/main.ts` (draws the cue; `pokewatch.chase`),
+`scripts/camstats.ts` (`--r2envelope`, `--sweepband`), `tests/freelook.test.ts` (+9, one adjusted), `docs/THIRD_PERSON.md`.
+
+### 19.1 Baseline before the change (this checkout, commit 1b31f31: Phases 1–4A, R1, R2, committed by the owner)
+`git status` clean. `npm run typecheck` clean. `npm test`: 507 tests, 501 pass, 4 fail (the four `tests/pointerlock.test.ts`
+cases of §17.8, same names), 2 todo. `scripts/checksum.ts`: 60 lines, saved. `camstats --fps 30,60,144` (108 runs) and
+`camstats --sweep` (36 runs) saved.
+
+### 19.2 What was measured first
+- **F5 (the XL camera collapse under decks).** Traced on the camstats walk (Viridian Forest seed 3, Feraligatr): 797 of the
+  813 slides happen with the pivot just *outside* a deck while the boom points back under it; 16 with the pivot under it.
+  The pivot is 0.8 × the drawn idle sprite (2.715 m) = 2.17 m; the slab's lens clearance is 2.40 − 0.35 = 2.05 m, so
+  behind the pivot no lens position at an elevation ≥ 2° is legal and the safety net slides the lens onto the Pokémon's
+  back (boom 0.05–0.09 m) on every tick. The sim height (2.249 m) would put the pivot at 1.80 m. The collapse is
+  pitch-independent (it happens with no look input) and identical in the R2 rig at any pitch: walking under a synthetic
+  2.4 m deck the lens jumps 9.1 m with R2 at 50° and with R3 at 20°, 70° and 89° alike. Not a prerequisite of R3 and not
+  fixed here; options compared in 19.11.
+- **The crosshair at the old limit.** Where the crosshair meets level ground, ahead of the feet, at 50° down: Cyndaquil
+  −0.19 / −0.35 / −0.60 m (Explore / Combat / Pressure), Feraligatr +0.33 / +0.05 / −0.38 m: the §16.3 table exactly. With
+  the R2 lens capped at 40° from ~37° (Explore) or ~29° (Pressure) on, the crosshair runs back past the feet before 50°.
+- **F9, measured.** From an overhead lens (elevation 80° on a 4 m boom) the Pokémon's feet are seen 81.6° from above; the
+  1.6 stretch cap leaves its sprite 1.6 × cos 81.6° = 23 % of its height on screen.
+- **Culling.** `VIEW_BEHIND` (6 m behind the lens) assumed the frame never looks back past the lens. The bottom edge of the
+  frame looks back once pitch + fov/2 > 90°: from 54–58° at the states' FOVs. At 89° from Feraligatr's Pressure lens (≈ 12 m
+  up, FOV 84°) the frame reaches ~10 m behind the lens: the old plane skipped visible props.
+
+### 19.3 Contract (landed, render only)
+- **Envelope:** `CHASE_CONFIG.aimPitch = { on, neutral 6, up 89, down 89, overhead: { on, settle 0.3, enter 0.1 } }`;
+  `lookPitchRange()` = [−95°, +83°] of `userPitch`. The axis is still `neutral + userPitch` and nothing else (Phase 4A).
+- **Boom elevation (`boomElevation`), owner-approved 2026-11-17:** the Phase 4A expression (state pitch + userPitch within
+  2°–40°), and with `overhead.on` never below the view pitch. Every state's pitch exceeds the neutral 6°, so up to 40° down
+  the Phase 4A value is returned bit for bit; past 40° the elevation is the view pitch. The crosshair ray then passes the
+  pivot's vertical line at the pivot (beside it by the shoulder offset): its ground point is pivot height / tan(pitch)
+  ahead of the feet, and the lens never swings faster than the look. Same critically damped boom, collision, shoulder,
+  climb and safety net as before.
+- **Decks.** Under a deck the overhead rise (the elevation above the Phase 4A one) eases out over `enter` (0.1 s); after one
+  it eases back in over `settle` (0.3 s). Under the slab the Phase 4A slab rule then sets the elevation, as before.
+- **Climb.** Elevation + climb ≤ max(52°, the elevation): the 40° + 12° cap of Phase 4A, which an overhead boom (already
+  above any wall behind) does not climb past. `elevFor` (the lens swing of `look` and `update` for pitch input since the
+  last tick) applies the same cap, so a swing never overshoots what the next tick draws.
+- **Anticipation (overhead only).** While the rise is in force: the boom is also tested at the elevation the pitch is
+  heading for (frame-to-frame pitch rate smoothed per tick, × `anticipate` 0.35 s, at most 24°), and the forward part of
+  the Pokémon's motion counts toward the predicted position in proportion to the rise (0 at the 40° cap, all of it at the
+  vertical): an overhead lens is above the pivot, not behind it, so walking forward brings obstacles into its boom. In
+  the Phase 4A envelope neither changes anything (the factor is exactly 1).
+- **Off-frame cue (decision B).** `offFrameCue(view, [feet, middle, head])`: null while any of the three points is on screen;
+  else the screen direction toward the middle point (valid also behind the lens) and an opacity that rises from 0 at the
+  frame edge to 1 at `cue.fade` (15 %) of the half-screen past it. Drawn by `ui.selfCue` as a small pale-cyan ring with a
+  point (the x-ray silhouette's colour), on the overlay canvas after the threat chevrons, kept clear of the move bar.
+- **Billboard lean (F9, `CHASE_CONFIG.lean`, `LEAN_GLSL`).** Third person only, creatures and props alike: seen from steeper
+  than `LEAN_FROM` = acos(1/1.6) = 51.3° (where the stretch cap stops squaring texels), a card leans back about the
+  camera's right axis by the excess, top along the camera's horizontal forward when seen from above and toward the lens
+  from below; a creature's vertical offset (hover, bob, sink) stays vertical. Its screen height then stays what it is at
+  51.3°: the level view's, at every elevation (test). Below 51.3° the shader takes the old expression unchanged.
+- **Culling (`chaseBehind`).** The plane behind the lens moves back to where the frame's bottom edge meets ground `VIEW_DROP`
+  (4 m) below the Pokémon's feet, plus `VIEW_BEHIND`, once that edge looks back past the vertical; otherwise `VIEW_BEHIND`.
+  At the states' FOVs it never moves inside the Phase 4A envelope. Creature culling (a radius) is unchanged.
+- **Unchanged:** sim, `ViewSample`, `aimRayOf`, `chaseAim` (beyond ~50° its planar point is still clamped to 4 m ahead),
+  the view matrix (R2's `viewYawPitch`), the fixed views, shake, FOVs, boom lengths, states, shoulder, the 120 Hz clock.
+- **R2 camera on demand:** `up 60 / down 50` with `overhead.on = false` is the R2 rig bit for bit (`camstats --r2envelope`,
+  and in the page `Object.assign(pokewatch.chase.aimPitch, { up: 60, down: 50 }); pokewatch.chase.aimPitch.overhead.on =
+  false`); `pokewatch.chase.lean = false` turns the lean off.
+
+### 19.4 Behaviour past 40° (level ground, settled rig)
+Where the crosshair meets the ground, metres ahead of the feet (every state gives the same value from 40°: it depends only
+on the pivot height), with the R2 rig's value at 50° for comparison:
+
+| View pitch down | 40° | 44° | 48° | 50° | 56° | 60° | 70° | 80° | 89° | R2 rig at 50°, Explore / Pressure |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Pichu | 0.74 | 0.64 | 0.56 | 0.52 | 0.42 | 0.36 | 0.23 | 0.11 | 0.01 | −0.23 / −0.59 |
+| Cyndaquil | 0.95 | 0.82 | 0.71 | 0.67 | 0.54 | 0.46 | 0.29 | 0.14 | 0.01 | −0.19 / −0.60 |
+| Feraligatr | 2.59 | 2.25 | 1.96 | 1.82 | 1.46 | 1.25 | 0.79 | 0.38 | 0.04 | +0.33 / −0.38 |
+
+Ahead of the feet for every size and state from 30° to 89° and monotone toward them (test, 0.5° steps); across it the
+point lies the shoulder offset to the right (0.24 × the boom). The Pokémon's chest stays just below the crosshair
+(0.05–0.14 of the half-height) instead of climbing 0.2 above it near 50° as it did with the R2 lens. The price, inside
+the old envelope: from 40° to 50° the lens is up to 10° higher than R2's (at 50°: Pichu +0.41 m, Cyndaquil +0.47 / +0.69 m
+Explore / Pressure, Feraligatr +0.81 / +1.19 m). Up to 40° down and looking up, nothing moves (test). Looking up the
+lens stays at 2° elevation; the cue appears from ~33–35° up and is opaque by 45°.
+
+### 19.5 Camera stability (final code)
+- `camstats --fps 30,60,144` (108 runs, no pitch input): **byte-identical** to the 19.1 baseline.
+- `camstats --sweep --r2envelope` (36 runs): **byte-identical** to the R2 sweep.
+- `camstats --sweep` (the pitch swept −89° → +89° and back every 8 s, up to 70°/s, while walking and turning): axis error 0
+  at 30, 60 and 144 fps; lowest lens clearance median 0.59 m (the negative worst values are the §16.6 tile-probe artefact,
+  a lens ≤ 1–2 cm across a wall tile's edge, checked frame by frame). Same gesture on the R2 rig (`--sweepband 89,89
+  --r2envelope`), the F5 run excluded (35 runs):
+
+  | | R2 rig, same gesture | R3 first draft | R3 final |
+  |---|---|---|---|
+  | safety-net slides, 60 / 30 / 144 fps (sum) | 17 / 17 / 9 | 21 / 28 / 12 | 19 / 17 / 12 |
+  | largest one-frame lens move, worst, 60 / 30 / 144 fps (m) | 0.95 / 1.35 / 0.64 | 1.06 / 1.35 / 0.78 | 1.08 / 1.36 / 0.79 |
+  | lens velocity change p99, median / worst, 60 fps (m/s) | 2.36 / 5.66 | 2.75 / 6.03 | 2.74 / 5.66 |
+  | F5 run: slides at 60 fps | 813 | 557 | 557 |
+
+  What each remaining difference is, from a frame-by-frame forensic pass (19.11): two R3-only slides at 60 fps (0.16 and
+  0.18 m, lens velocity change 3.2 and 4.3 m/s, at the level of the runs' own 99th percentile) and three at 144 fps
+  (0.08 m each); the one large difference is a ledge drop in Mt. Moon (seed 3) right after an overhead pass, where both
+  rigs pop (R2 0.70 m on the next frame, R3 1.08 m): code below 40° is identical, the rig's state differs by its history.
+- **Decks** (synthetic 2.4 m deck; walk out from under it, back into it, and through it; Pichu, Cyndaquil, Charmander): the
+  lens never enters the slab, and its largest frame step at 50°, 70° and 89° down is at most 0.02 m above the R2 rig's at 50°
+  (and lower walking in backwards: 0.55–0.73 m against 0.69–0.82 m).
+- **Rig cost** (per frame, 60 fps sweep walk, three maps, first draft): median 0.025–0.034 ms against 0.025–0.030 ms (R2),
+  p99 equal; the final code adds one elevation evaluation per tick.
+
+### 19.6 Browser (headless Chromium 1254, private builds of this checkout and of 1b31f31)
+- **Regression set** (`tools/chasecheck.json`, 37 captures, 17 in-page probes, final build against a build of 1b31f31):
+  the 17 probes (`elevMaxDeg`, `closeUpMax`, `jumpMax`, `boomRange`, `viewPitchDeg`, …) are identical; 34 of 37 captures
+  are byte-identical. The other three are `stress-*-end` frames after 8–30 s of in-page fighting or walking.
+  `stress-badlands-fight-end` (4.3 % of pixels) and `stress-cave-walk-end` (65 %, the lens jammed at Feraligatr's back in
+  a cave, the sprite filling the screen in both builds) are the billboard lean: with `pokewatch.chase.lean = false` they
+  equal the 1b31f31 frames exactly. `stress-cave-fight-end` is not repeatable on 1b31f31 itself (5 runs: 0 or 739 pixels
+  apart, glow particles: the seeded presentation stream is consumed at varying times); on R3 its runs also vary in
+  particle and hit-flash placement (up to 8.7k pixels), and with the lean off they fall on 1b31f31's two variants.
+- **Envelope scenes** (scratch `envelope2.json`: forest Cyndaquil and Feraligatr, the cave, a bot fight, a deck, at 6°,
+  40°, 45°, 50°, 56°, 62°, 70°, 75°, 80°, 89° down and 33°, 45°, 60°, 70°, 89° up, plus 50° with the R2 camera set in the
+  page): at 50° the R2 camera puts the aim ring level with the feet and the Pokémon above the crosshair; the final rig puts
+  it ahead of the feet with the Pokémon below. At 89° down the Pokémon is drawn below and left of the crosshair, the aim
+  ring beside its feet. With the lean off the same frame shows Cyndaquil as a one-pixel line and Feraligatr as a sliver
+  (F9); with it on, the whole sprite, lying back from its feet. Leaned trees and enemies read as cards lying back from
+  their bases. Looking up the cue sits on the bottom edge just left of centre, above the move bar (`{dx −0.13, dy 0.99,
+  alpha 1}` at 60° and 89° up for both sizes) and is absent in every down-look on open ground. Under a deck at 89° down the
+  slab keeps the lens low, so the frame shows the ground under the lens and the cue points up to the Pokémon.
+
+### 19.7 Tests (`tests/freelook.test.ts`, +9; the Phase 4A geometry test now pins 40° and the R2 rig's 50°)
+±89° reachable exactly in every state (unit ray). From 60° up to 40° down the rig equals the R2 rig frame for frame
+(6 terrain cases × 3 states × 3 sizes, fast gestures to both limits, `deepEqual`). From 30° to 89° down the lens is at
+`boomElevation`, rises monotonically, is never below the view pitch and equals it from 40°; the crosshair is ahead of the
+feet and moves monotonically toward them (4 sizes × 3 states, 0.5° steps), more than 5 cm ahead at 80°, while the R2 rig
+in Pressure is behind the feet at 50°. A 0.05° pitch sweep over the whole envelope moves the lens at most 1.05 × the
+pitch step's arc, with no slide on open ground; the same mouse and stick gesture to ~80° down reaches the same pitch and
+a lens within 2 cm at 30, 60, 144 and 240 fps. Walking under, through and out of a deck at 70° and 89° down: never in
+the slab, frame steps within 5 cm of the R2 rig at 50°. An enemy down a 3 m pit at the feet and one hovering 16 m
+overhead are centred with look input (60°+ and 70°+) and hit through real `step()`; with the R2 envelope neither is hit.
+The cue: absent from 30° up to 89° down for every size and state, pointing down (and left: the lens is on the right
+shoulder) and fading in continuously beyond, opaque by 45° up. The stage view keeps every ground point of an 89° frame
+from the highest lens (and the old plane did not). The lean: `LEAN_GLSL` is pinned and its TS mirror keeps a card's
+screen height at the level view's at every seen elevation −90…+90°, upright up to 51.3°. The existing T13 test ("under a
+deck at both pitch limits") runs at ±89°.
+- **Red before:** on the R2 code the new tests do not load (`boomElevation`, `offFrameCue`, `LEAN_GLSL`, `chaseBehind` are
+  new). With the first draft's mapping, the rise test fails (crosshair behind the feet at 46°–57°).
+
+### 19.8 Gates (final code, this checkout)
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 516: 510 pass, 4 fail, 2 todo. The 4 are the pointer-lock cases of §17.8 (same names); the 9 new tests pass; nothing that passed before fails |
+| `npm run build` | private build of this checkout (17.2 MB); `dist/` untouched (`npm run check` writes the shared `dist/`, and stops at the pointer-lock failures) |
+| `scripts/checksum.ts` (all) | all 60 lines byte-identical to 19.1 (no sim change; the bot's ray is built in `scripts/lib/aimbot.ts`, not by the rig) |
+| `perf-sim 500 --repeat 3 --gate` | PASS, min of 3: p95 0.511, p99 0.875 ms (R2 0.495 / 0.839; no sim code changed) |
+| `camstats` | 19.5 |
+Not run, not applicable: `navwalk`, `stuckwatch` (no movement or collision change), the habitat and hazard gates (no world,
+hazard or objective change), the `aim` balance sweep (the sim's aim maths and every hash are unchanged).
+
+### 19.9 Acceptance against the plan, and open items
+- **"Crosshair ground point monotone and ahead of the feet down to 80°":** met over the whole range (30°–89°), with the
+  owner-approved 40° start (19.11).
+- **"Zero-input lens bit-identical; camstats lens columns unchanged inside the old envelope":** met for zero input and up to
+  40° down; between 40° and 50° the lens is deliberately higher (approved trade-off, 19.4).
+- **"`--sweep` to ±89° with no new safety-net slides":** not met to the letter: 19 / 17 / 12 against 17 / 17 / 9 on the same
+  gesture at 60 / 30 / 144 fps. The remainder is the ledge-drop pop after an overhead pass (a mechanism the R2 rig shares)
+  and five sub-20 cm corrections (19.5, 19.11).
+- **The Pokémon's own axis cannot be centred near the vertical** (a geometric property of the over-the-shoulder lens): the
+  crosshair's ground track passes the axis at the shoulder offset, 0.24 × the boom. A target straight over the head is
+  beside the crosshair; a test target 0.5 m off the axis could not be centred, 1.5 m off it was.
+- **F5 unchanged** (19.2); options and a recommendation in 19.11.
+- **Facing past the vertical.** Overhead shots that lean backwards still turn the Pokémon toward the camera (R2's open
+  item, R5's facing rule).
+- **The billboard lean is visible inside the old envelope** wherever a sprite is seen steeper than 51.3° (a prop under a
+  high lens, an enemy at the foot of a cliff, the Pokémon under a lens jammed at its back), which drew foreshortened
+  before. It is the F9 fix, not a lens change; `CHASE_CONFIG.lean = false` restores the upright cards everywhere. The lean
+  is computed from the card's base, like the stretch, so a tall sprite very close to the lens leans by its feet's angle.
+- **Under a deck, looking steeply down** shows the ground under the low lens, not the Pokémon: the slab rule keeps the lens
+  under it, so the overhead view is unavailable there; the cue points to the Pokémon.
+- **T20, the mouse and pad playtest on a real GPU**, has still not been done (no hardware here); the plan wants it before
+  R3's sign-off. Checklist: 19.11.
+- §17.7 and §17.8 (pointer-lock) unchanged.
+
+### 19.10 Handoff
+- **Status:** R3 implemented and reviewed. Render only; every checksum set unchanged; up to 40° down the R2 rig bit for bit.
+  Open before sign-off: the T20 playtest (19.11) and the residual ledge-drop pop (19.5). Nothing committed.
+- **Next:** the T20 playtest; then the owner's sign-off and a decision on F5 (19.11). No roadmap phase started.
+
+### 19.11 Completion review (2026-11-17)
+The owner asked for R3 to be finished properly before acceptance: the extra camera snap-backs, the crosshair at 50°–57°,
+the XL collapse, and validation.
+
+**Snap-backs.** A forensic probe re-ran the camstats sweep frame by frame on the R3 and R2 rigs with the same gesture and
+paired every slide (by run and time) with the R2 rig's. The first draft had four R3-only slides and two worse than R2's:
+- *Overhead lens beside a tall wall* (Mt. Moon seed 3, 87.5°, 0.61 m and 0.49 m, lens velocity change 23.6 and 15.5 m/s,
+  about 5 × the run's 99th percentile: a visible pop). The lens sat 3 m over the pivot and 0.9 m to its right (the
+  shoulder), beside a 3.1 m rock wall; the eased boom lagged while the walk carried the pivot along the wall. Root cause:
+  the collision anticipation ignored forward walking ("walking away from the lens never brings an obstacle into the boom"),
+  which stops being true once the lens is above the pivot rather than behind it. **Fixed** (19.3, forward-walk
+  anticipation in proportion to the rise; bit-identical below 40°): both pops gone.
+- *Ledge drop after an overhead pass* (Mt. Moon seed 3, −18°, 1.06 m, 46 m/s: a visible pop). The Pokémon walks off a
+  3.5 m shelf while the lens, low behind it, is still over the shelf; the R2 rig pops there too (0.70 m one frame later).
+  At that moment both rigs run the same code (−18° is inside the identical range); R2's lens happened to carry a decaying
+  12° climb from its capped phase and a shorter boom. Not fixed: a pre-existing mechanism (R2's own worst sweep pop, 0.95 m
+  in Mt. Moon seed 1, is the same), whose general fix (predicting the pivot's fall, a faster pull-in) would change the R2
+  camera everywhere. Tried and rejected: deciding the climb from the Phase 4A elevation while overhead (no effect).
+- *Sub-20 cm corrections* (61°, 0.16–0.18 m; 144 fps: 0.08 m): at the level of normal sweep motion, not visible.
+In play terms: the sweep flicks the whole ±89° range at up to 70°/s while walking along cave walls; the remaining
+differences are one ledge-drop pop already in the R2 camera's repertoire.
+
+**Crosshair at 50°–57°.** The conflict was real: decision C froze the R2 lens to 50°, and the R2 lens, capped at 40°
+elevation, puts the crosshair behind the feet from ~46° (Combat, Pressure), so any mapping that preserves 50° has a band
+where the crosshair is behind or at the feet, and the first draft's catch-up swung the lens at up to 2.25 × the look.
+Proposed to the owner with the trade-off in numbers (19.4) and **approved 2026-11-17**: the elevation never drops below
+the view pitch. Preserved behaviour now ends at 40° instead of 50°.
+
+**XL collapse (F5), options measured** (scratch prototypes, not landed; Viridian Forest seed 3, Feraligatr):
+
+| Option | Walk: slides / largest frame move | ±89° sweep: slides / largest move | Effect elsewhere |
+|---|---|---|---|
+| Today (drawn-sprite pivot 2.17 m) | 813 / 7.54 m | 557 / 7.54 m | — |
+| (a) frame the sim body (height 2.25 m: pivot 1.80 m, boom −10 %) | 3 / 4.39 m | 250 / 1.53 m | every species whose drawn and sim heights differ is framed differently on every map |
+| (b) slab-aware pivot (pivot lowered to fit a 2° boom under the lowest slab over the boom's track, eased 0.15 s) | 49 / 4.08 m | 106 / 1.10 m | none away from decks |
+| (c) (b) + the slab elevation rule taken along the boom's track, not only at the pivot | 12 / 1.30 m | 56 / 4.29 m | Cyndaquil and Charmander on that map: sweep slides 5 → 0; other maps identical |
+
+(a) fits Feraligatr with 0.02 m to spare and would not fit a taller body; it is a global framing change. **Recommended:
+(c) plus eased cover transitions** (the remaining 4.3 m moves are the slab rule's elevation snap when the pivot passes
+under a deck edge, the same snap R2 has), as its own small render-only phase with camstats and capture gates. It works
+for any body size (only a pivot higher than a slab's clearance is lowered), changes nothing away from decks, and keeps
+the framing of every body that fits. Not essential to R3: the collapse is pitch-independent and R3 reduces it.
+
+**Validation.** Automated, run here: 19.5–19.8. Requiring the owner's hands (mouse, pad, real GPU), not run:
+1. Normal movement and aiming: walk, strafe, turn at mouse and stick speeds; the crosshair stays put on screen, the
+   camera neither drifts nor tilts by itself; shots land at the crosshair.
+2. Near-vertical up: look straight up while standing still and while walking; the view stays stable at 89°; the cue
+   appears once the Pokémon leaves the frame and points at it; nothing rolls or spins.
+3. Near-vertical down: sweep from level to 89° slowly and quickly; the camera rises over the Pokémon without a jolt at 40°;
+   the crosshair stays ahead of the feet, beside the Pokémon; the Pokémon stays visible (leaned sprite), not a sliver.
+4. Shooting above and below: a target on a high ledge, a hovering one overhead (off the Pokémon's own axis), one in a pit or
+   at a cliff foot; shots leave the body and hit; the red blocked crosshair appears when the rim is in the way.
+5. Walls, cliffs, decks: back into a wall and a cliff while looking down; walk under a bridge and out at 0°, 50°, 89° down;
+   step off a ledge with the camera looking up (the known ledge-drop pop); turn beside cave walls overhead.
+6. Sizes: repeat 1–5 with a small (Cyndaquil or Pichu), a medium (Charmander) and an Extra Large Pokémon (Feraligatr; under
+   a 2.4 m deck expect the known F5 collapse).
+7. Mouse and pad: invert Y, the three sensitivities; full stick deflection across the whole range; mouse flicks of
+   ±90° in under 0.2 s; no lost or doubled pitch at either limit.
+8. Indicators and sprites: the cue is readable but unobtrusive and never overlaps the move bar; threat chevrons and the
+   objective arrow still behave; trees and enemies seen from above read as cards lying back, with no flicker at 51°
+   (toggle `pokewatch.chase.lean` to compare); the frame's edges at 89° down show no missing props.
+9. For each, note anything disorienting, any pop, and whether the 40°–50° band (now higher than before) feels right.

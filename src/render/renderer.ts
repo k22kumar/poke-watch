@@ -19,15 +19,15 @@ import { registry } from '../assets/registry';
 import { InstanceBatch, QUAD_CENTER, QUAD_FEET } from './batches';
 import { hexToRgb, mat4, Program, type GL } from './gl';
 import { DECAL_FS, DECAL_VS, GLOW_FS, GLOW_VS, RIBBON_FS, RIBBON_VS } from './shaders';
-import { TileStage, FOG_GLSL, NO_FOG, type Fog } from './tilestage';
-import { chaseViewR, type StageView } from './view';
+import { TileStage, FOG_GLSL, LEAN_FROM, LEAN_GLSL, NO_FOG, NO_LEAN, type Fog } from './tilestage';
+import { chaseBehind, chaseViewR, type StageView } from './view';
 import { PixelLayer } from './pixelfx';
 import { ELEMENT_FX } from './pixelart';
 import { skyFor } from './sky';
 
 /** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
 const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
-import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, RING, ringAdd, wobble, type CameraPreset, type ViewSample } from './camera';
+import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, offFrameCue, RING, ringAdd, wobble, type CameraPreset, type OffFrameCue, type ViewSample } from './camera';
 import { chaseFrameFor, chaseSubjectSize } from './chaseinput';
 import { SPRITE_SAMPLE_GLSL } from './spritesample';
 
@@ -39,17 +39,20 @@ layout(location=2) in vec4 iB; // frame w h, anchor x y (texels)
 layout(location=3) in vec4 iUV; // u0 v0 u1 v1
 layout(location=4) in vec4 iC; // flash dissolve dx(m, along right) bias
 layout(location=5) in vec4 iD; // tint rgb, dy (m)
-uniform mat4 uVP; uniform vec3 uRight; uniform vec3 uFwd; uniform float uStretch; uniform vec3 uFogCam;
+uniform mat4 uVP; uniform vec3 uRight; uniform vec3 uFwd; uniform float uStretch; uniform vec3 uFogCam; uniform float uLean;
 out vec2 vUV; flat out vec4 vRect; out float vFlash; out float vDis; out vec3 vTint; out vec3 vW;
+${LEAN_GLSL}
 void main(){
   float tx = (aCorner.x + 0.5) * iB.x;
   float ty = aCorner.y * iB.y;
   // third person (uStretch <= 0): stretch by 1/cos of the elevation this creature is seen at
-  float st = uStretch;
-  if (st <= 0.0) { vec3 d = iA.xyz - uFogCam; st = clamp(length(d) / max(length(d.xz), 0.5), 1.0, 1.6); }
+  float st = uStretch; vec3 up = vec3(0.0, 1.0, 0.0);
+  if (st <= 0.0) { vec3 d = iA.xyz - uFogCam; st = clamp(length(d) / max(length(d.xz), 0.5), 1.0, 1.6); up = leanUp(d, uFwd, uLean); }
   float lx = (tx - iB.z) / ${TEXELS_PER_METRE}.0 * iA.w + iC.z;
   float ly = (ty - (iB.y - iB.w)) / ${TEXELS_PER_METRE}.0 * iA.w * st + iD.w;
   vec3 w = iA.xyz + uRight * lx + vec3(0.0, ly, 0.0) - uFwd * iC.w;
+  // R3: seen steeper than the stretch can square, the card leans back (its dy offset stays vertical)
+  if (up.y < 1.0) w = iA.xyz + uRight * lx + up * (ly - iD.w) + vec3(0.0, iD.w, 0.0) - uFwd * iC.w;
   vUV = vec2(mix(iUV.x, iUV.z, aCorner.x + 0.5), mix(iUV.w, iUV.y, aCorner.y)); vRect = iUV;
   vFlash = iC.x; vDis = iC.y; vTint = iD.xyz; vW = w;
   gl_Position = uVP * vec4(w, 1.0);
@@ -187,6 +190,9 @@ export class Renderer {
   pixelScale = 1; // CSS pixels per internal pixel (integer)
   /** aimed combat: the ground point under the cursor (or stick aim), drawn as a reticle */
   aim = { x: 0, z: 0, on: false };
+  /** third person (R3, decision B): where the player's own Pokémon is while the view has left it (looking up), for the
+   *  HUD's edge cue (ui.selfCue); null while it is in frame, and in the fixed views */
+  selfCue: OffFrameCue | null = null;
   px: PixelLayer;
   private ambientAcc = 0;
   // animation controller state for the player
@@ -623,6 +629,7 @@ export class Renderer {
       this.camX = rig.px; this.camY = rig.py; this.camZ = rig.pz;
       near = 0.3; far = 240;
       this.stretch = -1; // per-object (see the billboard shaders)
+      this.subjectH = subject.height;
     }
     // R2: the basis from the yaw, not lookAt's world up (degenerate at a vertical view). Both views look from the eye along
     // (yaw, pitch) at the target, so this is the same matrix inside today's envelope and stays orthonormal past it
@@ -632,6 +639,8 @@ export class Renderer {
     this.right = [this.V[0], this.V[4], this.V[8]];
     this.up = [this.V[1], this.V[5], this.V[9]];
     this.fwd = [fx, 0, fz];
+    // the off-frame cue looks at the Pokémon as drawn: feet, middle and head of its sprite
+    this.selfCue = chase ? offFrameCue(this.rig.sample(this.width, this.height), [[px, py, pz], [px, py + this.subjectH / 2, pz], [px, py + this.subjectH, pz]]) : null;
 
     const S = this.stage;
     const clear = S ? S.art.clear : [120, 220, 172];
@@ -663,7 +672,9 @@ export class Renderer {
       // cull around the lens, not a point ahead of it: the old disc (74 m around a point 20 m ahead) swung with the yaw
       // and dropped props that were still on screen and only ~30 % fogged, so turning on the spot popped hundreds of
       // trees in and out on the horizon. Past chaseViewR the fog is complete, so distance never culls anything visible.
-      view = { x: this.eye[0], z: this.eye[2], r: chaseViewR(sk.fogFar), fx, fz };
+      // R3: looking steeply down from a high lens, the bottom of the frame reaches back past the lens; the plane behind it
+      // moves back as far as the frame does (render/view.ts chaseBehind), so nothing on screen is skipped
+      view = { x: this.eye[0], z: this.eye[2], r: chaseViewR(sk.fogFar), fx, fz, behind: chaseBehind(this.eye[1] - py, this.pitch, fov) };
     }
     this.fog = fog;
     if (S) {
@@ -674,7 +685,7 @@ export class Renderer {
       S.propState = ctx.world.propField?.state ?? null; S.propMat = ctx.world.propField?.mat ?? null;
       const E = ctx.enemies;
       for (let i = 0; i < E.hi; i += 3) if (E.alive[i] && E.hover[i] === 0) S.touch(E.x[i], E.z[i]);
-      S.draw(this.VP, this.right, this.stretch, this.eye, [px, py, pz], this.time, dt, view, fog);
+      S.draw(this.VP, this.right, this.stretch, this.eye, [px, py, pz], this.time, dt, view, fog, this.lean());
     }
 
     // Rain (a director weather event or a move): streaks falling around the view
@@ -878,7 +889,7 @@ export class Renderer {
 
     const gl = this.gl;
     const p = this.creature.use();
-    p.m4('uVP', this.VP).v3('uRight', this.right).v3('uFwd', this.fwd).f('uStretch', this.stretch);
+    p.m4('uVP', this.VP).v3('uRight', this.right).v3('uFwd', this.fwd).f('uStretch', this.stretch).f('uLean', this.lean().from);
     // actors carry their own key light (render/artdirection.ts): a biome's night tint dims the world, not the Pokémon
     p.v3('uLight', this.stage ? this.stage.dir.actor : [1, 1, 1]);
     p.v4('uFog', [this.fog.col[0], this.fog.col[1], this.fog.col[2], this.fog.k]).v2('uFogR', this.fog.near, this.fog.far).v3('uFogCam', this.eye);
@@ -904,6 +915,11 @@ export class Renderer {
     }
   }
   private fog: Fog = NO_FOG;
+  /** drawn height of the player's own Pokémon (m), as the rig frames it */
+  private subjectH = 1.1;
+  /** R3: the billboard lean in force (CHASE_CONFIG.lean, third person only): the camera's horizontal forward and the seen
+   *  elevation past which cards lean back (render/tilestage.ts LEAN_GLSL) */
+  private lean(): { fwd: number[]; from: number } { return this.chase && CHASE_CONFIG.lean ? { fwd: this.fwd, from: LEAN_FROM } : NO_LEAN; }
   private silSheet: SpriteSet | null = null;
   private silData = new Float32Array(20);
 

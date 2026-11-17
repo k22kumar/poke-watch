@@ -18,11 +18,13 @@ import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { compileMove } from '../src/sim/moves';
 import { BTN, NO_INPUT, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
-import { CHASE_CONFIG, ChaseRig, NO_THREAT, chaseAim, lookPitchRange, type ChaseFrame, type ChaseThreat, type ViewSample } from '../src/render/camera';
+import { CHASE_CONFIG, ChaseRig, NO_THREAT, boomElevation, chaseAim, lookPitchRange, offFrameCue, type ChaseFrame, type ChaseThreat, type ViewSample } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { aimRayOf, lookDelta } from '../src/render/hostframe';
 import { rigSize } from '../scripts/lib/chasesize';
 import { mat4 } from '../src/render/gl';
+import { LEAN_FROM, LEAN_GLSL } from '../src/render/tilestage';
+import { VIEW_BEHIND, VIEW_DROP, chaseBehind, inStageView } from '../src/render/view';
 
 type V3 = [number, number, number];
 const D2R = Math.PI / 180;
@@ -345,8 +347,10 @@ test('low ceilings: under a deck at both pitch limits the lens stays under the s
   }
 });
 
-test('geometry behind the bounds: at the down limit the crosshair is at the body on level ground; past ~33 deg up the body has left the frame', () => {
-  // the measurements that set aimPitch (docs/THIRD_PERSON_IMPLEMENTATION.md §16.3), pinned so a retune revisits them
+test('geometry behind the bounds: the Phase 4A lens holds to 40° down with the crosshair ahead of the feet (and the R2 rig\'s 50° limit is at the body); past ~33 deg up the body has left the frame', () => {
+  // the measurements that set aimPitch (docs/THIRD_PERSON_IMPLEMENTATION.md §16.3), pinned so a retune revisits them. R3
+  // keeps the Phase 4A lens up to 40° down (the 40° cap); past it the R3 tests below pin the rise
+  const DOWN4A = CHASE_CONFIG.elevation[1];
   for (const id of SIZES) for (const th of [NO_THREAT, PRESSURE]) {
     const s = rigSize(id);
     const at = (pitch: number) => {
@@ -360,13 +364,15 @@ test('geometry behind the bounds: at the down limit the crosshair is at the body
     // where the crosshair meets level ground, ahead of the feet (yaw pi looks -z)
     const ahead = (r: ChaseRig) => -(r.eye[2] - Math.cos(r.viewPitch) * (r.eye[1] / Math.sin(r.viewPitch)));
     assert.ok(ahead(at(45)) > 0, `${id}: at 45° down the crosshair is still ahead of the feet`);
-    assert.ok(Math.abs(ahead(at(A.down))) < 1, `${id}: at the ${A.down}° limit it is at the body (${ahead(at(A.down)).toFixed(2)} m)`);
+    assert.ok(ahead(at(DOWN4A)) > 0, `${id}: at ${DOWN4A}° the crosshair is ahead of the feet (${ahead(at(DOWN4A)).toFixed(2)} m)`);
+    // the R2 rig (no rise) reproduces §16.3 at its 50° limit: the crosshair at the body
+    withR2Envelope(() => assert.ok(Math.abs(ahead(at(50))) < 1, `${id}: R2 rig at 50°, at the body (${ahead(at(50)).toFixed(2)} m)`));
     // the head's height on screen at 40 deg up, as a fraction of the half-height (-1 = the bottom edge)
     const r = at(-40), vp = r.viewPitch, up = [0, Math.cos(vp), -Math.sin(vp)], dir = r.sample(1, 1).dir;
     const w = sub([0, s.height, 0], r.eye), z = w[0] * dir[0] + w[1] * dir[1] + w[2] * dir[2], y = w[0] * up[0] + w[1] * up[1] + w[2] * up[2];
     assert.ok(y / z / Math.tan(r.fov / 2) < -1, `${id}: at 40° up the body is below the frame`);
-    // the lens never leaves its elevation band for pitch (the band stays the pre-4A one)
-    const hi = at(A.down), elev = Math.atan2(hi.eye[1] - hi.py - hi.pivotH, Math.hypot(hi.eye[0] - hi.px, hi.eye[2] - hi.pz)) / D2R;
+    // up to the Phase 4A limit the lens never leaves its elevation band for pitch (the band stays the pre-4A one)
+    const hi = at(DOWN4A), elev = Math.atan2(hi.eye[1] - hi.py - hi.pivotH, Math.hypot(hi.eye[0] - hi.px, hi.eye[2] - hi.pz)) / D2R;
     assert.ok(elev <= CHASE_CONFIG.elevation[1] + 0.5, `${id}: boom elevation ${elev.toFixed(1)}°`);
   }
 });
@@ -405,4 +411,265 @@ test('R2: the view matrix from yaw and pitch is orthonormal up to and at ±90°,
       for (let k = 0; k < 12; k++) assert.ok(Math.abs(a[k] - b[k]) < 0.0018, `yaw ${yawDeg} ${sgn > 0 ? 'down' : 'up'}: element ${k} continuous at the pole`);
     }
   }
+});
+
+// ================================================================================================ R3: the full envelope
+// docs/THIRD_PERSON_IMPLEMENTATION.md §19, audit F4 and F9, owner decisions B, C, E. The view looks up to 89° above and
+// 89° below the horizon. Inside the Phase 4A envelope (60° up, 50° down) the rig is the R2 rig bit for bit; past 50° down
+// the lens leaves the 40° cap and rises over the Pokémon; looking up the lens stays low and an edge cue shows the body.
+
+/** run fn with the pre-R3 envelope (up 60 / down 50, overhead off: the R2 rig), then restore it */
+function withR2Envelope<T>(fn: () => T): T {
+  const u = A.up, d = A.down, o = A.overhead.on; A.up = 60; A.down = 50; A.overhead.on = false;
+  try { return fn(); } finally { A.up = u; A.down = d; A.overhead.on = o; }
+}
+/** where the crosshair meets level ground (y = 0), ahead of the feet at the origin along the view yaw (pi looks -z) */
+const aheadOf = (r: ChaseRig) => -(r.eye[2] - Math.cos(r.viewPitch) * (r.eye[1] / Math.sin(r.viewPitch)));
+/** a rig settled on flat ground at view pitch `pitch` (deg, + down) */
+function settledAt(id: string, th: ChaseThreat, pitch: number) {
+  const s = rigSize(id), r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
+  const f = frame({ height: s.height, width: s.width, threat: th });
+  for (let i = 0; i < 180; i++) r.update(f);
+  r.look(0, (pitch - A.neutral - r.userPitch) * D2R);
+  for (let i = 0; i < 60; i++) r.update(f);
+  return r;
+}
+const STATES: [string, ChaseThreat][] = [['explore', NO_THREAT], ['combat', COMBAT], ['pressure', PRESSURE]];
+
+test('R3: the envelope is ±89° about the horizon (decision E) in every state, and the ray stays a unit vector there', () => {
+  assert.equal(A.up, 89); assert.equal(A.down, 89);
+  for (const [, th] of STATES) for (const pitch of [-89, 89]) {
+    const r = settledAt('cyndaquil', th, pitch), v = r.sample(1280, 720);
+    assert.ok(Math.abs(v.viewPitch / D2R - pitch) < 1e-9, `${pitch}°: ${v.viewPitch / D2R}`);
+    assert.ok(Math.abs(Math.hypot(...v.dir) - 1) < 1e-12 && Math.abs(v.dir[1] + Math.sin(pitch * D2R)) < 1e-12);
+    r.look(0, Math.sign(pitch) * 0.5); // past the limit: clamped
+    assert.ok(Math.abs(r.viewPitch / D2R - pitch) < 1e-9);
+  }
+});
+
+test('R3: from 60° up to 40° down the rig frames exactly as the R2 rig, on every terrain case, state and size, through fast gestures to both limits', () => {
+  const ceiling = (_x: number, z: number) => (z > -2 && z < 3 ? 2.4 : Infinity);
+  const cases: [string, Partial<ChaseFrame>][] = [
+    ['flat', {}], ['deck', { ceiling }], ['wall behind', { ground: (_x, z) => (z > 1.2 ? 4 : 0) }], ['uphill', { ground: (_x, z) => Math.max(0, -z * 0.4) }],
+    ['airborne', { y: 1.4 }], ['props', { solid: (x, y, z) => (Math.floor(x) + Math.floor(z)) % 3 === 0 && y < 2.4 }],
+  ];
+  // a deterministic gesture of yaw turns and pitch targets inside [-60, 40], hitting both limits exactly
+  const targets = [-60, 40, 12, -35, 40, 39.5, -60, 30, 0, 38, -10, 40];
+  for (const id of ['pichu', 'cyndaquil', 'feraligatr']) for (const [, th] of STATES) for (const [label, c] of cases) {
+    const s = rigSize(id);
+    const go = () => {
+      const r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
+      const out: number[] = [];
+      for (let i = 0; i < 360; i++) {
+        const want = targets[Math.floor(i / 30)], k = i % 30;
+        // reach the target over the first 6 frames of each 30, then hold it while turning
+        if (k < 6) r.look(0.05, ((want - A.neutral - r.userPitch) * D2R) / (6 - k));
+        else r.look(-0.02, 0);
+        r.update(frame({ ...c, height: s.height, width: s.width, threat: th, z: -i * 0.02 }));
+        const v = r.sample(1280, 720);
+        out.push(...r.eye, r.boomUsed, r.shoulderUsed, r.fov, r.viewPitch, ...r.target, ...v.eye, ...v.dir, r.groundPops);
+      }
+      return out;
+    };
+    const r3 = go(), r2 = withR2Envelope(go);
+    assert.deepEqual(r3, r2, `${id} ${label}: R3 rig = R2 rig up to 40° down`);
+  }
+});
+
+test('R3: past 40° down the lens rises with the view (elevation = view pitch); the crosshair meets level ground ahead of the feet from 30° to 89°, moving monotonically toward them', () => {
+  for (const id of SIZES) for (const [st, th] of STATES) {
+    let prevElev = -Infinity, prevAhead = Infinity;
+    for (let p = 30; p <= 89 + 1e-9; p += 0.5) {
+      const r = settledAt(id, th, p);
+      // the boom's elevation in the view's vertical plane (the shoulder offset is across it)
+      const bx = r.eye[0] - r.px, bz = r.eye[2] - r.pz, back = -(bx * Math.sin(r.yaw) + bz * Math.cos(r.yaw));
+      const elev = Math.atan2(r.eye[1] - r.py - r.pivotH, back) / D2R;
+      assert.ok(Math.abs(elev - boomElevation(r.cur.pitch, r.userPitch)) < 1e-6, `${id} ${st} ${p}°: lens at the mapped elevation (${elev.toFixed(3)}°)`);
+      assert.ok(elev >= prevElev - 1e-9, `${id} ${st} ${p}°: the lens only rises as the view looks further down`);
+      assert.ok(elev >= p - 1e-6, `${id} ${st} ${p}°: never below the view pitch (${elev.toFixed(4)})`);
+      if (p >= CHASE_CONFIG.elevation[1]) assert.ok(Math.abs(elev - p) < 1e-6, `${id} ${st} ${p}°: elevation = view pitch (${elev.toFixed(4)})`);
+      const ahead = aheadOf(r);
+      assert.ok(ahead > 0, `${id} ${st} ${p}°: the crosshair is ahead of the feet (${ahead.toFixed(3)} m)`);
+      assert.ok(ahead <= prevAhead + 1e-9, `${id} ${st} ${p}°: monotone toward the feet (${ahead.toFixed(3)} after ${prevAhead.toFixed(3)})`);
+      prevAhead = ahead; prevElev = elev;
+    }
+    assert.ok(aheadOf(settledAt(id, th, 80)) > 0.05, `${id} ${st}: ahead of the feet at 80°`);
+    // the R2 rig on the same pitches: capped at 40°, its crosshair falls behind the feet before 50° in Pressure
+    if (st === 'pressure') withR2Envelope(() => assert.ok(aheadOf(settledAt(id, th, 50)) < 0, `${id}: R2 rig at 50° in Pressure, behind the feet`));
+  }
+});
+
+test('R3: sweeping the pitch in 0.05° steps over the whole envelope moves the lens smoothly, and the same overhead gesture gives the same view at 30, 60, 144, 240 fps', () => {
+  const step = 0.05;
+  for (const id of SIZES) for (const [st, th] of STATES) {
+    const s = rigSize(id), r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
+    const f = frame({ height: s.height, width: s.width, threat: th });
+    for (let i = 0; i < 180; i++) r.update(f);
+    let worst = 0, prev = r.eye.slice();
+    for (const [a, b] of [[A.neutral, 89], [89, -89], [-89, A.neutral]]) {
+      const n = Math.round(Math.abs(b - a) / step), dir = Math.sign(b - a);
+      for (let k = 0; k < n; k++) {
+        r.look(0, dir * step * D2R); r.update(f);
+        // the lens swings about the pivot no faster than the pitch: elevation = state pitch + pitch, the cap, or the pitch
+        const moved = Math.hypot(r.eye[0] - prev[0], r.eye[1] - prev[1], r.eye[2] - prev[2]), arc = r.lensGap * step * D2R;
+        worst = Math.max(worst, moved / arc); prev = r.eye.slice();
+      }
+    }
+    assert.ok(worst < 1.05, `${id} ${st}: largest lens step ${worst.toFixed(3)} × the arc of the pitch step`);
+    assert.equal(r.groundPops, 0, `${id} ${st}: no safety-net slides on open ground`);
+  }
+  // the same mouse and stick gesture into the overhead band (about 80° down) at four frame rates
+  const out: ChaseRig[] = [];
+  for (const fps of [30, 60, 144, 240]) {
+    const r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
+    for (let i = 0; i < 60; i++) r.update(frame({ dt: 1 / 60 }));
+    const n = Math.round(fps * 0.5), dt = 1 / fps;
+    for (let k = 0; k < n; k++) { const d = lookDelta([0, 700 / n], [0.2, 0.3], dt, 1, false)!; r.look(d[0], d[1]); r.update(frame({ dt })); }
+    for (let k = 0; k < fps; k++) r.update(frame({ dt }));
+    out.push(r);
+  }
+  assert.ok(out[0].viewPitch / D2R > 75, `the gesture reaches the overhead band (${(out[0].viewPitch / D2R).toFixed(1)}°)`);
+  for (const r of out.slice(1)) {
+    assert.ok(Math.abs(r.userPitch - out[0].userPitch) < 1e-9 && Math.abs(wrap(r.yaw - out[0].yaw)) < 1e-9);
+    assert.ok(Math.hypot(...sub(r.eye, out[0].eye)) < 0.02, `settled overhead lens ${Math.hypot(...sub(r.eye, out[0].eye)).toFixed(4)} m apart`);
+  }
+});
+
+test('R3: walking under, through and out of a 2.4 m deck while looking 70° and 89° down, the lens stays out of the slab and moves no more per frame than at the Phase 4A limit', () => {
+  // the deck covers z in (-1, 8); yaw pi looks -z. Walks: forward out from under it, backward in, forward under and through
+  const ceiling = (_x: number, z: number) => (z > -1 && z < 8 ? 2.4 : Infinity);
+  const walk = (id: string, pitch: number, mode: 'out' | 'back' | 'thru') => {
+    const s = rigSize(id), r = new ChaseRig();
+    let z = mode === 'out' ? 4 : mode === 'back' ? -7 : 12;
+    r.snapTo(0, 0, z, Math.PI);
+    const f = () => frame({ z, height: s.height, width: s.width, ceiling });
+    for (let i = 0; i < 60; i++) r.update(f());
+    r.look(0, (pitch - A.neutral - r.userPitch) * D2R);
+    for (let i = 0; i < 60; i++) r.update(f());
+    let jump = 0, prev = r.eye.slice();
+    for (let i = 0; i < (mode === 'thru' ? 270 : 150); i++) {
+      z += (mode === 'back' ? 1 : -1) * 0.1; r.update(f());
+      if (ceiling(r.eye[0], r.eye[2]) < Infinity) assert.ok(r.eye[1] <= 2.4 - 0.3 + 1e-9, `${id} ${pitch}° ${mode}: lens ${r.eye[1].toFixed(2)} m under the slab`);
+      jump = Math.max(jump, Math.hypot(...sub(r.eye, prev))); prev = r.eye.slice();
+    }
+    return jump;
+  };
+  // Extra Large is the F5 case (its pivot is inside the slab's clearance: a pre-existing collapse, §17.7, §19)
+  for (const id of ['pichu', 'cyndaquil', 'charmander']) for (const mode of ['out', 'back', 'thru'] as const) {
+    const ref = withR2Envelope(() => walk(id, 50, mode));
+    for (const pitch of [70, 89]) {
+      const j = walk(id, pitch, mode);
+      assert.ok(j <= ref + 0.05, `${id} ${mode} at ${pitch}°: largest frame step ${j.toFixed(2)} m (Phase 4A limit ${ref.toFixed(2)} m)`);
+    }
+  }
+});
+
+test('R3: at the new limits an enemy down a 3 m pit at the feet and one hovering 16 m overhead are centred with look input and hit; the R2 envelope can hit neither', () => {
+  const cases: [string, (ctx: SimContext, W: World) => number, (p: number) => boolean][] = [
+    // a pit whose near edge is 0.5 m ahead of the feet (the partner faces +z); the enemy 1.5 m past the edge, 3 m down.
+    // A lens behind and low (any Phase 4A pitch) sees the pit's far wall, not its floor: only an overhead lens looks in
+    ['pit', (ctx, W) => { for (let i = 45; i <= 55; i++) for (let j = 51; j <= 56; j++) W.map.elev[K(W, i, j)] = -3; return put(ctx, ctx.player.x - 0.4, -3, ctx.player.z + 2); }, (p) => p > 60],
+    // 16 m up, 1.5 m ahead. (Not straight over the head: the crosshair's ground track always passes the Pokémon's
+    // vertical axis at the shoulder offset, 0.24 × the boom, so a point nearer that axis than that cannot be centred)
+    ['overhead', (ctx) => put(ctx, ctx.player.x, 0, ctx.player.z + 1.5, 16), (p) => p < -70],
+  ];
+  for (const [label, make, steep] of cases) for (const r3 of [true, false]) {
+    const run = () => {
+      const { ctx, W } = scene();
+      const e = make(ctx, W);
+      const h = new Host(ctx, 0);
+      for (let i = 0; i < 60; i++) h.render();
+      // the player looks toward it first (the steep solution, not a shallow one through the ground)
+      h.rig.look(0, ((steep(80) ? 80 : -80) - A.neutral - h.rig.userPitch) * D2R);
+      for (let i = 0; i < 30; i++) h.render();
+      // steep up the yaw is slow to settle (turning orbits the lens about the pivot), so the player corrects again
+      let v = h.aimAt(centre(ctx, e));
+      for (let k = 0; k < 3 && rayMiss(v, centre(ctx, e)) > 0.02; k++) v = h.aimAt(centre(ctx, e));
+      const miss = rayMiss(v, centre(ctx, e));
+      let hits = 0;
+      for (let k = 0; k < 60; k++) for (const ev of h.frame(null, k === 0 ? BTN.basic : 0).events) if (ev.t === 'hit' && ev.enemy === e) hits++;
+      if (!r3) { assert.equal(hits, 0, `${label}, R2 envelope: no hit (crosshair ${miss.toFixed(2)} m from it, pitch ${(v.viewPitch / D2R).toFixed(1)}°)`); return; }
+      assert.ok(miss < 0.05, `${label}: the crosshair is on it (${miss.toFixed(3)} m)`);
+      assert.ok(steep(v.viewPitch / D2R), `${label}: that needs ${(v.viewPitch / D2R).toFixed(1)}°`);
+      assert.ok(hits >= 1, `${label}: hit`);
+    };
+    if (r3) run(); else withR2Envelope(run);
+  }
+});
+
+test('R3: off-frame cue: none while the body is on screen (30° up to 89° down, every size and state); looking further up it points down at the body and fades in', () => {
+  const cueAt = (id: string, th: ChaseThreat, pitch: number) => {
+    const s = rigSize(id), r = settledAt(id, th, pitch);
+    return offFrameCue(r.sample(1280, 720), [[0, 0, 0], [0, s.height / 2, 0], [0, s.height, 0]]);
+  };
+  for (const id of SIZES) for (const [st, th] of STATES) {
+    for (let p = -30; p <= 89; p += 1) assert.equal(cueAt(id, th, p), null, `${id} ${st} ${p}°: the body is in frame, no cue`);
+    let prev = 0;
+    for (let p = -30; p >= -89; p -= 0.5) {
+      const c = cueAt(id, th, p), a = c ? c.alpha : 0;
+      assert.ok(a >= prev - 1e-9 && a - prev < 0.35, `${id} ${st} ${p}°: the cue fades in continuously (${prev.toFixed(2)} -> ${a.toFixed(2)})`);
+      if (c) assert.ok(c.dy > 0.9 && c.dx <= 0, `${id} ${st} ${p}°: points down (and left: the lens is on the right shoulder) ${c.dx.toFixed(2)}, ${c.dy.toFixed(2)}`);
+      prev = a;
+    }
+    const c45 = cueAt(id, th, -45), c89 = cueAt(id, th, -89);
+    assert.ok(c45 && c45.alpha === 1 && c89 && c89.alpha === 1, `${id} ${st}: full cue by 45° up (${c45?.alpha})`);
+  }
+});
+
+test('R3: the stage view keeps every ground point the frame shows at 89° down from the highest lens; inside the Phase 4A envelope the plane behind the lens is where it was', () => {
+  // inside the old envelope at the states' FOVs the frame's bottom edge never looks back past the lens
+  for (const fov of [64, 68, 72]) for (let p = -60; p <= 50; p += 0.5) assert.equal(chaseBehind(5, p * D2R, fov * D2R), VIEW_BEHIND, `${fov}° fov, ${p}°`);
+  // the highest lens there is: Extra Large in Pressure with the widest FOV setting, looking straight down
+  const s = rigSize('feraligatr'), r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
+  const f = frame({ height: s.height, width: s.width, threat: PRESSURE });
+  for (let i = 0; i < 300; i++) r.update(f, { pitchRange: lookPitchRange(), fovOffset: 12 });
+  r.look(0, (89 - A.neutral - r.userPitch) * D2R);
+  for (let i = 0; i < 120; i++) r.update(f, { pitchRange: lookPitchRange(), fovOffset: 12 });
+  const v = r.sample(1280, 720), fx = Math.sin(v.yaw), fz = Math.cos(v.yaw);
+  const view = { x: v.eye[0], z: v.eye[2], r: 200, fx, fz, behind: chaseBehind(v.eye[1] - 0, v.viewPitch, v.fov) };
+  const old = { ...view, behind: undefined };
+  const sp = Math.sin(v.viewPitch), cp = Math.cos(v.viewPitch), F = [fx * cp, -sp, fz * cp], R = [-fz, 0, fx], U = [fx * sp, cp, fz * sp];
+  const tv = Math.tan(v.fov / 2), th = tv * v.aspect;
+  let culledBefore = 0;
+  for (const g of [0, -VIEW_DROP]) for (let i = -8; i <= 8; i++) for (let j = -8; j <= 8; j++) {
+    const d = [0, 1, 2].map((k) => F[k] + R[k] * th * (i / 8) + U[k] * tv * (j / 8));
+    if (d[1] >= 0) continue;
+    const t = (g - v.eye[1]) / d[1], x = v.eye[0] + d[0] * t, z = v.eye[2] + d[2] * t;
+    assert.ok(inStageView(view, x, z), `ground point (${i}, ${j}) at ${g} m is drawn`);
+    if (!inStageView(old, x, z)) culledBefore++;
+  }
+  assert.ok(culledBefore > 0, 'without the R3 extension part of that frame was skipped (the defect it fixes)');
+});
+
+test('R3: billboard lean (LEAN_GLSL): upright up to 51.3° of seen elevation, past it the card leans back and keeps its screen height, to 90° from above and below', () => {
+  // the GLSL is pinned so the TS mirror below stays the shader's maths
+  assert.equal(LEAN_GLSL, `
+vec3 leanUp(vec3 d, vec3 fwd, float lim){
+  if (lim <= 0.0) return vec3(0.0, 1.0, 0.0);
+  float el = atan(-d.y, length(d.xz));
+  float ex = sign(el) * max(0.0, abs(el) - lim);
+  if (ex == 0.0) return vec3(0.0, 1.0, 0.0);
+  return vec3(fwd.x * sin(ex), cos(ex), fwd.z * sin(ex));
+}`);
+  const leanUp = (d: V3, fwd: V3, lim: number): V3 => {
+    if (lim <= 0) return [0, 1, 0];
+    const el = Math.atan2(-d[1], Math.hypot(d[0], d[2])), ex = Math.sign(el) * Math.max(0, Math.abs(el) - lim);
+    return ex === 0 ? [0, 1, 0] : [fwd[0] * Math.sin(ex), Math.cos(ex), fwd[2] * Math.sin(ex)];
+  };
+  assert.ok(Math.abs(LEAN_FROM - Math.acos(1 / 1.6)) < 1e-15 && Math.abs(LEAN_FROM / D2R - 51.318) < 1e-3);
+  for (const yawDeg of [0, 50, 180, -110]) {
+    const fwd: V3 = [Math.sin(yawDeg * D2R), 0, Math.cos(yawDeg * D2R)];
+    for (let el = -90; el <= 90; el += 0.5) {
+      // a card straight ahead of the lens, seen `el` degrees from above (+) or below (-), 6 m away
+      const e = el * D2R, d: V3 = [fwd[0] * Math.cos(e) * 6, -Math.sin(e) * 6, fwd[2] * Math.cos(e) * 6];
+      const U = leanUp(d, fwd, LEAN_FROM), st = Math.min(1.6, Math.max(1, 6 / Math.max(Math.hypot(d[0], d[2]), 0.5)));
+      if (Math.abs(el) <= LEAN_FROM / D2R) assert.deepEqual(U, [0, 1, 0], `${el}°: exactly upright`);
+      const n = norm(d), along = U[0] * n[0] + U[1] * n[1] + U[2] * n[2];
+      const screen = st * Math.sqrt(Math.max(0, 1 - along * along)); // its height across the line of sight, per metre of card
+      assert.ok(Math.abs(screen - 1) < 1e-9, `yaw ${yawDeg}, ${el}°: screen height ${screen.toFixed(6)} of the level view's`);
+      if (el > LEAN_FROM / D2R) assert.ok(U[0] * fwd[0] + U[2] * fwd[2] > 0, `${el}°: seen from above it leans away from the lens`);
+      if (el < -LEAN_FROM / D2R) assert.ok(U[0] * fwd[0] + U[2] * fwd[2] < 0, `${el}°: seen from below it leans toward it`);
+    }
+  }
+  assert.deepEqual(leanUp([0, -5, 0.1], [0, 0, 1], 0), [0, 1, 0], 'lean off: upright');
 });

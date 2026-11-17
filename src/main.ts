@@ -35,7 +35,7 @@ import { loadInfo, mapErrorMessage, worldgenFromQuery } from './world/replay';
 const TRANSFORM_MOVE = (id: string) => TRANSFORM_BY_ID[id]?.move;
 import type { InputFrame, SimContext, SimEvent } from './sim/types';
 import { UI } from './ui/ui';
-import { RETICLE_Y, cameraPreset } from './render/camera';
+import { CHASE_CONFIG, RETICLE_Y, cameraPreset } from './render/camera';
 import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
 import { MOVE_SFX } from './audio/sfx';
@@ -376,7 +376,7 @@ function updateLockHint(c: SimContext | null) {
 function drawAwareness(c: SimContext) {
   const W = renderer.canvas.width, H = renderer.canvas.height;
   ui.objective(c, (x, y, z) => renderer.projectEdge(x, y, z), W, H, renderer.pixelScale);
-  if (renderer.chase && !paused && c.state === 'play') ui.threatRing(renderer.threatRing(c), W, H);
+  if (renderer.chase && !paused && c.state === 'play') { ui.threatRing(renderer.threatRing(c), W, H); ui.selfCue(renderer.selfCue, W, H); }
 }
 
 let startPrev = false;
@@ -561,6 +561,9 @@ async function boot() {
     // it); pokewatch.become('lapras') restarts the current run as that species
     roster: () => playRoster().map((r) => ({ id: r.id, tier: r.tier, opening: r.opening, reasons: r.reasons.join('; ') })),
     become,
+    // third-person camera tuning, live (docs/THIRD_PERSON.md): e.g. pokewatch.chase.lean = false, or for the pre-R3 camera
+    // Object.assign(pokewatch.chase.aimPitch, { up: 60, down: 50 }); pokewatch.chase.aimPitch.overhead.on = false
+    chase: CHASE_CONFIG,
     // Pokémon locations (docs/LOCATIONS.md): pokewatch.loc() prints the current map's location, gates, metrics and zone
     // graph; pokewatch.locations lists what ?loc= accepts
     loc: () => {

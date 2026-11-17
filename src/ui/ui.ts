@@ -1263,6 +1263,25 @@ export class UI {
     c.restore();
   }
 
+  /** third person (R3, decision B): while the view has left the player's own Pokémon (looking up past ~33°), a small
+   *  pale-cyan marker (the x-ray silhouette's colour) on the screen edge toward it, fading in as it leaves the frame.
+   *  `cue` is Renderer.selfCue: a unit screen direction (y down) and an opacity. Drawn after threatRing, on the same
+   *  overlay, smaller than its chevrons and kept clear of the move bar */
+  selfCue(cue: { dx: number; dy: number; alpha: number } | null, W: number, Hh: number) {
+    if (!cue || cue.alpha <= 0) return;
+    const c = this.fx2d, m = 12;
+    const k = Math.min((W / 2 - m) / Math.max(1e-3, Math.abs(cue.dx)), (Hh / 2 - m - 34) / Math.max(1e-3, Math.abs(cue.dy)));
+    c.save();
+    c.imageSmoothingEnabled = false;
+    c.globalAlpha = 0.85 * Math.min(1, cue.alpha);
+    c.translate(Math.round(W / 2 + cue.dx * k), Math.round(Hh / 2 + cue.dy * k)); c.rotate(Math.atan2(cue.dy, cue.dx));
+    // a ring with a short point: "you are this way", distinct from the hostile chevrons and the objective arrow
+    c.fillStyle = '#20283a'; c.beginPath(); c.arc(-2, 0, 5, 0, Math.PI * 2); c.moveTo(7, 0); c.lineTo(0, -4); c.lineTo(0, 4); c.fill();
+    c.fillStyle = '#8cf2ff'; c.beginPath(); c.arc(-2, 0, 3, 0, Math.PI * 2); c.moveTo(5, 0); c.lineTo(1, -2.5); c.lineTo(1, 2.5); c.fill();
+    c.fillStyle = '#20283a'; c.beginPath(); c.arc(-2, 0, 1.2, 0, Math.PI * 2); c.fill();
+    c.restore();
+  }
+
   drawNumbers(nums: { x: number; y: number; z: number; text: string; color: string; life: number; size: number }[], project: (x: number, y: number, z: number) => [number, number] | null, W: number, H: number, scale: number) {
     const c = this.fx2d;
     const cv = c.canvas;

@@ -7,11 +7,12 @@ The design behind the numbers is the "Third-Person Execution Blueprint".
 ## What is in
 | Piece | Where |
 |---|---|
-| Rig: states, size framing, collision, climb, player-owned view pitch (slope tilt: legacy), aim ray (pure maths, unit-tested); every tuning value in `CHASE_CONFIG` | `src/render/camera.ts`, `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/freelook.test.ts` |
+| Rig: states, size framing, collision, climb, player-owned view pitch (slope tilt: legacy), the ±89° envelope with the overhead lens (R3), aim ray, off-frame cue (pure maths, unit-tested); every tuning value in `CHASE_CONFIG` | `src/render/camera.ts`, `tests/chase.test.ts`, `tests/camstability.test.ts`, `tests/freelook.test.ts` |
 | Host frame order: look → one `ViewSample` → the frame's sim ticks → render | `src/render/hostframe.ts`, `tests/viewsample.test.ts` |
 | What the rig is told about the world each frame (terrain, decks, map edge, props, threat), shared by the renderer and the diagnostics | `src/render/chaseinput.ts` |
-| Camera branch, sky, fog, per-object billboard stretch, sprite direction relative to the camera | `src/render/renderer.ts`, `src/render/tilestage.ts`, `src/render/sky.ts` |
-| Draw culling (lens-centred in third person) | `src/render/view.ts` |
+| Camera branch, sky, fog, per-object billboard stretch and lean (R3), sprite direction relative to the camera | `src/render/renderer.ts`, `src/render/tilestage.ts`, `src/render/sky.ts` |
+| Draw culling (lens-centred in third person; the plane behind the lens follows a steep down-look, R3) | `src/render/view.ts` |
+| Off-frame cue for the player's own Pokémon (R3) | `src/ui/ui.ts` `selfCue`, `src/main.ts` `drawAwareness` |
 | Minification-aware sprite sampling | `src/render/spritesample.ts` |
 | Mouse capture (pointer lock), right-stick look, hint, pause when the browser releases the mouse | `src/input/input.ts`, `src/main.ts` |
 | Settings: Camera (Third person / Classic / Overhead / Wide), Look speed, Invert look, Field of view | `src/ui/ui.ts` |
@@ -43,8 +44,8 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   | Explore | 9° | 4.2 m | 64° | 6° | — | — |
   | Combat | 13° | 5 m | 68° | 7.5° | a hostile within 20 m | none within 26 m for 3 s |
   | Pressure | 17° | 6.2 m | 72° | 10° | a boss within 25 m, or crowd weight ≥ 20 within 12 m (fodder 1, elite 3, alpha 4, boss 8) | boss beyond 32 m and weight < 12 for 2 s |
-- **Player input:** mouse / right stick turn yaw (free) and pitch: the view looks from 60° above the horizon to 50° below it
-  (`CHASE_CONFIG.aimPitch`), 6° below with no input. FOV offset −10..+12 (setting).
+- **Player input:** mouse / right stick turn yaw (free) and pitch: the view looks from 89° above the horizon to 89° below it
+  (`CHASE_CONFIG.aimPitch`, R3; 60° up / 50° down before it), 6° below with no input. FOV offset −10..+12 (setting).
 - **Free look (Phase 4A, 2026-11-16; `docs/THIRD_PERSON_IMPLEMENTATION.md` §16).** The player owns the view direction. The view
   axis, which is also the crosshair ray the sim receives, is `aimPitch.neutral + userPitch` and nothing else. The state blend,
   the slope ahead, the climb over a wall behind, a jump, the shake, the shoulder swap and boom collision move the lens, and the
@@ -55,7 +56,25 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   higher. Bounds: past ~48–50° down, even the highest boom's crosshair lands behind the Pokémon on level ground. Past ~31–35°
   up, the Pokémon has left the bottom of the frame. 60° up still reaches an enemy on an 8 m ledge 1 m ahead (53–56°).
   `aimPitch.on = false` restores the pre-4A rig (the axis is state tilt + userPitch + slope + 0.7 × climb, with userPitch
-  in −14°..+20° around the state).
+  in −14°..+20° around the state). R3 widened the bounds to ±89° (next item).
+- **Full envelope (R3, 2026-11-16 / 17; `docs/THIRD_PERSON_IMPLEMENTATION.md` §19).** The view looks up to 89° above and
+  below the horizon (owner decisions B, C, E). The boom elevation is the Phase 4A one and never below the view pitch
+  (`boomElevation`, `aimPitch.overhead.on`; the 40° start was approved by the owner on 2026-11-17). Up to 40° down that is
+  the Phase 4A lens bit for bit. Past 40° the boom leaves its cap and rises with the view, so the crosshair ray passes the
+  pivot's vertical line at the pivot (beside it by the shoulder offset) and meets level ground pivot height / tan(pitch)
+  ahead of the feet: ahead of them for every size and state, moving steadily toward them as the view goes down (Cyndaquil
+  0.95 m at 40°, 0.67 m at 50°, 0.14 m at 80°), with the Pokémon just below the crosshair. Under a deck the overhead rise
+  eases out over 0.1 s (`overhead.enter`) and back in over 0.3 s after it (`settle`), so walking under a bridge or out
+  from one while looking down never throws the lens more than it does at 50°. The climb over a wall behind never lifts an
+  overhead boom further (elevation + climb ≤ max(52°, the elevation)). While the rise is in force the boom's collision
+  also looks where the pitch is heading (rate × 0.35 s, at most 24°) and counts forward walking, since an overhead lens is
+  above the Pokémon, not behind it. Looking up, the lens stays where Phase 4A put it (2° elevation) and the Pokémon leaves
+  the frame past ~33°: a small pale-cyan ring with a point (the x-ray silhouette's colour) sits on the screen edge toward
+  it, fading in over the first 15 % of the half-screen past the edge (`offFrameCue`, `CHASE_CONFIG.cue`); it never shows
+  while any of the body is on screen, which includes every down-look on open ground (under a deck the slab keeps the lens
+  low, so a steep down-look there loses the body and the cue points up to it). `aimPitch.up = 60, down = 50` with
+  `overhead.on = false` is the R2 rig exactly (`scripts/camstats.ts --r2envelope`); `pokewatch.chase` is `CHASE_CONFIG` in
+  the page, for playtest comparisons.
 - **Size:** boom × clamp((framing size / 1.2 m)^0.55, 0.7, 1.8), framing size = max(sprite height, 0.6 × sprite width), so a
   wide, low Pokémon is framed like a tall one. The pivot sits at 0.8 × height (fliers 0.9). Tagging another squad member
   eases size, pivot and boom over 0.45 s.
@@ -100,7 +119,7 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   **R2 (pole-safe aim maths, §18):** nothing in the aim maths breaks toward straight up or down. Past
   `rules.aim.muzzleFadeDeg` (60°) of ray pitch the muzzle's forward offset shrinks smoothly to 0 at the pole, a multi-shot
   fan keeps its spread at any pitch, and the view matrix is built from the yaw (`mat4.viewYawPitch`) instead of `lookAt`
-  with world up. The envelope itself is still 60° up / 50° down (R3 widens it).
+  with world up. R3 then widened the envelope to ±89° (see "Full envelope" above).
   **Phase 3 (input acceptance, §15):** on those other (planar) moves the aiming device decides the assistance
   (`rules.aim.assist`): the mouse aims directly (no magnetism, no lead), the stick and touch bend toward an enemy within
   12° (strikes, cones 28°) that the partner can see, and a brief pale ring marks the enemy an assisted cast bent to.
@@ -134,10 +153,16 @@ into each `InputFrame`, so replays depend on recorded input alone.
 ## Renderer changes that were needed
 - No texel snapping, no integer-pixel focus distance; internal resolution is ~400 lines (preset `lines`), integer upscaled.
 - Billboards (creatures, props) stretch by 1 / cos(elevation they are seen at) per object, so far props are not stretched.
+  The stretch is capped at 1.6, which squares texels up to 51.3° of seen elevation. R3 (`CHASE_CONFIG.lean`, `LEAN_GLSL`
+  in `tilestage.ts`): seen from steeper than that, a card leans back about the camera's right axis by the excess (its top
+  away from a lens above it, toward one below), so its screen height stays what it is at 51.3° instead of flattening into a
+  sliver (from an overhead lens the Pokémon was drawn at about a quarter of its height). Below 51.3° nothing changes.
 - Sprite direction is chosen from the facing relative to the camera yaw (`dirIndex(facing − (yaw − π))`; identical at yaw π).
 - Sky gradient, distance fog (per biome in `sky.ts`), mip-mapped + anisotropic terrain textures, ambient particles at 55 % size.
 - Culling is a disc around the lens plus a plane 6 m behind it (`render/view.ts`): it depends only on where the lens is, never
-  on where it looks. Its radius is `chaseViewR(fogFar)` = 1.5 × the biome's fog far distance + 4 m (at most 230 m): past the
+  on where it looks (R3: except that the plane moves back as far as the frame's bottom edge reaches once a high lens looks so
+  steeply down that the edge points back past the vertical, `chaseBehind`: never inside the Phase 4A envelope at the states'
+  FOVs; at 89° from Feraligatr's Pressure lens the old plane skipped ground the frame shows). Its radius is `chaseViewR(fogFar)` = 1.5 × the biome's fog far distance + 4 m (at most 230 m): past the
   far distance the fog closes completely over another half of it (`FOG_GLSL`), so everything beyond the radius is exactly the
   fog colour (as is the sky at the horizon) and skipping it can never make anything on screen appear or vanish. On today's
   128 m regions the radius (109–199 m) still reaches almost the whole map from the spawn; on larger maps it bounds the work.
@@ -229,6 +254,10 @@ frame at 30 fps). Props drawn per frame on the 128 m regions are unchanged (150�
   `--legacypitch` runs the pre-4A view pitch: its output equals the pre-4A tool's output. `--sweep` adds `sweep*` columns: the walk
   again while the player sweeps the pitch over its whole envelope (lens smoothness, slides, lowest lens clearance, and
   `sweepAxisErr`, which is how far the drawn axis was from the player's own pitch; it is 0 under free look).
+  `--r2envelope` runs the pre-R3 camera (60° up / 50° down, no overhead rise): its output, `--sweep` included, equals the R2
+  tool's.
+  `--sweepband 89,89` sweeps that band whatever the rig's own, so two rigs can be compared on the same gesture
+  (`--sweep --sweepband 89,89 --r2envelope` is the R2 rig on R3's sweep).
 - `node tools/cap.mjs dist/index.html tools/chasecheck.json out`: idle (two shots 2 s apart: the view must not move; sprites and grass still animate), turning, walking and
   sudden turns in the forest, a large and a flying Pokémon, a squad tag, combat, taking damage, a boss, a cave, terraces,
   snow, and under a deck; `stress-*` run 8–30 s of combat, turning or walking frame by frame in the page and print the
@@ -272,8 +301,23 @@ Right stick turns the camera. If the mouse is not captured, holding the right mo
   parallel to its old position). With no input, entering Pressure raises the ray 15 m ahead by 0.87 m for Cyndaquil and by
   1.52 m for Feraligatr. The old automatic tilt turned the ray down instead: −0.58 m and −0.21 m at the same point. See
   `docs/THIRD_PERSON_IMPLEMENTATION.md` §16.5 and Q11.
-- **Looking up past ~33°** the Pokémon leaves the bottom of the frame (the boom cannot go below 2° of elevation). At the 60°
-  limit the frame can be all sky.
+- **Looking up past ~33°** the Pokémon leaves the bottom of the frame (the boom cannot go below 2° of elevation); the
+  off-frame cue shows where it is. Past ~60° the frame can be all sky.
+- **Near the vertical, the Pokémon's own axis cannot be centred.** The crosshair ray's ground track always passes the
+  Pokémon's vertical axis at the shoulder offset (0.24 × the boom: 0.9 m for Cyndaquil in Explore, up to 2.3 m for an
+  XL in Pressure), whatever the yaw. A point straight over the Pokémon's head, or straight under an overhead lens's
+  Pokémon, is beside the crosshair, not on it; turning to chase it orbits the lens. Any over-the-shoulder camera has this.
+- **Overhead lens and collision (R3).** Sweeping the whole ±89° envelope at up to 70°/s while walking along cave walls, the
+  R3 camera takes 19 / 17 / 12 single-tick safety-net slides at 60 / 30 / 144 fps against the R2 camera's 17 / 17 / 9 on the
+  same gesture (35 runs of 20 s, the F5 run excluded). The difference is five corrections under 20 cm and one ledge drop
+  in Mt. Moon right after an overhead pass, where both cameras pop (R2 0.70 m, R3 1.08 m): the "convex corners" limit
+  above. The overhead pops beside tall walls that the first R3 draft had (0.5–0.6 m) are fixed (forward-walk
+  anticipation).
+- **XL under decks (F5).** An Extra Large pivot (0.8 × its 2.7 m sprite = 2.17 m) is above a 2.4 m deck's lens clearance
+  (2.05 m), so beside or under such a deck the lens collapses onto its back (815 slides in the camstats run, 9 m lens jumps
+  walking under a deck). Pitch-independent and not made worse by R3 (the overhead lens takes it from 813 to 557 slides in
+  the sweep). Options measured and a recommendation (a slab-aware pivot plus the slab rule along the boom, as its own
+  phase): `docs/THIRD_PERSON_IMPLEMENTATION.md` §19.11.
 - Sprite edges still crawl by a pixel as the camera moves (nearest sampling at ~400 lines, no anti-aliasing): that is the
   pixel-art look, not a defect, but it reads as shimmer on high-contrast edges.
 - **Not validated by hand.** All of the above comes from headless runs, scripted browser probes and screenshots. Nobody has

@@ -3,9 +3,14 @@
 // default (generated regions and Pokémon locations; --authored for the hand-made arenas), and reports how much the
 // camera moves that the player did not ask for. See docs/THIRD_PERSON.md, "Diagnostics".
 //   npx tsx scripts/camstats.ts [--fps 60,144] [--seeds 1,2,3] [--stages 0,1,2,3] [--species cyndaquil,feraligatr]
-//                               [--authored] [--noprops] [--noswap] [--rawsize] [--legacypitch] [--sweep] [--json]
+//                               [--authored] [--noprops] [--noswap] [--rawsize] [--legacypitch] [--r2envelope] [--sweep]
+//                               [--sweepband 89,89] [--json]
 // --noprops lets the lens pass through props (CHASE_CONFIG.propsBlockLens = false); --noswap never swaps shoulder.
 // --legacypitch runs the pre-Phase-4A view pitch (CHASE_CONFIG.aimPitch.on = false: automatic tilt, the [-14, 20] window).
+// --r2envelope runs the pre-R3 envelope (aimPitch up 60 / down 50, overhead off): its output equals the R2 tool's.
+// --sweepband up,down sweeps that band (deg about the horizon) instead of the rig's own, so two rigs can be compared on the
+// same gesture (the rig still clamps to its own envelope): --sweep --sweepband 89,89 --r2envelope is the R2 rig on R3's
+// sweep.
 // --sweep adds the sweep* columns: the walk again while the player sweeps the pitch over its whole envelope.
 //
 // Columns (per seed x stage x species x fps):
@@ -44,6 +49,7 @@ const AUTHORED = process.argv.includes('--authored');
 if (process.argv.includes('--noprops')) CHASE_CONFIG.propsBlockLens = false;
 if (process.argv.includes('--noswap')) CHASE_CONFIG.swap.below = -1;
 if (process.argv.includes('--legacypitch')) CHASE_CONFIG.aimPitch.on = false;
+if (process.argv.includes('--r2envelope')) { Object.assign(CHASE_CONFIG.aimPitch, { up: 60, down: 50 }); CHASE_CONFIG.aimPitch.overhead.on = false; }
 const SWEEP = process.argv.includes('--sweep');
 const D2R = Math.PI / 180;
 
@@ -111,8 +117,9 @@ function fresh(seed: number, stage: number, species: string, calm: boolean) {
 // the scripted walk: forward along the camera while it swings slowly left and right
 const walkCtl: Control = (_c, r, t, dt) => ({ inp: { ...NO_INPUT, mx: Math.sin(r.yaw), mz: Math.cos(r.yaw) }, lookYaw: Math.sin(t * 0.7) * 0.9 * dt });
 /** the same walk while the player sweeps the pitch over the whole band in force (lookPitchRange), up first, every 8 s */
+const BAND = process.argv.includes('--sweepband') ? arg('sweepband', '89,89').split(',').map(Number) : null;
 const sweepCtl: Control = (c, r, t, dt) => {
-  const [lo, hi] = lookPitchRange(), mid = (lo + hi) / 2, amp = (hi - lo) / 2;
+  const [lo, hi] = BAND ? [-BAND[0] - CHASE_CONFIG.aimPitch.neutral, BAND[1] - CHASE_CONFIG.aimPitch.neutral] : lookPitchRange(), mid = (lo + hi) / 2, amp = (hi - lo) / 2;
   const want = mid - amp * Math.sin((t * 2 * Math.PI) / 8 + Math.asin(Math.max(-1, Math.min(1, mid / amp))));
   return { ...walkCtl(c, r, t, dt), lookPitch: (Math.max(lo, Math.min(hi, want)) - r.userPitch) * D2R };
 };
