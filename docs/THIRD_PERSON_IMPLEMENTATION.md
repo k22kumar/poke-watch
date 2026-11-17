@@ -2407,11 +2407,12 @@ flag, as long as the contract stays documented (`docs/CONTROLS.md`, `docs/LOCOMO
   they test `capture()` / `releaseLock()`, which R6c does not touch, and do not obstruct input testing: the R6c input
   tests use their own stub). `npm run check` therefore stops before its build; the production build passes on its own.
 
-**Found, not fixed (pre-existing; reproduces at 060f184).** Runs in one process are not independent: a `boss-rush` run
-(bulbasaur, seed 3, 60 s) before a classic gastly run (seed 4) with injected held jumps changes the gastly run's
-trajectory (60 s hash 1affb2a6 alone, 72db920b after it); without jumps it does not. Checksum lines are reproducible in
-their fixed order, but a line may depend on earlier lines. Owner: diagnose with `diagnosing-bugs` before R6d relies on
-multi-run harnesses.
+**Found and fixed after R6c (pre-existing; reproduced at 060f184).** Runs in one process were not independent: a
+`boss-rush` run (bulbasaur, seed 3) before a classic gastly run (seed 4) with injected held jumps changed the gastly
+run from tick 3261. Cause: the balance bot's shore target (`shoreFor`, `src/sim/hazards.ts`) was one cache slot for
+the process, keyed by tile index alone, and both runs use the authored meadow layout. The sim itself was never affected
+(recorded frames replay identically in any order). The cache is now per World (`WeakMap`); `tests/crossrun.test.ts`
+pins it; docs/HAZARDS.md "Shore target" has the details and the within-world staleness that remains (not fixed).
 
 **Owed (hands-on).** Left-stick-click descend comfort over a 10 s descent and accidental clicks under hard steering on
 real pads (only meaningful once R6d flies); the feel of the 0.12 s buffer and 0.1 s coyote time; the Bindings screen on

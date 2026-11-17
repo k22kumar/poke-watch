@@ -75,6 +75,14 @@ knockback can carry a creature over a lip that it would never walk over by choic
   a tidal floor (dry when the trainer stood there, it can be flooded when the next one arrives).
 - **Tide** (Shoal Grotto, docs/HABITATS.md "Tide"): at high water the tidal floor is ordinary water at the tide's level;
   whoever is on it at the flood is in the water where it stood and the rules above apply unchanged.
+- **Shore target** (`shoreFor` in `src/sim/hazards.ts`): where a driver of the trainer (the balance bot, `habplay`,
+  `habtide`) heads to leave a liquid. No sim system and no human input reads it. It is `World.shore` from the point
+  where the trainer entered a tile, kept until it enters another tile, one answer per World (a `WeakMap`, so it goes
+  with its world). Until 2026-11-17 it was one slot for the whole process, keyed by tile index alone: a run on a map
+  with the same layout (the authored meadow) could be handed the shore another run, or an earlier region of the same
+  run, had computed for that index, so bot-driven runs depended on what ran before them in the process (repro: a
+  bulbasaur seed 3 boss-rush run, then gastly seed 4 classic with held jumps: the gastly run diverged at tick 3261).
+  The sim itself never did: recorded frames replay identically in any order. `tests/crossrun.test.ts` pins both.
 
 ## Tested maps and locations
 
@@ -110,5 +118,10 @@ its `lethal` time. The worst cases cost about 45 % of max HP in water and 43 % i
   Bosses don't steer out of a liquid on their own.
 - **Contact is the body's centre only.** A Pokémon half over a lip stands until its centre crosses. There are no
   guardrails in the tile data, so bridge sides are open.
+- **The shore target can be stale within one world** (not fixed: no measured harm, and fixing it would change bot
+  behaviour). The per-tile answer ignores what changes while the trainer stays on that tile: the partner's footprint
+  (a Tag or an evolution in the water keeps the shore picked for the previous body, which may not fit the new one) and
+  the water (a tide or a thaw that floods or uncovers ground keeps the old target, which may now be under water). It
+  also keeps the answer for the point the tile was entered from. Only the bot and the habitat scripts steer by it.
 - **No swimming art.** Sprites stand at the surface. There is no splash or lava-sizzle effect beyond the impact
   sound and the banner.

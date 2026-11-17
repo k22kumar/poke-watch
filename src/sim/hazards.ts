@@ -17,6 +17,7 @@ import { applyAgent, hurtPlayer, steamAt } from './cells';
 import { killEnemy } from './combat';
 import { ROLE } from './pools';
 import type { Member, SimContext, System } from './types';
+import type { World } from './world';
 import { faint, onHpLoss } from './squad';
 import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
@@ -366,19 +367,24 @@ export function avoidsStep(ctx: SimContext, e: number, ox: number, oz: number, x
   return !safeIn(ctx, kind, ctx.speciesIndex[ctx.enemies.species[e]]);
 }
 
+/** the last shore answer per world: the tile it was asked from and the result. Keyed by the World, so two worlds (two
+ *  runs, or two regions of one run) never share an answer, even on maps with the same layout, and an entry goes with its
+ *  world (tests/crossrun.test.ts; docs/HAZARDS.md "Shore target") */
+const SHORES = new WeakMap<World, { tile: number; x: number; z: number; ok: boolean }>();
 /** Where the trainer should head to leave the liquid it is in: the nearest dry shore with room on its level (World.shore),
- *  cached per tile. For drivers of the trainer (the balance bot, scripted routes); null when not in a liquid. */
-const SHORE = { tile: -1, x: 0, z: 0, ok: false };
+ *  cached per tile of each world. For drivers of the trainer (the balance bot, scripted routes); null when not in a liquid. */
 export function shoreFor(ctx: SimContext): [number, number] | null {
   const P = ctx.player, W = ctx.world;
   if (!playerLiquid(ctx)) return null;
+  let c = SHORES.get(W);
+  if (!c) SHORES.set(W, (c = { tile: -1, x: 0, z: 0, ok: false }));
   const k = W.tile(P.x, P.z);
-  if (k !== SHORE.tile) {
+  if (k !== c.tile) {
     const s = W.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
-    SHORE.tile = k; SHORE.ok = !!s;
-    if (s) { SHORE.x = s[0]; SHORE.z = s[1]; }
+    c.tile = k; c.ok = !!s;
+    if (s) { c.x = s[0]; c.z = s[1]; }
   }
-  return SHORE.ok ? [SHORE.x, SHORE.z] : null;
+  return c.ok ? [c.x, c.z] : null;
 }
 
 export const exposureSystem: System = {
