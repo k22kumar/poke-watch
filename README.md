@@ -33,7 +33,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Guard (tap: deflect or parry; hold: brace) | E (L) · LB |
 | Dash (brief invulnerability) | Shift / B |
 | Jump (onto rocks, logs, bushes; flyers glide while holding). A press jumps once (buffered just before landing, still allowed just after walking off a ledge); holding does not jump again | Space / A |
-| Descend (reserved for flight, which arrives later; does nothing yet) | V · left-stick click or X |
+| Descend (reserved for flight, which arrives later; does nothing yet) | V · left-stick click (provisional; X can be bound instead) |
 | Level-up cards (compact top tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
 | Menus | Arrows / Tab to move, Enter / Space to choose, Esc / Backspace to go back; gamepad d-pad, A, B, Start |
 | Pause | Esc / P |

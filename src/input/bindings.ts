@@ -4,8 +4,8 @@
 // Controls → Bindings (ui/ui.ts).
 //
 // Defaults are the controls of every earlier phase, unchanged, plus `descend` (R6c): V on the keyboard (next to C and
-// Space; C stays `cardPointer`), left-stick click on the pad (provisional, docs/CONTROLS.md "Descend") with X as the
-// fallback bound beside it, and a touch button. Ctrl is not a default: Ctrl + W / S / D are browser shortcuts while
+// Space; C stays `cardPointer`), left-stick click on the pad (provisional, docs/CONTROLS.md "Descend"; X stays free as
+// the alternative a player can bind if it proves uncomfortable: no duplicate default), and a touch button. Ctrl is not a default: Ctrl + W / S / D are browser shortcuts while
 // moving (Ctrl + W cannot be intercepted); a player may still bind it.
 //
 // Gamepad buttons are the W3C "standard" mapping indices. Movement on the pad is the left stick and look / aim the right
@@ -50,7 +50,7 @@ export const PAD_BUTTONS = 16;
  *  RT attack, Start pause, d-pad left / up / right picks and down rerolls while the card tray is open), plus descend */
 export const DEFAULT_PAD: PadBindings = {
   jump: [PAD.a], dash: [PAD.b], basic: [PAD.rt], moveA: [PAD.lt], moveB: [PAD.rb], sig: [PAD.y], guard: [PAD.lb],
-  descend: [PAD.ls, PAD.x], pause: [PAD.start],
+  descend: [PAD.ls], pause: [PAD.start],
   pick1: [PAD.left], pick2: [PAD.up], pick3: [PAD.right], reroll: [PAD.down],
 };
 

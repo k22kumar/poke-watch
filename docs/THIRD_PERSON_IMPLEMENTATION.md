@@ -2364,7 +2364,7 @@ hazard or enemy code. Doc: `docs/CONTROLS.md` (new; the input subsystem); `docs/
   only on a fly / levitate row); `Traversal.airPress`; the validator rejects two meanings on one species (§12.6 rule 1)
   and a take-off from any other kind. No shipped row sets it. `ACT.takeoff` exists and nothing acts on it before R6d.
 - Input (`input/bindings.ts` new, `input/input.ts`, `main.ts`): keyboard and gamepad bindings tables (pad buttons left
-  the hardcoded `pad()`); `descend` = V / left-stick click + X (fallback) / touch button (hidden until R6d); C stays
+  the hardcoded `pad()`); `descend` = V / left-stick click (provisional; X free as the alternative, owner decision) / touch button (hidden until R6d); C stays
   `cardPointer`; `jumpLatch`; `pollPad()` every frame of play latches pad edges (jump and combat). Every earlier default
   unchanged (`tests/controls.test.ts` pins the pre-R6c tables).
 - Settings and UI (`ui/settings.ts`, `ui/ui.ts`, `ui/style.css`): saved overrides `keys` / `pad` (only changed actions,
@@ -2379,6 +2379,13 @@ landing jumps on landing; a press up to 6 ticks after walking off a ledge still 
 (a display above 60 Hz) is no longer lost, for Jump and for the combat buttons (fire acceptance itself unchanged). The
 Dash keeps its jump. Gliders glide as before (hold after the press).
 
+**Owner decisions (2026-11-17, R6c accepted).** The Dash keeps its grounded jump. A press inside the coyote window is a
+ground jump before any airborne meaning (double jump, take-off). Left-stick click is the provisional pad descend; X is
+not bound by default (no duplicate active bindings) and is the alternative if the playtest finds the click
+uncomfortable or too easy to press by accident. The optional `jumpPressed` field is the compatibility switch; no rules
+flag, as long as the contract stays documented (`docs/CONTROLS.md`, `docs/LOCOMOTION.md`) and tested
+(`tests/jumpcontrol.test.ts`, `tests/controls.test.ts`).
+
 **Evidence.**
 - `scripts/checksum.ts`: 60 of 60 lines identical to 9d855f5, after the sim change and again on the final tree.
 - Strict per-tick oracle (R6b's, extended): every player motion field, every enemy's x / y / z / hover / footprint /
@@ -2391,7 +2398,7 @@ Dash keeps its jump. Gliders glide as before (hold after the press).
   the first sample following the key; pad taps of at least one frame likewise (shorter ones fall between polls); a 5 s
   hold jumps once (legacy rule 8). It found the pad defect fixed above (144 fps, 8 ms taps were lost).
 - Real Chromium (production build in a private directory): `tools/navcheck.mjs` 28 / 28 (gamepad Start now through the
-  bindings); a scratch Bindings check 21 / 21 (capture, move-on-conflict note, Esc, Delete, virtual-pad capture, saved,
+  bindings); an ad-hoc browser check of the Bindings screen, not kept in the repo, 21 / 21 (capture, move-on-conflict note, Esc, Delete, virtual-pad capture, saved,
   Reset, a rebound G jumps in play and Space does not, a 2.4 s hold takes off once, hint follows, no page errors).
 - `navwalk all 5` (0 failures), `stuckwatch all 3` (TRAPPED 0), `hazplay`, `habstate`: output identical to 9d855f5.
   `perf-sim 500 --repeat 3 --gate`: p95 0.493 ms / p99 0.839 ms (9d855f5: 0.494 / 0.840), PASS.

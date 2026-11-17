@@ -70,13 +70,14 @@ state hash is unchanged.
 scripted bodies ignore it (checked per tick against runs without it). The touch Descend button exists beside Jump but
 stays hidden until a partner can fly (R6d shows it for a body with a volume capability).
 
-**Pad default: left-stick click (L3), with X bound beside it as the fallback.** What the automated checks show: the
+**Pad default: left-stick click (L3), provisional; X is the alternative.** What the automated checks show: the
 click and the stick are separate inputs, so L3 at full deflection or during hard diagonal steering still gives the full
 planar wish and `my = −1` together; L3 + A cancel to 0; descend is a hold, not a toggle, so an accidental click is a
 descent only while the click lasts (and does nothing at all before R6d). What they cannot show, and a hands-on session
 must: whether L3 can be held comfortably through a 10 s descent while steering, and how often hard steering clicks it
-by accident on real pads. X is bound by default so a player who finds L3 uncomfortable has a descend without opening the
-Bindings screen; it costs the right thumb its aim while held, which is why it is the fallback.
+by accident on real pads. X stays unbound by default (no duplicate active binding, owner decision 2026-11-17): if the
+playtest finds L3 uncomfortable or too easy to click by accident, X is the alternative, bound on the Bindings screen or
+made the default then. It costs the right thumb its aim while held, which is why it is not the first choice.
 
 ## Bindings
 
@@ -88,7 +89,7 @@ pins the pre-R6c tables).
 |---|---|
 | Keyboard | W A S D / arrows move, Space jump, **V descend**, Shift dash, J attack, K Move A, R Move B, Q Signature / Tag, E / L Guard, 1–4 pick, F reroll, X skip, Z banish, **C cursor / camera (`cardPointer`, kept)**, Esc / P pause, M mute, \` tuning |
 | Mouse (fixed) | left attack, right Move A; captured mouse looks and aims |
-| Gamepad | A jump, B dash, X **descend (fallback)**, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**, d-pad ← ↑ → pick and ↓ reroll while the card tray is open; left stick moves, right stick looks (axes, fixed) |
+| Gamepad | A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**, d-pad ← ↑ → pick and ↓ reroll while the card tray is open; left stick moves, right stick looks (axes, fixed). X, Back and right-stick click are free |
 | Touch | Atk, A, B, Sig, Guard, Jump, Dash; Descend (hidden until R6d) |
 
 Ctrl is not a default anywhere: Ctrl + W / S / D are browser shortcuts while moving, and Ctrl + W cannot be intercepted.

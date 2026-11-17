@@ -145,7 +145,7 @@ test('my = ascend − descend from buttons: V descends, Space ascends, both canc
   assert.equal(input.sample(0).my, 0, 'C does not descend');
 });
 
-test('gamepad descend: left-stick click at full deflection still reads both; X is the fallback; L3 + A cancel', async () => {
+test('gamepad descend: left-stick click at full deflection still reads both; X is free until bound; L3 + A cancel', async () => {
   const { input, setPad } = await stubInput();
   setPad([PAD.ls], [1, 0, 0, 0]); // the left stick pushed fully right and clicked
   let f = input.sample(0);
@@ -155,7 +155,13 @@ test('gamepad descend: left-stick click at full deflection still reads both; X i
   f = input.sample(0);
   assert.equal(f.my, -1); assert.ok(Math.hypot(f.mx, f.mz) > 0.98);
   setPad([PAD.x]);
-  assert.equal(input.sample(0).my, -1, 'X: the fallback descend');
+  assert.equal(input.sample(0).my, 0, 'X is no default descend (no duplicate binding)');
+  input.setBindings({}, { descend: [PAD.x] });
+  setPad([PAD.x]);
+  assert.equal(input.sample(0).my, -1, 'X as the alternative, once the player binds it');
+  setPad([PAD.ls]);
+  assert.equal(input.sample(0).my, 0, 'and then it replaces the click');
+  input.setBindings();
   setPad([PAD.ls, PAD.a]);
   f = input.sample(0);
   assert.equal(f.my, 0); assert.equal(f.jumpPressed, true);
@@ -185,11 +191,12 @@ const PRE_R6C_KEYS: Record<string, string[]> = {
 };
 const PRE_R6C_PAD: Record<string, number[]> = { jump: [0], dash: [1], sig: [3], guard: [4], moveB: [5], moveA: [6], basic: [7], pause: [9], pick1: [14], pick2: [12], pick3: [15], reroll: [13] };
 
-test('defaults: every earlier binding unchanged; descend is V and left-stick click + X; no Ctrl; no conflicts', () => {
+test('defaults: every earlier binding unchanged; descend is V and left-stick click; no Ctrl; no conflicts', () => {
   for (const [a, cs] of Object.entries(PRE_R6C_KEYS)) assert.deepEqual(DEFAULT_KEYS[a], cs, a);
   for (const [a, cs] of Object.entries(PRE_R6C_PAD)) assert.deepEqual(DEFAULT_PAD[a], cs, a);
   assert.deepEqual(DEFAULT_KEYS.descend, ['KeyV']);
-  assert.deepEqual(DEFAULT_PAD.descend, [PAD.ls, PAD.x]);
+  assert.deepEqual(DEFAULT_PAD.descend, [PAD.ls]);
+  assert.ok(!Object.values(DEFAULT_PAD).flat().includes(PAD.x), 'X is free: the alternative descend a player may bind');
   assert.deepEqual(DEFAULT_KEYS.cardPointer, ['KeyC']);
   assert.equal(Object.values(DEFAULT_KEYS).flat().filter((c) => c.startsWith('Control')).length, 0, 'Ctrl + W / S / D are browser shortcuts');
   assert.deepEqual(bindingConflicts(DEFAULT_KEYS), []);
