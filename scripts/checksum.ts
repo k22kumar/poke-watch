@@ -47,6 +47,8 @@ const which = process.argv[2] ?? 'all';
 // must print the Phase 2B `aim` hashes exactly.
 // Headroom (R1, docs/SIZING.md "Headroom"): bodies meet deck slabs. Only maps with decks change (`gen`); `gen-headroom-off`
 // must print the `gen` hashes from before it, and every older set turns it off too.
+// Pole-safe aim maths (R2, docs/THIRD_PERSON_IMPLEMENTATION.md §18): only `aim` reaches it (multi-shot fans at a pitch);
+// `aim-pole-off` must print the `aim` hashes from before it, and `aim-2b` turns it off too.
 const HEADROOM_OFF = { headroom: false };
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF };
 const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
@@ -70,9 +72,11 @@ const SETS: Record<string, object | undefined> = {
   aim: undefined,
   'aim-off': { aim: { spatial: false } },
   // Phase 2C (§14): beams back on the planar path and foliage back to cover: the Phase 2B `aim` hashes exactly
-  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true }, size: HEADROOM_OFF },
+  'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true, poleSafe: false }, size: HEADROOM_OFF },
+  // R2 (§18): `aim` with the pre-R2 muzzle and fan maths
+  'aim-pole-off': { aim: { poleSafe: false } },
 };
-const AIMED = new Set(['aim', 'aim-off', 'aim-2b']);
+const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off']);
 
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of CONFIGS) {

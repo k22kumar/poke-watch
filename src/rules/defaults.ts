@@ -63,6 +63,16 @@ export const defaultRules = {
     muzzle: { up: 0.6, fwd: 0.9 },
     /** [B] per-archetype or per-move-key overrides of the muzzle (a move key wins over its archetype) */
     muzzleBy: {} as Record<string, { up?: number; fwd?: number }>,
+    /** [C] R2 pole-safe aim maths (docs/THIRD_PERSON_IMPLEMENTATION.md §18): the muzzle's forward offset follows the
+     *  crosshair ray's horizontal fraction continuously to 0 at the pole (no jump to the partner's facing); a multi-shot
+     *  fan turns in the plane perpendicular to its launch direction (its spread no longer shrinks with pitch); a launch
+     *  straight up or down takes the crosshair ray's heading, not the facing. false = the pre-R2 maths exactly (the
+     *  `aim-pole-off` checksum set) */
+    poleSafe: true,
+    /** [C] R2, degrees from the horizon: up to this ray pitch the muzzle's forward offset is the full `fwd` (bit-identical
+     *  to pre-R2, and the whole of today's 60° up / 50° down envelope); past it the offset shrinks linearly with the ray's
+     *  horizontal fraction, to 0 at ±90°. In [0, 90) */
+    muzzleFadeDeg: 60,
     /** [B] a spatial shot's reach from its muzzle = range × reachMult + speed × reachPad: the distance a legacy shot of
      *  the same move flies (its life is range / speed × 1.25 + 0.2 s), so moving onto this path changes no range */
     reachMult: 1.25, reachPad: 0.2,

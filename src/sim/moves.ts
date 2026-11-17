@@ -18,7 +18,7 @@ import { forceOnPropsIn } from './props';
 import { shotWeight } from '../rules/capabilities';
 import { agentOf, applyAgent } from './cells';
 import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
-import { assistSees, beamLength, combatFlags, resolveSpatial, shotReach, spatialFor } from './aim';
+import { HEAD, assistSees, beamLength, combatFlags, launchHeading, resolveSpatial, shotReach, spatialFor } from './aim';
 import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
 import { TB } from '../rules/build';
 import { tech, techSpec } from './techniques';
@@ -304,9 +304,9 @@ export function resolveAim(ctx: SimContext, s: MoveSpec, manual: boolean, basic:
   // Phase 2B: a direct shot aimed through the chase camera: the sim's own trace of the crosshair ray, no magnetism
   A3.on = false;
   if (spatialFor(ctx, s, manual, basic) && resolveSpatial(ctx, s, A3)) {
-    const hl = dhypot(A3.ux, A3.uz);
+    launchHeading(ctx, A3.ux, A3.uz);
     AIM.t = A3.hitKind === SK.enemy ? A3.hitId : -1;
-    AIM.ux = hl > 1e-6 ? A3.ux / hl : dsin(P.facing); AIM.uz = hl > 1e-6 ? A3.uz / hl : dcos(P.facing);
+    AIM.ux = HEAD.x; AIM.uz = HEAD.z;
     AIM.px = A3.tx; AIM.pz = A3.tz;
     return true;
   }
@@ -798,7 +798,8 @@ function coreSees(ctx: SimContext, mx: number, my: number, mz: number, ux: numbe
 function beam3D(ctx: SimContext, s: MoveSpec): boolean {
   const p = P(ctx), cf = combatFlags(ctx);
   const mx = A3.ox, my = A3.oy, mz = A3.oz, ux = A3.ux, uy = A3.uy, uz = A3.uz;
-  const hl = dhypot(ux, uz), hx = hl > 1e-6 ? ux / hl : dsin(p.facing), hz = hl > 1e-6 ? uz / hl : dcos(p.facing);
+  launchHeading(ctx, ux, uz);
+  const hl = dhypot(ux, uz), hx = HEAD.x, hz = HEAD.z;
   const len = beamLength(ctx, s);
   // 1. the core against the world
   let end = len, why: 'world' | 'actor' | 'range' = 'range', endKind = 0;
@@ -836,11 +837,17 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   const t = AIM.t;
   if (t < 0 && !AIM.manual) return false;
   if (A3.on) {
-    // Phase 2B: from the muzzle toward the crosshair point, in 3D; a fan keeps its pitch and turns about the vertical
-    const sp = s.spread ?? spread;
+    // Phase 2B: from the muzzle toward the crosshair point, in 3D. R2 (rules.aim.poleSafe): a fan turns in the plane
+    // perpendicular to the launch direction u, about u's local up: u cos + r sin, r = the horizontal right of u's heading
+    // (launchHeading), so each shot is `off` from u at any pitch. Level, this is the Phase 2B fan. Pre-R2: turned about
+    // the vertical with u's pitch kept, which shrank the spread toward the poles (20.6° level, 2.5° at 80°, audit F7)
+    const sp = s.spread ?? spread, pole = ctx.rules.aim.poleSafe;
+    let rx = 0, rz = 0;
+    if (pole && s.count > 1) { launchHeading(ctx, A3.ux, A3.uz); rx = HEAD.z; rz = -HEAD.x; }
     for (let k = 0; k < s.count; k++) {
       const off = (k - (s.count - 1) / 2) * sp;
       if (off === 0) spawnShot3D(ctx, s, A3.ux, A3.uy, A3.uz, slot);
+      else if (pole) { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + rx * n, A3.uy * c, A3.uz * c + rz * n, slot); }
       else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + A3.uz * n, A3.uy, A3.uz * c - A3.ux * n, slot); }
     }
     p.facing = datan2(AIM.ux, AIM.uz);

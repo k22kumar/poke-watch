@@ -25,6 +25,8 @@ and the vertical aiming envelope is 60° up and 50° down. Zero-input lens place
 unchanged (§16).
 R1 (2026-11-16, the audit roadmap's first phase) landed roadmap Stage 6C: bodies meet deck slabs by their sim height, and
 wide routing has height classes. Only the `gen` set moves; `gen-headroom-off` reproduces it (§17).
+R2 (2026-11-16) made the aim maths pole-safe (audit F6, F7, F8): a continuous muzzle, a fan that keeps its spread at any
+pitch, a view basis from the yaw. Only the `aim` set moves (pitched multi-shot fans); `aim-pole-off` reproduces it (§18).
 
 **Phases and stages are different numbers.** A *phase* is a work order (Phase 0, 1, 2A, 2B, …); a *stage* is a roadmap row
 in §5. They do not line up: Phase 1 = Stage 2A and part of Stage 1; Phase 2A = Stage 3; Phase 2B = Stage 2B + Stage 4A
@@ -588,6 +590,11 @@ R1 headroom (2026-11-16) moved `gen` on purpose (§17.4): bulbasaur 3 survival `
 charmander 11 boss-rush `c7cd3318` → `7708b606` (lvl 18, 670 kills); cyndaquil 2 and totodile 7 unchanged. New set
 `gen-headroom-off` prints the earlier `gen` hashes exactly. Every older set adds `size.headroom: false`; it and every other
 set (`on`, `aim`, `aim-off`, …) are byte-identical to before.
+
+R2 pole-safe aim maths (2026-11-16) moved `aim` on purpose (§18.4): totodile 7 classic `484352c4` → `d5109b20` (lvl 4, 64
+kills), charmander 11 boss-rush `615644dd` → `4038091c` (lvl 12, 227 kills); cyndaquil 2 and bulbasaur 3 unchanged. Each
+moves first at a multi-shot bolt cast at a pitch. New set `aim-pole-off` prints the earlier `aim` hashes exactly; `aim-2b`
+adds `aim.poleSafe: false`; every other set is byte-identical to before.
 
 ---
 
@@ -1905,3 +1912,108 @@ request releases a late grant without resuming". They specify behaviour `src/inp
 - **Open:** §17.7 (F5 camera half, drawn vs sim height, enemy fliers, deck-map perf, height-blind validators) and §17.8.
 - **Next:** R2 (pole-safe aim maths) is ready with no dependency; R1b (wall tops) needs only its `/grilling` now that
   Appendix A's review points are answered. Decide F5's camera half separately.
+
+## 18. R2: pole-safe aim maths (2026-11-16)
+
+Audit problems F6 (muzzle jumps at the pole), F7 (fan spread closes with pitch) and F8 (view matrix built with world up).
+Decision E: pitch is clamped to ±89°, so the pole is never reached, but the maths must stay continuous up to it. Decision G:
+the `aim` set may move if the old hashes stay reproducible, every difference is explained, and every other set stays
+byte-identical. R2 changes no camera envelope (still 60° up / 50° down; R3 widens it), no movement and no planar family.
+
+### 18.1 Baseline before the change (this checkout, commit d0d557e: Phases 1–4A and R1, committed by the owner)
+`git status` clean. `npm run typecheck` clean. `npm test`: 501 tests, 495 pass, 4 fail (the four `tests/pointerlock.test.ts`
+cases of §17.8, same names), 2 todo. Every `scripts/checksum.ts` set matched §6.3.
+
+### 18.2 What was measured first
+- The `aim` bot's crosshair ray (`scripts/lib/aimbot.ts`) is pitched on nearly every cast: up to 44.8° over the four
+  replays (min launch horizontal fraction 0.12). So the plan's literal muzzle rule (offset × the ray's horizontal fraction
+  at every pitch) would move the muzzle of almost every `aim` shot and break `aim3d`'s "muzzle `fwd` ahead" case, while
+  decision G's terms say only fans should move. Resolved in favour of G: the offset is unchanged up to a fade pitch and
+  only then follows the horizontal fraction (18.3). A diagnostic run with the fade pushed to 89.9° printed the same `aim`
+  hashes as the default 60°, so the fade never engages in the replays.
+- Pre-R2 probes (flag off): Extra Large muzzle 1.120 m jump between 89.99° up and exactly up when the facing is 90° off the
+  camera yaw (audit P5); a 4-shot Ember fan's outer angle 10.31° level, 7.24° at 45°, 1.67° at 80°, 0.06° at 89° (the
+  audit's P6 figures are the full fan width).
+
+### 18.3 Contract (landed, flag `rules.aim.poleSafe`, default on)
+- **Muzzle** (`sim/aim.ts` `resolveSpatial`): forward offset = `fwd` along the ray's heading while the ray's horizontal
+  fraction `hl` ≥ `h0` = cos(`rules.aim.muzzleFadeDeg`, 60°): the pre-R2 expression, bit for bit. Below it the offset is
+  (dx, dz) / h0 × `fwd`: linear in `hl`, 0 at the pole, no division by a vanishing `hl`, no facing fallback. 60° is today's
+  envelope edge, so every ray the camera can send keeps its pre-R2 muzzle (at exactly 60° the two may differ by float
+  rounding, < 1e-7 m).
+- **Fan** (`moves.ts` `straight`, spatial path): shot k = u cos(off) + r sin(off), r = the horizontal right of u's heading:
+  rotation about u's local up, in the plane perpendicular to u, so every shot is `off` from u at any pitch. Level, it is the
+  Phase 2B fan. Pre-R2: rotated about world Y with u's pitch kept.
+- **Heading of a vertical launch** (`aim.ts` `launchHeading`, read by `resolveAim` and `beam3D` for facing, knockback and the
+  beam's ground paint): u's own heading; if u has no horizontal part, the crosshair ray's heading; only a ray that is itself
+  vertical (never sent by the clamped camera) falls back to the facing. Pre-R2: u's heading, else the facing.
+- **View matrix** (`render/gl.ts` `mat4.viewYawPitch`, used by `renderer.ts` for both the chase and fixed views): basis from
+  the yaw, right = (−cos yaw, 0, sin yaw), back = −(sin yaw cos p, −sin p, cos yaw cos p), up = back × right. Orthonormal at
+  every pitch including ±90°; inside the envelope it equals the `lookAt` matrix element by element within 1e-5 (Float32),
+  because both views already look from the eye along (yaw, pitch). Render only; no flag. `overworld/render.ts` and
+  `baker.ts` keep `lookAt` (fixed views far from the pole; not in R2).
+
+### 18.4 Replay checksums
+Only `aim` moves, two of four runs (§6.3), each traced to its first divergent tick by running `aim` and `aim-pole-off` in
+lockstep and comparing every projectile:
+- totodile 7 classic, tick 3659: a 3-shot Water Gun (spread 0.35, a build multi-shot), launch ~1° up (the ray 6.4° down from a
+  lens above the chest); muzzle and aim point identical, the two outer shots' `vy` 0.4206 vs 0.4478 m/s (the `uy cos(off)` term).
+- charmander 11 boss-rush, tick 5371: a 2-shot Ember (count bonus at cast time), launch ~35° up; outer shots 6.88° apart in
+  3D (pre-R2 5.6°).
+Cyndaquil 2 and Bulbasaur 3 unchanged. Totodile 7 then dies at level 4 (was 24): single replays reshuffle (§14.7), so the
+sweep is the evidence. Sweep (bot + aimbot ray, 4 starters × seeds 1–6 × 240 s, classic mode):
+
+| Map | Layer | Survived | Level | Kills |
+|---|---|---|---|---|
+| classic | pre-R2 (`poleSafe` off) | 13 | 13.1 | 637 |
+| classic | R2 | 13 | 13.0 | 619 (−2.8 %) |
+| generated | pre-R2 | 12 | 13.9 | 678 |
+| generated | R2 | 15 | 14.2 | 698 (+3.0 %) |
+
+Inside the ±10 % band; Bulbasaur (no multi-shot bolt) is identical in every run; the others move both ways. The classic
+pre-R2 row equals the Phase 2C row of §14.7 exactly. New set `aim-pole-off` = the earlier `aim` hashes; `aim-2b` adds
+`aim.poleSafe: false`; every other set byte-identical.
+
+### 18.5 Tests (`tests/aim3d.test.ts` +5, `tests/freelook.test.ts` +1)
+- T2: muzzle over ±89.99° in 0.01° steps, largest step 0.09 mm (Tiny) / 0.28 mm (XL), limit 1 cm; through both poles
+  (89.9° → 90° → 89.9° beyond) in 0.001° steps, muzzle < 1 mm and launch < 0.01° per step, on the body axis at 90°; flag
+  off reproduces the 1.120 m jump.
+- Envelope identity: −59.5° … +50° × 4 yaws × three classes, muzzle, launch and aim point `deepEqual` to flag off; past
+  the fade the offset is the formula's at ±70/80/89°.
+- T1: Tiny, Medium, XL × both shoulders × −89, −60, 0, +50, +89°: the bolt leaves the class muzzle (faded offset, on the
+  ray's heading, class height above the feet) and hits the crosshair target.
+- T3: 4-shot fan outer angle 10.31° at 0, ±45, ±80, ±89° (limit 0.5°); flag off: level identical, 80° up closes below a third.
+- `launchHeading`: vertical launch takes the ray's heading; flag off and a vertical ray take the facing.
+- View matrix: orthonormal, right-handed, right from the yaw, looking along (yaw, pitch) at pitches −90 … +90 and five
+  yaws; equal to `lookAt` within 1e-5 inside ±60°; continuous into the pole.
+
+### 18.6 Gates (after the change, this checkout)
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 507: 501 pass, 4 fail, 2 todo. The 4 are the pointer-lock cases of §17.8 (same names); the 6 new tests pass; nothing that passed before fails |
+| `npm run build` | OK (run on its own: `npm run check` stops at the pointer-lock failures) |
+| `scripts/checksum.ts` (all) | as §18.4: only `aim` totodile 7 and charmander 11 move; `aim-pole-off` = old `aim`; `aim-2b` unchanged; every other line identical |
+| `perf-sim 500 --repeat 3 --gate` | PASS, min of 3: p95 0.495, p99 0.839 ms (R1: 0.507 / 0.851) |
+| `perf-sim 500 --repeat 3 --gate --aim` | PASS, min of 3: p95 0.536, p99 0.867 ms |
+Not run: `navwalk`, `stuckwatch`, habitat and hazard gates (R2 changes no movement, collision, habitat, hazard or
+objective code), browser captures (18.7).
+
+### 18.7 Open items and limits
+- **Reach.** The camera still clamps to 60° up / 50° down, so in play only the fan fix shows; the muzzle fade and the
+  view basis matter once R3 widens the envelope. Every ±89° case is exercised by sim-level rays in tests only.
+- **Fade start is a choice.** 60° keeps every reachable ray's muzzle bit-identical; the plan's text read literally
+  (fade at every pitch) would move every pitched shot. `rules.aim.muzzleFadeDeg` is tunable if R3 playtests want another
+  start.
+- **Overhead shots and facing.** Near the vertical, u's heading is ill-conditioned: with the lens behind the body, a
+  shot almost straight up can lean backwards, so the facing turns toward the camera and the fan's order swaps (the set of
+  directions is unchanged). That is the facing question of R5, not maths continuity.
+- **View matrix not captured.** It equals the old matrix within 1e-5 inside the envelope, so no visual change is expected;
+  no browser capture was run.
+- §17.7 (F5 camera half, drawn vs sim height, enemy fliers, deck-map perf, height-blind validators) and §17.8 are unchanged.
+
+### 18.8 Handoff
+- **Status:** R2 complete against its acceptance criteria: muzzle step < 1 cm per 0.01° over ±89.99° (0.28 mm worst);
+  fan outer angle within 0.5° at 0 / 45 / 80 / 89° (identical); view matrix orthonormal at ±89.9° (and ±90°). The `aim`
+  migration followed decision G. Nothing committed.
+- **Next:** R3 (full-sphere envelope) now has its prerequisite. R1b still needs its `/grilling`. Neither started.

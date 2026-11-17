@@ -97,6 +97,10 @@ above the hero and a body-and-a-half behind, the horizon just above the screen c
   crosshair point, stop on the first wall, rise, slab or cliff their core meets, touch only bodies the core can see within
   their width, and are drawn exactly from the muzzle to that end (§14). Foliage (bushes, hedges) is not cover for these
   attacks; trees, rocks and walls are. Every other move still reads `aimX/aimZ`.
+  **R2 (pole-safe aim maths, §18):** nothing in the aim maths breaks toward straight up or down. Past
+  `rules.aim.muzzleFadeDeg` (60°) of ray pitch the muzzle's forward offset shrinks smoothly to 0 at the pole, a multi-shot
+  fan keeps its spread at any pitch, and the view matrix is built from the yaw (`mat4.viewYawPitch`) instead of `lookAt`
+  with world up. The envelope itself is still 60° up / 50° down (R3 widens it).
   **Phase 3 (input acceptance, §15):** on those other (planar) moves the aiming device decides the assistance
   (`rules.aim.assist`): the mouse aims directly (no magnetism, no lead), the stick and touch bend toward an enemy within
   12° (strikes, cones 28°) that the partner can see, and a brief pale ring marks the enemy an assisted cast bent to.

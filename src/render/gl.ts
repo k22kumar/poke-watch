@@ -90,6 +90,25 @@ export const mat4 = {
     out[15] = 1;
     return out;
   },
+  /** R2 (docs/THIRD_PERSON_IMPLEMENTATION.md §18): the view matrix of a lens at `eye` looking along yaw (0 = +z, toward
+   *  +x as it grows) and pitch (radians, + = down), the basis built from the yaw: right = (−cos yaw, 0, sin yaw),
+   *  back = −(sin yaw cos pitch, −sin pitch, cos yaw cos pitch), up = back × right. Orthonormal at every pitch, the
+   *  poles included, where lookAt's `world up × forward` vanishes; elsewhere the same matrix as lookAt toward
+   *  eye + that direction with world up (no roll) */
+  viewYawPitch(out: Float32Array, eye: readonly number[], yaw: number, pitch: number) {
+    const sy = Math.sin(yaw), cy = Math.cos(yaw), sp = Math.sin(pitch), cp = Math.cos(pitch);
+    const xx = -cy, xy = 0, xz = sy;
+    const zx = -sy * cp, zy = sp, zz = -cy * cp;
+    const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+    out[0] = xx; out[1] = yx; out[2] = zx; out[3] = 0;
+    out[4] = xy; out[5] = yy; out[6] = zy; out[7] = 0;
+    out[8] = xz; out[9] = yz; out[10] = zz; out[11] = 0;
+    out[12] = -(xx * eye[0] + xy * eye[1] + xz * eye[2]);
+    out[13] = -(yx * eye[0] + yy * eye[1] + yz * eye[2]);
+    out[14] = -(zx * eye[0] + zy * eye[1] + zz * eye[2]);
+    out[15] = 1;
+    return out;
+  },
   mul(out: Float32Array, a: Float32Array, b: Float32Array) {
     const r = new Float32Array(16);
     for (let c = 0; c < 4; c++)

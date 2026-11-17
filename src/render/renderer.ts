@@ -624,7 +624,9 @@ export class Renderer {
       near = 0.3; far = 240;
       this.stretch = -1; // per-object (see the billboard shaders)
     }
-    mat4.lookAt(this.V, this.eye, [tx, ty, tz], [0, 1, 0]);
+    // R2: the basis from the yaw, not lookAt's world up (degenerate at a vertical view). Both views look from the eye along
+    // (yaw, pitch) at the target, so this is the same matrix inside today's envelope and stays orthonormal past it
+    mat4.viewYawPitch(this.V, this.eye, this.yaw, this.pitch);
     mat4.perspective(this.P, fov, this.width / this.height, near, far);
     mat4.mul(this.VP, this.P, this.V);
     this.right = [this.V[0], this.V[4], this.V[8]];

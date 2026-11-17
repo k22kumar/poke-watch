@@ -22,7 +22,8 @@ import { stateHash } from '../src/sim/checksum';
 import { projectileSystem } from '../src/sim/effects';
 import { PK } from '../src/sim/pools';
 import { SK } from '../src/sim/spatial';
-import { BTN, NO_INPUT, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
+import { HEAD, launchHeading, resolveSpatial } from '../src/sim/aim';
+import { BTN, NO_INPUT, freshAimState, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
 import { ChaseRig, chaseAim, lookPitchRange, type AimView } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { rigSize } from '../scripts/lib/chasesize';
@@ -430,4 +431,158 @@ test('the host adapter: the crosshair ray of a real ChaseRig sample, quantised; 
   let hit = 0;
   for (let k = 0; k < 60; k++) for (const ev of step(ctx, { ...NO_INPUT, btn: k === 0 ? BTN.basic : 0, aim: ray, aimDev: 'mouse', aimX: at[0], aimZ: at[2] })) if (ev.t === 'hit' && ev.enemy === e) hit++;
   assert.ok(hit >= 1);
+});
+
+// ------------------------------------------------------------------------------------------------ R2: pole-safe aim maths
+// docs/THIRD_PERSON_IMPLEMENTATION.md §18, audit F6 / F7 (rules.aim.poleSafe). The camera still stops at 60° up / 50°
+// down (R3 widens it), but the sim takes any ray, so these build rays of any pitch directly. Pitch sign is the camera's:
+// + = down.
+const POLE_OFF: DeepPartial<Rules> = { aim: { poleSafe: false } };
+/** the unit direction of a crosshair ray at pitch `p` (+ down) and yaw `y` (0 = +z), degrees */
+function dirAt(p: number, y = 0): V3 {
+  const pr = p * D2R, yr = y * D2R;
+  return [Math.sin(yr) * Math.cos(pr), -Math.sin(pr), Math.cos(yr) * Math.cos(pr)];
+}
+/** the expected horizontal muzzle offset at ray pitch p: the full fwd up to rules.aim.muzzleFadeDeg, then linear in the
+ *  ray's horizontal fraction down to 0 at the pole */
+function fadeOffset(ctx: SimContext, p: number): number {
+  const R = ctx.rules, sp = ctx.player.species;
+  const fwd = (partnerFootprint(sp, R) || partnerRadius(sp, R)) * R.aim.muzzle.fwd;
+  return fwd * Math.min(1, Math.cos(p * D2R) / Math.cos(R.aim.muzzleFadeDeg * D2R));
+}
+/** resolve the spatial aim of the partner's first move for a ray along d through its chest from 4 m back (the sim's
+ *  own resolveSpatial, nothing stepped) */
+function resolveAlong(ctx: SimContext, d: V3, out = freshAimState()) {
+  const P = ctx.player, cy = P.y + partnerHeight(P.species, ctx.rules) * ctx.rules.aim.muzzle.up;
+  ctx.input = { ...NO_INPUT, aim: { ox: P.x - d[0] * 4, oy: cy - d[1] * 4, oz: P.z - d[2] * 4, dx: d[0], dy: d[1], dz: d[2] } };
+  assert.ok(resolveSpatial(ctx, P.moves[0].spec, out));
+  return out;
+}
+
+test('R2 (T2): the muzzle is continuous over ±89.99° and through both poles; pre-R2 it jumped to the facing', () => {
+  for (const cls of ['tiny', 'xl']) {
+    const sc = scene({ species: speciesOf(cls) }), old = scene({ species: speciesOf(cls), rules: POLE_OFF });
+    // the partner faces +x while the camera looks along +z: the case where the pre-R2 fallback moved the muzzle
+    sc.ctx.player.facing = old.ctx.player.facing = Math.PI / 2;
+    let prev: V3 | null = null, worst = 0;
+    for (let k = -8999; k <= 8999; k++) {
+      const o = resolveAlong(sc.ctx, dirAt(k / 100)), m: V3 = [o.ox, o.oy, o.oz];
+      if (prev) worst = Math.max(worst, len(sub(m, prev)));
+      prev = m;
+    }
+    assert.ok(worst < 0.01, `${cls}: largest muzzle step per 0.01° over ±89.99° ${(worst * 100).toFixed(3)} cm`);
+    // over the top and under the bottom: 89.9° → 90° → 89.9° on the far side, in 0.001° steps
+    for (const sgn of [1, -1]) {
+      let pm: V3 | null = null, pu: V3 | null = null, wm = 0, wu = 0;
+      for (let k = 0; k <= 200; k++) {
+        const th = (89.9 + k / 1000) * D2R, d: V3 = [0, sgn * Math.sin(th), Math.cos(th)];
+        const o = resolveAlong(sc.ctx, d), m: V3 = [o.ox, o.oy, o.oz], u: V3 = [o.ux, o.uy, o.uz];
+        if (pm && pu) { wm = Math.max(wm, len(sub(m, pm))); wu = Math.max(wu, Math.acos(Math.min(1, dot(u, pu))) / D2R); }
+        pm = m; pu = u;
+        if (k === 100) {
+          const P = sc.ctx.player;
+          assert.ok(Math.hypot(o.ox - P.x, o.oz - P.z) < 1e-9, `${cls} ${sgn > 0 ? 'up' : 'down'}: at the pole the muzzle is on the body's axis`);
+        }
+      }
+      assert.ok(wm < 1e-3, `${cls} ${sgn > 0 ? 'up' : 'down'}: muzzle step through the pole ${(wm * 1000).toFixed(3)} mm per 0.001°`);
+      assert.ok(wu < 0.01, `${cls} ${sgn > 0 ? 'up' : 'down'}: launch turns ${wu.toFixed(4)}° per 0.001° through the pole`);
+    }
+    // the defect, flag off: 89.99° up, then exactly up (the facing takes over)
+    const a = resolveAlong(old.ctx, dirAt(-89.99)), b = resolveAlong(old.ctx, [0, 1, 0]);
+    const jump = Math.hypot(a.ox - b.ox, a.oz - b.oz);
+    if (cls === 'xl') assert.ok(jump > 0.5, `pre-R2: the muzzle jumped ${jump.toFixed(3)} m at the pole`);
+  }
+});
+
+test('R2: inside today\'s envelope (60° up to 50° down) the muzzle and launch are the pre-R2 ones exactly; past the fade pitch the offset shrinks to 0', () => {
+  for (const cls of ['tiny', 'medium', 'xl']) {
+    const sc = scene({ species: speciesOf(cls) }), old = scene({ species: speciesOf(cls), rules: POLE_OFF });
+    for (let p = -59.5; p <= 50; p += 0.5) for (const y of [0, 37, 133, -101]) {
+      const a = resolveAlong(sc.ctx, dirAt(p, y)), b = resolveAlong(old.ctx, dirAt(p, y));
+      assert.deepEqual([a.ox, a.oy, a.oz, a.ux, a.uy, a.uz, a.tx, a.ty, a.tz], [b.ox, b.oy, b.oz, b.ux, b.uy, b.uz, b.tx, b.ty, b.tz], `${cls} pitch ${p} yaw ${y}`);
+    }
+    for (const p of [-89, -80, -70, 70, 80, 89]) {
+      const o = resolveAlong(sc.ctx, dirAt(p, 20)), P = sc.ctx.player, want = fadeOffset(sc.ctx, p);
+      assert.ok(Math.abs(Math.hypot(o.ox - P.x, o.oz - P.z) - want) < 1e-9, `${cls} ${p}°: offset ${want.toFixed(4)} m`);
+    }
+  }
+});
+
+test('R2 (T1): Tiny, Medium and XL, both shoulders, pitch 89° up to 89° down: the bolt leaves the class muzzle and hits the crosshair target', () => {
+  for (const cls of ['tiny', 'medium', 'xl']) for (const side of [1.25, -1.25]) for (const p of [-89, -60, 0, 50, 89]) {
+    const { ctx } = scene({ species: speciesOf(cls) });
+    const P = ctx.player, R = ctx.rules;
+    // looking down from the air (12 m up) so there is something below to aim at; looking level or up from the ground
+    if (p > 0) { P.y = P.py = 12; P.vy = 0; }
+    const up = partnerHeight(P.species, R) * R.aim.muzzle.up, d = dirAt(p);
+    const chest: V3 = [P.x, P.y + up, P.z];
+    // the target 10 m along the ray from the chest plane, on the shoulder's side; the lens 4.5 m back along the ray (under
+    // the ground for the steep up-looks: the sim traces from the chest plane, so only the ray matters)
+    const at: V3 = [chest[0] + d[0] * 10 + side, chest[1] + d[1] * 10, chest[2] + d[2] * 10];
+    const e = put(ctx, at[0], 0, at[2], 'tiny', 0);
+    ctx.enemies.y[e] = ctx.enemies.py[e] = at[1] - ctx.enemies.tall[e] / 2; ctx.enemies.hover[e] = ctx.enemies.y[e];
+    const eye: V3 = [at[0] - d[0] * 14.5, at[1] - d[1] * 14.5, at[2] - d[2] * 14.5];
+    const l = { eye, dir: d, view: { eye, yaw: 0, viewPitch: p * D2R, fov: 1 } as AimView };
+    const log = fire(ctx, () => l, 60);
+    const c = casts(log)[0], tag = `${cls} shoulder ${side} pitch ${p}`;
+    assert.ok(c && c.o, `${tag}: cast`);
+    const o = c.o!.o, off = Math.hypot(o[0] - c.x, o[2] - c.z);
+    assert.ok(Math.abs(off - fadeOffset(ctx, p)) < 1e-4, `${tag}: muzzle ${off.toFixed(4)} m ahead (want ${fadeOffset(ctx, p).toFixed(4)})`);
+    assert.ok(off < 1e-6 || (o[2] - c.z) > 0, `${tag}: on the ray's heading`);
+    // (in the air the partner has fallen a little by the release tick)
+    const feet = o[1] - up;
+    assert.ok(p > 0 ? feet > 11 && feet <= 12 : Math.abs(feet) < 1e-4, `${tag}: ${up.toFixed(2)} m above the feet (${feet.toFixed(3)})`);
+    assert.equal(c.o!.kind, SK.enemy, `${tag}: the crosshair is on the target`);
+    assert.ok(hitsOn(log, e) >= 1, `${tag}: hit`);
+  }
+});
+
+test('R2 (T3): a 4-shot fan keeps its outer angle at 0, 45, 80 and 89° up and down; pre-R2 it closed toward the pole', () => {
+  /** the angle (deg) of the outermost shots from the fan's bisector, for a 4-shot Ember fired along pitch p into the sky
+   *  (up) or from 30 m up toward the ground (down), the lens on the line through the chest (so level is level) */
+  function outer(rules: DeepPartial<Rules>, p: number): number {
+    const { ctx } = scene({ rules });
+    const P = ctx.player, sp = P.moves[0].spec;
+    P.moves[0].spec = { ...sp, count: 4 };
+    if (p > 0) { P.y = P.py = 30; P.vy = 0; }
+    const d = dirAt(p);
+    const Pr = ctx.projectiles, v: V3[] = [];
+    // hold fire until the release tick spawns the fan (the lens follows the falling partner when looking down)
+    for (let k = 0; k < 60 && !v.length; k++) {
+      const cy = P.y + partnerHeight(P.species, ctx.rules) * ctx.rules.aim.muzzle.up, eye: V3 = [P.x - d[0] * 4.5, cy - d[1] * 4.5, P.z - d[2] * 4.5];
+      step(ctx, frame(ctx, { eye, dir: d, view: { eye, yaw: 0, viewPitch: p * D2R, fov: 1 } }, BTN.basic));
+      for (let i = 0; i < Pr.hi; i++) if (Pr.alive[i] && Pr.kind[i] !== PK.hostile) v.push(norm([Pr.vx[i], Pr.vy[i], Pr.vz[i]]));
+    }
+    assert.equal(v.length, 4, `pitch ${p}: four shots`);
+    let best = 0;
+    for (let a = 0; a < 4; a++) for (let b = a + 1; b < 4; b++) best = Math.max(best, Math.acos(Math.min(1, dot(v[a], v[b]))));
+    return best / 2 / D2R;
+  }
+  const level = outer({}, 0);
+  assert.ok(level > 5, `level fan outer angle ${level.toFixed(2)}°`);
+  for (const p of [45, 80, 89, -45, -80, -89]) {
+    const a = outer({}, p);
+    assert.ok(Math.abs(a - level) < 0.5, `pitch ${p}: outer angle ${a.toFixed(2)}° (level ${level.toFixed(2)}°)`);
+  }
+  assert.ok(Math.abs(outer(POLE_OFF, 0) - level) < 1e-6, 'level: the pre-R2 fan exactly');
+  const shut = outer(POLE_OFF, -80);
+  assert.ok(shut < level / 3, `pre-R2 at 80° up: ${shut.toFixed(2)}° (the defect)`);
+});
+
+test('R2: a launch straight up or down takes the crosshair ray\'s heading for the planar side, not the facing', () => {
+  const { ctx } = scene(), old = scene({ rules: POLE_OFF }).ctx;
+  for (const c of [ctx, old]) {
+    c.player.facing = Math.PI / 2; // facing +x
+    c.input = { ...NO_INPUT, aim: { ox: 0, oy: 0, oz: 0, dx: -0.6, dy: 0.8, dz: 0 } }; // the ray looks steeply up toward −x
+  }
+  launchHeading(ctx, 0, 0);
+  assert.ok(Math.abs(HEAD.x + 1) < 1e-12 && Math.abs(HEAD.z) < 1e-12, `R2: the ray's heading (${HEAD.x}, ${HEAD.z})`);
+  launchHeading(ctx, 0.3, -0.4);
+  assert.ok(Math.abs(HEAD.x - 0.6) < 1e-12 && Math.abs(HEAD.z + 0.8) < 1e-12, 'a launch with a horizontal part keeps its own heading');
+  launchHeading(old, 0, 0);
+  assert.ok(Math.abs(HEAD.x - 1) < 1e-12, 'pre-R2: the facing');
+  // a ray that is itself vertical (never sent by the clamped camera) leaves only the facing
+  ctx.input = { ...NO_INPUT, aim: { ox: 0, oy: 0, oz: 0, dx: 0, dy: 1, dz: 0 } };
+  launchHeading(ctx, 0, 0);
+  assert.ok(Math.abs(HEAD.x - 1) < 1e-12, 'a vertical ray: the facing');
 });

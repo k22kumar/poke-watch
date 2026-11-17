@@ -6,7 +6,9 @@
 //                    aim point T (with nothing there, T is the ray's end: firing into empty space)
 //   2. muzzle        M = the partner's feet + up × its class height, + fwd × its footprint along the ray's heading
 //                    (rules.aim.muzzle, overridden per archetype or move key by rules.aim.muzzleBy). A wall between the
-//                    body's axis and M (a corner inside the body's own reach) puts M back on the axis
+//                    body's axis and M (a corner inside the body's own reach) puts M back on the axis. R2 (pole safety,
+//                    rules.aim.poleSafe): past rules.aim.muzzleFadeDeg of ray pitch the forward offset shrinks with the
+//                    ray's horizontal fraction, to 0 straight up or down, so M is continuous across the pole
 //   3. launch        u = (T − M) / |T − M|; an aim point within rules.aim.convergeMin of M, or behind it, fires along the
 //                    crosshair ray instead
 //   4. obstruction   the shot's own volume swept from M toward T: the first contact that would stop it (the world, or
@@ -71,6 +73,29 @@ export function shotReach(ctx: SimContext, s: MoveSpec): number {
   return s.range * ctx.rules.aim.reachMult + s.speed * ctx.rules.aim.reachPad;
 }
 
+/** R2: the horizontal fraction of the ray (cos of its pitch) below which the muzzle offset fades (rules.aim.muzzleFadeDeg) */
+function muzzleFadeHl(ctx: SimContext): number {
+  const deg = ctx.rules.aim.muzzleFadeDeg;
+  return dcos((deg < 0 ? 0 : deg > 89.9 ? 89.9 : deg) * (Math.PI / 180));
+}
+
+/** The horizontal heading (unit x, z, written to HEAD) that the planar side of a spatial cast uses (facing, knockback,
+ *  the beam's ground paint) for launch direction (ux, uz): its own heading; a launch straight up or down (no horizontal
+ *  part) takes the crosshair ray's heading (R2, rules.aim.poleSafe), and only a ray that is itself vertical, which the
+ *  pitch clamp never sends, the partner's facing. Pre-R2 (poleSafe off): its own heading, else the facing */
+export const HEAD = { x: 0, z: 1 };
+export function launchHeading(ctx: SimContext, ux: number, uz: number): void {
+  const hl = dhypot(ux, uz);
+  if (hl > 1e-6) { HEAD.x = ux / hl; HEAD.z = uz / hl; return; }
+  const ray = ctx.input.aim;
+  if (ctx.rules.aim.poleSafe && ray) {
+    const rl = dhypot(ray.dx, ray.dz);
+    if (rl > 1e-6) { HEAD.x = ray.dx / rl; HEAD.z = ray.dz / rl; return; }
+  }
+  const f = ctx.player.facing;
+  HEAD.x = dsin(f); HEAD.z = dcos(f);
+}
+
 /** a body the partner is holding: its own shots pass it (effects.ts effectOnBody) */
 const held = (ctx: SimContext, kind: number, id: number) => kind === SK.body && ctx.bodies.holdT[id] > 0;
 
@@ -87,11 +112,15 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   if (!(L > 1e-6) || !Number.isFinite(ray.ox + ray.oy + ray.oz)) return false;
   dx /= L; dy /= L; dz /= L;
 
-  // 2. the muzzle, on the ray's heading (straight up or down: the partner's facing)
+  // 2. the muzzle, on the ray's heading. R2: the full offset up to the fade pitch (hl ≥ h0, the pre-R2 expression), then
+  // (dx, dz) / h0: linear in the horizontal fraction hl, 0 at the pole, no division by a vanishing hl and no facing.
+  // Pre-R2 (poleSafe off): a ray straight up or down took the partner's facing (a jump of up to 2 × fwd at the pole)
   const sp = P.species, m = muzzleOf(ctx, s);
   const up = partnerHeight(sp, ctx.rules) * m.up, fwd = (partnerFootprint(sp, ctx.rules) || partnerRadius(sp, ctx.rules)) * m.fwd;
   const hl = dhypot(dx, dz);
-  const hx = hl > 1e-6 ? dx / hl : dsin(P.facing), hz = hl > 1e-6 ? dz / hl : dcos(P.facing);
+  let hx: number, hz: number;
+  if (!R.poleSafe) { hx = hl > 1e-6 ? dx / hl : dsin(P.facing); hz = hl > 1e-6 ? dz / hl : dcos(P.facing); }
+  else { const h0 = muzzleFadeHl(ctx); if (hl >= h0) { hx = dx / hl; hz = dz / hl; } else { hx = dx / h0; hz = dz / h0; } }
   const cx = P.x, cy = P.y + up, cz = P.z;
   let mx = cx + hx * fwd, my = cy, mz = cz + hz * fwd;
   const cf = combatFlags(ctx);

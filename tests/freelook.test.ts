@@ -22,6 +22,7 @@ import { CHASE_CONFIG, ChaseRig, NO_THREAT, chaseAim, lookPitchRange, type Chase
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { aimRayOf, lookDelta } from '../src/render/hostframe';
 import { rigSize } from '../scripts/lib/chasesize';
+import { mat4 } from '../src/render/gl';
 
 type V3 = [number, number, number];
 const D2R = Math.PI / 180;
@@ -367,5 +368,41 @@ test('geometry behind the bounds: at the down limit the crosshair is at the body
     // the lens never leaves its elevation band for pitch (the band stays the pre-4A one)
     const hi = at(A.down), elev = Math.atan2(hi.eye[1] - hi.py - hi.pivotH, Math.hypot(hi.eye[0] - hi.px, hi.eye[2] - hi.pz)) / D2R;
     assert.ok(elev <= CHASE_CONFIG.elevation[1] + 0.5, `${id}: boom elevation ${elev.toFixed(1)}°`);
+  }
+});
+
+// ------------------------------------------------------------------------------------------------ R2: the view basis
+// docs/THIRD_PERSON_IMPLEMENTATION.md §18, audit F8. The renderer builds its view matrix from the yaw (mat4.viewYawPitch)
+// instead of lookAt with world up, whose `up × forward` vanishes at a vertical view.
+test('R2: the view matrix from yaw and pitch is orthonormal up to and at ±90°, and is lookAt\'s matrix inside the envelope', () => {
+  const rows = (m: Float32Array): V3[] => [[m[0], m[4], m[8]], [m[1], m[5], m[9]], [m[2], m[6], m[10]]];
+  const dot3 = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const eye = [3.5, 2.2, -7.25];
+  for (const yawDeg of [0, 37, 90, 180, -123]) {
+    const yaw = yawDeg * D2R;
+    for (const pDeg of [-90, -89.99, -89.9, -89, -60, -20, 0, 20, 50, 89, 89.9, 89.99, 90]) {
+      const p = pDeg * D2R, V = mat4.viewYawPitch(new Float32Array(16), eye, yaw, p), [x, y, z] = rows(V);
+      for (const [a, b, want] of [[x, x, 1], [y, y, 1], [z, z, 1], [x, y, 0], [y, z, 0], [z, x, 0]] as [V3, V3, number][]) {
+        assert.ok(Math.abs(dot3(a, b) - want) < 1e-6, `yaw ${yawDeg} pitch ${pDeg}: orthonormal`);
+      }
+      // right-handed, the view looking along (yaw, pitch), right horizontal (no roll), the eye at the origin
+      const look: V3 = [Math.sin(yaw) * Math.cos(p), -Math.sin(p), Math.cos(yaw) * Math.cos(p)];
+      assert.ok(dot3(z, look) < -1 + 1e-6, `yaw ${yawDeg} pitch ${pDeg}: looks along the view direction`);
+      assert.ok(Math.abs(x[1]) < 1e-7 && Math.abs(dot3(x, [-Math.cos(yaw), 0, Math.sin(yaw)]) - 1) < 1e-6, `yaw ${yawDeg} pitch ${pDeg}: right from the yaw`);
+      const c: V3 = [y[1] * z[2] - y[2] * z[1], y[2] * z[0] - y[0] * z[2], y[0] * z[1] - y[1] * z[0]];
+      assert.ok(dot3(c, x) > 1 - 1e-6, `yaw ${yawDeg} pitch ${pDeg}: right-handed`);
+      for (let r = 0; r < 3; r++) assert.ok(Math.abs(V[12 + r] + dot3(rows(V)[r], eye as V3)) < 1e-4, 'translation');
+      // inside today's envelope it is the lookAt matrix the renderer used before
+      if (Math.abs(pDeg) <= 60) {
+        const at = [eye[0] + look[0] * 20, eye[1] + look[1] * 20, eye[2] + look[2] * 20];
+        const L = mat4.lookAt(new Float32Array(16), eye, at, [0, 1, 0]);
+        for (let k = 0; k < 16; k++) assert.ok(Math.abs(L[k] - V[k]) < 1e-5, `yaw ${yawDeg} pitch ${pDeg}: element ${k} equals lookAt's`);
+      }
+    }
+    // continuous into the pole: 89.9° → 90° changes no element by more than the 0.1° turn itself
+    for (const sgn of [1, -1]) {
+      const a = mat4.viewYawPitch(new Float32Array(16), eye, yaw, sgn * 89.9 * D2R), b = mat4.viewYawPitch(new Float32Array(16), eye, yaw, sgn * 90 * D2R);
+      for (let k = 0; k < 12; k++) assert.ok(Math.abs(a[k] - b[k]) < 0.0018, `yaw ${yawDeg} ${sgn > 0 ? 'down' : 'up'}: element ${k} continuous at the pole`);
+    }
   }
 });
