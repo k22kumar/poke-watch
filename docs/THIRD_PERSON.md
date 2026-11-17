@@ -278,6 +278,8 @@ twice before it ever locked, or three times in a row after, gives up on the lock
 pointer-lock permission). Clicks then attack, Resume no longer waits, and right-drag looks. With a gamepad connected, and in
 the fixed views, nothing waits for a lock. Pinned by `tests/pointerlock.test.ts`.
 Right stick turns the camera. If the mouse is not captured, holding the right mouse button and dragging still turns the camera.
+Look never changes altitude, and moving never reads the pitch: keys, buttons and their bindings (Settings → Controls →
+Bindings), the Jump edge and the descend control are in `docs/CONTROLS.md` (R6c).
 
 ## Known limits
 - **Thin ridges and fast sideways dashes in caves.** When a ridge comes between the Pokémon and a long boom (Feraligatr's

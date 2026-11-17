@@ -20,6 +20,10 @@ export function stateHash(ctx: SimContext): number {
   h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken).num(ctx.stats.xp);
   for (const P of ctx.players) {
     h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.xp);
+    // R6c jump acceptance (a buffered press, coyote time, the airborne press spent) is play state; only edge-sending
+    // input writes it, so legacy input (the bot, every checksum set) hashes as before
+    const c = P.ctl;
+    if (c.buffer || c.coyote || c.airSpent) h.num(c.buffer).num(c.coyote).num(c.airSpent ? 1 : 0);
     for (const m of P.squad) {
       h.num(m.hp).num(m.grey).num(m.coat).num(m.coatT);
       // a queued press (Phase 3 fire buffer) is play state; a slot with none hashes as before

@@ -40,6 +40,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #182030; fon
 .touch-btn.guard { right: 92px; bottom: 180px; }
 .touch-btn.jump { right: 20px; bottom: 22px; }
 .touch-btn.dash { right: 92px; bottom: 22px; }
+.touch-btn.descend { right: 166px; bottom: 22px; }
 .hidden { display: none !important; }
 @media (pointer: coarse), (hover: none) {
   .touch-controls { display: block; }
@@ -301,6 +302,14 @@ input[type=text]:focus-visible { box-shadow: 0 0 0 2px var(--frame), 0 0 0 5px v
 .slot.reflex .rpips i.on { background: #fff; }
 .slot.reflex.guarding { outline: 2px solid #fff; outline-offset: -2px; }
 .settingsbox .note { font-size: 12px; opacity: .8; margin: 2px 0 6px; max-width: 46ch; }
+/* Settings → Controls → Bindings (R6c): action, two key slots, two pad slots; scrolls on short screens */
+.bindingsbox { max-height: 92vh; overflow-y: auto; }
+.bindings { display: grid; grid-template-columns: minmax(110px, 1.4fr) repeat(4, minmax(64px, 1fr)); gap: 6px 8px; align-items: center; font-weight: 600; font-size: 13px; margin: 6px 0 12px; }
+.bindings .bh { font-size: 11px; opacity: .7; text-transform: uppercase; letter-spacing: .05em; }
+.bindings .bind { min-width: 0; padding: 4px 6px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bindings .bind.waiting { outline: 2px solid currentColor; outline-offset: 1px; }
+.bindnote:empty { display: none; }
+@media (max-width: 520px) { .bindings { grid-template-columns: minmax(90px, 1.2fr) repeat(4, minmax(48px, 1fr)); font-size: 12px; } }
 canvas#game { cursor: crosshair; }
 .slot.dashslot.reflex { width: 104px; padding: 3px 8px 3px 40px; align-items: flex-start; }
 .slot.dashslot.reflex .ico { left: 6px; transform: translateY(-50%); }

@@ -2,8 +2,10 @@
 
 How a Pokémon body's velocity becomes motion. Code: `src/sim/locomotion.ts`. Tests: `tests/locomotion.test.ts`.
 Capabilities: `src/rules/traversal.ts`, `traversalOf` in `src/rules/profiles.ts`, tests `tests/traversal.test.ts`.
-Roadmap: R6 in the architecture audit plan (R6a landed: the seam; R6b: capability data; neither changes behaviour).
-Related: `docs/SIZING.md` (footprints, headroom, `World.moveBody`), `docs/HAZARDS.md` (liquids and falls).
+Roadmap: R6 in the architecture audit plan (R6a landed: the seam; R6b: capability data; neither changes behaviour;
+R6c: the Jump control and the vertical intent, behaviour changed only for edge-sending input, see "Controls").
+Related: `docs/SIZING.md` (footprints, headroom, `World.moveBody`), `docs/HAZARDS.md` (liquids and falls),
+`docs/CONTROLS.md` (bindings, the input side of the Jump edge, descend).
 
 ## Model
 
@@ -12,10 +14,10 @@ physics does not.
 
 | Piece | What it is | Where |
 |---|---|---|
-| Body | `LocoBody`: `x y z`, `vx vy vz`, knockback `kx kz`, `grounded`. `Player` satisfies it directly; a pool driver loads one scratch body per creature (R7) | `locomotion.ts` |
-| Intent | `LocoIntent`: planar wish `mx, mz` (length ≤ 1, world axes) and held `jump`. R6c adds `my` and `jumpPressed` | built by the driver |
-| Numbers | `LocoNumbers`: gravity, jump velocity, glide fall speed, step height, ground / air acceleration, knockback decay. `rules.player` (R6b's capability templates carry only what their rows need; body numbers per template arrive with the integrators that use them, R6d / R6e) | `src/rules/defaults.ts` |
-| Tick numbers | `LocoTick`: this tick's top speed and stance factor, surface speed and grip, `canJump`, `lift`, step-up, footprint, height, wide lattice. The caller turns its gameplay rules (buffs, Brace, liquids, carrying, footing) into these | caller |
+| Body | `LocoBody`: `x y z`, `vx vy vz`, knockback `kx kz`, `grounded`, and the jump acceptance `ctl` (R6c: buffered press, coyote ticks, airborne press spent). `Player` satisfies it directly; a pool driver loads one scratch body per creature (R7) | `locomotion.ts` |
+| Intent | `LocoIntent`: planar wish `mx, mz` (length ≤ 1, world axes), held `jump`, and (R6c) the Jump edge `jumpPressed` (absent = the legacy held rule) and the vertical intent `my` (ascend − descend, −1..1; absent = 0) | built by the driver |
+| Numbers | `LocoNumbers`: gravity, jump velocity, glide fall speed, step height, ground / air acceleration, knockback decay, jump buffer and coyote time (R6c). `rules.player` (R6b's capability templates carry only what their rows need; body numbers per template arrive with the integrators that use them, R6d / R6e) | `src/rules/defaults.ts` |
+| Tick numbers | `LocoTick`: this tick's top speed and stance factor, surface speed and grip, `canJump`, `lift`, `airPress` (R6c), step-up, footprint, height, wide lattice. The caller turns its gameplay rules (buffs, Brace, liquids, carrying, footing) into these | caller |
 | State | `LocoState = { integrator, medium }` (`Player.loco`) | `types.ts` |
 
 ### Integrators (closed set)
@@ -47,6 +49,23 @@ Derived from the world, never chosen. Nothing reads it yet (camera envelopes and
 
 `LocoTick.lift` is the glide row: holding Jump clamps the fall to `glideFallSpeed`. The player sets it from
 `traversalOf(species, rules).glide` (the `glider` template).
+
+### Controls (R6c)
+
+`jumpControl(body, intent, tick, numbers, dt, integrator)` decides what Jump does this tick, inside the shared body step
+(`moveVertical`, where the jump take-off always was), from the body's state at the start of the tick. It returns
+`ACT.none | jump | airJump | takeoff`.
+
+- **Legacy intent** (no `jumpPressed`): `jump && grounded && canJump` → jump, exactly the pre-R6c condition; `ctl` is
+  not touched. Every driver that sends no edge (the bot, AI after R7, the checksum sets, older replays) keeps it.
+- **Edge intent**: the §12.6 table (`docs/CONTROLS.md` "In the sim"): a press jumps from a support or inside the coyote
+  window, waits in the buffer otherwise, and gives an airborne press the template's one `airPress` meaning
+  (`doubleJump` once per airtime; `takeoff` returns `ACT.takeoff`, which nothing acts on before R6d's volume integrator;
+  `none`). Holding never jumps again; holding is the lift row (glide). A scripted tick (the Dash) keeps today's ground
+  jump and ignores air presses.
+- Windows are whole ticks: `round(jumpBuffer / dt)` = 7, `round(coyote / dt)` = 6 at the default rules.
+- `my` is carried in the intent and read by no integrator here; look pitch is an input of nothing in this file.
+- Allowed driver difference (contract below): only an edge-sending driver buffers. AI intents carry no edge.
 
 ## Capabilities (R6b)
 
@@ -92,12 +111,23 @@ after). Content-time readers without a run (`spawning.ts` filters, `compositions
 `habitatAllows` does. `validateTraversal(rules)` reports unknown kinds, reserved kinds, bad hover numbers, unknown or
 duplicate template ids in a species list; `tests/traversal.test.ts` asserts none for the shipped data.
 
+## Acceptance (R6c)
+
+Every `scripts/checksum.ts` line identical to R6b (60 of 60). The R6b per-tick oracle, extended with input variants
+(bot; held Jump injected without an edge; the same plus `my` every tick; bot plus `jumpPressed: false`), on the
+pre-R6c tree and the R6c tree: identical. `tests/jumpcontrol.test.ts`: legacy and edge rules, buffer and coyote windows
+tick by tick, `airPress` meanings, the Dash, `my` and look pitch inert, determinism. `docs/CONTROLS.md` has the input
+side and `scripts/jumptiming.ts`.
+
 ## Contract for later phases
 
 - Functions take numbers and an intent and write to caller-owned scratch. No `Player`, no pool, no `ctx`, no
   allocation (500 enemies).
 - Allowed driver differences, each with its reason: float32 storage in pools (the caller rounds before the wall test and
-  on store); no input buffering for AI; relocation and spawn placement are director rules, not physics.
+  on store); no input buffering for AI (an AI intent sends no `jumpPressed`, so `jumpControl` takes the legacy path and
+  `ctl` stays zero); relocation and spawn placement are director rules, not physics.
+- R6d acts on `ACT.takeoff` (→ volume × air) and reads `my` in `stepVolume`; the volume rows of the §12.6 table (Jump
+  pressed: nothing; held: ascend; descend held: descend, landing on support contact) belong there.
 - Enemy motion stays in `src/sim/enemies.ts` until R7 moves it here behind its flag (one planned hash migration). Shared
   now: the landing clear (`clearLanding`), which was already the same `World.moveBody` call on both sides.
 - `tests/locomotion.test.ts` gates the player half of T38: `src/sim/player.ts` holds no gravity, jump, glide, support,

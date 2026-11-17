@@ -13,18 +13,29 @@
 //   fly       sustained flight, volume × air (R6d)
 //   levitate  constrained, timed levitation above the support, volume × air (R6e)
 //   dive      underwater movement, volume × liquid (R8)
+//
+// Any row may give the airborne Jump press its meaning (`airPress`, R6c; §12.6 rule 1 of the audit plan): 'doubleJump'
+// (once per airtime) or 'takeoff' (into volume × air, so only a fly or levitate row: R6d). A species' rows give it at
+// most one meaning; no shipped row sets one, so the press means nothing in the air today and waits in the jump buffer.
 
 export type TraversalKind = 'glide' | 'hover' | 'swim' | 'fly' | 'levitate' | 'dive';
 /** kinds whose mechanics do not exist yet, with the roadmap phase that brings them (validateTraversal rejects them) */
 export const RESERVED_KINDS: Readonly<Partial<Record<TraversalKind, string>>> = { fly: 'R6d', levitate: 'R6e', dive: 'R8' };
 
+/** what an airborne Jump press means (sim/locomotion.ts jumpControl). 'none' when no row sets one */
+export type AirPress = 'none' | 'doubleJump' | 'takeoff';
+/** the kinds whose rows may set airPress 'takeoff' (volume × air; both reserved until R6d / R6e) */
+export const TAKEOFF_KINDS: readonly TraversalKind[] = ['fly', 'levitate'];
+/** fields every row may carry */
+interface RowBase { airPress?: AirPress }
+
 /** glide: the lift row. Its fall speed is rules.player.glideFallSpeed (R6e brings glide ratio and dive numbers here) */
-export interface GlideRow { kind: 'glide' }
+export interface GlideRow extends RowBase { kind: 'glide' }
 /** hover: rest height above the terrain `height + ((slot × 37) mod levels) × step` m (a deterministic spread per pool
  *  slot so a flock does not stack), bobbing ± `bob` m at `bobRate` rad/s */
-export interface HoverRow { kind: 'hover'; height: number; step: number; levels: number; bob: number; bobRate: number }
+export interface HoverRow extends RowBase { kind: 'hover'; height: number; step: number; levels: number; bob: number; bobRate: number }
 /** swim: safe in open water (the exposure rule passes it; rules.hazards.water.safeSpeed) */
-export interface SwimRow { kind: 'swim' }
+export interface SwimRow extends RowBase { kind: 'swim' }
 export type TraversalTemplate = GlideRow | HoverRow | SwimRow;
 
 /** the shipped template rows (rules.locomotion.templates). A species names them by id; rule sets may retune numbers */
@@ -53,4 +64,6 @@ export interface Traversal {
   /** hazards: habitat vents do not hurt this Pokémon standing on them (the trainer's partner; wild bodies are judged by
    *  their height above the vent). Default: any air capability */
   readonly ventImmune: boolean;
+  /** controls (R6c): what an airborne Jump press means, from the one row that sets it ('none' otherwise) */
+  readonly airPress: AirPress;
 }

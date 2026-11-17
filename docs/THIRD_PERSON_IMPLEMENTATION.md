@@ -403,12 +403,13 @@ Each decision lists its evidence, the selected design, rejected alternatives, tr
 | Beam resolution | 5B (**landed for beams**, Phase 2C §14.4) | `moves.ts` `beam3D`: `resolveSpatial` (reach = `beamLength`), core `raycastWorld` (`rules.aim.beamWorldRadius`), width `sweep` (enemies, bodies; spawn guard included), `coreSees` per contact, pierce counted on what it touches; `beam` event `{x1, y1, z1, x2, y2, z2, width, why, kind, hits}` | renderer ribbon and end puff; tests |
 | Attack cover policy | Phase 2C (§14.3) | `QF.foliage` in `spatial.ts` (tiles owned by a prop whose material has `blocksShots: false` are open above their ground); `aim.ts` `combatFlags(ctx)` (`rules.aim.foliageCover` false → `QF.foliage`) | camera trace, muzzle, linear shots, beams, `aimbot` |
 | `InputFrame.aimDev` | 2B (**landed**, Phase 2B) | `'mouse' \| 'stick' \| 'touch'` (the host sends mouse or stick; nothing sends touch yet) | D9 assistance (5A); no reader yet |
-| `InputFrame.jumpPressed` | 2C | `boolean` rising edge (from `Input.jumpLatch`); `jump` stays "held" | `player.ts` under `rules.player.jumpEdge` |
+| `InputFrame.jumpPressed` | 2C (**landed**, R6c §22) | `boolean` rising edge (from `Input.jumpLatch`, pad edges latched every frame by `Input.pollPad`); `jump` stays "held". No `jumpEdge` flag: the field's presence is the switch (absent = the legacy held rule), as `press` is for fire | `sim/locomotion.ts` `jumpControl` (`rules.player.jumpBuffer`, `coyote`) |
+| `InputFrame.my` | R6c (**landed**, §22) | vertical intent, ascend − descend in −1..1 from buttons only (ascend = Jump held, descend = the `descend` action); absent = 0 | none before R6d (`stepVolume`) |
 | `spatial.raycast / sweep` | 3 (**landed**, §12.3) | `raycastWorld` → `RayHit` (first world contact); `sweep` / `sweepTo` → `Contacts` (ordered, struct of arrays: `t, x, y, z, nx, ny, nz, kind, id, flags`, `stop`, `stopT`); `overlapCylinder`, `overlapSector`; `segmentClear`, `solidAt`; `SpatialQuery` `{ mask, block, pierce, worldR/H, actorR/H, selfKind/Id, bodyTeams, flags }` | 4A, 4B, 5B, 5C, 6C, 7A; reticle (world-only calls) |
 | `ResolvedAim` (replaces the module-level `AIM`) | 4A | as landed (Phase 2B): `AimState` (`sim/types.ts`): muzzle `o*`, aim point `t*`, `hitKind/hitId`, unit `u*`, `blocked` + point and kind, `reach`, `dist`. `moves.ts` keeps `AIM` (planar view) beside a module `A3`; `ctx.aim` is the per-tick copy for presentation | direct shots; `ctx.aim`: HUD and marker |
 | Muzzle and anatomy | 4A (data) | as landed (Phase 2B): fractions of the class body, `rules.aim.muzzle {up: 0.6, fwd: 0.9}` (× class height, × footprint), overrides per archetype or move key in `rules.aim.muzzleBy`; no per-species override yet. Melee bands and `areaHeight`: 5C | `sim/aim.ts`; 5B, 5C |
 | `MOVE_FAMILY` table | 4B (data) | not built yet: Phase 2B uses the list `rules.aim.archetypes` (`['bolt', 'orb']`) | moves |
-| Rules flags | each stage | `aim.spatial` (**landed**, Phase 2B: it covers both `aim.ray` and `aim.trajectory3d`, default on, effective only with a ray in the input), `aim.archetypes` + `'beam'`, `aim.beamWorldRadius`, `aim.foliageCover` (**landed**, Phase 2C), `aim.assist`, `combat.fireBuffer`, `player.jumpEdge`, `locomotion.facing`, `size.headroom`, `CHASE_CONFIG.aimPitch` (render; **landed**, Phase 4A §16: `{on, neutral, up, down}`, `lookPitchRange()`) | `scripts/checksum.ts` sets |
+| Rules flags | each stage | `aim.spatial` (**landed**, Phase 2B: it covers both `aim.ray` and `aim.trajectory3d`, default on, effective only with a ray in the input), `aim.archetypes` + `'beam'`, `aim.beamWorldRadius`, `aim.foliageCover` (**landed**, Phase 2C), `aim.assist`, `combat.fireBuffer`, `player.jumpBuffer` / `player.coyote` (R6c; no `jumpEdge` flag, the edge field's presence switches), `locomotion.facing`, `size.headroom`, `CHASE_CONFIG.aimPitch` (render; **landed**, Phase 4A §16: `{on, neutral, up, down}`, `lookPitchRange()`) | `scripts/checksum.ts` sets |
 | Fire acceptance | 2C (**landed for fire**, Phase 3 §15.3) | `InputFrame.press` (rising edges, BTN bits; absent = none); `MoveSlot.queued` (ctx.tick of the queued press, hashed when set); `rules.combat.fireBuffer` per slot `[0.15, 0, 0, 0]` s | `movesSystem`; `Input.sample` writes it |
 | Device assistance | 5A (**planar path**, Phase 3 §15.4) | `rules.aim.deviceAssist`, `rules.aim.assist[mouse\|stick\|touch] = {shotDeg, meleeDeg, lead, los}`; `cast.assist` (enemy id) | `resolveAim`; renderer ring |
 | Events | 2C, 4A | as landed for 2C (Phase 3): `fireQueued {slot, wait}`, `fireDropped {slot, why: early \| queued \| cancel \| expired, wait}`, `windup.queued`; as landed for 4A (Phase 2B): `cast.o {o, t, kind, blocked}` (optional) and `shotEnd {why, kind, x, y, z, element}` in place of `shotBlocked` | render |
@@ -426,7 +427,7 @@ stage's flag on** (with it off, every set must match).
 | 1 | Characterisation harness and host-order seam | 0 | no | ◐ (seam and host-order tests landed in Phase 1; R-claim todo cases and `tp-human` fixture open) |
 | 2A | One view-sampling contract (`ChaseRig.look` + `sample`) | 1 | no (render) | ☑ (Phase 1) |
 | 2B | `InputFrame.aim` / `aimDev` schema and adapter (sim ignores it) | 1 | no | ☑ (Phase 2B; the sim reads it at once, see 4A) |
-| 2C | Input acceptance: jump edge and latch, fire buffer | 1 | flag on: yes | ◐ (Phase 3: fire buffer and press edges, no hash moved: only explicit `press` input queues; jump open) |
+| 2C | Input acceptance: jump edge and latch, fire buffer | 1 | flag on: yes | ☑ (Phase 3: fire buffer and press edges; R6c §22: jump edge, buffer, coyote. No hash moved: only explicit `press` / `jumpPressed` input uses them) |
 | 3 | `src/sim/spatial.ts` raycast and ordered sweep (no consumers) | 1 | no | ☑ (Phase 2A, §12) |
 | 4A | Sim-owned camera trace, muzzle, convergence; linear shots launch in 3D | 2A, 2B, 3 | flag on: yes | ◐ (Phase 2B: bolt and orb; the bot sends no ray, so no `on` hash moved) |
 | 4B | Independent 3D trajectories, swept ordered contacts, guidance exceptions | 4A | flag on: yes | ◐ (Phase 2B: linear only; barrage, lob, homing, drain, boomerang, orbit open) |
@@ -626,8 +627,8 @@ adds `aim.poleSafe: false`; every other set is byte-identical to before.
 | lead-mouse | aim at a strafing enemy | +1.84° | 0° | Phase 2B ☑ (spatial path) |
 | shot-height | authored map, shoot then jump | shot y follows the player (+1.58 m) | shot y constant (linear, no gravity) | Phase 2B ☑ (legacy re-measured: +1.75 m) |
 | shot-up | flier hovering 4 m up, crosshair on it | misses (no `vy`) | hits | Phase 2B ☑ |
-| jump-tap | stubbed `Input`, Space down+up before a sample | `jump: false` | `jumpPressed: true` | 2C |
-| jump-hold | hold 300 ticks | 8 jumps | 1 jump | 2C |
+| jump-tap | stubbed `Input`, Space down+up before a sample | `jump: false` | `jumpPressed: true` | R6c ☑ (`tests/controls.test.ts`; sim side `tests/jumpcontrol.test.ts`) |
+| jump-hold | hold 300 ticks | 8 jumps | 1 jump | R6c ☑ (legacy input still 8: `tests/jumpcontrol.test.ts`) |
 | head-ceiling | Chargestone Cave seed 3, jump under a deck | Feraligatr head +1.60 m | ≤ 0 | 6C ☑ (R1: ≤ +0.001 m, `tests/headroom.test.ts`, `tests/locations.test.ts`) |
 | xl-under-deck | Onix standing under a 3.0 m deck | head +0.19 m | the tile is blocked for that body | 6C ☑ (R1: it stops at the deck's edge and its wide field leaves the gap out) |
 | fire-buffer | press 0.1 s before the cooldown ends, release | dropped | one cast at ready | Phase 3 ☑ (`tests/primaryfire.test.ts`; 1–9 ticks before ready) |
@@ -2344,3 +2345,71 @@ separate rows, and the source gate. `npm test`: 535, 529 pass, 4 fail — the sa
 **Next.** R6c (input: `my?`, `jumpPressed?`, descend binding, the bindings table) depends on R6a only. R6d consumes the
 reserved `fly` kind: it adds a `wings` row and the volume integrator, and is the first phase whose templates carry body
 numbers (speeds per axis, limits).
+
+## 22. R6c: shared movement input and the Jump control (2026-11-17)
+
+Baseline: commit 9d855f5 (R6a and R6b committed by the owner). R6c touches no camera, pointer-lock, world, habitat,
+hazard or enemy code. Doc: `docs/CONTROLS.md` (new; the input subsystem); `docs/LOCOMOTION.md` "Controls".
+
+**Landed.**
+- Sim (`sim/locomotion.ts`, `sim/player.ts`, `sim/types.ts`, `rules/defaults.ts`): `InputFrame.jumpPressed?` (rising
+  edge) and `InputFrame.my?` (ascend − descend, −1..1). `LocoIntent` carries both; `jumpControl` (inside the shared body
+  step, where the take-off always was) is the §12.6 table for the states that exist: supported, ballistic (coyote first,
+  then the template's `airPress`), scripted (Dash: grounded jump kept, air presses ignored). Buffer
+  `rules.player.jumpBuffer` 0.12 s (7 ticks) and coyote `rules.player.coyote` 0.1 s (6 ticks), counted in whole ticks
+  on `Player.ctl` (hashed only when non-zero). No `jumpEdge` flag: the field's presence is the switch, as `press` is
+  for fire, so every driver without it (bot, checksum sets, replays, tests) keeps the held rule bit for bit. `my` is
+  read by nothing before R6d.
+- Capability data (`rules/traversal.ts`, `rules/profiles.ts`): optional `airPress` on any row (`doubleJump`; `takeoff`
+  only on a fly / levitate row); `Traversal.airPress`; the validator rejects two meanings on one species (§12.6 rule 1)
+  and a take-off from any other kind. No shipped row sets it. `ACT.takeoff` exists and nothing acts on it before R6d.
+- Input (`input/bindings.ts` new, `input/input.ts`, `main.ts`): keyboard and gamepad bindings tables (pad buttons left
+  the hardcoded `pad()`); `descend` = V / left-stick click + X (fallback) / touch button (hidden until R6d); C stays
+  `cardPointer`; `jumpLatch`; `pollPad()` every frame of play latches pad edges (jump and combat). Every earlier default
+  unchanged (`tests/controls.test.ts` pins the pre-R6c tables).
+- Settings and UI (`ui/settings.ts`, `ui/ui.ts`, `ui/style.css`): saved overrides `keys` / `pad` (only changed actions,
+  sanitised on load), Settings → Controls → Bindings (two key and two pad slots per action, capture, move-on-conflict
+  note, Esc cancels, Delete clears, Reset), the HUD hint follows the bindings.
+- Tests: `tests/jumpcontrol.test.ts` (18), `tests/controls.test.ts` (16), `tests/locomotion.test.ts` helpers (+34 tests: 535 → 569). Harness:
+  `scripts/jumptiming.ts` (T33, R6c half).
+
+**Behaviour changes (intended, only with the game's input, which now sends the edge):** holding Jump jumps once, not on
+every landing (claim 8b: 300 held ticks 8 → 1); a tap between two samples jumps (claim 8a); a press up to 7 ticks before
+landing jumps on landing; a press up to 6 ticks after walking off a ledge still jumps; a pad press that only a frame saw
+(a display above 60 Hz) is no longer lost, for Jump and for the combat buttons (fire acceptance itself unchanged). The
+Dash keeps its jump. Gliders glide as before (hold after the press).
+
+**Evidence.**
+- `scripts/checksum.ts`: 60 of 60 lines identical to 9d855f5, after the sim change and again on the final tree.
+- Strict per-tick oracle (R6b's, extended): every player motion field, every enemy's x / y / z / hover / footprint /
+  roles / HP, jump and hazard events; nine rule sets × eight partners × four input variants (bot; held Jump injected
+  without an edge; the same plus `my` every tick; bot plus `jumpPressed: false`): 288 of 288 identical to 9d855f5.
+- `tests/jumpcontrol.test.ts`: legacy 8 jumps / edge 1; buffer 1–7 ticks jump on the landing tick, 8+ dropped; coyote
+  1–6 ticks jump, 7+ not; `airPress` doubleJump once per airtime, take-off only from a new airborne press; the Dash;
+  `my` ±1 and an aim ray swept ±89° leave every height, vertical speed and support flag identical; determinism.
+- `scripts/jumptiming.ts` at 30 / 60 / 144 fps: every key tap (2–200 ms, three frame phases) jumps once, 0 ticks after
+  the first sample following the key; pad taps of at least one frame likewise (shorter ones fall between polls); a 5 s
+  hold jumps once (legacy rule 8). It found the pad defect fixed above (144 fps, 8 ms taps were lost).
+- Real Chromium (production build in a private directory): `tools/navcheck.mjs` 28 / 28 (gamepad Start now through the
+  bindings); a scratch Bindings check 21 / 21 (capture, move-on-conflict note, Esc, Delete, virtual-pad capture, saved,
+  Reset, a rebound G jumps in play and Space does not, a 2.4 s hold takes off once, hint follows, no page errors).
+- `navwalk all 5` (0 failures), `stuckwatch all 3` (TRAPPED 0), `hazplay`, `habstate`: output identical to 9d855f5.
+  `perf-sim 500 --repeat 3 --gate`: p95 0.493 ms / p99 0.839 ms (9d855f5: 0.494 / 0.840), PASS.
+- `npm run typecheck` clean. `npm test`: 569, 563 pass, 4 fail, 2 todo — the same four `tests/pointerlock.test.ts`
+  tests as 9d855f5, 060f184 and R6a / R6b (a pending-request lock state machine that `input.ts` does not implement;
+  they test `capture()` / `releaseLock()`, which R6c does not touch, and do not obstruct input testing: the R6c input
+  tests use their own stub). `npm run check` therefore stops before its build; the production build passes on its own.
+
+**Found, not fixed (pre-existing; reproduces at 060f184).** Runs in one process are not independent: a `boss-rush` run
+(bulbasaur, seed 3, 60 s) before a classic gastly run (seed 4) with injected held jumps changes the gastly run's
+trajectory (60 s hash 1affb2a6 alone, 72db920b after it); without jumps it does not. Checksum lines are reproducible in
+their fixed order, but a line may depend on earlier lines. Owner: diagnose with `diagnosing-bugs` before R6d relies on
+multi-run harnesses.
+
+**Owed (hands-on).** Left-stick-click descend comfort over a 10 s descent and accidental clicks under hard steering on
+real pads (only meaningful once R6d flies); the feel of the 0.12 s buffer and 0.1 s coyote time; the Bindings screen on
+a real keyboard, pad and screen reader. T20 (R3) is still owed independently.
+
+**Next.** R6d: act on `ACT.takeoff` (→ volume × air), read `my` in `stepVolume`, the volume rows of §12.6 (ascend,
+descend, landing on support contact while descending, `idle`, `settle`), show the touch Descend button for volume
+bodies, T33's take-off / ascend / descend / landing half, T34.

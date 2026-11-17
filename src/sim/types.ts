@@ -6,7 +6,7 @@ import type { SpeciesDef } from '../rules/species';
 import type { StageDef } from '../rules/stages';
 import type { Hooks } from '../mods/types';
 import type { World } from './world';
-import type { LocoState } from './locomotion';
+import type { JumpControl, LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
 import type { MoveFlags } from '../rules/build';
 
@@ -17,6 +17,16 @@ export interface InputFrame {
   mz: number;
   jump: boolean; // held
   dash: boolean; // pressed this frame
+  /** R6c (docs/LOCOMOTION.md "Controls"): Jump went down since the previous sample (a rising edge, input/input.ts
+   *  jumpLatch: a tap that went down and up between two samples is still one press). Present (true or false) = the
+   *  driver sends edges: the body jumps on a press, buffered (rules.player.jumpBuffer) and with coyote time
+   *  (rules.player.coyote), and holding Jump never jumps again (it only glides). Absent (the bot, older replays, the
+   *  tests' frames) = the legacy rule: held Jump jumps whenever the body is supported */
+  jumpPressed?: boolean;
+  /** R6c: vertical intent, ascend − descend in −1..1 (ascend = Jump held, descend = the `descend` action; both held
+   *  cancel). Absent = 0. Only a volume body (R6d) reads it: supported, ballistic and scripted bodies ignore it. The
+   *  look pitch never feeds it (invariant 4) */
+  my?: number;
   /** world-space aim point (cursor on the ground, or a stick direction projected 8 m out); absent = no aim, so moves target the nearest enemy */
   aimX?: number;
   aimZ?: number;
@@ -134,6 +144,9 @@ export class Player {
   /** locomotion state after the last player tick (sim/locomotion.ts): the integrator the next tick runs unless another
    *  system changes the body first (a lunge, a respawn), and the medium the body ended in. Read-only outside player.ts */
   loco: LocoState = { integrator: 0, medium: 0 }; // LOCO.supported, MEDIUM.support (type-only import: no cycle)
+  /** R6c jump acceptance between ticks (sim/locomotion.ts jumpControl): a buffered press, coyote time, the airborne press
+   *  spent. Only edge-sending input (InputFrame.jumpPressed) writes it; with legacy input it stays all zero */
+  ctl: JumpControl = { buffer: 0, coyote: 0, airSpent: false };
   facing = 0;
   moving = false;
   animT = 0;

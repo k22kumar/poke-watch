@@ -29,8 +29,8 @@ function flatWorld() {
   Object.assign(W, { map, over: undefined, voids: new Uint8Array(n) });
   return W;
 }
-const body = (y = 0, grounded = true): LocoBody => ({ x: 0, y, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded });
-const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, ...o });
+const body = (y = 0, grounded = true): LocoBody => ({ x: 0, y, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded, ctl: { buffer: 0, coyote: 0, airSpent: false } });
+const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, ...o });
 const intent = (o: Partial<LocoIntent> = {}): LocoIntent => ({ mx: 0, mz: 0, jump: false, ...o });
 
 /** one tick the way the player controller picks it (the dash aside) */
@@ -133,7 +133,7 @@ test('locomotion: one body, two callers: the player controller and a plain body 
   for (let s = 0; s < 240; s++) {
     const inp = { mx: s < 120 ? 1 : -0.6, mz: s < 60 ? 0 : 0.8, jump: s % 50 < 12, dash: false };
     if (playerLiquid(ctx) || W.waterAt(P.x, P.z) > P.y + 0.3) break; // the plain copy below has no liquid rules
-    const b: LocoBody = { x: P.x, y: P.y, z: P.z, vx: P.vx, vy: P.vy, vz: P.vz, kx: P.kx, kz: P.kz, grounded: P.grounded };
+    const b: LocoBody = { x: P.x, y: P.y, z: P.z, vx: P.vx, vy: P.vy, vz: P.vz, kx: P.kx, kz: P.kz, grounded: P.grounded, ctl: { ...P.ctl } };
     const foot = partnerFootprint(P.species, ctx.rules);
     const t = tick({
       speed: P.derived.speed, foot, wide: navWide(foot, ctx.rules), stepUp: R.stepHeight,

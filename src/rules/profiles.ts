@@ -18,7 +18,7 @@ import { defaultRules, type Rules } from './defaults';
 import { HAB } from './habitats';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from './species';
 import type { SizeClassId } from './sizing';
-import { RESERVED_KINDS, type Traversal, type TraversalTemplate } from './traversal';
+import { RESERVED_KINDS, TAKEOFF_KINDS, type AirPress, type Traversal, type TraversalTemplate } from './traversal';
 
 export interface SpeciesOverride {
   /** habitat tags (HAB bits) that raise encounter odds */
@@ -138,6 +138,7 @@ export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): T
   if (hit) return hit;
   const ids = traversalIds(sp, rules);
   const rows: Partial<Record<TraversalTemplate['kind'], TraversalTemplate>> = {};
+  let airPress: AirPress = 'none';
   for (const tid of ids) {
     const row = (rules.locomotion.templates as Record<string, TraversalTemplate | undefined>)[tid];
     const who = sp.id ?? sp.elements.join('/');
@@ -145,6 +146,12 @@ export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): T
     if (RESERVED_KINDS[row.kind]) throw new Error(`${who}: template '${tid}' is a '${row.kind}' row, which arrives in ${RESERVED_KINDS[row.kind]}`);
     if (rows[row.kind]) throw new Error(`${who}: two '${row.kind}' templates`);
     rows[row.kind] = row;
+    const ap = row.airPress ?? 'none';
+    if (ap === 'takeoff' && !TAKEOFF_KINDS.includes(row.kind)) throw new Error(`${who}: template '${tid}' takes off from a '${row.kind}' row (take-off needs a fly or levitate row)`);
+    if (ap !== 'none') {
+      if (airPress !== 'none' && airPress !== ap) throw new Error(`${who}: the airborne Jump press has two meanings ('${airPress}', '${ap}')`);
+      airPress = ap;
+    }
   }
   const glide = (rows.glide as Traversal['glide']) ?? null, hover = (rows.hover as Traversal['hover']) ?? null;
   const air = glide !== null || hover !== null;
@@ -152,6 +159,7 @@ export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): T
     id: sp.id ?? '', templates: ids, glide, hover, swim: (rows.swim as Traversal['swim']) ?? null,
     air, groundNav: hover === null,
     ventImmune: (sp.id !== undefined ? SPECIES_OVERRIDES[sp.id]?.ventImmune : undefined) ?? air,
+    airPress,
   };
   byRules.set(sp, t);
   return t;
@@ -199,6 +207,7 @@ export function validateProfiles(): string[] {
 }
 
 const KINDS = new Set(['glide', 'hover', 'swim', 'fly', 'levitate', 'dive']);
+const AIR_PRESSES = new Set(['none', 'doubleJump', 'takeoff']);
 const finite = (v: unknown, min: number) => typeof v === 'number' && Number.isFinite(v) && v >= min;
 
 /** Problems with the traversal templates of these rules and with every species' template list, as readable messages
@@ -209,6 +218,8 @@ export function validateTraversal(rules: Rules = defaultRules): string[] {
   for (const [tid, row] of Object.entries(T)) {
     if (!KINDS.has(row.kind)) { out.push(`template ${tid}: unknown kind '${row.kind}'`); continue; }
     if (RESERVED_KINDS[row.kind]) out.push(`template ${tid}: kind '${row.kind}' arrives in ${RESERVED_KINDS[row.kind]}`);
+    if (row.airPress !== undefined && !AIR_PRESSES.has(row.airPress)) out.push(`template ${tid}.airPress: unknown '${row.airPress}'`);
+    else if (row.airPress === 'takeoff' && !TAKEOFF_KINDS.includes(row.kind)) out.push(`template ${tid}.airPress: take-off needs a fly or levitate row, not '${row.kind}'`);
     if (row.kind === 'hover') {
       if (!finite(row.height, 0) || row.height <= 0) out.push(`template ${tid}.height: ${row.height} (a hover row rests above the terrain, > 0)`);
       if (!finite(row.step, 0)) out.push(`template ${tid}.step: ${row.step}`);
@@ -220,13 +231,15 @@ export function validateTraversal(rules: Rules = defaultRules): string[] {
   for (const [id, o] of Object.entries(SPECIES_OVERRIDES)) {
     if (o.traversal === undefined) continue;
     if (!Array.isArray(o.traversal)) { out.push(`${id}.traversal: a list of template ids`); continue; }
-    const kinds = new Set<string>();
+    const kinds = new Set<string>(), presses = new Set<string>();
     for (const tid of o.traversal) {
       const row = T[tid];
       if (!row) { out.push(`${id}.traversal: unknown template '${tid}'`); continue; }
       if (kinds.has(row.kind)) out.push(`${id}.traversal: two '${row.kind}' templates`);
       kinds.add(row.kind);
+      if (row.airPress && row.airPress !== 'none') presses.add(row.airPress);
     }
+    if (presses.size > 1) out.push(`${id}.traversal: the airborne Jump press has two meanings (${[...presses].join(', ')})`);
   }
   if (!out.length) for (const sp of SPECIES) {
     try { traversalOf(sp, rules); } catch (e) { out.push((e as Error).message); }

@@ -53,6 +53,7 @@ const input = new Input(canvas);
 let savedSettings: unknown = {};
 try { savedSettings = JSON.parse(localStorage.getItem('poke-watch.settings') ?? localStorage.getItem('bonklab.settings') ?? '{}'); } catch { /* storage unavailable */ }
 const settings = loadSettings(savedSettings);
+input.setBindings(settings.keys, settings.pad); // R6c: the player's saved bindings (input/bindings.ts)
 
 let renderer: Renderer;
 let ctx: SimContext | null = null;
@@ -74,6 +75,7 @@ const speed = Number(params.get('speed') ?? 1);
 
 function ui_applySettings() {
   applyMix();
+  input.setBindings(settings.keys, settings.pad); // R6c: the player's saved bindings (input/bindings.ts)
   if (ctx) ctx.rules.combat.mode = settings.combat;
   if (renderer) { renderer.quality = settings.quality; renderer.cam = cameraPreset(settings.camera); renderer.shakeScale = settings.shake; renderer.fovOffset = settings.fov; input.chase = renderer.chase; if (!renderer.chase) input.releaseLock(); resize(); }
   try { localStorage.setItem('poke-watch.settings', JSON.stringify(settings)); } catch { /* storage unavailable */ }
@@ -89,7 +91,7 @@ const ui = new UI({
   sound: (k) => { audio.unlock(); if (k === 'ui' || k === 'move') audio.uiMove(); else if (k === 'back') audio.uiBack(); else if (k === 'denied') audio.uiDenied(); else audio.uiConfirm(); },
   settings,
   cry: (id) => { audio.unlock(); audio.cry(id, { volume: 0.5, gate: 0.25 }); },
-  resetSettings: () => { Object.assign(settings, SETTINGS_DEFAULT); ui_applySettings(); },
+  resetSettings: () => { Object.assign(settings, SETTINGS_DEFAULT, { keys: {}, pad: {} }); ui_applySettings(); },
   preview: (kind) => {
     audio.unlock();
     if (kind === 'cry') audio.cry(ctx?.player.species.id ?? 'charmander', { volume: 0.8, gate: 0 });
@@ -381,12 +383,12 @@ function drawAwareness(c: SimContext) {
 
 let startPrev = false;
 let dpadPrev = [false, false, false, false];
-/** gamepad d-pad on the banked-pick tray: left / up / right pick cards 1 / 2 / 3, down rerolls */
+/** gamepad on the banked-pick tray: the pad bindings of pick1..pick3 and reroll (default d-pad left / up / right pick
+ *  cards 1 / 2 / 3, down rerolls) */
 function trayPad() {
-  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  const p = pads && pads[0];
+  const p = input.pad();
   if (!p) return;
-  const now = [14, 12, 15, 13].map((i) => !!p.buttons[i]?.pressed);
+  const now = ['pick1', 'pick2', 'pick3', 'reroll'].map((a) => p.held(a));
   if (ui.trayOpen() && !paused) {
     for (let k = 0; k < 3; k++) if (now[k] && !dpadPrev[k]) ui.cardClick(k);
     if (now[3] && !dpadPrev[3]) ui.cardKey('reroll');
@@ -399,7 +401,7 @@ function frame(now: number) {
   { const next = ui.menuOpen() ? 'menu' : 'play'; if (next === 'menu' && input.context === 'play') input.clearButtons(); input.context = next; }
   ui.padTick(1 / 60);
   trayPad();
-  { const pd = input.pad(); const st = !!pd?.start; if (st && !startPrev && ctx && ctx.state !== 'over' && ctx.state !== 'victory' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
+  { const st = input.padHeld('pause'); if (st && !startPrev && ctx && ctx.state !== 'over' && ctx.state !== 'victory' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
   if (capture) return;
   let real = Math.min(0.25, (now - lastFrame) / 1000);
   lastFrame = now;
@@ -432,6 +434,9 @@ function frame(now: number) {
     acc += real * scale;
     simDt = real * scale;
   }
+  // the pad is polled, not evented: latch its presses every frame of play, so a press shorter than a tick is not lost
+  // on a display faster than 60 Hz (most frames take no sample; Input.pollPad, docs/CONTROLS.md)
+  if (simulate && input.context === 'play') input.pollPad();
   // look, then one view sample, then the due ticks (render/hostframe.ts); the render below advances the camera once
   const fr = runFrame<ViewSample | null>({
     look: () => { if (renderer.chase) lookInput(real, !paused && input.context === 'play' && c.state !== 'over' && c.state !== 'victory'); },

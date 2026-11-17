@@ -14,6 +14,7 @@ import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
 import { bodyOf } from '../rules/sizing';
 import { traversalOf } from '../rules/profiles';
+import { ACTIONS, DEFAULT_KEYS, DEFAULT_PAD, PAD_BUTTONS, RESERVED_KEYS, SLOTS, assignBinding, keyName, padName, resolveBindings, type KeyBindings, type PadBindings } from '../input/bindings';
 import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
@@ -59,7 +60,7 @@ function h(tag: string, attrs: Attrs = {}, ...kids: Kid[]): HTMLElement {
 }
 const btn = (label: Kid | Kid[], onclick: () => void, cls = 'btn', extra: Attrs = {}) => h('button', { type: 'button', class: cls, onclick, ...extra }, ...(Array.isArray(label) ? label : [label]));
 
-export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' | 'locations'; map: string; mapSeed: number }
+export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
 export interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
   card(action: 'pick' | 'reroll' | 'skip' | 'banish', index: number): void;
@@ -109,7 +110,7 @@ function lookIcon(L: ItemLook, scale = 2): HTMLElement {
 }
 
 /** screens that take the keyboard, topmost first */
-const MENU_ORDER = ['screen-settings', 'screen-help', 'screen-credits', 'screen-pause', 'screen-end', 'screen-select', 'screen-title'];
+const MENU_ORDER = ['screen-bindings', 'screen-settings', 'screen-help', 'screen-credits', 'screen-pause', 'screen-end', 'screen-select', 'screen-title'];
 
 export class UI {
   root: HTMLElement;
@@ -130,6 +131,10 @@ export class UI {
   private lastStatus = '';
   private padPrev: boolean[] = [];
   private padRepeat = 0;
+  /** Settings → Controls → Bindings: the slot waiting for a key or a pad button (null when none), and the screen to go
+   *  back to */
+  private capture: { action: string; dev: 'key' | 'pad'; slot: number } | null = null;
+  private bindingsBack = 'screen-settings';
   fx2d: CanvasRenderingContext2D;
   tray!: HTMLElement;
   private upgradeStatus!: HTMLElement;
@@ -225,6 +230,16 @@ export class UI {
   private handleKey(e: KeyboardEvent) {
     const name = this.activeMenu();
     const t = e.target as HTMLElement;
+    // the bindings screen waits for a key: it takes this one (gameplay and menu navigation never see it). Esc cancels,
+    // Delete / Backspace clear the slot, Tab keeps moving focus
+    if (this.capture && name === 'screen-bindings' && e.code !== 'Tab') {
+      e.preventDefault(); e.stopPropagation();
+      if (e.repeat) return;
+      if (e.code === 'Escape') { this.capture = null; this.openBindings(this.bindingsBack); return; }
+      if (this.capture.dev === 'pad' && e.code !== 'Delete' && e.code !== 'Backspace') return;
+      this.bindTo(e.code === 'Delete' || e.code === 'Backspace' ? null : e.code);
+      return;
+    }
     if (!name && this.tray.contains(t)) {
       const dir: Record<string, number> = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
       if (dir[e.key]) {
@@ -258,6 +273,14 @@ export class UI {
     if (!p || !name) { this.padPrev = []; return; }
     const b = (i: number) => !!p.buttons[i]?.pressed;
     const edge = (i: number) => b(i) && !this.padPrev[i];
+    // the bindings screen waits for a pad button: the first new press takes the slot (no navigation meanwhile)
+    if (this.capture?.dev === 'pad' && name === 'screen-bindings') {
+      let got = -1;
+      for (let i = 0; i < PAD_BUTTONS && got < 0; i++) if (edge(i)) got = i;
+      this.padPrev = p.buttons.map((x) => x.pressed);
+      if (got >= 0) this.bindTo(got);
+      return;
+    }
     const ax = p.axes[0] ?? 0, ay = p.axes[1] ?? 0;
     const dx = (b(15) ? 1 : 0) - (b(14) ? 1 : 0) || (Math.abs(ax) > 0.55 ? Math.sign(ax) : 0);
     const dy = (b(13) ? 1 : 0) - (b(12) ? 1 : 0) || (Math.abs(ay) > 0.55 ? Math.sign(ay) : 0);
@@ -285,6 +308,7 @@ export class UI {
       slots: h('div', { class: 'hud-bottom' }), vits: h('div', { class: 'vits' }), vignette: h('div', { class: 'vignette' }),
       squad: h('div', { class: 'squad hidden', role: 'group', 'aria-label': 'Squad' }), tagcd: h('div', { class: 'tagcd' }),
       obj: h('div', { class: 'box objbox hidden', role: 'status', 'aria-live': 'polite' }), objTitle: h('div', { class: 'ot' }), objBar: h('div', { class: 'ob' }), objTime: h('small', {}),
+      hint: h('div', { class: 'hint' }),
     };
     const H = this.hud;
     H.obj.append(h('div', { class: 'orow' }, H.objTitle, H.objTime), h('div', { class: 'obar' }, H.objBar));
@@ -303,8 +327,9 @@ export class UI {
       H.obj,
       h('div', { class: 'box hud-tr' }, H.kills, H.live),
       H.boss, H.slots, H.vits,
-      h('div', { class: 'hint' }, h('kbd', {}, 'WASD'), ' move  ', h('kbd', {}, 'Mouse'), ' look + aim  ', h('kbd', {}, 'LMB'), ' attack  ', h('kbd', {}, 'RMB'), h('kbd', {}, 'R'), ' moves  ', h('kbd', {}, 'Q'), ' tag  ', h('kbd', {}, 'E'), ' guard  ', h('kbd', {}, 'Shift'), ' dash  ', h('kbd', {}, 'Space'), ' jump  ', h('kbd', {}, 'Esc'), ' pause'),
+      H.hint,
     );
+    this.refreshHint();
     this.add('hud', hud);
     const touchControls = h('div', { id: 'touch-controls', class: 'touch-controls' },
       h('button', { type: 'button', class: 'touch-btn basic', 'data-touch-action': 'basic', 'aria-label': 'Attack' }, 'Atk'),
@@ -314,6 +339,9 @@ export class UI {
       h('button', { type: 'button', class: 'touch-btn guard', 'data-touch-action': 'guard', 'aria-label': 'Guard' }, 'Guard'),
       h('button', { type: 'button', class: 'touch-btn jump', 'data-touch-action': 'jump', 'aria-label': 'Jump' }, 'Jump'),
       h('button', { type: 'button', class: 'touch-btn dash', 'data-touch-action': 'dash', 'aria-label': 'Dash' }, 'Dash'),
+      // R6c: Descend (the `descend` action, beside Jump). Hidden: no partner can fly before R6d, which shows it for a
+      // body that holds a volume capability
+      h('button', { type: 'button', class: 'touch-btn descend hidden', 'data-touch-action': 'descend', 'aria-label': 'Descend' }, 'Down'),
     );
     this.root.append(touchControls);
     this.root.append(h('div', { id: 'banner', role: 'status', 'aria-live': 'polite' }), h('div', { id: 'plaque' }));
@@ -324,7 +352,7 @@ export class UI {
     this.upgradeFeedback = h('div', { id: 'upgrade-feedback', class: 'hidden', role: 'status' });
     this.root.append(this.upgradeFeedback);
     this.add('overlay-evolve', h('div', { class: 'screen' }, h('div', { class: 'rays' }), h('div', { class: 'box txt', id: 'evotxt' })));
-    for (const n of ['screen-pause', 'screen-end', 'screen-settings', 'screen-help', 'screen-credits']) this.add(n, h('div', { class: 'screen dim' }));
+    for (const n of ['screen-pause', 'screen-end', 'screen-settings', 'screen-bindings', 'screen-help', 'screen-credits']) this.add(n, h('div', { class: 'screen dim' }));
     this.add('tuning', h('div', { class: 'box' }));
   }
 
@@ -968,7 +996,7 @@ export class UI {
     el.textContent = text;
     el.classList.toggle('hidden', !text);
   }
-  unpause() { this.pauseNote(''); this.tray.classList.remove('suspended'); this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-help', false); this.show('screen-credits', false); }
+  unpause() { this.pauseNote(''); this.tray.classList.remove('suspended'); this.capture = null; this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-bindings', false); this.show('screen-help', false); this.show('screen-credits', false); }
 
   private statRows(ctx: SimContext) {
     const s = ctx.stats;
@@ -1043,7 +1071,8 @@ export class UI {
       h('div', { class: 'row-btns' }, btn('Preview cry', () => this.hooks.preview('cry'), 'btn small'), btn('Preview effect', () => this.hooks.preview('sfx'), 'btn small'), btn('Preview music', () => this.hooks.preview('music'), 'btn small')),
       h('h3', {}, 'Controls'),
       h('div', { class: 'settings' },
-        ...seg('Combat', [['Aimed', 'aimed'], ['Assist', 'assist'], ['Auto (classic)', 'auto']], () => S.combat, (v) => { S.combat = v as UISettings['combat']; })),
+        ...seg('Combat', [['Aimed', 'aimed'], ['Assist', 'assist'], ['Auto (classic)', 'auto']], () => S.combat, (v) => { S.combat = v as UISettings['combat']; }),
+        h('label', {}, 'Bindings'), btn('Keys & buttons…', () => this.openBindings('screen-settings'), 'btn small'), h('span', {})),
       h('div', { class: 'settings' },
         ...seg('Look speed', [['Slow', 0.6], ['Normal', 1], ['Fast', 1.6]], () => S.sens, (v) => { S.sens = v; }),
         ...toggle('Invert look (Y)', () => S.invertY, (v) => { S.invertY = v; }),
@@ -1060,13 +1089,88 @@ export class UI {
         ...seg('Screen shake', [['Full', 1], ['Reduced', 0.35], ['Off', 0]], () => S.shake, (v) => { S.shake = v; }),
         ...toggle('Damage numbers', () => S.numbers, (v) => { S.numbers = v; })),
       h('div', { class: 'row-btns' },
-        btn('Reset to defaults', () => { this.hooks.resetSettings(); this.hooks.sound('back'); rebuild(); }, 'btn small'),
+        btn('Reset to defaults', () => { this.hooks.resetSettings(); this.hooks.sound('back'); this.refreshHint(); rebuild(); }, 'btn small'),
         btn('Done', () => { this.show('screen-settings', false); this.show(back); this.focusDefault(back); }, 'btn primary')),
     ));
     this.backs['screen-settings'] = () => { this.show('screen-settings', false); this.show(back); this.focusDefault(back); };
     this.show(back, false);
     this.show('screen-settings');
     this.focusDefault('screen-settings');
+  }
+
+  /** Settings → Controls → Bindings (R6c, input/bindings.ts): every action with two keyboard slots and two gamepad
+   *  slots. Choose a slot, then press a key or a pad button: a code drives one action, so taking one from another action
+   *  moves it (the note says from where). Esc cancels, Delete / Backspace clear the slot. Saved with the settings */
+  openBindings(back: string, note = '') {
+    this.bindingsBack = back;
+    const S = this.hooks.settings;
+    const scr = this.screens['screen-bindings'];
+    scr.innerHTML = '';
+    const keys = resolveBindings(DEFAULT_KEYS, S.keys), pad = resolveBindings(DEFAULT_PAD, S.pad);
+    const cap = this.capture;
+    const slot = (action: string, label: string, dev: 'key' | 'pad', i: number) => {
+      const c = dev === 'key' ? keys[action][i] : pad[action][i];
+      const waiting = !!cap && cap.action === action && cap.dev === dev && cap.slot === i;
+      const name = waiting ? (dev === 'key' ? 'Press a key…' : 'Press a button…') : c === undefined ? '—' : dev === 'key' ? keyName(c as string) : padName(c as number);
+      return btn(name, () => { this.capture = waiting ? null : { action, dev, slot: i }; this.hooks.sound('ui'); this.openBindings(back); },
+        'btn small bind' + (waiting ? ' waiting' : ''), { 'data-bind': `${action}:${dev}:${i}`, 'aria-label': `${label}, ${dev === 'key' ? 'key' : 'gamepad button'} ${i + 1}: ${name}` });
+    };
+    const grid = h('div', { class: 'bindings', role: 'grid', 'aria-label': 'Bindings' },
+      h('span', { class: 'bh' }, 'Action'), h('span', { class: 'bh' }, 'Keyboard'), h('span', { class: 'bh' }), h('span', { class: 'bh' }, 'Gamepad'), h('span', { class: 'bh' }));
+    for (const a of ACTIONS) {
+      grid.append(h('span', {}, a.label));
+      for (let i = 0; i < SLOTS; i++) grid.append(slot(a.id, a.label, 'key', i));
+      for (let i = 0; i < SLOTS; i++) grid.append(slot(a.id, a.label, 'pad', i));
+    }
+    scr.append(h('div', { class: 'box menu settingsbox bindingsbox' },
+      h('h2', {}, 'Bindings'),
+      h('p', { class: 'note' }, `Choose a slot, then press a key or a gamepad button. Esc cancels; Delete clears the slot. A key or button drives one action: taking it moves it here. ${RESERVED_KEYS.join(', ')} stays free for menus. Ctrl works, but Ctrl + W / S / D are browser shortcuts. The sticks (move, look) and menu navigation are fixed.`),
+      h('p', { class: 'note bindnote', role: 'status', 'aria-live': 'polite' }, note),
+      grid,
+      h('div', { class: 'row-btns' },
+        btn('Reset bindings', () => { this.capture = null; S.keys = {}; S.pad = {}; this.hooks.applySettings(); this.refreshHint(); this.hooks.sound('back'); this.openBindings(back, 'Bindings reset to the defaults.'); }, 'btn small'),
+        btn('Done', () => this.closeBindings(), 'btn primary')),
+    ));
+    this.backs['screen-bindings'] = () => this.closeBindings();
+    this.show(back, false);
+    this.show('screen-bindings');
+    if (cap) (scr.querySelector<HTMLElement>(`[data-bind="${cap.action}:${cap.dev}:${cap.slot}"]`))?.focus();
+  }
+  private closeBindings() {
+    this.capture = null;
+    this.show('screen-bindings', false);
+    this.show(this.bindingsBack);
+    this.focusDefault(this.bindingsBack);
+  }
+  /** the waiting slot takes `code` (null clears it); saved at once */
+  private bindTo(code: string | number | null) {
+    const c = this.capture;
+    if (!c) return;
+    const S = this.hooks.settings;
+    const label = (id: string) => ACTIONS.find((a) => a.id === id)?.label ?? id;
+    let from: string | null;
+    if (c.dev === 'key') ({ overrides: S.keys, from } = assignBinding(DEFAULT_KEYS, S.keys, c.action, c.slot, code as string | null));
+    else ({ overrides: S.pad, from } = assignBinding(DEFAULT_PAD, S.pad, c.action, c.slot, code as number | null));
+    this.capture = null;
+    this.hooks.applySettings();
+    this.refreshHint();
+    this.hooks.sound('pick');
+    const name = code === null ? '' : c.dev === 'key' ? keyName(code as string) : padName(code as number);
+    this.openBindings(this.bindingsBack, from ? `${name} moved from ${label(from)} to ${label(c.action)}.` : '');
+    this.screens['screen-bindings'].querySelector<HTMLElement>(`[data-bind="${c.action}:${c.dev}:${c.slot}"]`)?.focus();
+  }
+  /** the HUD's key hint, from the keyboard bindings in use */
+  refreshHint() {
+    const keys = resolveBindings(DEFAULT_KEYS, this.hooks.settings.keys);
+    const one = (a: string) => {
+      const cs = keys[a];
+      if (cs.includes('ShiftLeft') && cs.includes('ShiftRight')) return 'Shift';
+      return cs.length ? keyName(cs[0]) : '—';
+    };
+    const kbd = (t: string) => h('kbd', {}, t);
+    const H = this.hud.hint;
+    H.replaceChildren(kbd(['up', 'left', 'down', 'right'].map(one).join('')), ' move  ', kbd('Mouse'), ' look + aim  ', kbd('LMB'), ' attack  ', kbd('RMB'), kbd(one('moveB')), ' moves  ',
+      kbd(one('sig')), ' tag  ', kbd(one('guard')), ' guard  ', kbd(one('dash')), ' dash  ', kbd(one('jump')), ' jump  ', kbd(one('pause')), ' pause');
   }
 
   /** Settings → World → Map and Map seed: build every region from one Pokémon location or habitat recipe (and its
@@ -1105,7 +1209,8 @@ export class UI {
         <p>Upgrades stay available while combat continues. Choose directly with <kbd>1</kbd>–<kbd>3</kbd> or the D-pad left/up/right; with a card focused, arrows move focus and <kbd>Enter</kbd> confirms. <kbd>C</kbd> toggles cursor/camera control for mouse selection without pausing. <kbd>F</kbd> rerolls, <kbd>X</kbd> skips, and <kbd>Z</kbd> starts a banish (2 rerolls and 1 banish per region). Each pick shows a <b>Kit</b> card (a move to learn, or a <b>transform</b> that changes what a move does; each move has two and you keep one), a <b>Technique</b> (a rule for your whole squad, with a cost; you hold three) and a <b>Wildcard</b> (a benched Pokémon's transform, a Tag Action, an early evolution, a berry). Moves grow stronger with your level on their own.</p>
         <p>Trees, water and cliffs block the way; climb bluffs by their stairs, hop up ledges, and use groves to split a swarm. Item balls in the field hold a rare upgrade; Oran Berries heal.</p>
         <p>A boss arrives at 5:00 in each region. Defeat it and step into the portal. Partners evolve at their real levels; types and abilities follow the main games where the survival format allows.</p>
-        <p>Menus: arrows / D-pad move, <kbd>Enter</kbd> / A confirm, <kbd>Esc</kbd> / B back, <kbd>Tab</kbd> also works. <kbd>Esc</kbd> / Start pauses · <kbd>M</kbd> mutes · <kbd>\`</kbd> tuning panel.</p>` }),
+        <p>Menus: arrows / D-pad move, <kbd>Enter</kbd> / A confirm, <kbd>Esc</kbd> / B back, <kbd>Tab</kbd> also works. <kbd>Esc</kbd> / Start pauses · <kbd>M</kbd> mutes · <kbd>\`</kbd> tuning panel.</p>
+        <p>These are the default keys and buttons: Settings → Controls → Bindings changes any of them.</p>` }),
       btn('Got it', () => { this.show('screen-help', false); this.show(back); this.focusDefault(back); }, 'btn primary'),
     ));
     this.backs['screen-help'] = () => { this.show('screen-help', false); this.show(back); this.focusDefault(back); };

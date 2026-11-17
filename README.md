@@ -32,12 +32,14 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Tag (tap: swap to the last Pokémon; hold + LMB / RMB: pick the first / second reserve) | Q · Y (hold + RT / LT) |
 | Guard (tap: deflect or parry; hold: brace) | E (L) · LB |
 | Dash (brief invulnerability) | Shift / B |
-| Jump (onto rocks, logs, bushes; flyers glide while holding) | Space / A |
+| Jump (onto rocks, logs, bushes; flyers glide while holding). A press jumps once (buffered just before landing, still allowed just after walking off a ledge); holding does not jump again | Space / A |
+| Descend (reserved for flight, which arrives later; does nothing yet) | V · left-stick click or X |
 | Level-up cards (compact top tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
 | Menus | Arrows / Tab to move, Enter / Space to choose, Esc / Backspace to go back; gamepad d-pad, A, B, Start |
 | Pause | Esc / P |
 | Tuning panel | ` (backtick) |
 | Mute | M |
+| Change any key or button | Settings → Controls → Bindings (saved in the browser) |
 
 Runs default to generated regions (seeded, so the same seed produces the same map) and a third-person camera: the first region is built from **Viridian Forest** and the last from **Mt. Moon** by the Pokémon-location generator, the others by the classic generator (`docs/LOCATIONS.md`). Settings → World → Regions can switch to the handcrafted arenas or the classic generator everywhere; Settings can also choose the Classic, Overhead or Wide camera presets; reduced or no screen shake is also available (`docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`). A boss arrives at 5:00 in each region; defeat it and step into the portal.
 
@@ -241,6 +243,7 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/PIPELINE.md`: how PokéAPI, SpriteCollab and cries become the built-in roster.
 - `docs/CUSTOMISING.md`: step-by-step: add a Pokémon, change its size class, size-class targets, capabilities, maps, spawn pools, presets, restrictions, AI hooks.
 - `docs/SIZING.md`: size classes: drawn size, sim bodies, partner radius, wide-body navigation, the `size-off` flag.
+- `docs/CONTROLS.md`: bindings (keyboard and gamepad tables, saved overrides, the Bindings screen), the Jump edge, buffer and coyote time, the vertical intent and the descend control, jump timing (`scripts/jumptiming.ts`).
 - `docs/LOCOMOTION.md`: the shared locomotion foundation (`src/sim/locomotion.ts`): body, intent, integrators, medium, the contract player and AI drivers share; traversal capabilities (`rules.locomotion.templates`, `traversalOf`).
 - `docs/SPAWNING.md`: spawn pools and presets; eligibility, selection, location and compatibility; capability vs preference vs restriction.
 - `docs/MAPLEBROOK.md`: the overworld visual spec, reference comparison and feature list.

@@ -1,5 +1,6 @@
 // Player controller: Reflex, Guard and Dash, the player's speed rules, facing and regen. Body motion (gravity 30 m/s² [C],
-// flyers holding jump clamp fall speed to 2 m/s [C], the 0.6 m step rule [C]) is the shared step in sim/locomotion.ts.
+// flyers holding jump clamp fall speed to 2 m/s [C], the 0.6 m step rule [C]) and the Jump control (R6c: press edges,
+// buffer, coyote time, the airborne press) are the shared step in sim/locomotion.ts.
 
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BTN, type SimContext } from './types';
@@ -12,8 +13,8 @@ import { traversalOf } from '../rules/profiles';
 import { LOCO, mediumAt, selectIntegrator, stepBallistic, stepScripted, stepSupported, type LocoIntent, type LocoResult, type LocoTick } from './locomotion';
 
 // per-tick scratch for the shared locomotion step (no allocation)
-const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false };
-const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, stepUp: 0, foot: 0, tall: undefined, wide: false };
+const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false, jumpPressed: undefined, my: undefined };
+const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0, foot: 0, tall: undefined, wide: false };
 const STEP: LocoResult = { jumped: false };
 
 /** release Guard; a tap that caught nothing costs a short lockout */
@@ -102,7 +103,8 @@ export const playerSystem = {
     // tick's numbers here; the body step itself is shared
     const integ = selectIntegrator(P.dashT > 0, P.grounded);
     const it = INTENT, t = TICK;
-    it.mx = mx; it.mz = mz; it.jump = inp.jump;
+    // R6c: the Jump edge (absent = the legacy held rule) and the vertical intent (read by no integrator before R6d)
+    it.mx = mx; it.mz = mz; it.jump = inp.jump; it.jumpPressed = inp.jumpPressed; it.my = inp.my;
     // climbing out of a liquid
     t.stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight;
     // headroom (rules.size.headroom, docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller
@@ -111,7 +113,9 @@ export const playerSystem = {
     t.foot = partnerFootprint(P.species, ctx.rules);
     t.wide = navWide(t.foot, ctx.rules);
     t.canJump = canJump;
-    t.lift = traversalOf(P.species, ctx.rules).glide !== null; // the glide row (rules/traversal.ts)
+    const tr = traversalOf(P.species, ctx.rules);
+    t.lift = tr.glide !== null; // the glide row (rules/traversal.ts)
+    t.airPress = tr.airPress; // what an airborne Jump press means (none for every shipped template)
     t.speed = speed;
     if (integ === LOCO.scripted) {
       P.dashT -= dt;

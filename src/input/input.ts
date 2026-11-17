@@ -1,16 +1,11 @@
-// Action-mapped input: keyboard + gamepad. Produces one sim InputFrame
-// per tick in world space, relative to the camera yaw.
+// Action-mapped input: keyboard + gamepad + touch. Produces one sim InputFrame per tick in world space, relative to the
+// camera yaw. Which key or pad button drives which action is the bindings table (input/bindings.ts, docs/CONTROLS.md):
+// defaults plus the player's saved overrides (setBindings).
 import { BTN, type InputFrame } from '../sim/types';
+import { DEFAULT_KEYS, DEFAULT_PAD, resolveBindings, type KeyBindings, type PadBindings } from './bindings';
 
-export const DEFAULT_BINDINGS: Record<string, string[]> = {
-  up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
-  jump: ['Space'], dash: ['ShiftLeft', 'ShiftRight'],
-  // hero-shooter combat: the basic attack is primary fire (left mouse, J), Move A secondary (right mouse, K),
-  // Move B R, Q the Signature / Tag, E Guard
-  basic: ['KeyJ'], moveA: ['KeyK'], moveB: ['KeyR'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
-  pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
-  pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
-};
+/** the keyboard defaults (input/bindings.ts DEFAULT_KEYS) */
+export const DEFAULT_BINDINGS = DEFAULT_KEYS;
 
 /** the InputFrame.btn bit each combat action sets */
 const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard };
@@ -55,8 +50,15 @@ export class Input {
   onLockGained?: () => void;
   onLockError?: () => void;
   private expectUnlock = false;
-  bindings = DEFAULT_BINDINGS;
+  /** the keyboard and gamepad tables in use (defaults + the player's overrides: setBindings) */
+  bindings: KeyBindings = DEFAULT_KEYS;
+  padBindings: PadBindings = DEFAULT_PAD;
   private dashLatch = false;
+  /** R6c: Jump went down since the last sample (a key, the touch button, or the pad's jump button between two polls):
+   *  InputFrame.jumpPressed. A tap that goes down and up between two sim ticks is still one press */
+  private jumpLatch = false;
+  /** the pad's jump binding at the last sample (its edge; a pad is polled, so a press shorter than a frame is missed) */
+  private padJumpPrev = false;
   private touchButtons: Record<string, boolean> = {};
   private touchMove: [number, number] = [0, 0];
   private touchLook: [number, number] = [0, 0];
@@ -78,6 +80,7 @@ export class Input {
       if (firstPress) this.pressed.add(e.code);
       this.keys.add(e.code);
       if (this.is('dash', e.code)) this.dashLatch = true;
+      if (firstPress && this.is('jump', e.code)) this.jumpLatch = true;
       if (firstPress) for (const [a, bit] of Object.entries(ACTION_BTN)) if (this.is(a, e.code)) { this.btnLatch |= bit; this.pressLatch |= bit; }
       if (firstPress) for (const [a, codes] of Object.entries(this.bindings)) if (codes.includes(e.code)) this.onAction?.(a);
       // during play, keep movement keys from scrolling or moving focus to hidden menu buttons
@@ -132,6 +135,7 @@ export class Input {
       if (!action) return;
       this.touchButtons[action] = down;
       if (down && action === 'dash') this.dashLatch = true;
+      if (down && action === 'jump') this.jumpLatch = true;
       if (down) { this.btnLatch |= ACTION_BTN[action] ?? 0; this.pressLatch |= ACTION_BTN[action] ?? 0; }
     };
     document.addEventListener('pointerdown', (e) => {
@@ -198,9 +202,15 @@ export class Input {
     return (this.bindings[action]?.some((c) => this.keys.has(c)) ?? false) || !!this.touchButtons[action];
   }
 
+  /** the bindings in use: the defaults with these overrides on top (the saved settings; input/bindings.ts) */
+  setBindings(keys: KeyBindings = {}, pad: PadBindings = {}) {
+    this.bindings = resolveBindings(DEFAULT_KEYS, keys);
+    this.padBindings = resolveBindings(DEFAULT_PAD, pad);
+  }
+
   /** let go of every combat button (focus lost, pointer released, a menu or pause took over) */
   clearButtons() {
-    this.mouseBtn = 0; this.btnLatch = 0; this.pressLatch = 0;
+    this.mouseBtn = 0; this.btnLatch = 0; this.pressLatch = 0; this.jumpLatch = false;
     for (const k of Object.keys(this.touchButtons)) this.touchButtons[k] = false;
   }
 
@@ -223,27 +233,53 @@ export class Input {
     return p ? [p.rx, p.ry] : [0, 0];
   }
 
-  /** gamepad axes / buttons (first pad) */
+  /** gamepad axes and buttons (first pad): sticks with a dead zone, and `held(action)` through the pad bindings (a
+   *  trigger counts past 0.4 of its travel). Movement is the left stick, look / aim the right stick */
   pad() {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const p = pads && pads[0];
     if (!p) return null;
     const dz = (v: number) => (Math.abs(v) < 0.18 ? 0 : v);
     const pr = (i: number) => !!p.buttons[i]?.pressed || (p.buttons[i]?.value ?? 0) > 0.4;
+    const pb = this.padBindings;
     return {
       lx: dz(p.axes[0] ?? 0), ly: dz(p.axes[1] ?? 0), rx: dz(p.axes[2] ?? 0), ry: dz(p.axes[3] ?? 0),
-      a: pr(0), b: pr(1), start: pr(9),
-      // RT basic attack (primary fire), LT Move A, RB Move B, Y Signature / Tag, LB Guard
-      rt: pr(7), lt: pr(6), rb: pr(5), y: pr(3), guard: pr(4),
+      held: (action: string) => pb[action]?.some(pr) ?? false,
     };
+  }
+
+  /** a pad button bound to `action` is held (false with no pad): the host's pause and card-tray picks */
+  padHeld(action: string) { return this.pad()?.held(action) ?? false; }
+
+  /** Poll the pad's Jump and combat buttons and latch their rising edges, as key and touch events latch theirs: the host
+   *  calls it every frame of play (main.ts), and every sample calls it too. A pad is polled, not evented, so before this a
+   *  press shorter than a sim tick was lost at frame rates above 60 Hz (most frames take no sample); now any press one
+   *  frame sees reaches the next sample (jumpPressed, and `btn` + `press` for one tick, like a click). A press shorter
+   *  than a frame still falls between two polls (docs/CONTROLS.md, scripts/jumptiming.ts) */
+  pollPad() {
+    const pad = this.pad();
+    if (!pad) { this.padPrev = 0; this.padJumpPrev = false; return null; }
+    const pj = pad.held('jump');
+    if (pj && !this.padJumpPrev) this.jumpLatch = true;
+    this.padJumpPrev = pj;
+    let pb = 0;
+    for (const [a, bit] of Object.entries(ACTION_BTN)) if (pad.held(a)) pb |= bit;
+    const rise = pb & ~this.padPrev;
+    this.btnLatch |= rise; this.pressLatch |= rise;
+    this.padPrev = pb;
+    return { pad, pb, pj };
   }
 
   /** build a sim input frame for camera yaw (aim is filled in by the host, which knows the camera) */
   sample(yaw: number): InputFrame {
     let f = (this.down('up') ? 1 : 0) - (this.down('down') ? 1 : 0) + this.touchMove[1];
     let s = (this.down('right') ? 1 : 0) - (this.down('left') ? 1 : 0) + this.touchMove[0];
-    const pad = this.pad();
+    const polled = this.pollPad();
+    const pad = polled?.pad;
     let jump = this.down('jump');
+    let descend = this.down('descend');
+    let jumpPressed = this.jumpLatch;
+    this.jumpLatch = false;
     let dash = this.dashLatch;
     let btn = this.mouseBtn | this.btnLatch;
     let press = this.pressLatch;
@@ -251,24 +287,28 @@ export class Input {
     this.btnLatch = 0; this.pressLatch = 0;
     const Fx = Math.sin(yaw), Fz = Math.cos(yaw);
     const Rx = -Math.cos(yaw), Rz = Math.sin(yaw);
-    if (pad) {
+    if (polled && pad) {
       f += -pad.ly; s += pad.lx;
-      jump = jump || pad.a;
-      dash = dash || pad.b;
-      const pb = (pad.rt ? BTN.basic : 0) | (pad.lt ? BTN.a : 0) | (pad.rb ? BTN.b : 0) | (pad.y ? BTN.sig : 0) | (pad.guard ? BTN.guard : 0);
-      btn |= pb; press |= pb & ~this.padPrev; this.padPrev = pb;
+      jump = jump || polled.pj;
+      descend = descend || pad.held('descend');
+      dash = dash || pad.held('dash');
+      btn |= polled.pb;
       if (!this.chase && Math.hypot(pad.rx, pad.ry) > 0.35) {
         const af = -pad.ry, as = pad.rx;
         const ax = Fx * af + Rx * as, az = Fz * af + Rz * as, L = Math.hypot(ax, az) || 1;
         this.stickAim = [ax / L, az / L];
         this.aimSource = 'stick';
       } else if (!this.chase && this.aimSource === 'stick') this.aimSource = 'none'; // idle stick: auto-aim
-    } else this.padPrev = 0;
+    }
     this.dashLatch = false;
     let mx = Fx * f + Rx * s, mz = Fz * f + Rz * s;
     const L = Math.hypot(mx, mz);
     if (L > 1) { mx /= L; mz /= L; }
-    return press ? { mx, mz, jump, dash, btn, press } : { mx, mz, jump, dash, btn };
+    // R6c: the Jump edge is always sent (false included), so the sim uses the edge rules (press, buffer, coyote; no
+    // repeat from holding). The vertical intent is ascend − descend from buttons only: ascend is Jump held, both held
+    // cancel. The camera's pitch never reaches it (invariant 4: looking up or down does not change altitude)
+    const my = (jump ? 1 : 0) - (descend ? 1 : 0);
+    return press ? { mx, mz, jump, dash, btn, press, jumpPressed, my } : { mx, mz, jump, dash, btn, jumpPressed, my };
   }
 
   consumeMouse() {

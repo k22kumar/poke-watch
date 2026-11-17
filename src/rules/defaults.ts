@@ -113,6 +113,11 @@ export const defaultRules = {
     groundAccel: 16, // [C] 1/s: planar velocity response on a support (× the surface's grip; sim/locomotion.ts)
     airAccel: 7, // [C] 1/s: planar velocity response in the air (air control)
     knockDecay: 8, // [C] knockback decays by exp(-8*dt)
+    // [B] R6c jump acceptance (sim/locomotion.ts jumpControl; edge-sending input only, InputFrame.jumpPressed): a press
+    // stays eligible for a ground jump this long (7 ticks), and a body that walked off a ledge may still jump this long
+    // (6 ticks). 0 = pure edges. Input without the edge field (the bot, replays) keeps the held rule and ignores both
+    jumpBuffer: 0.12,
+    coyote: 0.1,
     baseSpeed: 7.2, // [B]
     iframes: 0.55, // [B]
     knockback: 9, // [B]
