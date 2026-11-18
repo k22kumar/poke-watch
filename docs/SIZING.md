@@ -44,10 +44,27 @@ What was dropped:
 
 1. **`sizeClass`** in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`) pins the class. The Pokémon sits at the class centre, with no tilt.
 2. **`NEUTRAL_CORE_EXTENT_M`** (`src/rules/sizing.ts`) is a reviewed figure for a Pokémon whose listed extent measures the wrong axis. Onix's 8.8 m, for example, is the serpent's length.
-3. **`canon.heightM`** is the published figure, imported from PokéAPI.
+3. **`canon.heightM`** is the published figure, imported from PokéAPI. With `rules.size.axis` on (default off), a figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
 4. **`SpeciesDef.height`** is the old sprite-derived number. It is used only by a species with no canonical record.
 
 Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The class rules don't change how they are drawn, and their sim body is the drawn one.
+
+### Measurement axis (flagged off)
+
+A listed figure measures one of three things: standing height, body length or span. The official body shape decides which, through one data table, `SHAPE_AXIS` in `src/rules/shapes.ts`. `squiggle` (serpents) and `fish` (fins, flippers) list a length. Every other shape, and any shape added by a future generation, lists a height until a row says otherwise. The content build carries the shape into `canon.shape` from the pinned PokéAPI CSV snapshot (`pokemon_species.shape_id` → `pokemon_shapes`). `canon.axis` is derived from it when the roster loads. Catalogue records carry `shape` too. A species whose figure measures another axis than its shape says gets a reviewed row in `SPECIES_AXIS` (same file). The row names the axis only, never metres, so the shared rule still sets the extent. Eternatus (`wings`, 20 m of body length) is the one row, approved by the owner on 2026-11-18.
+
+PokéAPI has no span figures, so no shape or `SPECIES_AXIS` row maps to `span`. Only an approved `NEUTRAL_CORE_EXTENT_M` entry written as `{ m, axis: 'span' }` can select it. An approved entry wins with or without the flag.
+
+`rules.size.axis` is off by default. With it on:
+- Onix's 8.8 m length reads as 4.4 m and it stays Extra Large.
+- Lapras drops from Extra Large to Large, and Silicobra from Extra Large to Medium.
+- Ekans drops from Large to Medium.
+- Slugma and Magcargo drop from Medium to Small; Magcargo's authored boss body is unchanged.
+- Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with both classes. The decisions are recorded in `docs/size-extremes-plan.md`.
+
+### Giants: continuous Extra Large (flagged off)
+
+With `rules.size.xlContinuous` on (default off), an Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xlExponent)`. The values are cap 4.0 m (provisional), floor 2.69 × 0.92 (today's lowest XL draw) and exponent 0.30. The exponent is a fixed constant, never fitted to the largest species, so a new generation's giant can't change every other XL draw. The cap is reached at about 10.2 m of extent. 2.05 m is Large's cut, so the floor stays above Large's largest draw and the classes never overlap. Only the drawn size changes. XL radius, height and footprint keep the class values and tilt, and no sim system reads `visualM`, so the flag moves no replay hash. Tiny to Large are unchanged.
 
 ## Who reads what
 
@@ -229,6 +246,8 @@ Who reads the tops (everyone else keeps every wall infinite):
 - one shared 0.55 m partner radius and a fixed 1.2 m hurt window;
 - point collision (no footprint) and no wide-body routing;
 - the older pursuit rules (no step check on the field, no hysteresis or field agreement) and the older bot probes.
+
+`rules.size.axis` and `rules.size.xlContinuous` are off by default, so the current `on` hashes are the "off" layer for both. `checksum.ts axis` / `gen-axis` / `xl` turn one on each, and `xl` prints the `on` hashes exactly.
 
 `npx tsx scripts/checksum.ts size-off` prints those hashes. With the classic region tables it reproduces the earlier `on` set. The only exception is the `World.shore` fix that landed with this work: a bank behind a wall is no longer preferred. Every older layer (`off`, `build-off`, `world-off`, `hazards-off`) turns size geometry off too.
 

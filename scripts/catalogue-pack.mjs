@@ -136,6 +136,11 @@ const formLabel = new Map(src.pokemon_form_names.filter((n) => n.local_language_
 const speciesName = new Map(src.pokemon_species_names.filter((n) => n.local_language_id === ENGLISH).map((n) => [n.pokemon_species_id, n.name]));
 const regionName = new Map(src.regions.map((r) => [r.id, r.identifier]));
 const versionGroupName = new Map(src.version_groups.map((v) => [v.id, v.identifier]));
+// Official body shape (pokemon_species.shape_id -> pokemon_shapes.identifier): what the listed extent measures depends
+// on it (a `squiggle` or `fish` body lists its length; src/rules/shapes.ts maps shape to axis). A species row without
+// a shape id (none in the pinned snapshot) gives null.
+const shapeName = new Map(src.pokemon_shapes.map((s) => [s.id, s.identifier]));
+const shapeOfSpecies = (row) => (row?.shape_id ? shapeName.get(row.shape_id) ?? null : null);
 
 /** The form row that describes a `pokemon` record: its default row, or its only row.
  *  Koraidon's four ride builds each have exactly one form row and none is flagged default. */
@@ -196,6 +201,7 @@ for (const r of spec.records) {
       label: (form && formLabel.get(form.id)) || '',
       status: r.formStatus,
     },
+    shape: shapeOfSpecies(sp),
     heightDm,
     heightKind: gmax ? 'lower-bound' : 'listed',
     weightHg,
@@ -289,6 +295,9 @@ const pack = {
   records,
   families,
   conditions,
+  // every species' official shape in the snapshot, by national dex number: the role lane reads it for runtime species
+  // (scripts/build-content.mjs); it is not written to src/content/catalogue.ts
+  shapes: Object.fromEntries(src.pokemon_species.map((r) => [r.id, shapeOfSpecies(r)])),
   totals: {
     records: records.length,
     species: speciesSlugs.length,

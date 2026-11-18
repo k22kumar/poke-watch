@@ -345,3 +345,17 @@ test('provenance: the generated module records the pinned source revision', () =
   for (const f of report.catalogue.source.files) assert.match(f.sha256, /^[0-9a-f]{64}$/, `${f.file} checksum`);
   assert.equal(report.species.length, 72, 'the role lane\'s provenance is preserved');
 });
+
+test('shape: every record and every runtime species carries its official shape from the pinned snapshot', () => {
+  const SHAPES = new Set(['ball', 'squiggle', 'fish', 'arms', 'blob', 'upright', 'legs', 'quadruped', 'wings', 'tentacles', 'heads', 'humanoid', 'bug-wings', 'armor']);
+  assert.ok(authored.source.csv.includes('pokemon_shapes'));
+  for (const r of CATALOGUE) assert.ok(r.shape && SHAPES.has(r.shape), `${r.id}: shape ${r.shape}`);
+  // a species and its catalogue default record agree (the role lane reads the same snapshot)
+  for (const sp of SPECIES) {
+    assert.ok(sp.canon?.shape && SHAPES.has(sp.canon.shape), `${sp.id}: shape ${sp.canon?.shape}`);
+    const rec = CATALOGUE_BY_ID[sp.id];
+    if (rec) assert.equal(rec.shape, sp.canon.shape, sp.id);
+  }
+  assert.equal(CATALOGUE_BY_ID.onix.shape, 'squiggle');
+  assert.equal(CATALOGUE_BY_ID.eternatus?.shape ?? 'wings', 'wings');
+});

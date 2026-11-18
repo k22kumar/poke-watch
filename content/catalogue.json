@@ -13,7 +13,8 @@
    "pokemon_form_names",
    "pokemon_evolution",
    "version_groups",
-   "regions"
+   "regions",
+   "pokemon_shapes"
   ]
  },
  "records": [

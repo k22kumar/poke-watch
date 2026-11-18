@@ -29,6 +29,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Shield Forme",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 17,
   "heightKind": "listed",
   "weightHg": 530,
@@ -52,6 +53,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 105,
@@ -75,6 +77,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 130,
@@ -98,6 +101,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 5,
@@ -120,6 +124,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 650,
@@ -143,6 +148,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 600,
@@ -165,6 +171,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 5050,
@@ -188,6 +195,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 285,
@@ -211,6 +219,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 20,
@@ -233,6 +242,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 10,
   "heightKind": "listed",
   "weightHg": 995,
@@ -256,6 +266,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 12,
@@ -279,6 +290,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 24,
   "heightKind": "listed",
   "weightHg": 3336,
@@ -302,6 +314,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 77,
@@ -325,6 +338,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Ice Rider",
    "status": "persistent-fusion"
   },
+  "shape": "humanoid",
   "heightDm": 24,
   "heightKind": "listed",
   "weightHg": 8091,
@@ -348,6 +362,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 57,
@@ -371,6 +386,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 780,
@@ -393,6 +409,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Normal",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 8,
@@ -415,6 +432,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Snowy Form",
    "status": "temporary"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 8,
@@ -437,6 +455,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Sunny Form",
    "status": "temporary"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 8,
@@ -460,6 +479,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 92,
   "heightKind": "listed",
   "weightHg": 9999,
@@ -483,6 +503,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 30,
   "heightKind": "listed",
   "weightHg": 1200,
@@ -506,6 +527,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "tentacles",
   "heightDm": 750,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -528,6 +550,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 45,
   "heightKind": "listed",
   "weightHg": 7000,
@@ -550,6 +573,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 450,
@@ -573,6 +597,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 10,
   "heightKind": "listed",
   "weightHg": 343,
@@ -596,6 +621,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 17,
   "heightKind": "listed",
   "weightHg": 905,
@@ -619,6 +645,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 280,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -641,6 +668,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 85,
@@ -663,6 +691,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 190,
@@ -685,6 +714,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 330,
@@ -707,6 +737,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 40,
@@ -730,6 +761,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 28,
   "heightKind": "listed",
   "weightHg": 3105,
@@ -753,6 +785,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 420,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -775,6 +808,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 3,
@@ -798,6 +832,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 22,
   "heightKind": "listed",
   "weightHg": 750,
@@ -820,6 +855,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 160,
@@ -842,6 +878,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 9999,
@@ -864,6 +901,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 1,
@@ -887,6 +925,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 2000,
@@ -910,6 +949,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 2,
@@ -933,6 +973,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 39,
   "heightKind": "listed",
   "weightHg": 2100,
@@ -955,6 +996,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 8,
@@ -978,6 +1020,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "blob",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 10,
@@ -1001,6 +1044,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 97,
@@ -1024,6 +1068,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 852,
@@ -1047,6 +1092,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 392,
@@ -1070,6 +1116,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 45,
@@ -1093,6 +1140,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 30,
   "heightKind": "listed",
   "weightHg": 500,
@@ -1115,6 +1163,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 40,
   "heightKind": "listed",
   "weightHg": 165,
@@ -1138,6 +1187,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 22,
   "heightKind": "listed",
   "weightHg": 2100,
@@ -1161,6 +1211,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 110,
@@ -1183,6 +1234,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 33,
@@ -1206,6 +1258,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 20,
@@ -1228,6 +1281,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 115,
@@ -1250,6 +1304,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Three-Segment Form",
    "status": "persistent-alternate"
   },
+  "shape": "squiggle",
   "heightDm": 45,
   "heightKind": "listed",
   "weightHg": 474,
@@ -1272,6 +1327,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Two-Segment Form",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 36,
   "heightKind": "listed",
   "weightHg": 392,
@@ -1294,6 +1350,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 333,
@@ -1317,6 +1374,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "heads",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 666,
@@ -1339,6 +1397,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 140,
@@ -1362,6 +1421,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 400,
@@ -1385,6 +1445,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 430,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -1408,6 +1469,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 145,
@@ -1430,6 +1492,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 220,
@@ -1452,6 +1515,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 21,
   "heightKind": "listed",
   "weightHg": 805,
@@ -1474,6 +1538,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 69,
@@ -1497,6 +1562,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 200,
   "heightKind": "listed",
   "weightHg": 9500,
@@ -1520,6 +1586,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Eternamax",
    "status": "temporary"
   },
+  "shape": "wings",
   "heightDm": 1000,
   "heightKind": "listed",
   "weightHg": 0,
@@ -1543,6 +1610,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 25,
@@ -1566,6 +1634,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 1200,
@@ -1589,6 +1658,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "legs",
   "heightDm": 109,
   "heightKind": "listed",
   "weightHg": 4156,
@@ -1611,6 +1681,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 30,
   "heightKind": "listed",
   "weightHg": 620,
@@ -1633,6 +1704,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Red Flower",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 1,
@@ -1656,6 +1728,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 10,
@@ -1678,6 +1751,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Red Flower",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 9,
@@ -1700,6 +1774,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Red Flower",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 100,
@@ -1723,6 +1798,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 10,
@@ -1746,6 +1822,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 13,
   "heightKind": "listed",
   "weightHg": 266,
@@ -1769,6 +1846,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "bug-wings",
   "heightDm": 13,
   "heightKind": "listed",
   "weightHg": 420,
@@ -1791,6 +1869,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 325,
@@ -1814,6 +1893,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 143,
@@ -1837,6 +1917,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 13,
   "heightKind": "listed",
   "weightHg": 1,
@@ -1860,6 +1941,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 405,
@@ -1883,6 +1965,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 200,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -1906,6 +1989,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 300,
@@ -1928,6 +2012,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Chest Form",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 50,
@@ -1950,6 +2035,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Roaming Form",
    "status": "persistent-alternate"
   },
+  "shape": "blob",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 10,
@@ -1973,6 +2059,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Altered Forme",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 45,
   "heightKind": "listed",
   "weightHg": 7500,
@@ -1996,6 +2083,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Origin Forme",
    "status": "persistent-alternate"
   },
+  "shape": "tentacles",
   "heightDm": 69,
   "heightKind": "listed",
   "weightHg": 6500,
@@ -2018,6 +2106,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 2565,
@@ -2041,6 +2130,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 5900,
@@ -2064,6 +2154,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 272,
@@ -2086,6 +2177,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 16,
   "heightKind": "listed",
   "weightHg": 390,
@@ -2109,6 +2201,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 610,
@@ -2132,6 +2225,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 320,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -2154,6 +2248,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 50,
@@ -2176,6 +2271,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 970,
@@ -2198,6 +2294,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Groudon",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 9500,
@@ -2221,6 +2318,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Primal Reversion",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 50,
   "heightKind": "listed",
   "weightHg": 9997,
@@ -2244,6 +2342,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 55,
   "heightKind": "listed",
   "weightHg": 8880,
@@ -2266,6 +2365,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 23,
   "heightKind": "listed",
   "weightHg": 2538,
@@ -2288,6 +2388,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 34,
@@ -2311,6 +2412,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 21,
   "heightKind": "listed",
   "weightHg": 51,
@@ -2334,6 +2436,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "blob",
   "heightDm": 260,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -2356,6 +2459,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 48,
@@ -2379,6 +2483,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 16,
   "heightKind": "listed",
   "weightHg": 1,
@@ -2401,6 +2506,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 502,
@@ -2423,6 +2529,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 498,
@@ -2445,6 +2552,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 480,
@@ -2468,6 +2576,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 38,
   "heightKind": "listed",
   "weightHg": 1990,
@@ -2491,6 +2600,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 273,
@@ -2514,6 +2624,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 20,
@@ -2537,6 +2648,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hoopa Confined",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 90,
@@ -2560,6 +2672,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hoopa Unbound",
    "status": "persistent-alternate"
   },
+  "shape": "arms",
   "heightDm": 65,
   "heightKind": "listed",
   "weightHg": 4900,
@@ -2583,6 +2696,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 930,
@@ -2606,6 +2720,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 55,
@@ -2629,6 +2744,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 35,
@@ -2651,6 +2767,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 19,
   "heightKind": "listed",
   "weightHg": 452,
@@ -2673,6 +2790,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 400,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -2696,6 +2814,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 18,
   "heightKind": "listed",
   "weightHg": 3807,
@@ -2719,6 +2838,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 6,
@@ -2742,6 +2862,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 1,
@@ -2765,6 +2886,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 30,
@@ -2787,6 +2909,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 10,
@@ -2810,6 +2933,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Apex Build",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 25,
   "heightKind": "listed",
   "weightHg": 3030,
@@ -2833,6 +2957,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gliding Build",
    "status": "out-of-battle-build"
   },
+  "shape": "upright",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 3030,
@@ -2856,6 +2981,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Limited Build",
    "status": "out-of-battle-build"
   },
+  "shape": "upright",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 3030,
@@ -2879,6 +3005,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Sprinting Build",
    "status": "out-of-battle-build"
   },
+  "shape": "upright",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 3030,
@@ -2902,6 +3029,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Swimming Build",
    "status": "out-of-battle-build"
   },
+  "shape": "upright",
   "heightDm": 35,
   "heightKind": "listed",
   "weightHg": 3030,
@@ -2924,6 +3052,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 120,
@@ -2947,6 +3076,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 130,
@@ -2970,6 +3100,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 25,
   "heightKind": "listed",
   "weightHg": 2200,
@@ -2993,6 +3124,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "fish",
   "heightDm": 240,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -3016,6 +3148,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 31,
@@ -3039,6 +3172,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 52,
   "heightKind": "listed",
   "weightHg": 2160,
@@ -3062,6 +3196,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 40,
   "heightKind": "listed",
   "weightHg": 1200,
@@ -3085,6 +3220,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 550,
@@ -3108,6 +3244,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 60,
@@ -3131,6 +3268,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 10,
   "heightKind": "listed",
   "weightHg": 600,
@@ -3154,6 +3292,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 1800,
@@ -3176,6 +3315,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 10,
   "heightKind": "listed",
   "weightHg": 864,
@@ -3199,6 +3339,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 470,
@@ -3222,6 +3363,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 21,
   "heightKind": "listed",
   "weightHg": 2200,
@@ -3245,6 +3387,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 10,
   "heightKind": "listed",
   "weightHg": 650,
@@ -3268,6 +3411,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 85,
@@ -3290,6 +3434,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 25,
   "heightKind": "listed",
   "weightHg": 8000,
@@ -3312,6 +3457,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 80,
@@ -3334,6 +3480,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 200,
@@ -3356,6 +3503,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 14,
   "heightKind": "listed",
   "weightHg": 355,
@@ -3379,6 +3527,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Blue Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3402,6 +3551,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3425,6 +3575,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Green Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3448,6 +3599,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3471,6 +3623,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Indigo Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3494,6 +3647,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3517,6 +3671,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Orange Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3540,6 +3695,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3563,6 +3719,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Red Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3586,6 +3743,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3609,6 +3767,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Violet Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3632,6 +3791,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3655,6 +3815,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Yellow Core",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -3678,6 +3839,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Meteor Form",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 400,
@@ -3701,6 +3863,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 125,
@@ -3724,6 +3887,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Full Belly Mode",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 30,
@@ -3747,6 +3911,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hangry Mode",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 30,
@@ -3769,6 +3934,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 1050,
@@ -3792,6 +3958,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 21,
@@ -3815,6 +3982,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 20,
@@ -3838,6 +4006,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "armor",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 55,
@@ -3861,6 +4030,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "bug-wings",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 120,
@@ -3884,6 +4054,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 80,
@@ -3907,6 +4078,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 850,
@@ -3930,6 +4102,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 88,
   "heightKind": "listed",
   "weightHg": 2100,
@@ -3952,6 +4125,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 25,
   "heightKind": "listed",
   "weightHg": 3100,
@@ -3975,6 +4149,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 42,
   "heightKind": "listed",
   "weightHg": 3360,
@@ -3998,6 +4173,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Origin Forme",
    "status": "persistent-alternate"
   },
+  "shape": "upright",
   "heightDm": 63,
   "heightKind": "listed",
   "weightHg": 6590,
@@ -4020,6 +4196,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 25,
@@ -4043,6 +4220,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 65,
@@ -4066,6 +4244,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 410,
@@ -4088,6 +4267,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 20,
@@ -4110,6 +4290,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 60,
@@ -4133,6 +4314,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Counterfeit Form",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 11,
@@ -4155,6 +4337,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Phony Form",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 4,
@@ -4177,6 +4360,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 365,
@@ -4199,6 +4383,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "arms",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 340,
@@ -4221,6 +4406,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 325,
@@ -4243,6 +4429,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 90,
@@ -4266,6 +4453,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 52,
   "heightKind": "listed",
   "weightHg": 4800,
@@ -4288,6 +4476,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 300,
@@ -4311,6 +4500,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "upright",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 210,
@@ -4333,6 +4523,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 185,
@@ -4356,6 +4547,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "quadruped",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 255,
@@ -4378,6 +4570,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 35,
@@ -4401,6 +4594,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Alolan Form",
    "status": "regional"
   },
+  "shape": "quadruped",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 38,
@@ -4424,6 +4618,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 70,
   "heightKind": "listed",
   "weightHg": 2065,
@@ -4447,6 +4642,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "bug-wings",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 5,
@@ -4469,6 +4665,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 21,
   "heightKind": "listed",
   "weightHg": 900,
@@ -4491,6 +4688,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 280,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -4513,6 +4711,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 120,
@@ -4535,6 +4734,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 18,
@@ -4558,6 +4758,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 20,
@@ -4581,6 +4782,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 145,
@@ -4604,6 +4806,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Rotom",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4627,6 +4830,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Fan Rotom",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4650,6 +4854,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Frost Rotom",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4673,6 +4878,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Heat Rotom",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4696,6 +4902,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Mow Rotom",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4719,6 +4926,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Wash Rotom",
    "status": "persistent-alternate"
   },
+  "shape": "ball",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 3,
@@ -4741,6 +4949,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 38,
   "heightKind": "listed",
   "weightHg": 655,
@@ -4763,6 +4972,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "squiggle",
   "heightDm": 220,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -4785,6 +4995,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 45,
@@ -4807,6 +5018,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 60,
@@ -4830,6 +5042,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 8,
   "heightKind": "listed",
   "weightHg": 12,
@@ -4853,6 +5066,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 7,
@@ -4875,6 +5089,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 22,
   "heightKind": "listed",
   "weightHg": 76,
@@ -4898,6 +5113,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Unremarkable Form",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 22,
@@ -4920,6 +5136,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Phony Form",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 1,
   "heightKind": "listed",
   "weightHg": 2,
@@ -4943,6 +5160,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 10,
@@ -4966,6 +5184,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 32,
   "heightKind": "listed",
   "weightHg": 920,
@@ -4988,6 +5207,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 350,
@@ -5011,6 +5231,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 280,
@@ -5034,6 +5255,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hisuian Form",
    "status": "regional"
   },
+  "shape": "upright",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 270,
@@ -5057,6 +5279,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 13,
   "heightKind": "listed",
   "weightHg": 430,
@@ -5080,6 +5303,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 38,
@@ -5102,6 +5326,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 21,
   "heightKind": "listed",
   "weightHg": 4600,
@@ -5124,6 +5349,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 350,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -5146,6 +5372,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 168,
@@ -5168,6 +5395,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 40,
@@ -5191,6 +5419,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 34,
   "heightKind": "listed",
   "weightHg": 2300,
@@ -5214,6 +5443,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 55,
   "heightKind": "listed",
   "weightHg": 8200,
@@ -5237,6 +5467,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "squiggle",
   "heightDm": 92,
   "heightKind": "listed",
   "weightHg": 4000,
@@ -5260,6 +5491,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Curly Form",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 80,
@@ -5283,6 +5515,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 455,
@@ -5306,6 +5539,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 16,
   "heightKind": "listed",
   "weightHg": 550,
@@ -5328,6 +5562,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Normal Form",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 65,
@@ -5350,6 +5585,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 140,
@@ -5373,6 +5609,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "legs",
   "heightDm": 9,
   "heightKind": "listed",
   "weightHg": 330,
@@ -5396,6 +5633,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "tentacles",
   "heightDm": 19,
   "heightKind": "listed",
   "weightHg": 580,
@@ -5419,6 +5657,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 380,
@@ -5441,6 +5680,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 3,
   "heightKind": "listed",
   "weightHg": 15,
@@ -5464,6 +5704,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 6,
   "heightKind": "listed",
   "weightHg": 32,
@@ -5487,6 +5728,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 22,
   "heightKind": "listed",
   "weightHg": 3100,
@@ -5510,6 +5752,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 110,
@@ -5533,6 +5776,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Amped Form",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 16,
   "heightKind": "listed",
   "weightHg": 400,
@@ -5556,6 +5800,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 240,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -5579,6 +5824,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "upright",
   "heightDm": 240,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -5602,6 +5848,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 1000,
@@ -5624,6 +5871,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 4,
   "heightKind": "listed",
   "weightHg": 102,
@@ -5646,6 +5894,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 3,
@@ -5668,6 +5917,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 7,
   "heightKind": "listed",
   "weightHg": 210,
@@ -5690,6 +5940,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "A",
    "status": "species-default"
   },
+  "shape": "ball",
   "heightDm": 5,
   "heightKind": "listed",
   "weightHg": 50,
@@ -5713,6 +5964,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Rapid Strike Style",
    "status": "persistent-alternate"
   },
+  "shape": "humanoid",
   "heightDm": 19,
   "heightKind": "listed",
   "weightHg": 1050,
@@ -5736,6 +5988,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Single Strike Style",
    "status": "species-default"
   },
+  "shape": "humanoid",
   "heightDm": 19,
   "heightKind": "listed",
   "weightHg": 1050,
@@ -5759,6 +6012,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Gigantamax Form",
    "status": "temporary"
   },
+  "shape": "humanoid",
   "heightDm": 290,
   "heightKind": "lower-bound",
   "weightHg": 10000,
@@ -5781,6 +6035,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 20,
   "heightKind": "listed",
   "weightHg": 1300,
@@ -5803,6 +6058,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 145,
   "heightKind": "listed",
   "weightHg": 3980,
@@ -5826,6 +6082,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "upright",
   "heightDm": 11,
   "heightKind": "listed",
   "weightHg": 340,
@@ -5848,6 +6105,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "heads",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 95,
@@ -5871,6 +6129,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Galarian Form",
    "status": "regional"
   },
+  "shape": "heads",
   "heightDm": 30,
   "heightKind": "listed",
   "weightHg": 160,
@@ -5893,6 +6152,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 18,
@@ -5915,6 +6175,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Solo Form",
    "status": "species-default"
   },
+  "shape": "fish",
   "heightDm": 2,
   "heightKind": "listed",
   "weightHg": 3,
@@ -5937,6 +6198,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "blob",
   "heightDm": 12,
   "heightKind": "listed",
   "weightHg": 54,
@@ -5960,6 +6222,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 15,
   "heightKind": "listed",
   "weightHg": 150,
@@ -5982,6 +6245,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Neutral Mode",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 30,
   "heightKind": "listed",
   "weightHg": 2150,
@@ -6005,6 +6269,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "",
    "status": "species-default"
   },
+  "shape": "wings",
   "heightDm": 58,
   "heightKind": "listed",
   "weightHg": 2030,
@@ -6027,6 +6292,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hero of Many Battles",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 28,
   "heightKind": "listed",
   "weightHg": 1100,
@@ -6050,6 +6316,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Crowned Sword",
    "status": "temporary"
   },
+  "shape": "quadruped",
   "heightDm": 28,
   "heightKind": "listed",
   "weightHg": 3550,
@@ -6072,6 +6339,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Hero of Many Battles",
    "status": "species-default"
   },
+  "shape": "quadruped",
   "heightDm": 29,
   "heightKind": "listed",
   "weightHg": 2100,
@@ -6095,6 +6363,7 @@ export const CATALOGUE_RECORDS: CatalogueRecord[] = [
    "label": "Crowned Shield",
    "status": "temporary"
   },
+  "shape": "quadruped",
   "heightDm": 29,
   "heightKind": "listed",
   "weightHg": 7850,

@@ -14,7 +14,9 @@ import {
   sizeClassOf,
   speciesExtent,
   speciesSizing,
+  xlVisual,
 } from '../src/rules/sizing';
+import { SHAPE_AXIS, SPECIES_AXIS, axisOf, axisOfShape } from '../src/rules/shapes';
 import { SPECIES_OVERRIDES } from '../src/rules/profiles';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../src/rules/species';
 import { defaultRules } from '../src/rules/defaults';
@@ -68,15 +70,15 @@ test('same-class species draw within ±tilt of the class target, whatever their 
 test('extent prefers an approved neutral core, then the canonical listed extent, then the sprite height', () => {
   const sp = SPECIES_BY_ID.rattata;
   assert.equal(sp.canon?.heightM, 0.3);
-  assert.deepEqual(speciesExtent(sp), { m: 0.3, source: 'canonical-listed' });
+  assert.deepEqual(speciesExtent(sp), { m: 0.3, source: 'canonical-listed', axis: 'height' });
   NEUTRAL_CORE_EXTENT_M[sp.id] = 0.18;
   try {
-    assert.deepEqual(speciesExtent(sp), { m: 0.18, source: 'approved-neutral' });
+    assert.deepEqual(speciesExtent(sp), { m: 0.18, source: 'approved-neutral', axis: 'height' });
   } finally {
     delete NEUTRAL_CORE_EXTENT_M[sp.id];
   }
   const bare = { ...synthetic('bare', 0), canon: undefined, height: 1.4 } as SpeciesDef;
-  assert.deepEqual(speciesExtent(bare), { m: 1.4, source: 'sprite-fallback' });
+  assert.deepEqual(speciesExtent(bare), { m: 1.4, source: 'sprite-fallback', axis: 'height' });
 });
 
 test('a pinned size class overrides the extent and sits at the class centre', () => {
@@ -158,4 +160,101 @@ test('size classes are sim rules now: sim reads them through rules/sizing, and o
   });
   // the old per-site formula must not come back anywhere in the sim
   for (const f of walk('src/sim')) assert.ok(!/height \* 0\.4/.test(readFileSync(f, 'utf8')), `${f} derives a body radius itself`);
+});
+
+// ------------------------------------------------------------------ measurement axis and continuous XL (S1; both off)
+const AXIS = { ...S, axis: true };
+const XL = { ...S, xlContinuous: true };
+const shaped = (id: string, heightM: number, shape: string) =>
+  synthetic(id, heightM, { canon: { levelUp: [], abilities: [], heightM, weightKg: 1, shape } });
+
+test('the shape decides the axis from data: squiggle and fish list a length, every other shape a height', () => {
+  assert.deepEqual(Object.entries(SHAPE_AXIS).sort(), [['fish', 'length'], ['squiggle', 'length']]);
+  for (const shape of ['ball', 'arms', 'blob', 'upright', 'legs', 'quadruped', 'wings', 'tentacles', 'heads', 'humanoid', 'bug-wings', 'armor', undefined, 'a-future-shape'])
+    assert.equal(axisOfShape(shape), 'height', String(shape));
+  for (const sp of SPECIES) {
+    assert.ok(sp.canon?.shape, `${sp.id}: no canon.shape (rebuild content)`);
+    assert.equal(sp.canon.axis, axisOf(sp.id, sp.canon.shape), sp.id);
+  }
+  // reviewed per-species axis overrides name an axis only (no metres); Eternatus' 20 m is a length (owner 2026-11-18)
+  assert.deepEqual({ ...SPECIES_AXIS }, { eternatus: 'length' });
+  assert.equal(axisOf('eternatus', 'wings'), 'length');
+  assert.equal(axisOf('lugia', 'wings'), 'height');
+  assert.equal(SPECIES_BY_ID.onix.canon?.axis, 'length');
+  assert.equal(SPECIES_BY_ID.snorlax.canon?.axis, 'height');
+});
+
+test('axis off (default): every extent and body is the listed-figure one, whatever the axis', () => {
+  assert.equal(S.axis, false);
+  for (const sp of SPECIES) {
+    const e = speciesExtent(sp);
+    assert.notEqual(e.source, 'length-rise', sp.id);
+    if (sp.canon?.heightM) assert.equal(e.m, sp.canon.heightM, sp.id);
+  }
+  assert.equal(bodyOf(SPECIES_BY_ID.onix).sizeClass, 'xl'); // 8.8 m listed length read as height
+});
+
+test('axis on: a listed length counts lengthRise × itself; heights and approved figures are unchanged', () => {
+  const onix = SPECIES_BY_ID.onix;
+  near(speciesExtent(onix, AXIS).m, onix.canon!.heightM * S.lengthRise);
+  assert.equal(speciesExtent(onix, AXIS).source, 'length-rise');
+  assert.equal(S.lengthRise, 0.5);
+  assert.equal(bodyOf(onix, AXIS).sizeClass, 'xl'); // 8.8 × 0.5 = 4.4 m
+  assert.equal(bodyOf(shaped('__eel', 1.2, 'squiggle'), AXIS).sizeClass, 'small'); // 0.6 m
+  // an axis override uses the shared rule, not a figure of its own
+  const eternatus = shaped('eternatus', 20, 'wings');
+  assert.deepEqual(speciesExtent(eternatus, AXIS), { m: 20 * S.lengthRise, source: 'length-rise', axis: 'length' });
+  assert.deepEqual(speciesExtent(eternatus), { m: 20, source: 'canonical-listed', axis: 'length' });
+  assert.equal(bodyOf(shaped('__eel', 1.2, 'squiggle')).sizeClass, 'large');
+  for (const sp of SPECIES) if (sp.canon?.axis === 'height') assert.deepEqual(speciesExtent(sp, AXIS), speciesExtent(sp), sp.id);
+  // an approved figure still wins, and only it can name `span`
+  NEUTRAL_CORE_EXTENT_M.onix = 4.4;
+  NEUTRAL_CORE_EXTENT_M.__wing = { m: 1.6, axis: 'span' };
+  try {
+    assert.deepEqual(speciesExtent(onix, AXIS), { m: 4.4, source: 'approved-neutral', axis: 'length' });
+    assert.deepEqual(speciesExtent(onix), { m: 4.4, source: 'approved-neutral', axis: 'length' });
+    assert.deepEqual(speciesExtent(shaped('__wing', 0.8, 'wings'), AXIS), { m: 1.6, source: 'approved-neutral', axis: 'span' });
+  } finally {
+    delete NEUTRAL_CORE_EXTENT_M.onix;
+    delete NEUTRAL_CORE_EXTENT_M.__wing;
+  }
+  for (const sp of SPECIES) assert.notEqual(speciesExtent(sp, AXIS).axis, 'span', `${sp.id}: span without an approved figure`);
+});
+
+test('xlContinuous off (default): XL draws the fixed class target ± tilt', () => {
+  assert.equal(S.xlContinuous, false);
+  for (const sp of SPECIES) {
+    const b = bodyOf(sp);
+    if (b.sizeClass === 'xl' && !b.authored) near(b.visualM, S.classes[4].visual * b.factor);
+  }
+});
+
+test('xlContinuous on: XL draw rises with the extent from the old floor to the cap; sim body and smaller classes unchanged', () => {
+  const L = S.classes[3], X = S.classes[4];
+  near(S.xlFloor, X.visual * (1 - S.tilt));
+  near(xlVisual(L.below, XL), S.xlFloor);
+  near(xlVisual(1, XL), S.xlFloor); // pinned into XL from below: the floor
+  near(xlVisual(1000, XL), S.xlVisualCap);
+  let last = 0;
+  for (let m = L.below; m < 40; m *= 1.03) {
+    const v = xlVisual(m, XL);
+    assert.ok(v >= last - 1e-12 && v <= S.xlVisualCap + 1e-12, `${m} m -> ${v}`);
+    last = v;
+  }
+  // no overlap: the smallest XL draw stays above the largest Large draw
+  assert.ok(S.xlFloor > L.visual * (1 + S.tilt), 'XL floor overlaps Large');
+  for (const sp of SPECIES) {
+    const a = bodyOf(sp), b = bodyOf(sp, XL);
+    assert.equal(b.sizeClass, a.sizeClass);
+    assert.equal(b.radius, a.radius, sp.id);
+    assert.equal(b.height, a.height, sp.id);
+    assert.equal(b.body, a.body, sp.id);
+    if (a.sizeClass !== 'xl' || a.authored) assert.equal(b.visualM, a.visualM, sp.id);
+    else near(b.visualM, xlVisual(a.extentM, XL));
+  }
+  // the exponent is a fixed constant, never fitted to the largest species
+  assert.equal(S.xlExponent, 0.3);
+  // giants read bigger than a 2.1 m XL (extents with axis on: Snorlax 2.1, Onix 4.4, Wailord 7.25, Eternatus 10)
+  const snorlax = xlVisual(2.1, XL), onix = xlVisual(4.4, XL), wailord = xlVisual(7.25, XL), eternatus = xlVisual(10, XL);
+  assert.ok(onix > snorlax * 1.2 && wailord > snorlax * 1.4 && eternatus <= S.xlVisualCap, `${snorlax} ${onix} ${wailord} ${eternatus}`);
 });

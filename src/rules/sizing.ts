@@ -1,5 +1,6 @@
 import { defaultRules, type Rules } from './defaults';
 import { pinnedSizeClass } from './profiles';
+import { axisOf, type MeasureAxis } from './shapes';
 import type { SpeciesDef } from './species';
 
 // Size classes: one table (rules.size, src/rules/defaults.ts) decides how big every Pokémon is drawn and how big its
@@ -20,6 +21,10 @@ import type { SpeciesDef } from './species';
 // classes were ~25 % apart. Fixed class targets ×1.4 apart, with a ±8 % tilt, keep classes distinct and never
 // overlapping while an evolution inside one class still grows a little.
 //
+// Two flags, both off by default (docs/SIZING.md "Measurement axis", "Giants"): rules.size.axis reads a listed body
+// length (serpent and fish shapes, src/rules/shapes.ts) as lengthRise × itself; rules.size.xlContinuous lets the
+// Extra Large drawn core grow with the extent (xlVisual) while its sim body keeps the class row.
+//
 // Bosses keep their authored encounter scale (`SpeciesDef.scale`, drawn 2–3× by the renderer) and their sim body
 // stays the drawn one (radius from that drawn height), so the class rules never compound with it.
 
@@ -31,21 +36,34 @@ export type SizeClass = (typeof SIZE_CLASS_NAMES)[number];
 /** Upper bounds of the Tiny, Small, Medium and Large classes, in metres of source extent (rules.size.classes). */
 export const SIZE_CUTOFFS_M = defaultRules.size.classes.slice(0, -1).map((c) => c.below);
 
+/** A reviewed neutral extent with the axis its source figure measured (`span` can only come from here). */
+export interface NeutralExtent {
+  m: number;
+  axis: MeasureAxis;
+  /** how the figure was reached, for review */
+  basis?: string;
+}
+
 /**
  * Approved neutral core extents (m), by species id: a reviewed figure for a species whose listed extent describes
  * something other than its standing silhouette — length along the body for a serpent, a hovering cloud's envelope.
- * An entry here replaces the canonical listed extent as the input `S`. To force a class regardless of extent, use
- * `sizeClass` in SPECIES_OVERRIDES (src/rules/profiles.ts) instead. Keep empty until a figure is approved.
+ * An entry here replaces the canonical listed extent as the input `S`, with or without rules.size.axis. A bare number
+ * keeps the species' own axis; a NeutralExtent names the axis its figure measured (the only way to select `span`).
+ * To force a class regardless of extent, use `sizeClass` in SPECIES_OVERRIDES (src/rules/profiles.ts) instead.
+ * Keep empty until a figure is approved.
  */
-export const NEUTRAL_CORE_EXTENT_M: Record<string, number> = {};
+export const NEUTRAL_CORE_EXTENT_M: Record<string, number | NeutralExtent> = {};
 
-/** Where a species' class came from, so a capture or report can say. */
-export type ExtentSource = 'override' | 'approved-neutral' | 'canonical-listed' | 'sprite-fallback';
+/** Where a species' class came from, so a capture or report can say. `length-rise` is a listed body length times
+ *  rules.size.lengthRise (rules.size.axis on). */
+export type ExtentSource = 'override' | 'approved-neutral' | 'canonical-listed' | 'length-rise' | 'sprite-fallback';
 
 export interface SpeciesExtent {
   /** input `S` in metres */
   m: number;
   source: Exclude<ExtentSource, 'override'>;
+  /** what the source figure measured (src/rules/shapes.ts) */
+  axis: MeasureAxis;
 }
 
 type SizeRules = Rules['size'];
@@ -61,13 +79,24 @@ export function sizeClassOf(extentM: number, size: SizeRules = defaultRules.size
   return SIZE_CLASS_NAMES[sizeClassIndex(extentM, size)];
 }
 
-/** The extent behind a species' class: approved neutral, else canonical listed, else the sprite-derived height. */
-export function speciesExtent(sp: SpeciesDef): SpeciesExtent {
+/** The axis a species' listed extent measures: `canon.axis`, else its approved override or shape, else `height`. */
+export const listedAxis = (sp: SpeciesDef): MeasureAxis => sp.canon?.axis ?? axisOf(sp.id, sp.canon?.shape);
+
+/**
+ * The extent behind a species' class: an approved neutral figure, else the canonical listed one, else the
+ * sprite-derived height. With rules.size.axis on, a listed body length (`length` axis) counts `lengthRise` × itself.
+ */
+export function speciesExtent(sp: SpeciesDef, size: SizeRules = defaultRules.size): SpeciesExtent {
+  const axis = listedAxis(sp);
   const approved = NEUTRAL_CORE_EXTENT_M[sp.id];
-  if (approved !== undefined && approved > 0) return { m: approved, source: 'approved-neutral' };
+  const a = typeof approved === 'number' ? { m: approved, axis } : approved;
+  if (a !== undefined && a.m > 0) return { m: a.m, source: 'approved-neutral', axis: a.axis };
   const canon = sp.canon?.heightM;
-  if (canon !== undefined && canon > 0) return { m: canon, source: 'canonical-listed' };
-  return { m: sp.height, source: 'sprite-fallback' };
+  if (canon !== undefined && canon > 0) {
+    if (size.axis && axis === 'length') return { m: canon * size.lengthRise, source: 'length-rise', axis };
+    return { m: canon, source: 'canonical-listed', axis };
+  }
+  return { m: sp.height, source: 'sprite-fallback', axis: 'height' };
 }
 
 /** 1 ± tilt from where `extentM` sits inside class `i` (log scale; the open ends use rules.size.extentRange). */
@@ -111,7 +140,7 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
   if (!m) bodies.set(size, (m = new Map()));
   const hit = m.get(sp.id);
   if (hit) return hit;
-  const ext = speciesExtent(sp);
+  const ext = speciesExtent(sp, size);
   const pinned = pinnedSizeClass(sp.id);
   const byExtent = sizeClassIndex(ext.m, size);
   const at = pinned !== undefined ? size.classes.findIndex((c) => c.id === pinned) : -1;
@@ -128,7 +157,7 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
     extentM: ext.m,
     extentSource: at >= 0 ? 'override' : ext.source,
     factor,
-    visualM: authored ? sp.height : C.visual * factor,
+    visualM: authored ? sp.height : C.id === 'xl' && size.xlContinuous ? xlVisual(ext.m, size) : C.visual * factor,
     radius: authored ? legacyRadius(sp) : C.radius * factor,
     height: authored ? sp.height : C.height * factor,
     // an authored boss keeps its encounter-scale hurtbox; its footprint is capped like every role-scaled body
@@ -137,6 +166,16 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
   };
   m.set(sp.id, body);
   return body;
+}
+
+/**
+ * The drawn core of an Extra Large species with rules.size.xlContinuous on: min(xlVisualCap, xlFloor × (S / L) ^
+ * xlExponent), L the Large class's upper cut. It starts at today's lowest XL draw at the cut (an extent pinned into XL
+ * from below draws the floor) and rises with the extent, so a 14.5 m Wailord stays visibly bigger than a 2.1 m Snorlax.
+ */
+export function xlVisual(extentM: number, size: SizeRules = defaultRules.size): number {
+  const cut = size.classes[size.classes.length - 2].below;
+  return Math.min(size.xlVisualCap, size.xlFloor * Math.max(1, extentM / cut) ** size.xlExponent);
 }
 
 /** A partner's collision and hurt radius: its class radius inside rules.size.playerRadius (or the shared legacy one). */

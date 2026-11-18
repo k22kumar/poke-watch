@@ -52,6 +52,10 @@ const which = process.argv[2] ?? 'all';
 // Wall tops (R1b, docs/SIZING.md "Wall tops"): the player's spatial attack traces end a wall prop at its measured top.
 // Only the spatial sets can reach it, and of those only `aim` is current: `aim-tops-off` must print the `aim` hashes from
 // before it, and every older set (all but `on`, `gen`, `aim`, `aim-off`) turns it off too.
+// Size extremes S1 (docs/SIZING.md "Measurement axis", "Giants"; docs/size-extremes-plan.md): rules.size.axis and
+// rules.size.xlContinuous are both off by default, so `on` and every set above print the hashes from before them.
+// `axis` and `gen-axis` turn the measurement axis on (a listed body length counts 0.35 × itself); `xl` turns the
+// continuous Extra Large draw on and must print the `on` hashes exactly (no sim system reads the drawn size).
 const HEADROOM_OFF = { headroom: false };
 const TOPS_OFF = { wallTops: false };
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF, world: TOPS_OFF };
@@ -81,6 +85,10 @@ const SETS: Record<string, object | undefined> = {
   'aim-pole-off': { aim: { poleSafe: false }, world: TOPS_OFF },
   // R1b: `aim` with every wall infinite again (the pre-R1b `aim` hashes exactly)
   'aim-tops-off': { world: TOPS_OFF },
+  // S1 flags, default off: each set turns one on over the current game
+  axis: { size: { axis: true } },
+  'gen-axis': { worldgen: { mode: 'generated' }, size: { axis: true } },
+  xl: { size: { xlContinuous: true } },
 };
 const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off', 'aim-tops-off']);
 

@@ -226,6 +226,21 @@ export const defaultRules = {
      *  (World.moveBody), and wide routing leaves such gaps out for that body. false = heads pass through slabs, as before
      *  (the older checksum layers set it) */
     headroom: true,
+    /** [C] Measurement axis (docs/SIZING.md "Measurement axis"): a species whose official shape lists its body length
+     *  (src/rules/shapes.ts: `squiggle`, `fish`, or an approved SPECIES_AXIS row such as Eternatus) takes `lengthRise` ×
+     *  that length as its extent, unless an approved
+     *  NEUTRAL_CORE_EXTENT_M entry gives one. false = every listed figure is read as height, as before */
+    axis: false,
+    lengthRise: 0.5, // [B] share of a listed body length that stands up as the extent (serpents, fish); owner 2026-11-18
+    /** [C] Continuous Extra Large (docs/SIZING.md "Giants"): an XL species' drawn core grows with its extent,
+     *  min(xlVisualCap, xlFloor × (S / Large's cut) ^ xlExponent), so giants stay visibly bigger than a 2.1 m XL.
+     *  Drawn size only: XL radius, height and footprint keep the class values and tilt, and no sim system reads the
+     *  drawn size. false = the fixed XL target ± tilt, as before */
+    xlContinuous: false,
+    xlVisualCap: 4.0, // [B] m: provisional visual cap on the largest giants, to be tested (handoff decision 3)
+    xlFloor: 2.69 * 0.92, // [B] m: today's lowest XL draw (class visual × (1 − tilt)), the draw at Large's cut
+    xlExponent: 0.3, // [B] growth with extent, a fixed constant (owner 2026-11-18): never fitted to the largest species, so a new
+    // generation's giant cannot move every other XL draw. Reaches the cap at about 10.2 m of extent
   },
   director: {
     hpN: [1, 5.5, 13, 20], // [C] per stage

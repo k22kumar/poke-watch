@@ -115,7 +115,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.7,
    "weightKg": 6.9,
    "evolveLevel": 16,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -190,7 +191,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1,
    "weightKg": 13,
    "evolveLevel": 32,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -284,7 +286,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "chlorophyll"
    ],
    "heightM": 2,
-   "weightKg": 100
+   "weightKg": 100,
+   "shape": "quadruped"
   }
  },
  {
@@ -434,7 +437,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 8.5,
    "evolveLevel": 16,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -527,7 +531,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1.1,
    "weightKg": 19,
    "evolveLevel": 36,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -674,7 +679,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "solar_power"
    ],
    "heightM": 1.7,
-   "weightKg": 90.5
+   "weightKg": 90.5,
+   "shape": "upright"
   }
  },
  {
@@ -824,7 +830,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.5,
    "weightKg": 9,
    "evolveLevel": 16,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -921,7 +928,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1,
    "weightKg": 22.5,
    "evolveLevel": 36,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -1041,7 +1049,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "rain_dish"
    ],
    "heightM": 1.6,
-   "weightKg": 85.5
+   "weightKg": 85.5,
+   "shape": "upright"
   }
  },
  {
@@ -1131,7 +1140,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.9,
    "weightKg": 6.4,
    "evolveLevel": 16,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -1196,7 +1206,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1.2,
    "weightKg": 15.8,
    "evolveLevel": 32,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -1276,7 +1287,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "leaf_guard"
    ],
    "heightM": 1.8,
-   "weightKg": 100.5
+   "weightKg": 100.5,
+   "shape": "quadruped"
   }
  },
  {
@@ -1430,7 +1442,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.5,
    "weightKg": 7.9,
    "evolveLevel": 14,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -1527,7 +1540,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.9,
    "weightKg": 19,
    "evolveLevel": 36,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -1624,7 +1638,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "flash_fire"
    ],
    "heightM": 1.7,
-   "weightKg": 79.5
+   "weightKg": 79.5,
+   "shape": "quadruped"
   }
  },
  {
@@ -1774,7 +1789,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 9.5,
    "evolveLevel": 18,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -1871,7 +1887,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1.1,
    "weightKg": 25,
    "evolveLevel": 30,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -1968,7 +1985,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "sheer_force"
    ],
    "heightM": 2.3,
-   "weightKg": 88.8
+   "weightKg": 88.8,
+   "shape": "upright"
   }
  },
  {
@@ -2051,7 +2069,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.3,
    "weightKg": 3.5,
    "evolveLevel": 20,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -2172,7 +2191,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.4,
    "weightKg": 20,
    "evolveLevel": 25,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "arms"
   }
  },
  {
@@ -2250,7 +2270,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1,
    "weightKg": 10.8,
    "evolveLevel": 18,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "wings"
   }
  },
  {
@@ -2356,7 +2377,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 12,
    "evolveLevel": 22,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -2433,7 +2455,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.5,
    "weightKg": 5.4,
    "evolveLevel": 21,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "legs"
   }
  },
  {
@@ -2528,7 +2551,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 12.4,
    "evolveLevel": 25,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "legs"
   }
  },
  {
@@ -2619,7 +2643,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.7,
    "weightKg": 35,
    "evolveLevel": 38,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
   }
  },
  {
@@ -2713,7 +2738,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.6,
    "weightKg": 9.9,
-   "evolveTrigger": "use-item"
+   "evolveTrigger": "use-item",
+   "shape": "quadruped"
   }
  },
  {
@@ -2795,7 +2821,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 7.8,
    "evolveLevel": 15,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -2840,7 +2867,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "insomnia"
    ],
    "heightM": 0.9,
-   "weightKg": 16
+   "weightKg": 16,
+   "shape": "wings"
   }
  },
  {
@@ -2941,7 +2969,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.4,
    "weightKg": 6.5,
    "evolveLevel": 33,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -3030,7 +3059,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.8,
    "weightKg": 7.5,
    "evolveLevel": 22,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "wings"
   }
  },
  {
@@ -3111,7 +3141,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1.3,
    "weightKg": 0.1,
    "evolveLevel": 25,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "ball"
   }
  },
  {
@@ -3192,7 +3223,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.3,
    "weightKg": 5.4,
    "evolveLevel": 24,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "armor"
   }
  },
  {
@@ -3289,7 +3321,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 10.8,
    "evolveLevel": 24,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -3412,7 +3445,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "moxie"
    ],
    "heightM": 1.5,
-   "weightKg": 54
+   "weightKg": 54,
+   "shape": "humanoid"
   }
  },
  {
@@ -3498,7 +3532,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.1,
    "weightKg": 0.6,
    "evolveLevel": 36,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "armor"
   }
  },
  {
@@ -3622,7 +3657,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 8.8,
    "weightKg": 210,
-   "evolveTrigger": "trade"
+   "evolveTrigger": "trade",
+   "shape": "squiggle"
   }
  },
  {
@@ -3691,7 +3727,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.3,
    "weightKg": 2,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -3792,7 +3829,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.4,
    "weightKg": 6,
-   "evolveTrigger": "use-item"
+   "evolveTrigger": "use-item",
+   "shape": "quadruped"
   }
  },
  {
@@ -3866,7 +3904,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.3,
    "weightKg": 1.5,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -3945,7 +3984,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.8,
    "weightKg": 6,
    "evolveLevel": 15,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -4026,7 +4066,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "frisk"
    ],
    "heightM": 1.8,
-   "weightKg": 32.5
+   "weightKg": 32.5,
+   "shape": "quadruped"
   }
  },
  {
@@ -4095,7 +4136,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.2,
    "weightKg": 1.2,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -4169,7 +4211,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.1,
    "weightKg": 0.2,
    "evolveLevel": 25,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "armor"
   }
  },
  {
@@ -4259,7 +4302,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.4,
    "weightKg": 10.2,
    "evolveLevel": 18,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -4365,7 +4409,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1.4,
    "weightKg": 39.2,
    "evolveLevel": 31,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "legs"
   }
  },
  {
@@ -4502,7 +4547,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "gluttony"
    ],
    "heightM": 2.1,
-   "weightKg": 460
+   "weightKg": 460,
+   "shape": "humanoid"
   }
  },
  {
@@ -4593,7 +4639,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.2,
    "weightKg": 0.8,
    "evolveLevel": 26,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "blob"
   }
  },
  {
@@ -4680,7 +4727,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 2,
    "weightKg": 6.9,
    "evolveLevel": 22,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
   }
  },
  {
@@ -4757,7 +4805,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.6,
    "weightKg": 1,
    "evolveLevel": 35,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "ball"
   }
  },
  {
@@ -4824,7 +4873,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.3,
    "weightKg": 12,
    "evolveLevel": 18,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "ball"
   }
  },
  {
@@ -4909,7 +4959,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.7,
    "weightKg": 1,
    "evolveLevel": 28,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "tentacles"
   }
  },
  {
@@ -4984,7 +5035,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 2.2,
    "weightKg": 7.6,
    "evolveLevel": 36,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
   }
  },
  {
@@ -5075,7 +5127,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1,
    "weightKg": 86.4,
    "evolveLevel": 24,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -5172,7 +5225,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "sheer_force"
    ],
    "heightM": 2.3,
-   "weightKg": 253.8
+   "weightKg": 253.8,
+   "shape": "humanoid"
   }
  },
  {
@@ -5271,7 +5325,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.7,
    "weightKg": 16.8,
    "evolveLevel": 42,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -5315,7 +5370,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.3,
    "weightKg": 3.8,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
   }
  },
  {
@@ -5415,7 +5471,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.9,
    "weightKg": 28,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "upright"
   }
  },
  {
@@ -5514,7 +5571,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 1,
    "weightKg": 99.5,
    "evolveLevel": 37,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
   }
  },
  {
@@ -5600,7 +5658,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 1.2,
    "weightKg": 45,
-   "evolveTrigger": "use-item"
+   "evolveTrigger": "use-item",
+   "shape": "upright"
   }
  },
  {
@@ -5680,7 +5739,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "hydration"
    ],
    "heightM": 2.5,
-   "weightKg": 220
+   "weightKg": 220,
+   "shape": "fish"
   }
  },
  {
@@ -5786,7 +5846,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 0.5,
    "weightKg": 2.1,
-   "evolveTrigger": "use-item"
+   "evolveTrigger": "use-item",
+   "shape": "wings"
   }
  },
  {
@@ -5868,7 +5929,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.3,
    "weightKg": 3.1,
    "evolveLevel": 41,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "blob"
   }
  },
  {
@@ -5952,7 +6014,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    ],
    "heightM": 1.6,
    "weightKg": 0.1,
-   "evolveTrigger": "trade"
+   "evolveTrigger": "trade",
+   "shape": "arms"
   }
  },
  {
@@ -6033,7 +6096,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "cursed_body"
    ],
    "heightM": 1.5,
-   "weightKg": 40.5
+   "weightKg": 40.5,
+   "shape": "upright"
   }
  },
  {
@@ -6102,7 +6166,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.4,
    "weightKg": 5.5,
    "evolveLevel": 32,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
   }
  },
  {
@@ -6192,7 +6257,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.5,
    "weightKg": 8,
    "evolveLevel": 48,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "wings"
   }
  },
  {
@@ -6279,7 +6345,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.8,
    "weightKg": 2,
    "evolveLevel": 35,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "blob"
   }
  },
  {
@@ -6333,7 +6400,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "heightM": 0.5,
    "weightKg": 2,
    "evolveLevel": 50,
-   "evolveTrigger": "level-up"
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
   }
  },
  {
@@ -6448,7 +6516,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "rattled"
    ],
    "heightM": 1.2,
-   "weightKg": 38
+   "weightKg": 38,
+   "shape": "humanoid"
   }
  },
  {
@@ -6554,7 +6623,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "weak_armor"
    ],
    "heightM": 0.8,
-   "weightKg": 55
+   "weightKg": 55,
+   "shape": "squiggle"
   }
  },
  {
@@ -6659,7 +6729,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "snow_cloak"
    ],
    "heightM": 1.7,
-   "weightKg": 55.4
+   "weightKg": 55.4,
+   "shape": "wings"
   }
  },
  {
@@ -6774,7 +6845,8 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
     "unnerve"
    ],
    "heightM": 1.4,
-   "weightKg": 35
+   "weightKg": 35,
+   "shape": "quadruped"
   }
  }
 ];

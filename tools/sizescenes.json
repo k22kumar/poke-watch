@@ -339,5 +339,899 @@
         "shot": "page"
       }
     ]
+  },
+  {
+    "name": "size-giants-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "measure": [
+          "snorlax",
+          "onix",
+          "wailord",
+          "eternatus",
+          "rattata",
+          "sandshrew",
+          "charmeleon",
+          "heracross"
+        ]
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-ref-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 5, gap = 4;\n  return [\"rattata\",\"sandshrew\",\"charmeleon\",\"heracross\",\"snorlax\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-target-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false,
+          "marksFrom": ".capture/out/targets-on.json"
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-deck-24-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, R = pw.renderer, E = ctx.enemies;\n  if (!M.over) M.over = new Float32Array(W.w * W.h);\n  const out = [];\n  for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const ti = Math.floor(E.x[i] + W.half), tj = Math.floor(E.z[i] + W.half), g = W.height(E.x[i], E.z[i]);\n    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) M.over[(tj + dj) * W.w + ti + di] = g + 2.4 + 0.6;\n    out.push({ i, ground: g, underside: g + 2.4 }); }\n  R.stages.delete(M.id); R.setStage(ctx); return out; })()"
+      },
+      {
+        "advance": 0.1,
+        "frames": 6
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-deck-29-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, R = pw.renderer, E = ctx.enemies;\n  if (!M.over) M.over = new Float32Array(W.w * W.h);\n  const out = [];\n  for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const ti = Math.floor(E.x[i] + W.half), tj = Math.floor(E.z[i] + W.half), g = W.height(E.x[i], E.z[i]);\n    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) M.over[(tj + dj) * W.w + ti + di] = g + 2.9 + 0.6;\n    out.push({ i, ground: g, underside: g + 2.9 }); }\n  R.stages.delete(M.id); R.setStage(ctx); return out; })()"
+      },
+      {
+        "advance": 0.1,
+        "frames": 6
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-snorlax-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'snorlax') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('snorlax', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'snorlax', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-snorlax-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=snorlax&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-onix-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'onix') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('onix', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'onix', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-onix-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=onix&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-wailord-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'wailord') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('wailord', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'wailord', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-wailord-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=wailord&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-eternatus-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'eternatus') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('eternatus', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'eternatus', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-eternatus-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=eternatus&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-edge-wailord-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  for (let z = Math.floor(P.z) + 0.5; z < W.half - 4; z += 1) {\n    let x = -W.half + 0.5; while (x < 0 && W.map.wall[W.tile(x, z)] === 1) x += 1;\n    if (x >= 0) continue; const k = W.tile(x - 1, z);\n    const i = pw.spawn('wailord', 0, 0); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 + E.foot[i] + 0.02; E.z[i] = E.pz[i] = z; E.y[i] = E.py[i] = W.height(E.x[i], z);\n    P.x = P.px = E.x[i] + 3; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'wailord', edgeX: x - 0.5, mapEdge: -W.half, z, enemyX: E.x[i], foot: E.foot[i], wallTilesWest: Math.round(x - 0.5 + W.half) };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-edge-eternatus-on",
+    "build": "on",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  for (let z = Math.floor(P.z) + 0.5; z < W.half - 4; z += 1) {\n    let x = -W.half + 0.5; while (x < 0 && W.map.wall[W.tile(x, z)] === 1) x += 1;\n    if (x >= 0) continue; const k = W.tile(x - 1, z);\n    const i = pw.spawn('eternatus', 0, 0); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 + E.foot[i] + 0.02; E.z[i] = E.pz[i] = z; E.y[i] = E.py[i] = W.height(E.x[i], z);\n    P.x = P.px = E.x[i] + 3; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'eternatus', edgeX: x - 0.5, mapEdge: -W.half, z, enemyX: E.x[i], foot: E.foot[i], wallTilesWest: Math.round(x - 0.5 + W.half) };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-giants-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "measure": [
+          "snorlax",
+          "onix",
+          "wailord",
+          "eternatus",
+          "rattata",
+          "sandshrew",
+          "charmeleon",
+          "heracross"
+        ]
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-ref-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 5, gap = 4;\n  return [\"rattata\",\"sandshrew\",\"charmeleon\",\"heracross\",\"snorlax\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-target-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false,
+          "marksFrom": ".capture/out/targets-off.json"
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-deck-24-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, R = pw.renderer, E = ctx.enemies;\n  if (!M.over) M.over = new Float32Array(W.w * W.h);\n  const out = [];\n  for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const ti = Math.floor(E.x[i] + W.half), tj = Math.floor(E.z[i] + W.half), g = W.height(E.x[i], E.z[i]);\n    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) M.over[(tj + dj) * W.w + ti + di] = g + 2.4 + 0.6;\n    out.push({ i, ground: g, underside: g + 2.4 }); }\n  R.stages.delete(M.id); R.setStage(ctx); return out; })()"
+      },
+      {
+        "advance": 0.1,
+        "frames": 6
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-deck-29-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, E = pw.ctx.enemies; const n = 4, gap = 5.5;\n  return [\"snorlax\",\"onix\",\"wailord\",\"eternatus\"].map((id, k) => { const i = pw.spawn(id, (k - (n - 1) / 2) * gap, -2); E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6; return { id, i, x: E.x[i], z: E.z[i] }; }); })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, R = pw.renderer, E = ctx.enemies;\n  if (!M.over) M.over = new Float32Array(W.w * W.h);\n  const out = [];\n  for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const ti = Math.floor(E.x[i] + W.half), tj = Math.floor(E.z[i] + W.half), g = W.height(E.x[i], E.z[i]);\n    for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) M.over[(tj + dj) * W.w + ti + di] = g + 2.9 + 0.6;\n    out.push({ i, ground: g, underside: g + 2.9 }); }\n  R.stages.delete(M.id); R.setStage(ctx); return out; })()"
+      },
+      {
+        "advance": 0.1,
+        "frames": 6
+      },
+      {
+        "overlay": {
+          "face": 0,
+          "labels": false
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-snorlax-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'snorlax') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('snorlax', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'snorlax', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-snorlax-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=snorlax&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-onix-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'onix') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('onix', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'onix', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-onix-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=onix&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-wailord-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'wailord') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('wailord', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'wailord', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-wailord-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=wailord&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-wall-eternatus-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  const S = ctx.speciesIndex.find((s) => s.id === 'eternatus') ?? null;\n  for (let r = 3; r < 40; r++) for (let dz = -r; dz <= r; dz++) {\n    const x = Math.floor(P.x) + 0.5 + r, z = Math.floor(P.z) + 0.5 + dz;\n    const k = W.tile(x, z); if (k < 0 || W.map.wall[k] !== 1) continue;\n    const top = W.wallTopAt(x, z); const gx = x - 0.5 - 0.9; const g = W.height(gx, z); if (!(top >= 2.5)) continue;\n    let open = true; for (let t = 1; t <= 4; t++) { const kk = W.tile(x - t, z); if (kk < 0 || W.map.wall[kk] === 1 || Math.abs(W.height(x - t, z) - g) > 0.2) open = false; }\n    if (!open) continue;\n    const i = pw.spawn('eternatus', gx - P.x, z - P.z); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 - E.foot[i] - 0.02;\n    P.x = P.px = E.x[i]; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'eternatus', wallX: x - 0.5, wallTop: top, z, enemyX: E.x[i], foot: E.foot[i] };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-frame-eternatus-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=eternatus&calm=1&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1,
+        "frames": 60
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, M = W.map, P = ctx.player, R = pw.renderer;\n  const ok = (ci, cj) => { const g = W.height(ci - W.half + 0.5, cj - W.half + 0.5);\n    for (let j = cj - 8 + 2; j <= cj + 2; j++) for (let i = ci - 12; i <= ci + 12; i++) { if (i < 0 || j < 0 || i >= W.w || j >= W.h) return false;\n      const k = j * W.w + i; if (M.wall[k] || (M.over && M.over[k] > 0) || W.waterAt(i - W.half + 0.5, j - W.half + 0.5) > -Infinity || Math.abs(W.height(i - W.half + 0.5, j - W.half + 0.5) - g) > 0.25) return false; }\n    return true; };\n  const c0 = Math.floor(P.x + W.half), r0 = Math.floor(P.z + W.half);\n  for (let r = 0; r < 60; r++) for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue;\n    const ci = c0 + di, cj = r0 + dj; if (!ok(ci, cj)) continue;\n    P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx); return { tile: [ci, cj], x: P.x, z: P.z }; }\n  return null; })()"
+      },
+      {
+        "advance": 2,
+        "frames": 120
+      },
+      {
+        "frame": true
+      },
+      {
+        "overlay": {
+          "player": true
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-edge-wailord-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  for (let z = Math.floor(P.z) + 0.5; z < W.half - 4; z += 1) {\n    let x = -W.half + 0.5; while (x < 0 && W.map.wall[W.tile(x, z)] === 1) x += 1;\n    if (x >= 0) continue; const k = W.tile(x - 1, z);\n    const i = pw.spawn('wailord', 0, 0); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 + E.foot[i] + 0.02; E.z[i] = E.pz[i] = z; E.y[i] = E.py[i] = W.height(E.x[i], z);\n    P.x = P.px = E.x[i] + 3; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'wailord', edgeX: x - 0.5, mapEdge: -W.half, z, enemyX: E.x[i], foot: E.foot[i], wallTilesWest: Math.round(x - 0.5 + W.half) };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
+  },
+  {
+    "name": "size-clip-edge-eternatus-off",
+    "build": "off",
+    "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&world=authored&tp=56,56",
+    "steps": [
+      {
+        "advance": 1.5,
+        "frames": 90
+      },
+      {
+        "eval": "(() => { const pw = window.pokewatch, ctx = pw.ctx, W = ctx.world, P = ctx.player, R = pw.renderer;\n  for (let z = Math.floor(P.z) + 0.5; z < W.half - 4; z += 1) {\n    let x = -W.half + 0.5; while (x < 0 && W.map.wall[W.tile(x, z)] === 1) x += 1;\n    if (x >= 0) continue; const k = W.tile(x - 1, z);\n    const i = pw.spawn('eternatus', 0, 0); const E = ctx.enemies; E.speed[i] = 0; E.hp[i] = E.maxHp[i] = 1e6;\n    E.x[i] = E.px[i] = x - 0.5 + E.foot[i] + 0.02; E.z[i] = E.pz[i] = z; E.y[i] = E.py[i] = W.height(E.x[i], z);\n    P.x = P.px = E.x[i] + 3; P.z = P.pz = z + 2; P.y = P.py = W.height(P.x, P.z); R.snapCamera(ctx);\n    return { id: 'eternatus', edgeX: x - 0.5, mapEdge: -W.half, z, enemyX: E.x[i], foot: E.foot[i], wallTilesWest: Math.round(x - 0.5 + W.half) };\n  } return null; })()"
+      },
+      {
+        "advance": 0.5,
+        "frames": 30
+      },
+      {
+        "overlay": {
+          "face": 0
+        }
+      },
+      {
+        "shot": "page"
+      }
+    ]
   }
 ]

@@ -141,11 +141,19 @@ for (const s of species) {
   }
   art[s.id] = { art: s.art, cry: s.cry, provenance: s.provenance };
 }
+// canonical catalogue first: its pinned CSV snapshot also carries every species' official shape, which the role lane
+// adds to `canon` (src/rules/shapes.ts turns it into the measurement axis)
+const catalogue = buildCatalogue(CATALOGUE_OUT);
 const defs = species.map((s) => {
   const d = {
     id: s.id, name: s.name, dex: s.dex, types: s.types, elements: s.elements, stats: s.stats, height: s.height, art: 'pokemon:' + s.id,
   };
   for (const k of ['flying', 'scale', 'playable', 'blurb', 'starter', 'learnset', 'coverage', 'evolvesTo', 'evolveLevel', 'behaviour', 'shot', 'boss', 'canon']) if (s[k] !== undefined) d[k] = s[k];
+  if (d.canon) {
+    const shape = catalogue.shapes[String(s.dex)];
+    if (!shape) throw new Error(`${s.id}: no shape for species ${s.dex} in the pinned snapshot`);
+    d.canon = { ...d.canon, shape };
+  }
   return d;
 });
 
@@ -192,9 +200,7 @@ fs.writeFileSync(path.join(ROOT, 'src/content/pokedex.ts'), ts);
 const bundle = { generated: new Date().toISOString(), notice: partners.pack.notice, licenses: partners.pack.licenses, species: art };
 fs.writeFileSync(path.join(ROOT, 'src/content/art.json'), JSON.stringify(bundle));
 fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ generated: bundle.generated, sources: CLONES ? 'git checkouts' : 'network', species: [...partners.report.species, ...enemies.report.species], files: [...partners.report.sources, ...enemies.report.sources] }, null, 1));
-// canonical catalogue: reference records only, written after the role lane so its provenance
-// is appended to the report the role lane just wrote
-const catalogue = buildCatalogue(CATALOGUE_OUT);
+// canonical catalogue (built above): its provenance is appended to the report the role lane just wrote
 reportCatalogue(catalogue);
 // music slots: licensed recordings listed in content/music/manifest.json (none ship by default)
 {

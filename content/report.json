@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-15T20:06:29.331Z",
+ "generated": "2026-11-18T21:30:31.333Z",
  "sources": "git checkouts",
  "species": [
   {
@@ -16501,6 +16501,13 @@
      "from": "clone",
      "bytes": 105,
      "sha256": "dbd1ecc3f014b67c1a9452611fca5d13542ebc3524f3a4188b5a6cb1ca911d79"
+    },
+    {
+     "file": "pokemon_shapes.csv",
+     "url": "https://raw.githubusercontent.com/PokeAPI/pokeapi/8a92bfa7dab2f12b84b5d151562f9857c133ff30/data/v2/csv/pokemon_shapes.csv",
+     "from": "clone",
+     "bytes": 146,
+     "sha256": "acf1c6079fb3601ad1badae83c966ce6a5cf500e75e128415248772825d9b8cd"
     }
    ]
   },

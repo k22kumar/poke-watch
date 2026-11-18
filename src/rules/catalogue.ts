@@ -46,6 +46,8 @@ export interface CatalogueRecord {
   /** Official type names in source slot order. Order is display-visible; never sort these. */
   types: string[];
   form: { slug: string; id: number; label: string; status: FormStatus };
+  /** Official body shape (PokéAPI `pokemon_shapes` identifier); src/rules/shapes.ts maps it to a measurement axis. */
+  shape: string | null;
   /** Raw source extent in decimetres. Read it through `heightMeters` so the qualifier travels. */
   heightDm: number;
   heightKind: HeightKind;
