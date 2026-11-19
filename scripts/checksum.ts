@@ -53,14 +53,15 @@ const which = process.argv[2] ?? 'all';
 // Wall tops (R1b, docs/SIZING.md "Wall tops"): the player's spatial attack traces end a wall prop at its measured top.
 // Only the spatial sets can reach it, and of those only `aim` is current: `aim-tops-off` must print the `aim` hashes from
 // before it, and every older set (all but `on`, `gen`, `aim`, `aim-off`) turns it off too.
-// Size extremes S1 (docs/SIZING.md "Measurement axis", "Giants"; docs/size-extremes-plan.md): rules.size.axis and
-// rules.size.xlContinuous are both off by default, so `on` and every set above print the hashes from before them.
-// `axis` and `gen-axis` turn the measurement axis on (a listed body length counts 0.5 × itself); `xl` turns the
-// continuous Extra Large draw on and must print the `on` hashes exactly (no sim system reads the drawn size).
-// xlTall (default off): with xlContinuous an XL body's sim height follows its drawn size. `tall` / `gen-tall` turn on
-// xlContinuous + xlTall; `giants` / `gen-giants` all three flags (the candidate default). xlTall alone moves nothing
-// (tests/sizing.test.ts checks every body is bit-identical), so `on` and every set above are its "off" layer.
-const HEADROOM_OFF = { headroom: false };
+// Size extremes (docs/SIZING.md "Measurement axis", "Giants"; docs/size-extremes-plan.md "Default flip"): rules.size.axis,
+// xlContinuous and xlTall are on by default since the flip (owner 2026-11-18), so `on`, `gen` and `deck` include them.
+// `giants-off`, `gen-giants-off` and `deck-giants-off` turn all three off and must print the `on`, `gen` and `deck`
+// hashes from before the flip; every older set turns them off too (S1_OFF, inside HEADROOM_OFF and on the aim sets).
+// `aim` is not reached by the flags (its four replays print the same either way), and `aim-off` stays unpinned so it
+// keeps printing the current `on`. `deck-tall` keeps the axis off with xlContinuous + xlTall on: only there is Onix
+// (3.42 m) taller than Mt. Moon's 2.9 m gaps, so it is the replay that exercises xlTall's routing.
+const S1_OFF = { axis: false, xlContinuous: false, xlTall: false };
+const HEADROOM_OFF = { headroom: false, ...S1_OFF };
 const TOPS_OFF = { wallTops: false };
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF, world: TOPS_OFF };
 const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
@@ -92,28 +93,22 @@ const SETS: Record<string, object | undefined> = {
   // Phase 2C (§14): beams back on the planar path and foliage back to cover: the Phase 2B `aim` hashes exactly
   'aim-2b': { aim: { archetypes: ['bolt', 'orb'], foliageCover: true, poleSafe: false }, size: HEADROOM_OFF, world: TOPS_OFF },
   // R2 (§18): `aim` with the pre-R2 muzzle and fan maths
-  'aim-pole-off': { aim: { poleSafe: false }, world: TOPS_OFF },
+  'aim-pole-off': { aim: { poleSafe: false }, size: S1_OFF, world: TOPS_OFF },
   // R1b: `aim` with every wall infinite again (the pre-R1b `aim` hashes exactly)
-  'aim-tops-off': { world: TOPS_OFF },
-  // S1 flags, default off: each set turns one on over the current game
-  axis: { size: { axis: true } },
-  'gen-axis': { worldgen: { mode: 'generated' }, size: { axis: true } },
-  xl: { size: { xlContinuous: true } },
-  tall: { size: { xlContinuous: true, xlTall: true } },
-  'gen-tall': { worldgen: { mode: 'generated' }, size: { xlContinuous: true, xlTall: true } },
-  giants: { size: { axis: true, xlContinuous: true, xlTall: true } },
-  'gen-giants': { worldgen: { mode: 'generated' }, size: { axis: true, xlContinuous: true, xlTall: true } },
+  'aim-tops-off': { size: S1_OFF, world: TOPS_OFF },
+  // the size flags off over the current game: the `on`, `gen` and `deck` hashes from before the default flip exactly
+  'giants-off': { size: S1_OFF },
+  'gen-giants-off': { worldgen: { mode: 'generated' }, size: S1_OFF },
   // xlTall on a deck map (docs/size-extremes-plan.md, xlTall replay): Mt. Moon in every region (2.9 m gaps under its
   // decks) with Onix in the pool and as the elite, its own config (DECK_CONFIGS). `deck` is the default game there,
-  // `deck-giants` all three size flags, `deck-tall` xlContinuous + xlTall: only there is Onix (3.42 m) taller than a
-  // 2.9 m gap, so only `deck-tall` exercises xlTall's routing. With the axis on Onix is 2.78 m and fits every gap the
-  // generators make, so `deck-giants` differs from `deck` through the axis alone (it equals axis + xlContinuous there)
+  // `deck-giants-off` the flags off (the pre-flip `deck`), `deck-tall` xlContinuous + xlTall with the axis off, pinned:
+  // only there is Onix (3.42 m) taller than a 2.9 m gap, so only `deck-tall` exercises xlTall's routing
   deck: DECK,
-  'deck-giants': { ...DECK, size: { axis: true, xlContinuous: true, xlTall: true } },
-  'deck-tall': { ...DECK, size: { xlContinuous: true, xlTall: true } },
+  'deck-giants-off': { ...DECK, size: S1_OFF },
+  'deck-tall': { ...DECK, size: { axis: false, xlContinuous: true, xlTall: true } },
 };
 /** sets that replay their own configurations instead of CONFIGS */
-const SET_CONFIGS: Record<string, Config[]> = { deck: DECK_CONFIGS, 'deck-giants': DECK_CONFIGS, 'deck-tall': DECK_CONFIGS };
+const SET_CONFIGS: Record<string, Config[]> = { deck: DECK_CONFIGS, 'deck-giants-off': DECK_CONFIGS, 'deck-tall': DECK_CONFIGS };
 const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off', 'aim-tops-off']);
 
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {

@@ -161,9 +161,11 @@ test('headroom: every narrow body the sim can field fits under the lowest deck g
 
 // xlTall (docs/SIZING.md "Giants", size-extremes-plan xlTall): with xlContinuous on too, an Extra Large body's height is
 // its drawn size × (class height ÷ class visual), and headroom reads it like any other height
-const TALL = { size: { xlContinuous: true, xlTall: true } };
+// (all three flags are the defaults since the size-extremes flip; each set below pins every flag explicitly)
+const OFF = { size: { axis: false, xlContinuous: false, xlTall: false } };
+const TALL = { size: { axis: false, xlContinuous: true, xlTall: true } };
 const GIANTS = { size: { axis: true, xlContinuous: true, xlTall: true } };
-const FLAG_SETS: [string, object | undefined][] = [['defaults', undefined], ['axis', { size: { axis: true } }], ['xl', { size: { xlContinuous: true } }], ['tall', TALL], ['giants', GIANTS]];
+const FLAG_SETS: [string, object | undefined][] = [['defaults', undefined], ['off', OFF], ['axis', { size: { axis: true, xlContinuous: false, xlTall: false } }], ['xl', { size: { axis: false, xlContinuous: true, xlTall: false } }], ['tall', TALL], ['giants', GIANTS]];
 
 test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and stops at the edge once it is as tall as drawn', () => {
   const at = (sp: string, rules?: object) => {
@@ -176,7 +178,7 @@ test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and
     }
     return { tall, inside: P.x > edge + 1.5, outside: P.x < edge };
   };
-  const base = at('onix'), giants = at('onix', GIANTS), tall = at('onix', TALL), gator = at('feraligatr', GIANTS);
+  const base = at('onix', OFF), giants = at('onix', GIANTS), tall = at('onix', TALL), gator = at('feraligatr', GIANTS);
   assert.ok(base.tall < 2.7 && base.inside, `Onix at ${base.tall.toFixed(2)} m walks under`);
   assert.ok(giants.tall > 2.7 && giants.outside, `Onix at ${giants.tall.toFixed(2)} m (all three flags) stops`);
   assert.ok(tall.tall > giants.tall && tall.outside, `Onix at ${tall.tall.toFixed(2)} m (no axis) stops`);
@@ -186,6 +188,7 @@ test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and
   const e = spawnEnemy(ctx, 'onix', ctx.player.x + 6, ctx.player.z);
   assert.equal(ctx.enemies.tall[e], Math.fround(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules)), 'E.tall (float32)');
   assert.equal(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules), giants.tall);
+  assert.equal(at('onix').tall, giants.tall, 'the defaults are all three flags');
 });
 
 test('headroom: no narrow body is taller than the lowest deck gap under any size flag set (S1, xlTall)', () => {

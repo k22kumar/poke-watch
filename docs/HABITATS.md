@@ -514,7 +514,7 @@ When the size classes landed (2026-11), the trainer body grew from 0.55 m to 0.7
 
 When the profiles moved to movement footprints (2026-11-15: trainer 0.72 → 0.88 m, wild-small 0.29 → 0.30 m, boss 1.8 → 0.95 m), every recipe was regenerated for seeds 1–30: 0 of 180 accepted attempts or layouts changed, so `HAB_VERSION` stayed 2. `scripts/navwalk.ts habitat` then drives real walkers of every class and the trainer (Small and Extra Large) from team B's staging and the spawn to the contest on the built map.
 
-The widest ordinary wild body is Onix's Extra Large 0.97 m, which is under the 1.42 m floor. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against, so roster edits cannot quietly loosen the approaches. Raising it needs a `HAB_VERSION` bump and a new baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals.
+The widest ordinary wild body is Onix's Extra Large 0.93 m (0.97 m with the size flags off; footprints, which the profiles read, are the class `body` and did not move with the size-extremes flip), which is under the 1.42 m floor. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against, so roster edits cannot quietly loosen the approaches. Raising it needs a `HAB_VERSION` bump and a new baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals.
 
 Swim, flight, glide and burrow add nothing essential: flyers already ignore terrain, and frozen water is the only extra-edge state and is optional by construction.
 

@@ -269,9 +269,10 @@ test('isolation: catalogue records are not game species and move nothing in the 
   assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 72);
   assert.equal(Math.max(...SPECIES.map((s) => s.height)), 4.5, 'the overall height extremes are unchanged');
   assert.equal(Math.min(...SPECIES.map((s) => s.height)), 0.9);
-  // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large at the top of
-  // its class (Onix, 8.8 m listed), 0.9 m × 1.08. Pinned so a later accidental change to the set is still caught.
-  assert.equal(+Math.max(...wild.map((s) => bodyOf(s).radius)).toFixed(3), 0.972);
+  // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large (Onix: its
+  // 8.8 m listed length stands 4.4 m with the measurement axis, 0.9 m × its tilt; 0.972 with the size flags off).
+  // Pinned so a later accidental change to the set is still caught.
+  assert.equal(+Math.max(...wild.map((s) => bodyOf(s).radius)).toFixed(3), 0.93);
   assert.equal(SPECIES_BY_ID['onix'].height, 3.02);
   assert.equal(SPECIES_BY_ID['joltik'].height, 0.9);
   // a Gigantamax placeholder would read as "Massive" and Eternamax's 0 hg as "Weightless";

@@ -3,10 +3,10 @@
 Progress record for `docs/size-extremes-handoff.md` (Prompts S1–S3). One section per prompt.
 Written for the Claude Code sessions that run S2 and S3, and for the owner deciding the flags.
 
-- **Stage completed:** S1, revised after the owner's decisions on 2026-11-18 (§S1.9). The measurement axis and the XL visual law exist behind two `rules.size` flags. **Both flags are off.**
+- **Stage completed:** S1, revised after the owner's decisions on 2026-11-18 (§S1.9). The measurement axis and the XL visual law exist behind two `rules.size` flags. **[Superseded: `axis`, `xlContinuous` and `xlTall` are on by default since 2026-11-18, "Default flip" below.]**
 - **S2:** skipped for now (owner).
-- **S3:** done (§S3). The owner decided on the adjustments on 2026-11-18 (§S3.10): A approved behind a new flag, B and C rejected, D accepted (F2), E goes to the camera session (F3). **Nothing is implemented yet, and both flags are still off.**
-- **Next, in order:** the camera session commits → rebase this branch onto `main` → F1 → A (`rules.size.xlTall`) → S2 (§S3.10).
+- **S3:** done (§S3). The owner decided on the adjustments on 2026-11-18 (§S3.10): A approved behind a new flag, B and C rejected, D accepted (F2), E goes to the camera session (F3). **[Since done: F1, A as `xlTall`, then the default flip ("Default flip" below).]**
+- **Next, in order:** the camera session commits → rebase this branch onto `main` → F1 → A (`rules.size.xlTall`) → S2 (§S3.10). [Done up to A; then the default flip (2026-11-18, "Default flip"). Next: S2, with F3 before S2 makes Eternatus a partner.]
 - **Branch:** `size-extremes-s1`, in its own worktree (`../poke-watch-s1`), based on `b89fb55`. The main checkout has another session's uncommitted camera work, and switching its branch would have moved that session's work. S1 and S3 are committed on the branch (§S3.10). It is not pushed and not merged into `main`.
 - **Owner decisions:** recorded in §S1.9, §S3.1 and §S3.10. Follow-ups F1–F3 are in §S1.10.
 - **Separate task:** the pre-existing `tests/pointerlock.test.ts` failures, in `docs/tasks/pointerlock-red-tests.md`.
@@ -128,8 +128,8 @@ Evidence kept from the first report: its SpriteCollab idle side silhouette has a
 
    A flag turned on through `ruleOverrides` or a mod doesn't reach them. Follow-up F1 (§S1.10) fixes this. For S3, the capture build switches the defaults instead (§S3.2). `chaseinput.ts` already passes `ctx.rules.size`.
 4. **The XL hurt window doesn't grow.** This is by design (handoff decision 4). With a 3.6–4.0 m draw, the sim height stays ≤ 2.59 m. S3 measures how much of the sprite sits outside the window.
-5. **The older checksum sets don't pin the new flags.** When a flag becomes a default, add `size: { axis: false, xlContinuous: false }` to every older set.
-6. **Before the flip, the gameplay side of the axis rule needs `/grilling`:** Silicobra and Ekans as Mediums, and Magcargo labelled Small while its boss body is 1.35 m.
+5. **The older checksum sets don't pin the new flags.** When a flag becomes a default, add `size: { axis: false, xlContinuous: false }` to every older set. [Resolved in the default flip: `S1_OFF` with all three flags.]
+6. **Before the flip, the gameplay side of the axis rule needs `/grilling`:** Silicobra and Ekans as Mediums, and Magcargo labelled Small while its boss body is 1.35 m. [Resolved 2026-11-18, "Default flip" decisions 2–3: every class change accepted; Magcargo keeps the label because a boss can no longer reach any spawn filter.]
 
 ### S1.7 Gates (run in the worktree, first S1 rules; rerun scope after §S1.9 is listed there)
 
@@ -422,7 +422,7 @@ Gates after these changes:
 
 - **F1 [done 2026-11-18, §F1 below]: the renderer, UI and spawn size filters read `ctx.rules`.** `speciesSizing` in `src/render/renderer.ts`, the class label and search in `src/ui/ui.ts`, and `passes` in `src/rules/spawning.ts` (the `sizeClasses` filter) must take the run's `rules.size`, not `defaultRules.size`. **When:** after the camera session commits (`renderer.ts` and `ui.ts` are its files) and **before any S1 flag becomes a default.** With the flags off it moves no hash: classes and draws equal the defaults. Add a test that a `ruleOverrides` flag reaches all three readers.
 - **F2: props near large sprites fade** (owner accepted D, §S3.10). Wall props (trees, buildings, rock) that a large creature card overlaps fade or dissolve, the way the chase lens dissolves props near the lens. That way a giant's wide sprite (Eternatus' widest frame crosses a wall at 15% of standable positions, §S3.4) is not cut by the crowns in front of it. Renderer work (`src/render/renderer.ts`, `tilestage.ts`). **When:** after the camera session commits. Moves no sim hash.
-- **F3 (for the camera session): giant framing** (owner sent E there, §S3.10). From the S3 numbers (§S3.7) on the chase rig at `b89fb55`:
+- **F3 (for the camera session): giant framing** (owner sent E there, §S3.10). **F3 must be fixed before S2 makes Eternatus playable as a partner** (owner, default flip). Accepted meanwhile (default flip): Onix as a partner sits at the back-distance cap, and its neutral crosshair ground point (27.4 m) is clamped to `CHASE_CONFIG.aim.max` 26 m by `chaseAim`, about 0.46° of planar heading; `tests/camframe.test.ts` gives every capped partner looser ceilings until F3 lands. From the S3 numbers (§S3.7) on the chase rig at `b89fb55`:
   - **Pivot cap:** the pivot caps at `pivot.max` 2.4 m for every giant except Snorlax. With flags on it sits at 60% (Eternatus) and 66% (Wailord) of the drawn height, against about 80% (`chest`) for smaller Pokémon.
   - **Size-factor cap:** the factor caps at `size.max` 1.8 (Explore boom 7.56 m) for Wailord and Eternatus with flags on, so the largest giants get no more boom than a 4 m one.
   - **Crosshair:** Eternatus seen from behind covers the screen centre, where the crosshair is, **even with flags off**. Its card's right edge is at 658 px off and 706 px on, against a centre of 640 px (1280 × 720).
@@ -903,3 +903,141 @@ routing. An aimed set would cover the hit window; not added (owner: no aimed set
 
 Every existing set prints what it printed before (full `checksum.ts` run, 2026-11-18).
 
+---
+
+## Default flip: `axis`, `xlContinuous` and `xlTall` on by default (2026-11-18)
+
+Grilled with the owner before any change (`/grilling`, Q1–Q18 and Q15b). Facts came from throwaway worktrees at
+`96423d2` with the three defaults flipped (checksums, `npm test`, habitat and location fingerprints, partner and reader
+survey, root causes of the two deeper test failures).
+
+### Owner decisions
+
+1. **Where:** the flip is its own commit on `size-extremes-s1`, after two preparatory commits. Merging into `main` is a
+   separate step with the owner's go-ahead. Before merging, delete the untracked `docs/size-extremes-handoff.md` in the
+   main checkout; the branch's committed copy replaces it.
+2. **Axis class changes accepted as rule output**, with no per-species pins: Lapras XL → Large (stays on the wide field),
+   Silicobra XL → Medium and Ekans Large → Medium (both leave the wide field), Slugma Medium → Small, Dreepy Small → Tiny,
+   tilt only for Onix and Snom. This resolves §S1.6 #6.
+3. **Magcargo keeps its Small label** (its authored boss body is unchanged). The owner's condition: no spawn pool or
+   `sizeClasses` filter may select an authored boss by its extent class. It did not hold, because a boss named in
+   `only` / `include` / `weights` (a map pool, a mode or mod override, or `?pool=`) entered the spawns, where a filter
+   saw its label and it was spawned as an ordinary enemy. **Fixed first (commit 1):**
+   - every pool layer drops boss ids from the spawns before its filter runs, silently, with no logging inside the sim;
+   - `validateSpawnConfig` reports a boss named there;
+   - a mode's or mod's `rules.spawning.override` runs through `validateSpawnOverride` where it loads
+     (`modeSpawnProblems`, `src/main.ts` `startRun` warns);
+   - `?pool=` warns in `src/main.ts` beside its unknown-id warning.
+4. **Checksum layering.**
+   - `giants-off`, `gen-giants-off` and `deck-giants-off` turn the three flags off and print the pre-flip `on`, `gen` and
+     `deck` hashes exactly.
+   - Every older set pins them off: `S1_OFF` inside `HEADROOM_OFF`, and `size: S1_OFF` on `aim-pole-off` and
+     `aim-tops-off`.
+   - `aim-off` stays unpinned, so it keeps printing the current `on`.
+   - `deck-tall` is pinned to `axis: false, xlContinuous: true, xlTall: true` and stays the replay that covers xlTall's
+     routing.
+   - Retired, because each printed the same as a current set: `axis`, `gen-axis`, `xl`, `tall`, `gen-tall`, `giants`,
+     `gen-giants`, `deck-giants`.
+   - In place of an aimed replay, one unit test in `tests/spatial.test.ts` ("giants"): a ray at 0.85 × Onix's flags-on
+     drawn height (2.64 m) hits with the flags on and misses with them off, and a 0.3 m bolt at 95 % of the drawn height
+     hits with them on.
+5. **Tests that assumed the flags off by default** now pass their flags explicitly on both sides, or build from an
+   explicit all-off base. The same-class ±tilt check covers Tiny to Large under the defaults and every class with the
+   flags off. Extra Large under the defaults has its own check: drawn = `xlVisual(extent)`, height = 0.892 × drawn.
+6. **Rubble test (commit 2).** `tests/caps.test.ts` "Lasso the rubble…" passed only because its basic-attack press
+   (Vine Whip) reached the target at 6 m; the rubble never touched it there. It now:
+   - presses no attack button;
+   - asserts the rubble's own (Stone) hit;
+   - places the target 5 m ahead (z 13 → 12), with Slugma kept as the target.
+
+   **Gameplay note:** thrown rubble rides the ground, has no height window, and is lethal only while it moves at 5 m/s or
+   more, about 3.1 m past release at 8 m/s against friction 6. At 6 m only an enemy radius near 0.8 m is reached. This
+   is recorded only; nothing was changed.
+7. **Camera framing (criterion B, `tests/camframe.test.ts`).** The exception is keyed on a condition, not a species: any
+   partner whose chase back distance is capped at `CHASE_CONFIG.frame.max` gets looser ceilings. Every other partner
+   keeps today's limits. The exception stops applying once F3 raises `frame.max`. A capped partner over the ceilings
+   fails, on purpose, which enforces F3 before S2's giants become partners.
+
+   | Check | Capped partner | Every other partner |
+   |---|---|---|
+   | bottomY | ≤ 0.96 | ≤ 0.95 |
+   | drawn share | ≤ 0.42 | ≤ 0.40 |
+   | move-bar overlap at 1280 × 720 | ≤ 4 % | ≤ 2.5 % |
+   | E4 neutral crosshair ground point | ≤ 28 m | ≤ 26 m |
+
+   Capped today: Onix (bottomY 0.957, drawn 0.415, 3.78 %, E4 27.4 m with the flip) and Furret (capped before the flip
+   too, inside the ordinary limits). Onix's E4 point is clamped to 26 m by `chaseAim`, about 0.46° of planar heading:
+   accepted and recorded under F3.
+8. **No `HAB_VERSION` / `LOC_VERSION` bump, no new baseline, no habaudit run.**
+   - Habitat profiles (`profilesFor`) are identical under both flag states, because footprints are the class `body`.
+   - 36 habitat maps (6 recipes × 2 variants × seeds 1–3), 12 location maps and 12 classic-generator maps hash identical.
+   - `habaudit --child` on all 24 fresh loads matches `docs/habaudit/baseline.json`.
+9. **Not waiting on** F2, F3, F4 or S2. F3 must be fixed before S2 makes Eternatus playable as a partner.
+10. **Commit order:** boss validator → rubble test → the flip → gates → stop. No merge and no push until the owner says.
+
+### What changed
+
+- `src/rules/defaults.ts`: `size.axis`, `xlContinuous` and `xlTall` are `true`.
+- `scripts/checksum.ts`: the sets in decision 4.
+- `scripts/lib/sizeflags.ts`: `--size` also takes `name=false`. The flags are on by default, so a bare name could no
+  longer select the flags-off or no-axis runs. `--size axis=false` is the no-axis worst case.
+- Tests:
+  - `sizing` (an `OFF` base; a new Extra Large default check);
+  - `spawning` (Ekans is Medium by default and Large with the axis off);
+  - `catalogue` (widest wild radius 0.93, Onix);
+  - `headroom` (every flag set pinned explicitly, plus an `off` set);
+  - `camframe` (the capped-partner ceilings);
+  - `spatial` (the giants ray and bolt).
+- Docs: `docs/SIZING.md`, `docs/SPECIES.md`, `docs/HABITATS.md`, `CLAUDE.md`, `README.md` §Build, and a pointer line
+  at the top of the handoff.
+
+### Runtime species after the flip (defaults vs flags off)
+
+| species | class | drawn (m) | radius | height | footprint |
+|---|---|---|---|---|---|
+| Onix | XL | 2.91 → 3.11 | 0.97 → 0.93 | 2.59 → 2.78 | 0.88 |
+| Feraligatr, Hariyama | XL | 2.52 → 2.56 | 0.84 | 2.25 → 2.29 | 0.88 |
+| Snorlax | XL | 2.48 → 2.49 | 0.83 | 2.22 | 0.88 |
+| Lapras | XL → Large | 2.55 → 1.81 | 0.85 → 0.64 | 2.28 → 1.60 | 0.88 → 0.66 |
+| Silicobra | XL → Medium | 2.50 → 1.46 | 0.84 → 0.56 | 2.23 → 1.28 | 0.88 → 0.46 |
+| Ekans | Large → Medium | 2.06 → 1.43 | 0.73 → 0.54 | 1.82 → 1.25 | 0.66 → 0.46 |
+| Slugma | Medium → Small | 1.29 → 0.90 | 0.49 → 0.39 | 1.13 → 0.83 | 0.46 → 0.40 |
+| Dreepy | Small → Tiny | 0.99 → 0.73 | 0.43 → 0.33 | 0.91 → 0.62 | 0.40 → 0.30 |
+| Snom | Tiny | 0.74 → 0.68 | 0.34 → 0.31 | 0.64 → 0.58 | 0.30 |
+| Magcargo (boss) | Medium → Small (label only) | 3.38 | 1.35 | 3.38 | 0.95 |
+
+Every playability tier is unchanged (68 ready, 4 partial).
+
+### Hashes
+
+Every older-layer set (`off`, `build-off`, `world-off`, `hazards-off`, `size-off`, `roster-off`, `gen-classic`, `gen-size-off`, `gen-headroom-off`, `aim-2b`, `aim-pole-off`, `aim-tops-off`), `aim` and `deck-tall` (`5cba0b9b`) print exactly what they printed before the flip.
+
+| set | cyndaquil s2 | totodile s7 | bulbasaur s3 | charmander s11 | was |
+|---|---|---|---|---|---|
+| `on` | `632d7d25` | `74eccc9d` | `93ae9839` | `a94be2d9` | = old `giants` |
+| `gen` | `bc465079` | `72710e43` | `bd080f0c` | `db985697` | = old `gen-giants` |
+| `aim-off` | `632d7d25` | `74eccc9d` | `93ae9839` | `a94be2d9` | = new `on` |
+| `giants-off` | `632d7d25` | `17978323` | `93ae9839` | `53516479` | = old `on` |
+| `gen-giants-off` | `bc465079` | `72710e43` | `bd080f0c` | `7708b606` | = old `gen` |
+
+`deck` (Totodile s5, Mt. Moon): end `8e461982` (= old `deck-giants`); `deck-giants-off`: end `415b8ef9` (= old `deck`).
+
+Moved against the pre-flip `on`: totodile (7th mark `d634f7af` → `f9b91e67`, kills 1872 → 1873) and charmander (4th mark `47a9cb47` → `a5fb0e08`, kills 491 → 480); `gen` charmander (4th mark `1ca1a931` → `eb41c399`). The moves come from the axis (§S1.3); `xlContinuous` and `xlTall` move no replay state on these configs.
+
+### Gates (worktree, at the new defaults)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 611 tests: 605 pass, 4 fail, 2 todo. The 4 fails are the known pointer-lock tests (`docs/tasks/pointerlock-red-tests.md`), red on `main` too. |
+| `npx tsx scripts/checksum.ts` | the hashes above (rerun at the commit, identical) |
+| `navwalk all 5` | 0 failures (xl arrive 291/291, xl refuse 5/5, elite 291/291, trainer-xl 83/83, narrow 313/313) |
+| `stuckwatch all 3` | 67 bot episodes (1 pinned, **0 trapped**); 2 enemy episodes over 115,807 enemy-s (the same as the all-three-flags run of the xlTall gates) |
+| `habplay all 6 1 --raid` | 72/72 |
+| `habstate` | 24/24 (20 live, 4 static) |
+| `hazplay` | 49/49 |
+| `perf-sim 500 --repeat 3 --gate` | min of 3: p50 0.399, p95 0.531, p99 0.863 ms: PASS |
+| `npm run build` (the worktree's own `dist/`) | pass, `dist/index.html` 17,258 KB |
+| habaudit | not run (owner: profiles and fresh loads already match the baseline) |
+
+Not merged, not pushed.

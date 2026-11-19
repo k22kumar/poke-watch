@@ -35,11 +35,12 @@ The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 cat
 | Region | Pokémon (size class) |
 |---|---|
 | Sunpetal Meadow | Pichu (T), Togepi (T), Budew (T), Cutiefly (T, flies), Pikachu (S), Turtwig (S), Sentret (M), Furret (L), Doduo (L, grounded), Snorlax (XL) |
-| Cinder Badlands | Diglett (T), Rolycoly (T), Koffing (S, floats), Sizzlipede (M), Makuhita (M), Ekans (L), Silicobra (XL), Hariyama (XL) |
-| Rimefrost Heights | Snom (T), Snorunt (M), Sneasel (M), Bergmite (M), Cetoddle (L), Lapras (XL) |
-| Duskwood Hollow | Litwick (T), Murkrow (S, flies), Impidimp (S), Noibat (S, flies), Dreepy (S, flies), Honedge (M), Haunter (L, flies), Gengar (L) |
+| Cinder Badlands | Diglett (T), Rolycoly (T), Koffing (S, floats), Sizzlipede (M), Makuhita (M), Ekans (M), Silicobra (M), Hariyama (XL) |
+| Rimefrost Heights | Snom (T), Snorunt (M), Sneasel (M), Bergmite (M), Cetoddle (L), Lapras (L) |
+| Duskwood Hollow | Litwick (T), Murkrow (S, flies), Impidimp (S), Noibat (S, flies), Dreepy (T, flies), Honedge (M), Haunter (L, flies), Gengar (L) |
 
 Notes:
+- **Size letters** are the default classes since the size-extremes flip (measurement axis on, `docs/SIZING.md` "Measurement axis"): Ekans and Silicobra are Medium, Lapras Large and Dreepy Tiny by their listed body lengths. With the axis off they are Large, Extra Large, Extra Large and Small.
 - **All 32 have SpriteCollab sheets.** Pikachu's `latest` cry upstream is an MP3 under an `.ogg` name. The importer now treats a recording in the wrong format as missing and takes the `legacy` one, and `fetch-sources` checks out both eras.
 - **Electric Pokémon in a wet region make Charge floods** (see Joltik below). With Pichu swarming in fours and Pikachu at full weight, Meadow Charge hits doubled and tank-bot deaths appeared. Pichu now `chase`s at weight 0.5 and Pikachu sits at 0.7. Over 16 seeds, deaths match the classic tables, with about 30 % more Charge hits.
 - **Doduo** is a Flying type that cannot fly, so the roster sets `"flying": false`.
@@ -61,7 +62,7 @@ Two ordinary wild Pokémon added through the normal pipeline — `content/roster
 | Native habitat tags (`rules/habitats.ts`) | grass, forest | rock, dry |
 | Sprite-derived height (`SpeciesDef.height`) | 0.9 m (clamp floor) | 3.02 m |
 | Weight class | Light (0.6 kg) | Massive (210 kg) |
-| Size class (`rules/sizing.ts`) | Tiny, drawn 0.64 m, body r 0.30 m | Extra Large, drawn 2.91 m, body r 0.97 m |
+| Size class (`rules/sizing.ts`) | Tiny, drawn 0.64 m, body r 0.30 m | Extra Large, drawn 3.11 m, body r 0.93 m, 2.78 m tall (with the size flags off: 2.91 m, r 0.97 m, 2.59 m) |
 
 Neither has a `Faint` animation in SpriteCollab; both fall back through `src/assets/art.ts` like the rest of the roster. Onix has `Slam` where the importer wants `Strike`, so it uses seven states.
 

@@ -1,5 +1,8 @@
 # Size extremes handoff: giant scaling, measurement axis, catalogue families as runtime actors
 
+> **Historical record (the original S1–S3 prompt).** What is current, including the size-flag default flip of 2026-11-18
+> (`axis`, `xlContinuous` and `xlTall` on by default), is in `docs/size-extremes-plan.md`.
+
 Written 2026-11-18 from a read-only audit of `main` at `b89fb55`, for the Claude Code sessions that run Prompts S1–S3.
 Progress goes in `docs/size-extremes-plan.md` (create it in S1), one section per prompt, in the style of
 `docs/pokemon-integration-plan.md`.

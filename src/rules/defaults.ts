@@ -229,14 +229,16 @@ export const defaultRules = {
     /** [C] Measurement axis (docs/SIZING.md "Measurement axis"): a species whose official shape lists its body length
      *  (src/rules/shapes.ts: `squiggle`, `fish`, or an approved SPECIES_AXIS row such as Eternatus) takes `lengthRise` ×
      *  that length as its extent, unless an approved
-     *  NEUTRAL_CORE_EXTENT_M entry gives one. false = every listed figure is read as height, as before */
-    axis: false,
+     *  NEUTRAL_CORE_EXTENT_M entry gives one. On by default since the size-extremes flip (owner 2026-11-18); false = every
+     *  listed figure is read as height, as before (`giants-off` and every older checksum layer set it) */
+    axis: true,
     lengthRise: 0.5, // [B] share of a listed body length that stands up as the extent (serpents, fish); owner 2026-11-18
     /** [C] Continuous Extra Large (docs/SIZING.md "Giants"): an XL species' drawn core grows with its extent,
      *  min(xlVisualCap, xlFloor × (S / Large's cut) ^ xlExponent), so giants stay visibly bigger than a 2.1 m XL.
      *  Drawn size only: XL radius, height and footprint keep the class values and tilt, and no sim system reads the
-     *  drawn size (unless xlTall is on too). false = the fixed XL target ± tilt, as before */
-    xlContinuous: false,
+     *  drawn size (unless xlTall is on too). On by default since the size-extremes flip; false = the fixed XL target ± tilt,
+     *  as before */
+    xlContinuous: true,
     xlVisualCap: 4.0, // [B] m: provisional visual cap on the largest giants, to be tested (handoff decision 3)
     xlFloor: 2.69 * 0.92, // [B] m: today's lowest XL draw (class visual × (1 − tilt)), the draw at Large's cut
     xlExponent: 0.3, // [B] growth with extent, a fixed constant (owner 2026-11-18): never fitted to the largest species, so a new
@@ -244,9 +246,9 @@ export const defaultRules = {
     /** [C] Tall giants (docs/SIZING.md "Giants", owner 2026-11-18, size-extremes-plan §S3.10 A): with xlContinuous on too, an
      *  Extra Large body's sim height follows its drawn size, visualM × (class height ÷ class visual), so the hit window,
      *  headroom (deck slabs, the wide fields' height classes, spawn fit) and the spatial muzzle cover a giant as drawn.
-     *  Radius and footprint keep the class values. Authored bosses keep their encounter body. false, or xlContinuous
-     *  off = the class height × tilt, as before (bit for bit) */
-    xlTall: false,
+     *  Radius and footprint keep the class values. Authored bosses keep their encounter body. On by default since the
+     *  size-extremes flip; false, or xlContinuous off = the class height × tilt, as before (bit for bit) */
+    xlTall: true,
   },
   director: {
     hpN: [1, 5.5, 13, 20], // [C] per stage

@@ -8,9 +8,9 @@ Every Pokémon belongs to one of five size classes. A class decides how big the 
 |---|---|---|---|---|---|---|
 | Tiny | < 0.35 m | 0.70 m | 0.32 m | 0.6 m | 0.30 m | Rattata, Joltik, Pichu, Diglett, Litwick |
 | Small | 0.35 – 0.65 m | 0.98 m | 0.42 m | 0.9 m | 0.40 m | Charmander, Sandshrew, Pikachu, Murkrow |
-| Medium | 0.65 – 1.15 m | 1.37 m | 0.52 m | 1.2 m | 0.46 m | Bulbasaur, Slugma, Sentret, Sneasel |
+| Medium | 0.65 – 1.15 m | 1.37 m | 0.52 m | 1.2 m | 0.46 m | Bulbasaur, Bergmite, Sentret, Sneasel |
 | Large | 1.15 – 2.05 m | 1.92 m | 0.68 m | 1.7 m | 0.66 m | Charizard, Heracross, Gengar, Furret |
-| Extra Large | ≥ 2.05 m | 2.69 m | 0.90 m | 2.4 m | 0.88 m | Onix, Snorlax, Lapras, Feraligatr |
+| Extra Large | ≥ 2.05 m | 2.69 m | 0.90 m | 2.4 m | 0.88 m | Onix, Snorlax, Feraligatr, Hariyama |
 
 Three sizes are configured separately, and nothing derives one from another at runtime: `visual` is how big it is drawn, `radius` is what hits it (hurtbox, contact and crowd reach), and `body` is the movement footprint, the circle walls, faces and deck slabs stop (see "Footprint" below).
 
@@ -44,33 +44,33 @@ What was dropped:
 
 1. **`sizeClass`** in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`) pins the class. The Pokémon sits at the class centre, with no tilt.
 2. **`NEUTRAL_CORE_EXTENT_M`** (`src/rules/sizing.ts`) is a reviewed figure for a Pokémon whose listed extent measures the wrong axis. Onix's 8.8 m, for example, is the serpent's length.
-3. **`canon.heightM`** is the published figure, imported from PokéAPI. With `rules.size.axis` on (default off), a figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
+3. **`canon.heightM`** is the published figure, imported from PokéAPI. With `rules.size.axis` on (the default), a figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
 4. **`SpeciesDef.height`** is the old sprite-derived number. It is used only by a species with no canonical record.
 
 Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The class rules don't change how they are drawn, and their sim body is the drawn one.
 
-### Measurement axis (flagged off)
+### Measurement axis (on by default)
 
 A listed figure measures one of three things: standing height, body length or span. The official body shape decides which, through one data table, `SHAPE_AXIS` in `src/rules/shapes.ts`. `squiggle` (serpents) and `fish` (fins, flippers) list a length. Every other shape, and any shape added by a future generation, lists a height until a row says otherwise. The content build carries the shape into `canon.shape` from the pinned PokéAPI CSV snapshot (`pokemon_species.shape_id` → `pokemon_shapes`). `canon.axis` is derived from it when the roster loads. Catalogue records carry `shape` too. A species whose figure measures another axis than its shape says gets a reviewed row in `SPECIES_AXIS` (same file). The row names the axis only, never metres, so the shared rule still sets the extent. Eternatus (`wings`, 20 m of body length) is the one row, approved by the owner on 2026-11-18.
 
 PokéAPI has no span figures, so no shape or `SPECIES_AXIS` row maps to `span`. Only an approved `NEUTRAL_CORE_EXTENT_M` entry written as `{ m, axis: 'span' }` can select it. An approved entry wins with or without the flag.
 
-`rules.size.axis` is off by default. With it on:
+`rules.size.axis` is on by default since the size-extremes flip (owner 2026-11-18; `docs/size-extremes-plan.md` "Default flip"). Against the flag off:
 - Onix's 8.8 m length reads as 4.4 m and it stays Extra Large.
 - Lapras drops from Extra Large to Large, and Silicobra from Extra Large to Medium.
 - Ekans drops from Large to Medium.
 - Slugma and Magcargo drop from Medium to Small; Magcargo's authored boss body is unchanged.
 - Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with both classes. The decisions are recorded in `docs/size-extremes-plan.md`.
 
-### Giants: continuous Extra Large (flagged off)
+### Giants: continuous Extra Large (on by default)
 
-With `rules.size.xlContinuous` on (default off), an Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xlExponent)`. The values are cap 4.0 m (provisional), floor 2.69 × 0.92 (today's lowest XL draw) and exponent 0.30. The exponent is a fixed constant, never fitted to the largest species, so a new generation's giant can't change every other XL draw. The cap is reached at about 10.2 m of extent. 2.05 m is Large's cut, so the floor stays above Large's largest draw and the classes never overlap. Only the drawn size changes. XL radius, height and footprint keep the class values and tilt, and no sim system reads `visualM`, so the flag moves no replay hash. Tiny to Large are unchanged.
+With `rules.size.xlContinuous` on (the default), an Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xlExponent)`. The values are cap 4.0 m (provisional), floor 2.69 × 0.92 (today's lowest XL draw) and exponent 0.30. The exponent is a fixed constant, never fitted to the largest species, so a new generation's giant can't change every other XL draw. The cap is reached at about 10.2 m of extent. 2.05 m is Large's cut, so the floor stays above Large's largest draw and the classes never overlap. Only the drawn size changes. XL radius and footprint keep the class values and tilt. On its own (without `xlTall`) no sim system reads `visualM`, so the flag alone moves no replay hash. Tiny to Large are unchanged.
 
-### Tall giants (flagged off)
+### Tall giants (on by default)
 
-With `rules.size.xlTall` on as well as `xlContinuous` (both default off), an Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored bosses keep their encounter body; elite and alpha role sizes multiply the new height. `xlTall` without `xlContinuous` changes nothing, bit for bit (`tests/sizing.test.ts`). Owner decision 2026-11-18 (`docs/size-extremes-plan.md` §S3.10 A, xlTall section).
+With `rules.size.xlTall` on as well as `xlContinuous` (both the default), an Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored bosses keep their encounter body; elite and alpha role sizes multiply the new height. `xlTall` without `xlContinuous` changes nothing, bit for bit (`tests/sizing.test.ts`). Owner decision 2026-11-18 (`docs/size-extremes-plan.md` §S3.10 A, xlTall section).
 
-Heights with all three flags on (`axis`, `xlContinuous`, `xlTall`): Onix 2.78 m (2.59 today; 3.42 without `axis`), Hariyama and Feraligatr 2.29, Snorlax 2.22; the capture-only giants Wailord 3.23 and Eternatus 3.55. Layouts and the worldgen gates read footprints, not sim heights, so no `HAB_VERSION` or `LOC_VERSION` moves with it.
+Heights with all three flags on (`axis`, `xlContinuous`, `xlTall`, the defaults): Onix 2.78 m (2.59 with the flags off; 3.42 without `axis`), Hariyama and Feraligatr 2.29, Snorlax 2.22; the capture-only giants Wailord 3.23 and Eternatus 3.55. Layouts and the worldgen gates read footprints, not sim heights, so no `HAB_VERSION` or `LOC_VERSION` moves with it.
 
 ## Who reads what
 
@@ -164,7 +164,7 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
   (`CLEARANCE` in `locgen/decks.ts` and `habitat/validate.ts`, a rule against hopping on from below), so the gap under the
   slab is at least 2.3 m. On the shipped maps it is exactly 2.40 m on Viridian Forest, Chargestone Cave, River Gorge and
   Tidal Cave (a 3.0 m deck on flat ground) and at least 2.9 m on Mt. Moon and Volcanic Ridge (5 seeds each, 2026-11-16).
-- **Who fits.** Every Tiny, Small, Medium and Large body, and every Extra Large one except Onix (2.59 m), fits a 2.4 m
+- **Who fits.** Every Tiny, Small, Medium and Large body, and every Extra Large one except Onix (2.78 m; 2.59 with the size flags off), fits a 2.4 m
   gap. An Extra Large body at exactly the class height (2.4 m) fits it (`HEAD_EPS`, 1 mm, absorbs float32 heights). Elites
   from Medium up (2.26–5.18 m), alphas and bosses (3.4–4.5 m) do not.
 - **Movement.** `World.collides` treats a deck tile as solid for a body whose head would be in the slab: it stands at its
@@ -255,7 +255,7 @@ Who reads the tops (everyone else keeps every wall infinite):
 - point collision (no footprint) and no wide-body routing;
 - the older pursuit rules (no step check on the field, no hysteresis or field agreement) and the older bot probes.
 
-`rules.size.axis`, `rules.size.xlContinuous` and `rules.size.xlTall` are off by default, so the current `on` hashes are the "off" layer for all three. `checksum.ts axis` / `gen-axis` / `xl` turn one on each, and `xl` prints the `on` hashes exactly. `tall` / `gen-tall` turn on `xlContinuous` + `xlTall`, `giants` / `gen-giants` all three. On 2026-11-18 they print the `on` / `gen` / `axis` / `gen-axis` hashes: none of those configs hits an Extra Large body above its class height or meets a deck it no longer fits. `deck`, `deck-giants` and `deck-tall` replay their own config (Totodile, Mt. Moon in every region, Onix in the pool and as the elite, 240 s): `deck-tall` is the replay that covers `xlTall` (Onix at 3.42 m is kept out from under the 2.9 m decks). With the axis on Onix is 2.78 m and fits every gap the generators make (2.4 m or at least 2.9 m), so `deck-giants` differs from `deck` through the axis alone.
+`rules.size.axis`, `rules.size.xlContinuous` and `rules.size.xlTall` are on by default since the size-extremes flip (owner 2026-11-18), so `on`, `gen` and `deck` include all three. `checksum.ts giants-off` / `gen-giants-off` / `deck-giants-off` turn all three off and print the `on` / `gen` / `deck` hashes from before the flip exactly; every older layer turns them off too. `aim` is not reached by the flags (its four replays print the same either way), and `aim-off` keeps printing the current `on`. `deck` and `deck-tall` replay their own config (Totodile, Mt. Moon in every region, Onix in the pool and as the elite, 240 s). `deck-tall` keeps the axis off with `xlContinuous` + `xlTall` on, pinned: only there is Onix (3.42 m) taller than the 2.9 m gaps, so it is the replay that covers `xlTall`'s routing. With the axis on Onix is 2.78 m and fits every gap the generators make (2.4 m or at least 2.9 m). The hit window above the class height is covered by `tests/spatial.test.ts` ("giants"), not by a replay. The single-flag sets `axis`, `gen-axis`, `xl`, `tall`, `gen-tall`, `giants`, `gen-giants` and `deck-giants` were retired with the flip: each printed the same as a current set.
 
 `npx tsx scripts/checksum.ts size-off` prints those hashes. With the classic region tables it reproduces the earlier `on` set. The only exception is the `World.shore` fix that landed with this work: a bank behind a wall is no longer preferred. Every older layer (`off`, `build-off`, `world-off`, `hazards-off`) turns size geometry off too.
 
@@ -269,6 +269,6 @@ Who reads the tops (everyone else keeps every wall infinite):
 - `npx tsx scripts/stuckwatch.ts [map|all] [seeds] [seconds]` watches live bot runs for movement deadlocks of the bot and of enemies that have a route. A relocated enemy (far or holding) starts a new episode. A bot episode is `pinned` when the bot also walked under 2 m in the 5 s; the others are the bot walking back and forth between threats or shoved in a crowd. Every bot episode is also checked for a way out (`escapeOf`, with the partner's own footprint through `World.moveBody`). It is `TRAPPED` when no heading moves it onto ground it may stand on, or when the ground it can walk to is a pocket under 48 tiles (`World.shore`'s trap size). The walk is a flood over the world's 0.5 m points (tile centres and corners, the middles of one- and two-tile passages), so a one-tile exit lets a Small partner out but not an Extra Large one (`tests/footprint.test.ts`). The probe only reads: `STUCK_PROBE_ALL=1` runs it every window, and the end states match a run without it. `TRAPPED` must be 0. `all 3` on 2026-11-16: 34 bot episodes (1 pinned, 0 trapped), 1 enemy episode in 114,805 enemy-seconds; with `STUCK_RULES='{"size":{"geometry":false}}'`, 55 bot and 796 enemy episodes.
   - The pinned one (tropical-lagoon seed 3, Totodile, at -24.4,-21.4) is the bot's heading search: the only way out is a one-tile strip due south, and none of the sampled turns points down it. The partner fits the strip (`escapeOf`: 9 of 16 headings free, 48+ tiles). This is a limit of the bot (`?autoplay` and the test driver, not play), and the bot is left as it is: changing it would move every bot-driven replay hash to make a harness look better.
   - The enemy one (river-gorge seed 2, a Poliwag) is a route change: Totodile's ice bridge melted (27 tiles) and the route to the player grew by 54 steps, so the walker turned back.
-- `navwalk`, `stuckwatch`, `habplay` and `perf-sim` take `--size a,b,c` (`scripts/lib/sizeflags.ts`): those `rules.size` flags on in every run they create, e.g. `--size axis,xlContinuous,xlTall`.
+- `navwalk`, `stuckwatch`, `habplay` and `perf-sim` take `--size a,b=false` (`scripts/lib/sizeflags.ts`): those boolean `rules.size` flags set in every run they create, a bare name on and `name=false` off. The three size flags are on by default, so `--size axis=false` is the no-axis worst case (Onix 3.42 m) and `--size axis=false,xlContinuous=false,xlTall=false` the game before the flip.
 - `pokewatch.renderer.sizes()` in the browser prints class, target, multiplier and the Wide flag for every loaded sheet.
 - `node tools/cap.mjs <html> tools/sizescenes.json <outdir> size-` captures a one-per-class row (`size-class-row`), a same-class row (`size-same-class-small`) and each region's newer Pokémon (`size-wave-*`). Build to a private folder first (CLAUDE.md).
