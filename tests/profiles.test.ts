@@ -69,8 +69,10 @@ test('an authored Tag Action wins; any other species gets a derived one from its
     for (const d of [line.base, line.variant]) {
       const m = MOVE_BY_KEY[d.move];
       assert.ok(m && m.power > 0 && m.cls !== 'status', `${sp.id}: ${d.move} is a damaging move`);
+      // ...or, for a species that learns no damaging move (Cosmog), the basic attack (rules.moves.fallbackAttack)
       const learns = (sp.learnset?.length ? sp.learnset : sp.canon?.levelUp ?? []).some(([, k]) => k === d.move);
-      assert.ok(learns, `${sp.id} learns ${d.move}`);
+      const damaging = (sp.canon?.levelUp ?? []).some(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status' && MOVE_BY_KEY[k].power > 0);
+      assert.ok(learns || (!damaging && d.move === defaultRules.moves.fallbackAttack), `${sp.id} learns ${d.move}`);
     }
   }
   assert.equal(tagLineOf('not-a-species'), null);

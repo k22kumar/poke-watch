@@ -211,8 +211,10 @@ test('axis off: every extent and body is the listed-figure one, whatever the axi
   for (const sp of SPECIES) {
     const e = speciesExtent(sp, OFF);
     assert.notEqual(e.source, 'length-rise', sp.id);
-    if (sp.canon?.heightM) assert.equal(e.m, sp.canon.heightM, sp.id);
+    // an approved neutral figure (Falinks) wins with the axis on or off
+    if (sp.canon?.heightM && e.source !== 'approved-neutral') assert.equal(e.m, sp.canon.heightM, sp.id);
   }
+  assert.equal(speciesExtent(SPECIES_BY_ID.falinks, OFF).source, 'approved-neutral');
   assert.equal(bodyOf(SPECIES_BY_ID.onix, OFF).sizeClass, 'xl'); // 8.8 m listed length read as height
   assert.equal(bodyOf(SPECIES_BY_ID.lapras, OFF).sizeClass, 'xl');
   assert.equal(bodyOf(SPECIES_BY_ID.lapras).sizeClass, 'large'); // the default reads its 2.5 m as a length
@@ -244,6 +246,16 @@ test('axis on: a listed length counts lengthRise × itself; heights and approved
     delete NEUTRAL_CORE_EXTENT_M.__wing;
   }
   for (const sp of SPECIES) assert.notEqual(speciesExtent(sp, AXIS).axis, 'span', `${sp.id}: span without an approved figure`);
+});
+
+test('approved neutral extents: Falinks is one trooper (owner-reviewed 2026-11-19)', () => {
+  // the game draws one trooper; the listed 3.0 m measures the six-trooper formation (docs/size-extremes-plan.md §S2.12)
+  assert.deepEqual(Object.keys(NEUTRAL_CORE_EXTENT_M), ['falinks'], 'every entry is reviewed: add one only with the owner');
+  for (const [id, e] of Object.entries(NEUTRAL_CORE_EXTENT_M)) assert.ok(typeof e === 'object' && e.basis, `${id} records its basis`);
+  const f = SPECIES_BY_ID.falinks;
+  assert.equal(f.canon?.heightM, 3);
+  assert.deepEqual(speciesExtent(f), { m: 0.5, source: 'approved-neutral', axis: 'height' });
+  assert.equal(bodyOf(f).sizeClass, 'small');
 });
 
 test('xlContinuous off: XL draws the fixed class target ± tilt', () => {

@@ -5,6 +5,7 @@
 // `create` leaves a body where the move lands (Rock Throw drops a rock).
 
 import { MOVE_BY_KEY } from './moves';
+import { defaultRules } from './defaults';
 import { SPECIES_BY_ID } from './species';
 
 export interface TagDef { move: string; create?: 'rock' }
@@ -63,6 +64,9 @@ export function tagLineOf(id: string): TagLine | null {
     const learn = (sp.learnset?.length ? sp.learnset : sp.canon?.levelUp ?? [])
       .filter(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status' && MOVE_BY_KEY[k].power > 0 && !TAG_SKIP.has(k))
       .sort((a, b) => a[0] - b[0]);
+    // a species that learns no damaging move tags in with the basic attack (rules.moves.fallbackAttack)
+    const basic = defaultRules.moves.fallbackAttack;
+    if (!learn.length && MOVE_BY_KEY[basic]) learn.push([1, basic]);
     const stab = learn.find(([, k]) => sp.elements.includes(MOVE_BY_KEY[k].element)) ?? learn[0];
     if (stab) {
       const rest = learn.filter(([lv, k]) => k !== stab[1] && lv <= 30);

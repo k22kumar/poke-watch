@@ -13,7 +13,7 @@ import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
 import { bodyOf, type SizeRules } from '../rules/sizing';
-import { traversalOf } from '../rules/profiles';
+import { traversalOf, unrecruitableReason } from '../rules/profiles';
 import { ACTIONS, DEFAULT_KEYS, DEFAULT_PAD, PAD_BUTTONS, RESERVED_KEYS, SLOTS, assignBinding, keyName, padName, resolveBindings, type KeyBindings, type PadBindings } from '../input/bindings';
 import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
@@ -445,9 +445,12 @@ export class UI {
       const off = r.tier === 'unavailable';
       const opening = r.opening ? MOVE_BY_KEY[r.opening]?.name ?? r.opening : 'nothing';
       const meta = [roleOf(sp), bodyOf(sp, size).className, traversalOf(sp).air ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
+      // listed and playable here, but the squad never recruits it in a run (SPECIES_OVERRIDES recruitable: false)
+      const wildOnly = unrecruitableReason(sp.id);
+      const why = [...r.reasons, ...(wildOnly ? [`Wild only: ${wildOnly}`] : [])];
       const card: HTMLElement = h('button', {
         type: 'button', class: `box choice mon dev tier-${r.tier}`, role: 'radio', 'aria-checked': String(!off && sp.id === this.species), 'aria-disabled': String(off),
-        'aria-label': `${sp.name}, ${r.tier}${r.reasons.length ? ': ' + r.reasons.join('; ') : ''}`, title: r.reasons.join('\n') || 'Ready to play',
+        'aria-label': `${sp.name}, ${r.tier}${why.length ? ': ' + why.join('; ') : ''}`, title: why.join('\n') || 'Ready to play',
         onclick: () => {
           if (off) { this.hooks.sound('denied'); return; }
           if (this.species === sp.id && card.getAttribute('aria-checked') === 'true' && document.activeElement === card && (card as any)._armed) { go(); return; }
@@ -459,7 +462,7 @@ export class UI {
           h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
           h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),
           h('div', { class: 'dev-meta' }, meta),
-          r.reasons.length ? h('div', { class: 'dev-why' }, r.reasons.join(' · ')) : null),
+          why.length ? h('div', { class: 'dev-why' }, why.join(' · ')) : null),
       );
       return card;
     };

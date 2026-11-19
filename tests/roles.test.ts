@@ -8,7 +8,7 @@ import { defaultRules, type Rules } from '../src/rules/defaults';
 import { deepMerge } from '../src/core/util';
 import { defaultFlying, defaultRole } from '../src/rules/roles';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../src/rules/species';
-import { SPECIES_OVERRIDES, isRecruitable, validateProfiles } from '../src/rules/profiles';
+import { SPECIES_OVERRIDES, isRecruitable, unrecruitableReason, validateProfiles } from '../src/rules/profiles';
 
 const ROOT = path.join(import.meta.dirname, '..');
 const roster = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/roster.json'), 'utf8'));
@@ -88,6 +88,8 @@ test('recruitable: false holds a species out of the squad, with a reason', () =>
   assert.deepEqual(Object.keys(SPECIES_OVERRIDES).filter((id) => !isRecruitable(id)).sort(), ['eternatus', 'stakataka']);
   for (const id of ['eternatus', 'stakataka']) assert.ok(SPECIES_OVERRIDES[id].recruitableReason, id);
   assert.ok(isRecruitable('wailord') && isRecruitable('rattata'));
+  assert.equal(unrecruitableReason('rattata'), null);
+  assert.match(unrecruitableReason('eternatus')!, /lens/, 'the developer roster shows the reason');
   assert.deepEqual(validateProfiles(), []);
   SPECIES_OVERRIDES.__x = { recruitable: false };
   try { assert.ok(validateProfiles().some((m) => m.includes('needs a recruitableReason'))); } finally { delete SPECIES_OVERRIDES.__x; }

@@ -58,7 +58,8 @@ namespace (`aegislash-shield`, `giratina-altered`); `fetch-sources` resolves a s
   reports them (`content/report.json` `skipped`) instead of stopping; a later fetch picks them up once art exists.
 - **Falinks** draws from SpriteCollab's `Trooper` folder (`0003`, the folder the tracker marks canon; `spriteFolders` in
   the roster). Its own folder, the six-member formation, has no sprites, and `Brass` (`0002`) is a non-canon variant. The
-  Trooper sheet draws a single trooper, while its class comes from the formation's listed 3.0 m (Extra Large).
+  Trooper sheet draws a single trooper, so an owner-reviewed `NEUTRAL_CORE_EXTENT_M` entry of 0.5 m (one trooper; the
+  listed 3.0 m measures the six-trooper formation) makes it Small, not Extra Large.
 - **Gouging Fire, Grafaiai and Raging Bolt** have Idle but no Walk; the game walks them on Idle.
 - **Meltan and Melmetal** have no playable cry (upstream's `latest` file is an MP3, with no `legacy` one); the game
   synthesises a call.
@@ -66,8 +67,9 @@ namespace (`aegislash-shield`, `giratina-altered`); `fetch-sources` resolves a s
   ones (`canon.special`, from the pinned snapshot's flags), which appear only in a pool that names them.
 - **Eternatus and Stakataka are wild only** (`recruitable: false` in `SPECIES_OVERRIDES`, with the reason): Eternatus
   until its chase-lens regression is fixed or signed off, Stakataka because its partner framing needs more than
-  `frame.max` (14 m). Cosmog and Cosmoem learn no damaging move, so they have no opening move or Tag Action
-  (`unavailable` in `tests/playability.test.ts`) and are never offered either.
+  `frame.max` (14 m); both are the follow-up "giant partners and the camera" (docs/size-extremes-plan.md §S2.12). The
+  `?dev=1` roster still lists them, with the reason. Cosmog and Cosmoem learn no damaging move, so they open with and
+  tag in with the basic attack (`rules.moves.fallbackAttack`, Tackle), and grade `ready`.
 - **Checksum layer:** `rules.spawning.waves.catalogue` off takes the wave out of every pool and the habitat profiles;
   `catalogue-off`, `gen-catalogue-off` and `deck-catalogue-off` print the hashes from before it.
 

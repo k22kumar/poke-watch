@@ -96,6 +96,9 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
 /** May this species join the squad? (SPECIES_OVERRIDES `recruitable: false` says no, with a reason) */
 export const isRecruitable = (id: string): boolean => SPECIES_OVERRIDES[id]?.recruitable !== false;
 
+/** Why a species never joins the squad, or null when it can (the developer roster shows it) */
+export const unrecruitableReason = (id: string): string | null => (isRecruitable(id) ? null : SPECIES_OVERRIDES[id]?.recruitableReason ?? 'not recruitable');
+
 const cache = new Map<string, SpeciesProfile>();
 
 /** The resolved profile: derived defaults, then the authored override field by field. */

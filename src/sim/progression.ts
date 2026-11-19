@@ -5,7 +5,7 @@ import { dhypot, dpow } from '../core/detmath';
 import { ELEMENT_DEFS } from '../rules/elements';
 import { MOVE_BY_KEY, MOVES } from '../rules/moves';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
-import type { Rules } from '../rules/defaults';
+import { defaultRules, type Rules } from '../rules/defaults';
 import { healPlayer } from './combat';
 import { compileMove } from './moves';
 import { addMember, queueVariant, recruitCards, variantCards, variantDue } from './squad';
@@ -72,6 +72,8 @@ export function firstAttacks(sp: SpeciesDef, level: number, count = 2): string[]
   const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
   const out = [...new Set(keys)].slice(0, count);
   if (!out.length) { const any = learnsetOf(sp).find(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status'); if (any) out.push(any[1]); }
+  // a species that learns no damaging move (Cosmog) still has something to open with: the basic attack
+  if (!out.length && MOVE_BY_KEY[defaultRules.moves.fallbackAttack]) out.push(defaultRules.moves.fallbackAttack);
   return out;
 }
 

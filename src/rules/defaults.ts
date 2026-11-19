@@ -311,6 +311,9 @@ export const defaultRules = {
     maxLevel: 8,
     levelDmg: 0.25, levelCd: 0.06, levelCountEvery: 2, levelArea: 0.08, // [B] per move level
     autoAimRange: 18,
+    /** the basic attack a species with no damaging level-up move opens a run with and tags in with (its opening move
+     *  and Tag Action: src/sim/progression.ts firstAttacks, src/rules/tags.ts tagLineOf). Must be a damaging move row */
+    fallbackAttack: 'tackle',
   },
   archetypes: {
     strike: T({ dmg: 26, cd: 0.85, range: 4.6, radius: 1.9, knock: 7 }),

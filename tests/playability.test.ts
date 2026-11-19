@@ -10,6 +10,8 @@ import { controlReadiness, controlRoster, selectableSpecies, type ReadinessCheck
 import { firstAttacks, openingMove } from '../src/sim/progression';
 import { SPECIES, SPECIES_BY_ID, starterEligibleSpecies } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
+import { defaultRules } from '../src/rules/defaults';
+import { tagLineOf } from '../src/rules/tags';
 
 const art = (ART as unknown as { species: Record<string, { art?: { atlas?: unknown; portrait?: unknown; anims?: Record<string, { frames?: unknown[][] }> } }> }).species;
 
@@ -24,15 +26,17 @@ test('every species in the registry is graded, with a reason for anything short 
 });
 
 test('the current roster: partners, their evolutions and every wild species are ready; bosses are partial (boss-scale body)', () => {
-  // the catalogue wave (docs/size-extremes-plan.md §S2): Cosmog and Cosmoem learn no damaging move, so they have no opening
-  // move and no Tag Action; they stay wild Pokémon and are never offered as partners
-  const NO_ATTACK = ['cosmoem', 'cosmog'];
+  // the catalogue wave (docs/size-extremes-plan.md §S2.12): Cosmog and Cosmoem learn no damaging move, so they open with
+  // and tag in with the basic attack (rules.moves.fallbackAttack)
+  for (const id of ['cosmog', 'cosmoem']) {
+    assert.equal(openingMove(SPECIES_BY_ID[id]), defaultRules.moves.fallbackAttack, id);
+    assert.equal(tagLineOf(id)?.base.move, defaultRules.moves.fallbackAttack, id);
+  }
+  const basic = MOVE_BY_KEY[defaultRules.moves.fallbackAttack];
+  assert.ok(basic && basic.cls !== 'status' && basic.power > 0, 'the basic attack is a damaging move row');
   for (const r of controlRoster()) {
     const sp = SPECIES_BY_ID[r.id];
-    if (NO_ATTACK.includes(r.id)) {
-      assert.equal(r.tier, 'unavailable', r.id);
-      assert.deepEqual(r.checks.filter((c) => !c.ok).map((c) => c.id).sort(), ['openingKit', 'tagAction'], r.id);
-    } else if (sp.boss) {
+    if (sp.boss) {
       assert.equal(r.tier, 'partial', r.id);
       assert.ok(r.checks.some((c) => c.id === 'body' && !c.ok), `${r.id} flags its body`);
     } else assert.equal(r.tier, 'ready', `${r.id}: ${r.reasons.join('; ')}`);

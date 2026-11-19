@@ -4,7 +4,7 @@ Progress record for `docs/size-extremes-handoff.md` (Prompts S1–S3). One secti
 Written for the Claude Code sessions that run S2 and S3, and for the owner deciding the flags.
 
 - **Stage completed:** S1, revised after the owner's decisions on 2026-11-18 (§S1.9). The measurement axis and the XL visual law exist behind two `rules.size` flags. **[Superseded: `axis`, `xlContinuous` and `xlTall` are on by default since 2026-11-18, "Default flip" below.]**
-- **S2:** skipped for now (owner). **[Done 2026-11-18/19 on branch `size-extremes-s2` (§S2.7–§S2.11): 162 species imported, 7 skipped for want of art. Not merged.]**
+- **S2:** skipped for now (owner). **[Done 2026-11-18/19 on branch `size-extremes-s2` (§S2.7–§S2.12): 162 species imported, 7 skipped for want of art. Not merged.]**
 - **S3:** done (§S3). The owner decided on the adjustments on 2026-11-18 (§S3.10): A approved behind a new flag, B and C rejected, D accepted (F2), E goes to the camera session (F3). **[Since done: F1, A as `xlTall`, then the default flip ("Default flip" below).]**
 - **Next, in order:** the camera session commits → rebase this branch onto `main` → F1 → A (`rules.size.xlTall`) → S2 (§S3.10). [Done up to A; then the default flip (2026-11-18, "Default flip") and F3 ("F3 done" below). Next: S2. Gate before S2 makes Eternatus a partner: its lens regression ("F3 done").]
 - **Branch:** `size-extremes-s1`, in its own worktree (`../poke-watch-s1`), based on `b89fb55`. The main checkout has another session's uncommitted camera work, and switching its branch would have moved that session's work. S1 and S3 are committed on the branch (§S3.10). It is not pushed and not merged into `main`.
@@ -1437,7 +1437,7 @@ the 50 hand roles. Agreement stayed between 26 and 29 of 50 across the whole swe
 - **Falinks: `0003` Trooper**, the one form folder the SpriteCollab tracker marks canon. Its root folder (the six-member
   formation) has no sprites; `0001` is a non-canon Mega and `0002` Brass a non-canon variant, both empty or excluded.
   The Trooper sheet draws a **single trooper** (24 × 32 px frames), while the class comes from the formation's listed
-  3.0 m: Falinks is drawn as one Extra Large trooper. Owner check.
+  3.0 m: Falinks is drawn as one Extra Large trooper. Owner check. **[Since §S2.12: an approved 0.5 m extent makes it Small.]**
 - **Idle-only (walk on Idle):** Gouging Fire, Grafaiai, Raging Bolt. **No damaging level-up move:** Cosmog, Cosmoem.
   **Synthesised cry:** Meltan, Melmetal.
 - **Legendary or mythical (`canon.special`): 23 imported** (20 legendary, 3 mythical: Hoopa, Meltan, Melmetal), so 23
@@ -1463,7 +1463,7 @@ all 230 framed species. Combat frames past the 4° allowance: 21 pre-wave specie
 cap is now split: ≤ 24 pre-wave, ≤ 40 wave).
 
 **Playability grades.** Pre-wave unchanged (68 ready, 4 partial bosses). Wave: **160 ready, 2 unavailable** (Cosmog,
-Cosmoem: `openingKit: no damaging move to open a run with`; `tagAction: no Tag Action`). The grade does not read
+Cosmoem: `openingKit: no damaging move to open a run with`; `tagAction: no Tag Action`). **[Since §S2.12 both are `ready`: the basic-attack fallback.]** The grade does not read
 `recruitable`, so Eternatus and Stakataka grade `ready` (they could still be picked in the `?dev=1` roster).
 Per-species grades are in §S2.11.
 
@@ -1686,3 +1686,79 @@ Partner back: the chase arm's back distance as a partner (`frame.max` 14 m), —
 | gouging-fire (1020) | fire/dragon | XL · wide | 2.59 | charger | Speed 91 ≥ 80 | ready | 11.13 | no Walk animation: the game walks on Idle |
 | raging-bolt (1021) | electric/dragon | XL · wide | 2.92 | ranged | Sp. Atk 137 ≥ Atk 73 + 10 | ready | 8.05 | no Walk animation: the game walks on Idle |
 | terapagos (1024) | normal | Tiny | 0.61 | tank | HP + Def 175 ≥ 1.15 × 125 | ready | 2.40 | legendary |
+
+### S2.12 Owner decisions on §S2.10 (2026-11-19) and what changed
+
+| Decision | Change |
+|---|---|
+| Stakataka stays `recruitable: false` | unchanged; tracked in the follow-up below |
+| Falinks: an approved `NEUTRAL_CORE_EXTENT_M` entry of 0.5 m (one trooper; the listed 3.0 m measures the six-trooper formation), recorded as reviewed | `src/rules/extent.ts`: `falinks: { m: 0.5, axis: 'height', basis: … }`. **Falinks is now Small** (was Extra Large): drawn 0.99 m, radius 0.43, height 0.91 m, off the wide field. `tests/sizing.test.ts` pins the table to reviewed entries with a basis |
+| A species with no damaging level-up move gets a basic attack as its opening move and Tag Action | `rules.moves.fallbackAttack: 'tackle'`, read by `firstAttacks` (`src/sim/progression.ts`) and `tagLineOf` (`src/rules/tags.ts`). **Cosmog and Cosmoem grade `ready`**, open with Tackle and tag in with it; they can now be recruited (Hunt) wherever a pool fields them |
+| `?dev=1` lists non-recruitable species with their reason | `unrecruitableReason` (`src/rules/profiles.ts`); the developer roster card shows "Wild only: …" beside the grade reasons (`src/ui/ui.ts`) |
+| Build size is the blocker for the remaining species; propose a separate stage for sprite loading | below; no implementation |
+
+**Why Tackle.** It is already a move row (Bulbasaur, Squirtle and others learn it), Normal type, physical, 40 power, no
+side effect, and it is the attack most Pokémon learn first in the main games. The main games' own "no move left" attack
+is Struggle, but it has no row: it would need a typeless element and recoil, which the move system does not model.
+Tackle needs no new mechanics. `tests/playability.test.ts` asserts the fallback is a damaging row.
+
+No replay hash moves: no region pool fields Falinks, Cosmog or Cosmoem.
+
+### Follow-up: giant partners and the camera
+
+One item for the camera session, covering the two partners held out by the chase framing:
+
+- **Stakataka** (`recruitable: false`): as a partner the framing law asks for a back distance past `frame.max` (14 m),
+  which criterion B refuses (`tests/camframe.test.ts` asserts it is the only species held at the cap).
+- **Eternatus** (`recruitable: false`): the lens regression at its 13.75 m back distance ("F3 done": clear share
+  87.6 → 83.3 % forward, 78.1 → 73.3 % reverse; lens pops reverse 19.2 → 32.6 /min, strafe-right 43.0 → 52.1 /min;
+  holdout hard pull-ins 4.8 → 11.9 %). `docs/THIRD_PERSON_IMPLEMENTATION.md` §25.8 has the candidate ("a shorter arm for
+  Large and Extra Large near rock"), with Furret's strafe-right jumps (25.7 → 35.7 /min, not a blocker).
+- **Done when:** both pass criterion B at the normal limits and the lens audit is accepted or re-accepted; then delete
+  their `recruitable: false` overrides and the `['stakataka']` pin in `tests/camframe.test.ts`.
+
+### Blocker for the remaining species: the build size
+
+The single-file build grew from 17.3 MB to **25.7 MB** with this wave (`dist/index.html`). The art bundle
+(`src/content/art.json`, 11.3 MB for 234 species) is imported by `src/main.ts`, inlined into the page as base64, and
+every atlas is decoded at boot (`renderer.loadArt`). Its make-up: cries 4.5 MB (40 %), portraits 0.5 MB, atlases and
+frame tables the rest; a median species is 45 KB, the largest 138 KB (Stakataka). At that rate the remaining species of
+the national dex (about 790 more) would add roughly 37 MB of art, a page near 65 MB that decodes every species before the
+title screen. **No further species wave until art loads separately from the HTML.**
+
+### Proposed stage A1: Pokémon art outside the HTML (not started)
+
+1. **Build output.** `scripts/build.mjs` writes each species' art as its own content-hashed files (atlas PNG, frame
+   table, portrait, cry) under `dist/art/`, plus `dist/art/manifest.json`. The manifest carries what the game needs
+   before any art arrives: ids, file names and sizes, the idle reference height and the measured outline the chase
+   framing reads (`scripts/lib/silhouette.ts` today measures it from the atlas). The page itself keeps only the code.
+2. **Loader.** At boot, the manifest plus the partner's line. When a stage starts (`ctx.spawnTable` is known), fetch
+   that table's species (spawns, elites, boss) and prefetch the next region's. Anything else (`?pool=`, `all-wild`, a
+   recruit) is fetched on first sight. Until it arrives, a Pokémon draws as a class-sized placeholder (the size class
+   already fixes its drawn size). Cries load on first use (40 % of the bytes).
+3. **Determinism.** Render and audio only: the sim never waits for art, so no replay hash moves. Capture mode
+   (`?capture=1`) and the browser tools gain a `pokewatch.ready()` that resolves when the art in view has loaded.
+4. **Kept as is.** Node tests and scripts keep reading `src/content/art.json`; the content build is unchanged.
+5. **Single-file variants.** `dist/poke-watch-artifact.html` (for hosts that wrap the page) cannot fetch side files. Keep
+   an `--inline` build limited to a named subset, or drop that variant: owner decision.
+6. **Gates.** A size budget on `dist/index.html` (for example ≤ 3 MB); boot-to-title time measured before and after;
+   a capture parity check (the same frames with inline and loaded art); the GitHub Pages workflow deploying `dist/art/`.
+
+Open for the owner before A1: the inline variant (5), whether portraits stay inline for the partner screen, and whether
+the dev roster's "All Pokémon" view should load every portrait on open.
+
+### S2.13 Gates after §S2.12 (2026-11-19)
+
+| Gate | Result |
+|---|---|
+| `npm run typecheck` | clean |
+| `npm test` | 623 tests: 617 pass, 4 fail (the known pointer-lock tests), 2 todo |
+| `npm run build` | pass, `dist/index.html` 25,661 KB |
+| handoff suites | 73/73 |
+| `checksum.ts` | every set identical to §S2.9's run (no hash moved) |
+| `navwalk all 5` | 0 failures |
+| `stuckwatch all 3` | 67 bot episodes (1 pinned, 0 trapped); 2 enemy episodes over 115,807 enemy-s (unchanged) |
+| `habstate` / `hazplay` / `habplay all 6 1 --raid` | 24/24, 49/49, 72/72 |
+| `perf-sim 500 --repeat 3 --gate` | min of 3: p50 0.393, p95 0.506, p99 0.850 ms: PASS |
+
+Next (owner): `/grilling` on how new species are placed into region spawn pools. Not merged.

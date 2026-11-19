@@ -43,7 +43,7 @@ What was dropped:
 `bodyOf(species)` in `src/rules/sizing.ts` checks these in order:
 
 1. **`sizeClass`** in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`) pins the class. The Pokémon sits at the class centre, with no tilt.
-2. **`NEUTRAL_CORE_EXTENT_M`** (`src/rules/sizing.ts`) is a reviewed figure for a Pokémon whose listed extent measures the wrong axis. Onix's 8.8 m, for example, is the serpent's length.
+2. **`NEUTRAL_CORE_EXTENT_M`** (`src/rules/sizing.ts`) is a reviewed figure for a Pokémon whose listed extent measures the wrong axis. Onix's 8.8 m, for example, is the serpent's length. Each entry is owner-reviewed and records its basis. Today there is one: Falinks, 0.5 m (the game draws one trooper; the listed 3.0 m is the six-trooper formation), Small instead of Extra Large.
 3. **`canon.heightM`** is the published figure, imported from PokéAPI. With `rules.size.axis` on (the default), a figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
 4. **`SpeciesDef.height`** is the old sprite-derived number. It is used only by a species with no canonical record.
 
