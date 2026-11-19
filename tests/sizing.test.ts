@@ -15,7 +15,9 @@ import {
   speciesExtent,
   speciesSizing,
   xlVisual,
+  runSizeRules,
 } from '../src/rules/sizing';
+import { createRun } from '../src/sim/run';
 import { SHAPE_AXIS, SPECIES_AXIS, axisOf, axisOfShape } from '../src/rules/shapes';
 import { SPECIES_OVERRIDES } from '../src/rules/profiles';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../src/rules/species';
@@ -257,4 +259,16 @@ test('xlContinuous on: XL draw rises with the extent from the old floor to the c
   // giants read bigger than a 2.1 m XL (extents with axis on: Snorlax 2.1, Onix 4.4, Wailord 7.25, Eternatus 10)
   const snorlax = xlVisual(2.1, XL), onix = xlVisual(4.4, XL), wailord = xlVisual(7.25, XL), eternatus = xlVisual(10, XL);
   assert.ok(onix > snorlax * 1.2 && wailord > snorlax * 1.4 && eternatus <= S.xlVisualCap, `${snorlax} ${onix} ${wailord} ${eternatus}`);
+});
+
+test('UIHooks.sizeRules (runSizeRules): the run\'s size rules during a run, the defaults before one (F1)', () => {
+  assert.equal(runSizeRules(null), defaultRules.size);
+  assert.equal(runSizeRules(undefined), defaultRules.size);
+  const run = createRun({ seed: 1, species: 'charmander', ruleOverrides: { size: { axis: true, xlContinuous: true } } as never });
+  const got = runSizeRules(run);
+  assert.equal(got, run.rules.size);
+  assert.ok(got.axis && got.xlContinuous && !defaultRules.size.axis && !defaultRules.size.xlContinuous);
+  // the roster labels follow it: Lapras is Extra Large by default and Large with the axis on
+  assert.equal(bodyOf(SPECIES_BY_ID.lapras, runSizeRules(null)).sizeClass, 'xl');
+  assert.equal(bodyOf(SPECIES_BY_ID.lapras, got).sizeClass, 'large');
 });

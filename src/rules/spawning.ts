@@ -21,7 +21,7 @@ import { SPECIES, SPECIES_BY_ID, type Behaviour, type SpeciesDef } from './speci
 import { bodyOf, type SizeClassId } from './sizing';
 import { habitatAllows, traversalOf } from './profiles';
 import type { StageDef } from './stages';
-import { defaultRules } from './defaults';
+import { defaultRules, type Rules } from './defaults';
 
 export interface SpawnFilter {
   /** keep species with at least one of these official types ('water', 'ghost', …) */
@@ -112,21 +112,23 @@ export const isWild = (sp: SpeciesDef) => !sp.boss && !sp.playable && sp.behavio
 
 interface Pool { spawns: [string, number][]; elites: string[]; boss: string }
 
-function passes(sp: SpeciesDef, f: SpawnFilter): boolean {
+/** a filter's size class and navigation class come from the run's rules (rules.size, the traversal templates), as the
+ *  sim sees the species */
+function passes(sp: SpeciesDef, f: SpawnFilter, rules: Rules): boolean {
   if (f.types && !(sp.types ?? []).some((t) => f.types!.includes(t))) return false;
   if (f.behaviours && !f.behaviours.includes(sp.behaviour ?? 'chase')) return false;
-  if (f.sizeClasses && !f.sizeClasses.includes(bodyOf(sp).sizeClass)) return false;
-  if (f.fly !== undefined && !traversalOf(sp).groundNav !== f.fly) return false;
+  if (f.sizeClasses && !f.sizeClasses.includes(bodyOf(sp, rules.size).sizeClass)) return false;
+  if (f.fly !== undefined && !traversalOf(sp, rules).groundNav !== f.fly) return false;
   return true;
 }
 
-function applyLayer(pool: Pool, L: SpawnPoolDef, depth = 0): Pool {
+function applyLayer(pool: Pool, L: SpawnPoolDef, rules: Rules, depth = 0): Pool {
   if (depth > 8) throw new Error('spawn presets refer to each other in a loop');
   let p: Pool = { spawns: pool.spawns.map(([id, w]) => [id, w]), elites: [...pool.elites], boss: pool.boss };
   if (L.preset !== undefined) {
     const base = SPAWN_PRESETS[L.preset];
     if (!base) throw new Error(`unknown spawn preset '${L.preset}'`);
-    p = applyLayer({ spawns: [], elites: p.elites, boss: p.boss }, base, depth + 1);
+    p = applyLayer({ spawns: [], elites: p.elites, boss: p.boss }, base, rules, depth + 1);
   }
   const put = (id: string, w: number) => {
     const at = p.spawns.findIndex(([s]) => s === id);
@@ -137,7 +139,7 @@ function applyLayer(pool: Pool, L: SpawnPoolDef, depth = 0): Pool {
   if (L.everyWild) for (const sp of SPECIES) if (isWild(sp) && !p.spawns.some(([s]) => s === sp.id)) p.spawns.push([sp.id, 1]);
   for (const e of L.include ?? []) typeof e === 'string' ? put(e, 1) : put(e[0], e[1]);
   for (const [id, w] of Object.entries(L.weights ?? {})) { const at = p.spawns.findIndex(([s]) => s === id); if (at >= 0) p.spawns[at][1] = w; }
-  if (L.filter) p.spawns = p.spawns.filter(([id]) => SPECIES_BY_ID[id] && passes(SPECIES_BY_ID[id], L.filter!));
+  if (L.filter) p.spawns = p.spawns.filter(([id]) => SPECIES_BY_ID[id] && passes(SPECIES_BY_ID[id], L.filter!, rules));
   if (L.exclude) { const x = new Set(L.exclude); p.spawns = p.spawns.filter(([id]) => !x.has(id)); p.elites = p.elites.filter((id) => !x.has(id)); }
   if (L.elites) p.elites = [...L.elites];
   if (L.boss !== undefined) p.boss = L.boss;
@@ -146,13 +148,23 @@ function applyLayer(pool: Pool, L: SpawnPoolDef, depth = 0): Pool {
 
 const regionOf = (stage: number) => ((stage % REGION_BIOMES.length) + REGION_BIOMES.length) % REGION_BIOMES.length;
 
-/** The spawn table of region `stage` (wrapping): the region's preset from `regions` (rules.spawning.regions), with an
- *  optional map pool and override layered on top. */
-export function resolveSpawnTable(stage: number, regions: readonly string[] = defaultRules.spawning.regions, ...layers: (SpawnPoolDef | undefined)[]): StageDef {
+function resolve(stage: number, regions: readonly string[], rules: Rules, layers: (SpawnPoolDef | undefined)[]): StageDef {
   const r = regionOf(stage);
-  let p = applyLayer({ spawns: [], elites: [], boss: '' }, { preset: regions[r] });
-  for (const L of layers) if (L) p = applyLayer(p, L);
+  let p = applyLayer({ spawns: [], elites: [], boss: '' }, { preset: regions[r] }, rules);
+  for (const L of layers) if (L) p = applyLayer(p, L, rules);
   return { biome: REGION_BIOMES[r], spawns: p.spawns, elites: p.elites, boss: p.boss };
+}
+
+/** The spawn table of region `stage` (wrapping) for a run's rules: the region's preset from rules.spawning.regions, with
+ *  an optional map pool and override layered on top. Filters read the same rules (rules.size, traversal). */
+export function spawnTableFor(rules: Rules, stage: number, ...layers: (SpawnPoolDef | undefined)[]): StageDef {
+  return resolve(stage, rules.spawning.regions, rules, layers);
+}
+
+/** The spawn table of region `stage` under the default rules, with `regions` in place of rules.spawning.regions: the
+ *  static tables (rules/stages.ts STAGES) and tests. A run resolves through spawnTableFor. */
+export function resolveSpawnTable(stage: number, regions: readonly string[] = defaultRules.spawning.regions, ...layers: (SpawnPoolDef | undefined)[]): StageDef {
+  return resolve(stage, regions, defaultRules, layers);
 }
 
 /** Compatibility: may this species spawn on a tile with these habitat tags? (Preference plays no part here.) */
@@ -160,20 +172,20 @@ export const canSpawnOn = (species: string, habitat: number) => habitatAllows(sp
 
 /** Every species any configured pool can field (region presets, every preset, and the given map pools): what the
  *  habitat navigation profiles must make room for (src/world/habitat/mode.ts). */
-export function spawnableSpecies(mapPools: SpawnPoolDef[] = []): { spawns: Set<string>; elites: Set<string> } {
+export function spawnableSpecies(mapPools: SpawnPoolDef[] = [], rules: Rules = defaultRules): { spawns: Set<string>; elites: Set<string> } {
   const spawns = new Set<string>(), elites = new Set<string>();
   const tables: StageDef[] = [];
   for (let s = 0; s < REGION_BIOMES.length; s++) {
-    tables.push(resolveSpawnTable(s));
-    for (const id of Object.keys(SPAWN_PRESETS)) tables.push(resolveSpawnTable(s, undefined, { preset: id }));
-    for (const m of mapPools) tables.push(resolveSpawnTable(s, undefined, m));
+    tables.push(resolve(s, rules.spawning.regions, rules, []));
+    for (const id of Object.keys(SPAWN_PRESETS)) tables.push(resolve(s, rules.spawning.regions, rules, [{ preset: id }]));
+    for (const m of mapPools) tables.push(resolve(s, rules.spawning.regions, rules, [m]));
   }
   for (const t of tables) { for (const [id] of t.spawns) spawns.add(id); for (const id of t.elites) elites.add(id); }
   return { spawns, elites };
 }
 
 /** Problems with the spawn configuration, as readable messages (tests/spawning.test.ts asserts none). */
-export function validateSpawnConfig(mapPools: Record<string, SpawnPoolDef> = {}, regions: readonly string[] = defaultRules.spawning.regions): string[] {
+export function validateSpawnConfig(mapPools: Record<string, SpawnPoolDef> = {}, regions: readonly string[] = defaultRules.spawning.regions, rules: Rules = defaultRules): string[] {
   const out: string[] = [];
   const check = (where: string, L: SpawnPoolDef) => {
     if (L.preset !== undefined && !SPAWN_PRESETS[L.preset]) out.push(`${where}: unknown preset '${L.preset}'`);
@@ -192,7 +204,7 @@ export function validateSpawnConfig(mapPools: Record<string, SpawnPoolDef> = {},
     for (let s = 0; s < REGION_BIOMES.length; s++) {
       for (const [where, L] of [['', undefined], ...Object.entries(mapPools)] as [string, SpawnPoolDef | undefined][]) {
         let t: StageDef;
-        try { t = resolveSpawnTable(s, regions, L); } catch (e) { out.push(`${where || 'region'} ${s}: ${(e as Error).message}`); continue; }
+        try { t = resolve(s, regions, rules, [L]); } catch (e) { out.push(`${where || 'region'} ${s}: ${(e as Error).message}`); continue; }
         const at = `${REGION_BIOMES[s]}${where ? ' with map ' + where : ''}`;
         if (!t.spawns.length) out.push(`${at}: no wild Pokémon left in the pool`);
         if (!t.boss) out.push(`${at}: no boss`);

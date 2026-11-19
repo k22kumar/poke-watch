@@ -12,7 +12,7 @@ import { weightClass } from '../rules/species';
 import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
-import { bodyOf } from '../rules/sizing';
+import { bodyOf, type SizeRules } from '../rules/sizing';
 import { traversalOf } from '../rules/profiles';
 import { ACTIONS, DEFAULT_KEYS, DEFAULT_PAD, PAD_BUTTONS, RESERVED_KEYS, SLOTS, assignBinding, keyName, padName, resolveBindings, type KeyBindings, type PadBindings } from '../input/bindings';
 import type { ControlReadiness } from '../sim/playability';
@@ -81,6 +81,8 @@ export interface UIHooks {
   dev: boolean;
   /** every species graded for player control, in registry order (sim/playability.ts plus the host's art check) */
   roster(): ControlReadiness[];
+  /** the size rules of the run on screen (ctx.rules.size), the defaults before one: the developer roster's class labels */
+  sizeRules(): SizeRules;
   /** restart the current run (same mode and seed) as another species; false when there is no run or it is not selectable */
   become(id: string): boolean;
 }
@@ -425,24 +427,24 @@ export class UI {
       roster.className = 'roster dev';
       roster.innerHTML = '';
       const q = filter.trim().toLowerCase();
-      const all = this.hooks.roster();
+      const all = this.hooks.roster(), size = this.hooks.sizeRules();
       for (const tier of ['ready', 'partial', 'unavailable'] as const) {
         const rows = all.filter((r) => r.tier === tier).filter((r) => {
           if (!q) return true;
           const sp = SPECIES_BY_ID[r.id];
-          return [sp.id, sp.name, ...(sp.types ?? []), ...sp.elements.map(typeName), roleOf(sp), bodyOf(sp).className].some((s) => s.toLowerCase().includes(q));
+          return [sp.id, sp.name, ...(sp.types ?? []), ...sp.elements.map(typeName), roleOf(sp), bodyOf(sp, size).className].some((s) => s.toLowerCase().includes(q));
         });
         if (!rows.length) continue;
         roster.append(h('h3', { class: 'dev-group' }, `${TIER_TITLE[tier]} · ${rows.length}`));
-        for (const r of rows) roster.append(devCard(r));
+        for (const r of rows) roster.append(devCard(r, size));
       }
       if (!roster.querySelector('.mon')) roster.append(h('div', { class: 'dev-group' }, 'No Pokémon match the filter'));
     };
-    const devCard = (r: ControlReadiness) => {
+    const devCard = (r: ControlReadiness, size: SizeRules) => {
       const sp = SPECIES_BY_ID[r.id];
       const off = r.tier === 'unavailable';
       const opening = r.opening ? MOVE_BY_KEY[r.opening]?.name ?? r.opening : 'nothing';
-      const meta = [roleOf(sp), bodyOf(sp).className, traversalOf(sp).air ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
+      const meta = [roleOf(sp), bodyOf(sp, size).className, traversalOf(sp).air ? 'flies' : '', `opens with ${opening}`].filter(Boolean).join(' · ');
       const card: HTMLElement = h('button', {
         type: 'button', class: `box choice mon dev tier-${r.tier}`, role: 'radio', 'aria-checked': String(!off && sp.id === this.species), 'aria-disabled': String(off),
         'aria-label': `${sp.name}, ${r.tier}${r.reasons.length ? ': ' + r.reasons.join('; ') : ''}`, title: r.reasons.join('\n') || 'Ready to play',

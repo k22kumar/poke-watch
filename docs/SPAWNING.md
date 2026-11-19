@@ -43,7 +43,8 @@ A pool is a `SpawnPoolDef`:
   everyWild?: boolean;                         // add every wild species in the roster at weight 1
   include?: (string | [string, number])[];     // add species, or set their weight ('id' = weight 1)
   weights?: Record<string, number>;            // change weights of species already in the pool
-  filter?: { types?, behaviours?, sizeClasses?, fly? };  // keep only species that pass every test
+  filter?: { types?, behaviours?, sizeClasses?, fly? };  // keep only species that pass every test (size class and
+                                               // navigation class under the run's rules: spawnTableFor)
   exclude?: string[];                          // remove (spawns and elites)
   elites?: string[]; boss?: string;            // replace
 }

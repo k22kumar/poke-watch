@@ -136,7 +136,8 @@
         className: sz.className, extentM: sz.extentM, visualM: sz.visualM, scale: s, wide: sz.wide, neutralCoreM: sz.neutralCoreM,
         heightPx: art.heightPx, widthPx: art.widthPx, radius: rad, height: tall, body: sz.body,
         drawnH: (f.ay - o.y0) / TPM * s, drawnW: (o.x1 - o.x0 + 1) / TPM * s,
-        cellH: f.h / TPM * s, cellW: f.w / TPM * s, // the idle frame's cell: what the chase rig frames (chaseSubjectSize)
+        cellH: f.h / TPM * s, cellW: f.w / TPM * s, // the idle frame's cell (what the rig at b89fb55 framed)
+        outline: sh.outline ?? null, // the measured outline at the drawn scale: what the chase rig frames since 90fc1b7 (render/framing.ts)
         idleLeft: (f.ax - o.x0) / TPM * s, idleRight: (o.x1 + 1 - f.ax) / TPM * s,
         maxHalfWidth: half, maxWidth: widest, maxWidthAt: widestAt,
         shareAboveHurt: above / n, shareOutsideCylinder: outside / n,
@@ -144,7 +145,8 @@
     }
     return out;
   }
-  /** the partner's card against the viewport (CSS px), and the chase rig's size, boom and pivot */
+  /** the partner's card against the viewport (CSS px), and the chase rig's arm (render/camera.ts ChaseRig, 90fc1b7):
+   *  the ideal back distance and shoulder for the outline, what is in use this frame, the pivot and the outline corner */
   function frame() {
     const p = pw.ctx.player, k = card(p.species.id, p.x, p.y, p.z, 4), q = k.corners.map(P);
     const xs = q.map((v) => v[0]), ys = q.map((v) => v[1]);
@@ -152,7 +154,7 @@
     return {
       viewport: [R.width, R.height], card: { left: Math.min(...xs), right: Math.max(...xs), top: Math.min(...ys), bottom: Math.max(...ys) },
       inFrame: Math.min(...xs) >= 0 && Math.max(...xs) <= R.width && Math.min(...ys) >= 0 && Math.max(...ys) <= R.height,
-      rig: rig ? { size: rig.size, pivotH: rig.pivotH, boom: rig.cur?.boom, eye: R.eye, pitch: R.pitch } : null,
+      rig: rig ? { backWant: rig.backWant, shoulderWant: rig.shoulderWant, boom: rig.boomUsed, shoulder: rig.shoulderUsed, lensGap: rig.lensGap, pivotH: rig.pivotH, cornerTop: rig.cornerTop, cornerRight: rig.cornerRight, eye: R.eye, pitch: R.pitch } : null,
       cardM: { w: k.lx1 - k.lx0, h: k.ly1, st: k.st },
       feetToEye: Math.hypot(R.eye[0] - p.x, R.eye[2] - p.z), eyeAboveFeet: R.eye[1] - p.y,
       margins: { left: Math.min(...xs), right: R.width - Math.max(...xs), top: Math.min(...ys), bottom: R.height - Math.max(...ys) },

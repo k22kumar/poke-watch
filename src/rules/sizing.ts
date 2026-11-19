@@ -66,7 +66,11 @@ export interface SpeciesExtent {
   axis: MeasureAxis;
 }
 
-type SizeRules = Rules['size'];
+export type SizeRules = Rules['size'];
+
+/** the size rules of a run (its ctx.rules.size), the defaults with no run: what the developer roster labels classes with
+ *  (src/main.ts UIHooks.sizeRules) */
+export const runSizeRules = (run: { rules: Pick<Rules, 'size'> } | null | undefined): SizeRules => run?.rules.size ?? defaultRules.size;
 
 /** Class index 0-4 from a source extent in metres. */
 export function sizeClassIndex(extentM: number, size: SizeRules = defaultRules.size): number {

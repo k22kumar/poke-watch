@@ -118,7 +118,7 @@ Implemented.
 - **Weights:** change the numbers in a preset's `include` (`src/rules/spawning.ts`), or override them from a map, mode or another preset with `weights: { rattata: 2 }`.
 - **Habitat odds:** `rules.spawning.preference` (`native: 2, foreign: 0.55`) scales a species on tiles it prefers or doesn't.
 - **Other conditions:** see section 10.
-- **Not implemented:** time- or event-based conditions (night-only, after a boss). The director would need a new layer for those. The four-layer resolution in `resolveSpawnTable` is where it would go.
+- **Not implemented:** time- or event-based conditions (night-only, after a boss). The director would need a new layer for those. The four-layer resolution in `spawnTableFor` / `resolveSpawnTable` (`src/rules/spawning.ts`) is where it would go.
 
 ## 9. Create a reusable spawning preset
 

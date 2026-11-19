@@ -70,7 +70,9 @@ With `rules.size.xlContinuous` on (default off), an Extra Large Pokémon is draw
 
 | Concern | Reads | Where |
 |---|---|---|
-| Drawn size | `visualM ÷` the asset's neutral core | `src/render/renderer.ts` (`speciesSizing`) |
+| Drawn size | `visualM ÷` the asset's neutral core, under the drawn run's `rules.size` (re-sized when a run's size rules differ) | `src/render/renderer.ts` (`speciesSizing`, `useSizeRules`) |
+| Class label in the developer roster | the run on screen's `rules.size` (the defaults before a run) | `src/ui/ui.ts` (`UIHooks.sizeRules`) |
+| Spawn pool `sizeClasses` filter | the run's `rules.size` | `src/rules/spawning.ts` (`spawnTableFor`, `passes`) |
 | Enemy collision and hurt radius | class radius × role size (elite ×2, alpha ×3) | `src/sim/enemies.ts` (`enemyRadius`) |
 | Enemy vertical hit window, hit-number height | class height × role size (`E.tall`) | `src/sim/effects.ts`, `combat.ts`, `hazards.ts`, `cells.ts`, `coats.ts` |
 | Partner collision and hurt radius | class radius clamped to `rules.size.playerRadius` (0.48–0.72 m) | `partnerRadius`, read by `effects.ts`, `enemies.ts`, `bodies.ts`, `objectives.ts`, `cells.ts`, `hazards.ts` |

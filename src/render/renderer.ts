@@ -5,7 +5,8 @@
 import { ELEMENTS, ELEMENT_DEFS, type Element } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { BIOMES } from '../rules/stages';
-import { speciesSizing, type SpeciesSizing } from '../rules/sizing';
+import { speciesSizing, type SizeRules, type SpeciesSizing } from '../rules/sizing';
+import { defaultRules } from '../rules/defaults';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { ROLE, PK, ZK } from '../sim/pools';
 import type { SimContext, SimEvent } from '../sim/types';
@@ -161,6 +162,8 @@ class Particles {
 export class Renderer {
   gl: GL;
   sheets = new Map<string, SpriteSet>();
+  /** the size rules every sheet's `size` and `outline` were computed with: the drawn run's rules.size (useSizeRules) */
+  private sizeRules: SizeRules = defaultRules.size;
   stage: TileStage | null = null;
   private stages = new Map<string, TileStage>();
   private creature: Program; private glow: Program; private decal: Program; private ribbon: Program;
@@ -253,11 +256,25 @@ export class Renderer {
     // walk cadence: 1.6 frames per metre travelled, whatever the source's frame count
     const walk = art.clips.walk;
     const walkRate = (clipLength(walk) / Math.max(1, walk.durations.length)) * 1.6;
-    // visible size (rules/sizing.ts): one multiplier per species, from its size class's visual target against the
-    // asset's own neutral reference pose (idle, facing the camera, frame 0; width-normalised when Wide). Bosses keep their authored
-    // `sp.scale`, which `drawSprites` applies on top, so `size.scale` is 1 for them and nothing compounds.
-    const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE, (art.widthPx ?? 0) / TEXELS_PER_METRE);
-    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, size, outline: art.silhouette ? outlineOf(art.silhouette, size.scale * (sp?.scale ?? 1)) : undefined });
+    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, ...this.sizedArt(id, art) });
+  }
+
+  /** visible size (rules/sizing.ts) under the current size rules: one multiplier per species, from its size class's
+   *  visual target against the asset's own neutral reference pose (idle, facing the camera, frame 0; width-normalised
+   *  when Wide), and the measured outline at that scale. Bosses keep their authored `sp.scale`, which `drawSprites`
+   *  applies on top, so `size.scale` is 1 for them and nothing compounds. */
+  private sizedArt(id: string, art: CreatureArt): Pick<SpriteSet, 'size' | 'outline'> {
+    const sp = SPECIES_BY_ID[id];
+    const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE, (art.widthPx ?? 0) / TEXELS_PER_METRE, this.sizeRules);
+    return { size, outline: art.silhouette ? outlineOf(art.silhouette, size.scale * (sp?.scale ?? 1)) : undefined };
+  }
+
+  /** Draw with a run's size rules (ctx.rules.size): re-sizes every loaded sheet when they differ from the last ones.
+   *  setStage and render call it, so a run started with ruleOverrides.size is drawn (and framed) as the sim sizes it */
+  useSizeRules(size: SizeRules) {
+    if (size === this.sizeRules) return;
+    this.sizeRules = size;
+    for (const [id, s] of this.sheets) Object.assign(s, this.sizedArt(id, s.art));
   }
 
   /** What the visible-size rule (rules/sizing.ts) submits for every loaded sheet: source extent and its
@@ -275,6 +292,7 @@ export class Renderer {
   }
 
   setStage(ctx: SimContext) {
+    this.useSizeRules(ctx.rules.size);
     const st = this.stageFor(ctx);
     this.stage = st;
     this.px.parts = [];
@@ -581,6 +599,7 @@ export class Renderer {
   render(ctx: SimContext, alpha: number, dt: number, simDt: number) {
     const gl = this.gl;
     this.time += dt;
+    this.useSizeRules(ctx.rules.size);
     const P = ctx.player;
     const C = ctx.rules.camera;
     const px = P.px + (P.x - P.px) * alpha, py = P.py + (P.y - P.py) * alpha, pz = P.pz + (P.z - P.pz) * alpha;

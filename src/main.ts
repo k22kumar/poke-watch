@@ -19,6 +19,7 @@ import { applyAgent } from './sim/cells';
 import { gainXp, xpNext } from './sim/progression';
 import { controlRoster, type ReadinessCheck } from './sim/playability';
 import { defaultRules } from './rules/defaults';
+import { runSizeRules } from './rules/sizing';
 import { addMember } from './sim/squad';
 import { addTechnique, setTransform } from './sim/build';
 import { startObjective } from './sim/objectives';
@@ -110,6 +111,7 @@ const ui = new UI({
   }),
   dev: params.has('dev'),
   roster: () => playRoster(),
+  sizeRules: () => runSizeRules(ctx),
   become: (id) => become(id),
 });
 

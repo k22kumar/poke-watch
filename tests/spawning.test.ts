@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { REGION_BIOMES, SPAWN_PRESETS, isWild, resolveSpawnTable, spawnableSpecies, validateSpawnConfig, type SpawnPoolDef } from '../src/rules/spawning';
+import { REGION_BIOMES, SPAWN_PRESETS, isWild, resolveSpawnTable, spawnTableFor, spawnableSpecies, validateSpawnConfig, type SpawnPoolDef } from '../src/rules/spawning';
+import { defaultRules } from '../src/rules/defaults';
+import { bodyOf } from '../src/rules/sizing';
 import { SPECIES_OVERRIDES, traversalOf } from '../src/rules/profiles';
 import { HAB } from '../src/rules/habitats';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../src/rules/species';
@@ -157,4 +159,15 @@ test('a map pool layers over the region pool at stage start', async () => {
   } finally {
     L.spawns = saved;
   }
+});
+
+test('a size filter reads the run\'s rules.size, not the defaults (F1)', () => {
+  // with rules.size.axis on, Ekans' listed 2 m is a body length (0.5 x) and it drops from Large to Medium
+  const large = { preset: 'all-wild', filter: { sizeClasses: ['large'] } } as SpawnPoolDef;
+  assert.ok(ids(spawnTableFor(defaultRules, 0, large)).includes('ekans'));
+  const axis = createRun({ seed: 1, species: 'charmander', ruleOverrides: { size: { axis: true }, spawning: { override: large } } as never });
+  assert.equal(bodyOf(SPECIES_BY_ID.ekans, axis.rules.size).sizeClass, 'medium');
+  assert.ok(!ids(axis.spawnTable).includes('ekans'), 'the run\'s pool drops it');
+  assert.ok(ids(axis.spawnTable).length > 0);
+  assert.ok(!ids(spawnTableFor(axis.rules, 0, large)).includes('ekans'));
 });

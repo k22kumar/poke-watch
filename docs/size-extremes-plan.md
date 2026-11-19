@@ -420,7 +420,7 @@ Gates after these changes:
 
 ### S1.10 Follow-up items
 
-- **F1: the renderer, UI and spawn size filters read `ctx.rules`.** `speciesSizing` in `src/render/renderer.ts`, the class label and search in `src/ui/ui.ts`, and `passes` in `src/rules/spawning.ts` (the `sizeClasses` filter) must take the run's `rules.size`, not `defaultRules.size`. **When:** after the camera session commits (`renderer.ts` and `ui.ts` are its files) and **before any S1 flag becomes a default.** With the flags off it moves no hash: classes and draws equal the defaults. Add a test that a `ruleOverrides` flag reaches all three readers.
+- **F1 [done 2026-11-18, §F1 below]: the renderer, UI and spawn size filters read `ctx.rules`.** `speciesSizing` in `src/render/renderer.ts`, the class label and search in `src/ui/ui.ts`, and `passes` in `src/rules/spawning.ts` (the `sizeClasses` filter) must take the run's `rules.size`, not `defaultRules.size`. **When:** after the camera session commits (`renderer.ts` and `ui.ts` are its files) and **before any S1 flag becomes a default.** With the flags off it moves no hash: classes and draws equal the defaults. Add a test that a `ruleOverrides` flag reaches all three readers.
 - **F2: props near large sprites fade** (owner accepted D, §S3.10). Wall props (trees, buildings, rock) that a large creature card overlaps fade or dissolve, the way the chase lens dissolves props near the lens. That way a giant's wide sprite (Eternatus' widest frame crosses a wall at 15% of standable positions, §S3.4) is not cut by the crowns in front of it. Renderer work (`src/render/renderer.ts`, `tilestage.ts`). **When:** after the camera session commits. Moves no sim hash.
 - **F3 (for the camera session): giant framing** (owner sent E there, §S3.10). From the S3 numbers (§S3.7) on the chase rig at `b89fb55`:
   - **Pivot cap:** the pivot caps at `pivot.max` 2.4 m for every giant except Snorlax. With flags on it sits at 60% (Eternatus) and 66% (Wailord) of the drawn height, against about 80% (`chest`) for smaller Pokémon.
@@ -428,7 +428,7 @@ Gates after these changes:
   - **Crosshair:** Eternatus seen from behind covers the screen centre, where the crosshair is, **even with flags off**. Its card's right edge is at 658 px off and 706 px on, against a centre of 640 px (1280 × 720).
   - **HUD:** with Eternatus, the feet sit behind the action bar (bottom margin 53 px).
 
-  The `size-frame-*` scenes in `tools/sizescenes.json` (run with `tools/sizecap.mjs` against the capture builds) **must be re-run after the camera rework**, because its outline-based arm and crosshair keep-out change every number here. The rework's outline data needs Wailord and Eternatus as well.
+  [Re-run on the rig at `90fc1b7`: §F3 below supersedes these numbers.] The `size-frame-*` scenes in `tools/sizescenes.json` (run with `tools/sizecap.mjs` against the capture builds) **must be re-run after the camera rework**, because its outline-based arm and crosshair keep-out change every number here. The rework's outline data needs Wailord and Eternatus as well.
 
 ---
 
@@ -662,3 +662,106 @@ Recommended order for the owner: **A** if the giants should be hittable where th
 4. **D accepted:** wall clipping is accepted as normal billboard overlap. Logged as F2 (props near large sprites fade), renderer work after the camera commit.
 5. **E goes to the camera session:** logged as F3, with the S3 numbers and the note that `size-frame-*` must be re-run after their rework.
 6. **Order from here:** the camera session commits → rebase onto `main` → F1 (renderer, UI and spawn filters read `ctx.rules`) → A (`xlTall`) → S2 (import the 169 species; propose the default role rule and stop for approval).
+
+---
+
+## Rebase onto the camera commit, F1, and fresh F3 numbers (2026-11-18)
+
+### Rebase
+
+`size-extremes-s1` was rebased onto `main` at `90fc1b7` (the camera commit). The only file both sides changed was
+`docs/SIZING.md`; git merged it without a conflict and both sessions' text is kept (the camera rows in "Who reads what"
+and "Wall tops", the S1 "Measurement axis" and "Giants" sections). No generated file conflicted. The one break was
+`scripts/sizegiants.ts`, whose framing table read the old rig's `CHASE_CONFIG.size / pivot / states`; it now reads the
+new rig (below).
+
+Gates after the rebase and F1: typecheck clean; `npm test` 597 / 603, the 4 reds are the pointer-lock tests that fail on
+`main` too (`docs/tasks/pointerlock-red-tests.md`); the size tests (`sizing`, `navsize`, `footprint`, `headroom`,
+`walltops`, `playability`, `catalogue`, `spawning`) 77 / 77; `scripts/checksum.ts`: every set `main` prints is
+identical, and `axis`, `gen-axis`, `xl` are unchanged from before the rebase (`xl` still prints the `on` hashes).
+
+### F1: the renderer, UI and spawn size filters read the run's rules
+
+| Reader | Before | Now |
+|---|---|---|
+| `src/render/renderer.ts` sheet size and outline | `speciesSizing(…)` with `defaultRules.size` at art load | `sizedArt` under `this.sizeRules`; `useSizeRules(ctx.rules.size)` from `setStage` and `render` re-sizes every sheet (size and the outline the chase rig frames) when a run's size rules differ |
+| `src/ui/ui.ts` developer roster class label and search | `bodyOf(sp)` | `bodyOf(sp, hooks.sizeRules())`; `src/main.ts` returns `runSizeRules(ctx)`: the run on screen's `rules.size`, the defaults before one |
+| `src/rules/spawning.ts` filters | `bodyOf(sp)`, `traversalOf(sp)` | `passes(sp, f, rules)`; `spawnTableFor(rules, stage, …layers)` is what `startStage` calls; `spawnableSpecies(pools, rules)` for the habitat profiles; `resolveSpawnTable` keeps the defaults for the static `STAGES` and tests |
+
+The `fly` filter had the same defect (`traversalOf` with the default rules) and is fixed with it. `SizeRules` is now
+exported from `src/rules/sizing.ts`.
+
+Checks: `tests/spawning.test.ts` "a size filter reads the run's rules.size" (Ekans is Large by default and Medium with
+`ruleOverrides.size.axis`, and the run's pool drops it under a Large-only filter). In the browser, the flags-off capture
+page given `createRun({ ruleOverrides: { size: { axis: true, xlContinuous: true } } })` and `renderer.setStage` draws
+Snorlax, Onix, Wailord, Eternatus, Lapras and Ekans with exactly the class, `visualM`, multiplier and outline top of the
+flags-on page, and goes back to the defaults with the next default run. The UI hook reads `runSizeRules(ctx)`
+(`src/rules/sizing.ts`), tested in `tests/sizing.test.ts` (the run's rules during a run, the defaults with none).
+
+Not changed (outside F1's three readers, all default-rules by design or tooling): `controlRoster(defaultRules)` in
+`src/main.ts` (the playability grades), `profilesFor(defaultRules)` as the default of `src/world/habitat/index.ts`,
+`scripts/lib/silhouette.ts` and `scripts/lib/camrig.ts` (the camera session's Node diagnostics).
+
+A consequence for later captures: a flag can now be captured with `ruleOverrides` on an ordinary build. The private
+build plugin (`.capture/build.mjs`) is still needed for the capture-only Wailord and Eternatus pack.
+
+### F3: giant framing on the rig at `90fc1b7` (read-only, for the camera session)
+
+Re-run of `size-giants-*` (measurements) and `size-frame-*` (chase captures) against fresh private builds, then
+`scripts/sizegiants.ts`. Output: `.capture/out-f1/` (not committed). The rig now frames the sprite's measured outline:
+back distance = 4.3 × (outline top + drop) / 1.9, inside 1.8–9 m (`CHASE_CONFIG.frame`); the shoulder puts the
+outline's top-right corner 7° left of the crosshair; the pivot sits on the outline's top as drawn.
+
+Ideal arm on open ground (`scripts/sizegiants.ts`, neutral elevation 14°):
+
+| | flags | outline top / drop / right (m) | drawn height | back | shoulder | pivot |
+|---|---|---|---:|---:|---:|---:|
+| Snorlax | off | 3.28 / 0.50 / 1.49 | 3.78 | 8.55 | 2.54 | 4.00 |
+| Snorlax | on | 3.29 / 0.50 / 1.50 | 3.79 | 8.58 | 2.55 | 4.02 |
+| Onix | off | 3.66 / 0.38 / 2.91 | 4.04 | 9.00 (max) | 4.01 | 4.45 |
+| Onix | on | 3.92 / 0.41 / 3.11 | 4.33 | 9.00 (max) | 4.22 | 4.84 |
+| Wailord | off | 2.96 / 0.86 / 1.83 | 3.82 | 8.64 | 2.89 | 3.50 |
+| Wailord | on | 3.68 / 1.07 / 2.28 | 4.75 | 9.00 (max) | 3.38 | 4.53 |
+| Eternatus | off | 3.31 / 1.12 / 2.55 | 4.43 | 9.00 (max) | 3.65 | 3.95 |
+| Eternatus | on | 4.54 / 1.54 / 3.49 | 6.08 | 9.00 (max) | 4.60 | 5.85 |
+
+Captures (partner on open ground in the authored meadow, 1280 × 720, after 2 s; the card is the idle reference frame
+from behind; the move bar spans about x 398–885, y 657–712):
+
+| Partner | flags | boom / shoulder in use | eye: distance / height | card w × h (m) | card x / y (px) | bottom margin | in frame | over the move bar |
+|---|---|---|---|---|---|---:|---|---|
+| Snorlax | off | 8.55 / 2.54 | 8.67 / 6.07 | 2.78 × 3.03 | 380–569 / 452–638 | 82 | yes | no |
+| Snorlax | on | 8.58 / 2.55 | 8.70 / 6.09 | 2.79 × 3.04 | 380–569 / 452–638 | 82 | yes | no |
+| Onix | off | 9.00 / 4.01 | 9.61 / 6.63 | 1.52 × 3.99 | 337–451 / 419–667 | 53 | yes | yes, 10 px |
+| Onix | on | 9.00 / 4.22 | 9.70 / 7.02 | 1.62 × 4.34 | 321–444 / 421–689 | 31 | yes | yes, 32 px |
+| Wailord | off | 8.64 / 2.89 | 8.87 / 5.59 | 2.42 × 3.05 | 367–536 / 419–636 | 84 | yes | no |
+| Wailord | on | 9.00 / 3.38 | 9.36 / 6.71 | 3.01 × 3.95 | 328–530 / 426–690 | 30 | yes | yes, 33 px |
+| Eternatus | off | 9.00 / 3.65 | 9.47 / 6.12 | 3.82 × 3.58 | 288–541 / 413–677 | 43 | yes | yes, 20 px |
+| Eternatus | on | 9.00 / 4.60 | 9.87 / 8.03 | 5.24 × 5.31 | 185–533 / 423–796 | −76 | **no** (feet 76 px below the frame) | yes, through it |
+
+What changed against §S3.7 (rig at `b89fb55`):
+- **Crosshair: fixed by the rework.** Every giant's card ends left of the screen centre (640 px): rightmost 569 px
+  (Snorlax), Eternatus 541 px off and 533 px on, where the old rig had it at 658 / 706 px.
+- **Pivot cap: gone.** The pivot follows the outline's top (3.5–5.85 m); nothing caps it at 2.4 m any more.
+- **New limit: the back-distance cap `frame.max` 9 m.** The law wants 9.1 m (Onix off) to 13.8 m (Eternatus on). Once
+  capped, the top stays pinned under the crosshair line but the arm is too short for the body, so the feet drop. The
+  rework's promise (lowest drawn point at 0.88–0.94 of the frame height) holds for Snorlax (0.886) and Wailord off
+  (0.883). Capped: Onix off 0.93, Onix on 0.96, Wailord on 0.96, Eternatus off 0.94, Eternatus on 1.11 (out of frame).
+  With flags off only Eternatus, which isn't a runtime species, crosses the move bar by more than 10 px; with flags on,
+  Onix and Wailord sit on it and Eternatus runs through it.
+- **Back distances wanted** (4.3 × drawn height / 1.9): Onix 9.14 off / 9.80 on, Wailord 8.64 / 10.75, Eternatus 10.02 /
+  13.76.
+
+Options for the camera session (none applied; camera files): raise `frame.max` to about 14 m (a farther lens is pulled in
+by walls and decks more often, and the giant draws smaller on screen, which the law intends); or keep 9 m and accept the
+feet on the move bar for the largest XL draws; or, on the size side, lower `xlVisualCap` (S1 decision, owner). The cap
+alone decides it: Eternatus on is the only out-of-frame case, and only with `xlContinuous` on.
+
+**Owner decisions on F3 (2026-11-18), for the camera session:**
+- `frame.max` (9 m) holds the giants short of the 9.1–13.8 m back distance the law wants for them.
+- **Preferred fix:** frame an Extra Large partner by aiming lower and tilting the pitch, not only by raising
+  `frame.max`.
+- If the distance is raised, cap it around **14 m** and measure how often the lens is blocked at that range.
+- Until then, **feet on the move bar for Onix and Wailord are accepted.**
+- **`xlVisualCap` stays at 4.0.**
+

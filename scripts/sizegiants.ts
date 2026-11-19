@@ -20,7 +20,7 @@ import { DECK_SLAB, World } from '../src/sim/world';
 import { createRun, startStage } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { Contacts, SK, spatialQuery, sweep } from '../src/sim/spatial';
-import { CHASE_CONFIG } from '../src/render/camera';
+import { CHASE_CONFIG, boomElevation, chaseArm, chasePivotH } from '../src/render/camera';
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : undefined; };
 const OUT = arg('--out') ?? '.capture/out';
@@ -187,21 +187,19 @@ for (const v of ['off', 'on'] as const) {
   if (v === 'off') out.push(`| | | maps: ${ms.map((m) => m.name).join(', ')} | | | | | | |`);
 }
 
-// ------------------------------------------------------------------ camera framing (read-only: the rig at b89fb55)
-out.push('\n### Camera framing as a partner (read-only; the chase rig at `b89fb55`)\n');
-const Z = CHASE_CONFIG.size, PV = CHASE_CONFIG.pivot, ST = CHASE_CONFIG.states;
-out.push(`The rig frames max(drawn height, ${Z.widthWeight} × drawn width), clamped ${Z.bodyMin}–${Z.bodyMax} m, from the idle frame's cell (not its opaque bounds); boom = state boom × clamp((size / ${Z.ref})^${Z.exp}, ${Z.min}, ${Z.max}); pivot = size × ${PV.chest}, clamped ${PV.min}–${PV.max} m. Explore boom ${ST.explore.boom}, Pressure ${ST.pressure.boom}.\n`);
-out.push('| | flags | framing size (cell) | size factor | boom explore / pressure | pivot | pivot / drawn height |');
-out.push('|---|---|---:|---:|---:|---:|---:|');
+// ------------------------------------------------------------------ camera framing (read-only: the rig at 90fc1b7)
+out.push('\n### Camera framing as a partner (read-only; the chase rig at `90fc1b7`)\n');
+const FR = CHASE_CONFIG.frame, RT = CHASE_CONFIG.reticle, elev0 = boomElevation(0);
+out.push(`The rig frames the sprite's measured outline at its drawn scale (render/framing.ts; --measure-* carry the renderer's own \`outline\`). Back distance = ${FR.boom} × ((top + drop) / ${FR.ref})^${FR.exp}, inside ${FR.min}–${FR.max} m; shoulder puts the outline's (right, top) corner ${RT.side}° left of the crosshair, at most ${CHASE_CONFIG.shoulderMax} × back; pivot on the outline's top as drawn (chasePivotH) at the neutral arm elevation ${f2(elev0)}°. Ideal arm on open ground, before any wall or deck pulls it in.\n`);
+out.push('| | flags | outline top / drop / right (m) | drawn height | back | shoulder | shoulder capped | pivot | pivot / drawn height |');
+out.push('|---|---|---|---:|---:|---:|---|---:|---:|');
 const framing: any[] = [];
 for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
-  const m = M[v][id]; if (!m) continue;
-  const cellH = m.cellH ?? m.drawnH, cellW = m.cellW ?? m.drawnW;
-  const size = Math.min(Z.bodyMax, Math.max(Z.bodyMin, Math.max(Math.min(Z.bodyMax, Math.max(Z.bodyMin, cellH)), cellW * Z.widthWeight)));
-  const k = Math.min(Z.max, Math.max(Z.min, Math.pow(size / Z.ref, Z.exp)));
-  const piv = Math.min(PV.max, Math.max(PV.min, size * PV.chest));
-  framing.push({ id, v, size, k, boomE: ST.explore.boom * k, boomP: ST.pressure.boom * k, pivot: piv, drawnH: m.drawnH });
-  out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | ${f2(size)} | ${f2(k)}${k >= Z.max - 1e-9 ? ' (max)' : ''} | ${f2(ST.explore.boom * k)} / ${f2(ST.pressure.boom * k)} | ${f2(piv)}${piv >= PV.max - 1e-9 ? ' (max)' : ''} | ${pct(piv / m.drawnH)} |`);
+  const m = M[v][id]; if (!m?.outline) continue;
+  const o = m.outline, arm = chaseArm({ outline: o, height: m.height }), drawn = o.top + (o.drop ?? 0);
+  const piv = chasePivotH(o.top, arm.back, arm.shoulder, elev0);
+  framing.push({ id, v, outline: o, drawn, back: arm.back, shoulder: arm.shoulder, sideCapped: arm.sideCapped, pivot: piv });
+  out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | ${f2(o.top)} / ${f2(o.drop ?? 0)} / ${f2(o.right)} | ${f2(drawn)} | ${f2(arm.back)}${arm.back >= FR.max - 1e-9 ? ' (max)' : ''} | ${f2(arm.shoulder)} | ${arm.sideCapped ? 'yes' : 'no'} | ${f2(piv)} | ${pct(piv / drawn)} |`);
 }
 
 fs.writeFileSync(path.join(OUT, 'sizegiants.json'), JSON.stringify({ headroom, clipRows, framing }, null, 1));

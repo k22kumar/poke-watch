@@ -79,7 +79,7 @@ export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfi
   const trainerR = Math.max(...line.map((s) => (foot ? partnerFootprint(s, rules) : partnerRadius(s, rules))));
   const bodyR = (s: SpeciesDef, size: number) => (foot ? footprintOf(s, size, rules) : enemyRadius(s, size, rules));
   const pools: SpawnPoolDef[] = [...Object.values(LOCATIONS), ...Object.values(HABITATS)].flatMap((d) => (d.spawns ? [d.spawns] : []));
-  const fielded = spawnableSpecies(pools);
+  const fielded = spawnableSpecies(pools, rules);
   const ground = (ids: Set<string>) => [...ids].map((id) => SPECIES_BY_ID[id]).filter((s): s is SpeciesDef => !!s && !s.boss && traversalOf(s, rules).groundNav);
   const wild = ground(fielded.spawns), elites = ground(fielded.elites);
   const bosses = SPECIES.filter((s) => s.boss && traversalOf(s, rules).groundNav);
