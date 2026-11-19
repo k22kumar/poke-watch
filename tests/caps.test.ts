@@ -18,6 +18,7 @@ import { buildRecap, debugLine } from '../src/sim/caplog';
 import { MOVES } from '../src/rules/moves';
 import { capOf, capTags, compileCaps, shotWeight } from '../src/rules/capabilities';
 import { SPECIES_BY_ID } from '../src/rules/species';
+import { BODY_TEMPLATES } from '../src/rules/materials';
 import { defaultRules } from '../src/rules/defaults';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
@@ -358,15 +359,18 @@ test('scenario: Lasso the rubble of a broken boulder and throw it into an enemy'
   let piece = -1, bd = 1e9;
   for (let i = 0; i < ctx.bodies.hi; i++) if (ctx.bodies.alive[i] && ctx.bodies.kind[i] === 3) { const d = Math.hypot(ctx.bodies.x[i] - P.x, ctx.bodies.z[i] - P.z); if (d < bd) { bd = d; piece = i; } }
   assert.ok(piece >= 0, 'rubble on the ground');
-  // a Medium target (Slugma): rubble released before it reaches the hold point flies a little off the aim line, which
-  // a Tiny body (size classes, docs/SIZING.md) can slip past
-  const e = dummy(ctx, 'slugma', x + 3, z + 13);
+  // No attack button: the hold releases on its own after holdTime and throws along the aim, so the hit below can only
+  // be the rubble's (Stone), never the basic attack's (Vine Whip, which reaches this spot on its own). A thrown piece
+  // rides the ground (impacts are planar, no height window) and is lethal only while it moves at IMPACT_SPEED or more:
+  // about 3 m past the release point at 8 m/s against Light friction 6. The target stands 5 m ahead, inside that reach
+  // for every size class (Tiny Budew included); Slugma, whose class moves with rules.size.axis, is the one used.
+  const e = dummy(ctx, 'slugma', x + 3, z + 12);
   const hp0 = ctx.enemies.hp[e];
-  const aim = { aimX: x + 3, aimZ: z + 13, btn: BTN.basic }; // the basic attack (Vine Whip) throws what it holds
+  const aim = { aimX: x + 3, aimZ: z + 12 };
   assert.ok(holdBody(ctx, piece, 1, P.x - ctx.bodies.x[piece], P.z - ctx.bodies.z[piece], TEAM.player, 0));
   let hit = false;
-  for (let t = 0; t < 140 && !hit; t++) hit = steps(ctx, 1, aim).some((ev) => ev.t === 'hit' && ev.enemy === e);
-  assert.ok(hit && ctx.enemies.hp[e] < hp0, 'the thrown rubble struck the enemy');
+  for (let t = 0; t < 140 && !hit; t++) hit = steps(ctx, 1, aim).some((ev) => ev.t === 'hit' && ev.enemy === e && ev.element === BODY_TEMPLATES.rubble.type);
+  assert.ok(hit && ctx.enemies.hp[e] < hp0, 'the thrown rubble itself struck the enemy');
 });
 
 // ------------------------------------------------------------------ Create
