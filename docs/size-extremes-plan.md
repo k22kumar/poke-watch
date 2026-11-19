@@ -486,6 +486,12 @@ npx tsx scripts/sizegiants.ts --pack .capture/giants/giants.bonkpack.json --meas
 
 Captures are in `.capture/out/` (PNG and JSON per scene).
 
+> **2026-11-18, after the merge:** the raw `.capture/out*` outputs (`out/`, `out-f1/`, `out-tall/`) and the private `on`/`off`
+> builds were deleted with the S1 worktree. Only the pack (`.capture/giants/`) and its loader (`.capture/build.mjs`) were kept,
+> in the main checkout's `.capture/` (git-ignored through `.git/info/exclude`). Regenerate the outputs with the commands above:
+> `node .capture/build.mjs on|off` for the builds, `tools/sizecap.mjs` for the captures, and `scripts/sizegiants.ts` for the
+> numbers. The figures quoted in this plan are the record.
+
 **Scene setup:**
 - **Comparison rows** (`size-giants-*`, `size-ref-*`, `size-target-*`, `size-deck-*`): the authored meadow arena (`world=authored`), `cam=classic`. The same fixed camera height, distance and zoom are used in both builds.
 - **Placement:** the partner moves to the nearest open, flat, dry stretch without decks. The giants spawn 2 m north of it, 5.5 m apart (4 m for the reference row), frozen and unkillable.
