@@ -1,5 +1,5 @@
 {
-  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays (partner, wild with a behaviour, boss with an attack kit) and which cross-game level-up moves each starter line learns at Poke-Watch's own game levels. Canonical moves and facts are kept separately in generated data (canon). Which wild Pokémon appear where is not set here: spawn pools are in src/rules/spawning.ts (docs/SPAWNING.md).",
+  "comment": "Poke-Watch's roster. Species data, sprites, portraits and cries are imported from PokéAPI, PMD SpriteCollab and PokeAPI/cries by scripts/build-content.mjs. This file says what role each Pokémon plays (partner, wild with a behaviour, boss with an attack kit) and which cross-game level-up moves each starter line learns at Poke-Watch's own game levels. Canonical moves and facts are kept separately in generated data (canon). Which wild Pokémon appear where is not set here: spawn pools are in src/rules/spawning.ts (docs/SPAWNING.md). A wild entry may leave its role out: the default role rule (src/rules/roles.ts, thresholds in rules.roles) derives behaviour and flying from stats, types, shape, abilities and level-up moves, and any field the entry sets wins. `wave` names the roster wave an entry joined with (rules.spawning.waves turns a wave off for older replay layers). spriteFolders pins a SpriteCollab form folder for a species whose own folder is empty.",
   "partnerEvolutions": 2,
   "cryEra": "latest",
   "partners": [
@@ -423,7 +423,517 @@
     "dreepy": {
       "behaviour": "swarm",
       "flying": true
+    },
+    "raticate": {
+      "wave": "catalogue"
+    },
+    "arbok": {
+      "wave": "catalogue"
+    },
+    "raichu": {
+      "wave": "catalogue"
+    },
+    "dugtrio": {
+      "wave": "catalogue"
+    },
+    "tentacool": {
+      "wave": "catalogue"
+    },
+    "tentacruel": {
+      "wave": "catalogue"
+    },
+    "magnemite": {
+      "wave": "catalogue"
+    },
+    "magneton": {
+      "wave": "catalogue"
+    },
+    "dodrio": {
+      "wave": "catalogue"
+    },
+    "exeggcute": {
+      "wave": "catalogue"
+    },
+    "exeggutor": {
+      "wave": "catalogue"
+    },
+    "hitmonlee": {
+      "wave": "catalogue"
+    },
+    "hitmonchan": {
+      "wave": "catalogue"
+    },
+    "weezing": {
+      "wave": "catalogue"
+    },
+    "porygon": {
+      "wave": "catalogue"
+    },
+    "dratini": {
+      "wave": "catalogue"
+    },
+    "dragonair": {
+      "wave": "catalogue"
+    },
+    "dragonite": {
+      "wave": "catalogue"
+    },
+    "togetic": {
+      "wave": "catalogue"
+    },
+    "natu": {
+      "wave": "catalogue"
+    },
+    "xatu": {
+      "wave": "catalogue"
+    },
+    "marill": {
+      "wave": "catalogue"
+    },
+    "azumarill": {
+      "wave": "catalogue"
+    },
+    "unown": {
+      "wave": "catalogue"
+    },
+    "dunsparce": {
+      "wave": "catalogue"
+    },
+    "steelix": {
+      "wave": "catalogue"
+    },
+    "mantine": {
+      "wave": "catalogue"
+    },
+    "porygon2": {
+      "wave": "catalogue"
+    },
+    "tyrogue": {
+      "wave": "catalogue"
+    },
+    "hitmontop": {
+      "wave": "catalogue"
+    },
+    "lugia": {
+      "wave": "catalogue"
+    },
+    "ho-oh": {
+      "wave": "catalogue"
+    },
+    "nincada": {
+      "wave": "catalogue"
+    },
+    "ninjask": {
+      "wave": "catalogue"
+    },
+    "shedinja": {
+      "wave": "catalogue"
+    },
+    "azurill": {
+      "wave": "catalogue"
+    },
+    "roselia": {
+      "wave": "catalogue"
+    },
+    "wailmer": {
+      "wave": "catalogue"
+    },
+    "wailord": {
+      "wave": "catalogue"
+    },
+    "castform": {
+      "wave": "catalogue"
+    },
+    "tropius": {
+      "wave": "catalogue"
+    },
+    "glalie": {
+      "wave": "catalogue"
+    },
+    "groudon": {
+      "wave": "catalogue"
+    },
+    "rayquaza": {
+      "wave": "catalogue"
+    },
+    "grotle": {
+      "wave": "catalogue"
+    },
+    "torterra": {
+      "wave": "catalogue"
+    },
+    "roserade": {
+      "wave": "catalogue"
+    },
+    "honchkrow": {
+      "wave": "catalogue"
+    },
+    "munchlax": {
+      "wave": "catalogue"
+    },
+    "mantyke": {
+      "wave": "catalogue"
+    },
+    "weavile": {
+      "wave": "catalogue"
+    },
+    "magnezone": {
+      "wave": "catalogue"
+    },
+    "togekiss": {
+      "wave": "catalogue"
+    },
+    "porygon-z": {
+      "wave": "catalogue"
+    },
+    "froslass": {
+      "wave": "catalogue"
+    },
+    "rotom": {
+      "wave": "catalogue"
+    },
+    "palkia": {
+      "wave": "catalogue"
+    },
+    "giratina-altered": {
+      "wave": "catalogue"
+    },
+    "dwebble": {
+      "wave": "catalogue"
+    },
+    "crustle": {
+      "wave": "catalogue"
+    },
+    "foongus": {
+      "wave": "catalogue"
+    },
+    "amoonguss": {
+      "wave": "catalogue"
+    },
+    "galvantula": {
+      "wave": "catalogue"
+    },
+    "tynamo": {
+      "wave": "catalogue"
+    },
+    "eelektrik": {
+      "wave": "catalogue"
+    },
+    "eelektross": {
+      "wave": "catalogue"
+    },
+    "lampent": {
+      "wave": "catalogue"
+    },
+    "chandelure": {
+      "wave": "catalogue"
+    },
+    "mienfoo": {
+      "wave": "catalogue"
+    },
+    "mienshao": {
+      "wave": "catalogue"
+    },
+    "flabebe": {
+      "wave": "catalogue"
+    },
+    "floette": {
+      "wave": "catalogue"
+    },
+    "florges": {
+      "wave": "catalogue"
+    },
+    "doublade": {
+      "wave": "catalogue"
+    },
+    "aegislash-shield": {
+      "wave": "catalogue"
+    },
+    "inkay": {
+      "wave": "catalogue"
+    },
+    "malamar": {
+      "wave": "catalogue"
+    },
+    "carbink": {
+      "wave": "catalogue"
+    },
+    "klefki": {
+      "wave": "catalogue"
+    },
+    "avalugg": {
+      "wave": "catalogue"
+    },
+    "noivern": {
+      "wave": "catalogue"
+    },
+    "xerneas": {
+      "wave": "catalogue"
+    },
+    "yveltal": {
+      "wave": "catalogue"
+    },
+    "hoopa": {
+      "wave": "catalogue"
+    },
+    "ribombee": {
+      "wave": "catalogue"
+    },
+    "wishiwashi-solo": {
+      "wave": "catalogue"
+    },
+    "comfey": {
+      "wave": "catalogue"
+    },
+    "minior-red-meteor": {
+      "wave": "catalogue"
+    },
+    "dhelmise": {
+      "wave": "catalogue"
+    },
+    "cosmog": {
+      "wave": "catalogue"
+    },
+    "cosmoem": {
+      "wave": "catalogue"
+    },
+    "solgaleo": {
+      "wave": "catalogue"
+    },
+    "lunala": {
+      "wave": "catalogue"
+    },
+    "buzzwole": {
+      "wave": "catalogue"
+    },
+    "celesteela": {
+      "wave": "catalogue"
+    },
+    "kartana": {
+      "wave": "catalogue"
+    },
+    "guzzlord": {
+      "wave": "catalogue"
+    },
+    "stakataka": {
+      "wave": "catalogue"
+    },
+    "meltan": {
+      "wave": "catalogue"
+    },
+    "melmetal": {
+      "wave": "catalogue"
+    },
+    "grookey": {
+      "wave": "catalogue"
+    },
+    "thwackey": {
+      "wave": "catalogue"
+    },
+    "rillaboom": {
+      "wave": "catalogue"
+    },
+    "scorbunny": {
+      "wave": "catalogue"
+    },
+    "raboot": {
+      "wave": "catalogue"
+    },
+    "cinderace": {
+      "wave": "catalogue"
+    },
+    "sobble": {
+      "wave": "catalogue"
+    },
+    "drizzile": {
+      "wave": "catalogue"
+    },
+    "inteleon": {
+      "wave": "catalogue"
+    },
+    "rookidee": {
+      "wave": "catalogue"
+    },
+    "corvisquire": {
+      "wave": "catalogue"
+    },
+    "corviknight": {
+      "wave": "catalogue"
+    },
+    "carkol": {
+      "wave": "catalogue"
+    },
+    "coalossal": {
+      "wave": "catalogue"
+    },
+    "applin": {
+      "wave": "catalogue"
+    },
+    "flapple": {
+      "wave": "catalogue"
+    },
+    "appletun": {
+      "wave": "catalogue"
+    },
+    "sandaconda": {
+      "wave": "catalogue"
+    },
+    "toxel": {
+      "wave": "catalogue"
+    },
+    "toxtricity-amped": {
+      "wave": "catalogue"
+    },
+    "centiskorch": {
+      "wave": "catalogue"
+    },
+    "clobbopus": {
+      "wave": "catalogue"
+    },
+    "grapploct": {
+      "wave": "catalogue"
+    },
+    "sinistea": {
+      "wave": "catalogue"
+    },
+    "polteageist": {
+      "wave": "catalogue"
+    },
+    "hatenna": {
+      "wave": "catalogue"
+    },
+    "hattrem": {
+      "wave": "catalogue"
+    },
+    "hatterene": {
+      "wave": "catalogue"
+    },
+    "morgrem": {
+      "wave": "catalogue"
+    },
+    "grimmsnarl": {
+      "wave": "catalogue"
+    },
+    "falinks": {
+      "wave": "catalogue"
+    },
+    "frosmoth": {
+      "wave": "catalogue"
+    },
+    "morpeko-full-belly": {
+      "wave": "catalogue"
+    },
+    "duraludon": {
+      "wave": "catalogue"
+    },
+    "drakloak": {
+      "wave": "catalogue"
+    },
+    "dragapult": {
+      "wave": "catalogue"
+    },
+    "zacian": {
+      "wave": "catalogue"
+    },
+    "zamazenta": {
+      "wave": "catalogue"
+    },
+    "eternatus": {
+      "wave": "catalogue"
+    },
+    "kubfu": {
+      "wave": "catalogue"
+    },
+    "urshifu-single-strike": {
+      "wave": "catalogue"
+    },
+    "calyrex": {
+      "wave": "catalogue"
+    },
+    "sneasler": {
+      "wave": "catalogue"
+    },
+    "pawmi": {
+      "wave": "catalogue"
+    },
+    "pawmo": {
+      "wave": "catalogue"
+    },
+    "pawmot": {
+      "wave": "catalogue"
+    },
+    "shroodle": {
+      "wave": "catalogue"
+    },
+    "grafaiai": {
+      "wave": "catalogue"
+    },
+    "toedscool": {
+      "wave": "catalogue"
+    },
+    "toedscruel": {
+      "wave": "catalogue"
+    },
+    "wiglett": {
+      "wave": "catalogue"
+    },
+    "wugtrio": {
+      "wave": "catalogue"
+    },
+    "orthworm": {
+      "wave": "catalogue"
+    },
+    "cetitan": {
+      "wave": "catalogue"
+    },
+    "tatsugiri-curly": {
+      "wave": "catalogue"
+    },
+    "dudunsparce-two-segment": {
+      "wave": "catalogue"
+    },
+    "slither-wing": {
+      "wave": "catalogue"
+    },
+    "iron-hands": {
+      "wave": "catalogue"
+    },
+    "gimmighoul": {
+      "wave": "catalogue"
+    },
+    "gholdengo": {
+      "wave": "catalogue"
+    },
+    "koraidon": {
+      "wave": "catalogue"
+    },
+    "dipplin": {
+      "wave": "catalogue"
+    },
+    "poltchageist": {
+      "wave": "catalogue"
+    },
+    "sinistcha": {
+      "wave": "catalogue"
+    },
+    "archaludon": {
+      "wave": "catalogue"
+    },
+    "hydrapple": {
+      "wave": "catalogue"
+    },
+    "gouging-fire": {
+      "wave": "catalogue"
+    },
+    "raging-bolt": {
+      "wave": "catalogue"
+    },
+    "terapagos": {
+      "wave": "catalogue"
     }
+  },
+  "spriteFolders": {
+    "falinks": "0003"
   },
   "bosses": {
     "sudowoodo": {

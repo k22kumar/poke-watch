@@ -18,7 +18,7 @@ Poke-Watch preserves recognizable evolution lines but compresses progression to 
 
 ## Two registries: game species and the reference catalogue
 
-`SPECIES` (`src/rules/species.ts`) is the game's roster: 72 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority. It holds canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 41 identities: the 7 that already had a role, then `joltik` and `onix`, then the 32 of the 2026-11 wave (below). For those, the pokedex stays the gameplay authority and the catalogue the reference one. `tests/catalogue.test.ts` asserts the two agree on types, canonical height and canonical weight for all 41. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
+`SPECIES` (`src/rules/species.ts`) is the game's roster: 234 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority. It holds canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 203 identities: the 7 that already had a role, then `joltik` and `onix`, then the 32 of the 2026-11 wave, then the 162 of the catalogue wave (below). For those, the pokedex stays the gameplay authority and the catalogue the reference one. `tests/catalogue.test.ts` asserts the two agree on types, canonical height and canonical weight for all 203. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
 
 The split is structural, not stylistic. A reference record inside `SPECIES` would join `all-wild` spawn pools and the habitat navigation profiles (`profilesFor()`, `src/world/habitat/mode.ts`), which would change which habitat layouts are accepted and move every replay hash. Nothing in `src/sim/`, `src/world/`, `src/render/`, `src/ui/` or `src/rules/species.ts` imports the catalogue.
 
@@ -26,7 +26,7 @@ Canonical families live only in the catalogue, as complete chains with every bra
 
 ## Why the catalogue Pokémon were not in the game
 
-The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). The rest of the 228 catalogue-only records can be promoted the same way, one line at a time. Legendaries, Gigantamax and other temporary forms stay reference data until a role is designed for them.
+The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). Since the catalogue wave, every catalogue species with SpriteCollab art is a game species; the 66 catalogue-only records are the 59 varieties (Gigantamax, regional and other forms; F2 in docs/pokemon-integration-plan.md) and 7 species with no usable art yet.
 
 ## The 2026-11 wave (32 wild Pokémon)
 
@@ -46,6 +46,53 @@ Notes:
 - **Doduo** is a Flying type that cannot fly, so the roster sets `"flying": false`.
 - **Verified.** Every new Pokémon spawned in its region on both authored and generated maps (bot runs, seeds 1–2). Each one fired its Tag Action after recruiting, and the browser drew each region's row (`tools/sizescenes.json` `size-wave-*`).
 - **Balance.** Over 36 bot runs, survival matches the classic tables (313 s each). Deaths are 12 vs 14, and kills are about the same. Fewer runs clear region 1 by 7:00 (stage mean 0.39 vs 0.53).
+
+## The catalogue wave (162 wild Pokémon) and default roles
+
+The 169 species of the catalogue's families that had no role came in on 2026-11-18 (docs/size-extremes-plan.md §S2) as
+`wild` entries with `"wave": "catalogue"` and no authored role. Keys are PokéAPI Pokémon slugs, the catalogue's id
+namespace (`aegislash-shield`, `giratina-altered`); `fetch-sources` resolves a slug through its species' default variety.
+
+- **Seven are skipped for want of art** and stay catalogue-only: Crustle, Amoonguss, Carkol, Coalossal, Shroodle and
+  Toedscruel have no SpriteCollab sprite folder, and Gimmighoul has sheets only for its Roaming form. The importer
+  reports them (`content/report.json` `skipped`) instead of stopping; a later fetch picks them up once art exists.
+- **Falinks** draws from SpriteCollab's `Trooper` folder (`0003`, the folder the tracker marks canon; `spriteFolders` in
+  the roster). Its own folder, the six-member formation, has no sprites, and `Brass` (`0002`) is a non-canon variant. The
+  Trooper sheet draws a single trooper, while its class comes from the formation's listed 3.0 m (Extra Large).
+- **Gouging Fire, Grafaiai and Raging Bolt** have Idle but no Walk; the game walks them on Idle.
+- **Meltan and Melmetal** have no playable cry (upstream's `latest` file is an MP3, with no `legacy` one); the game
+  synthesises a call.
+- **Not in any region's pool.** They are eligible wherever a pool uses `all-wild`, except the 23 legendary and mythical
+  ones (`canon.special`, from the pinned snapshot's flags), which appear only in a pool that names them.
+- **Eternatus and Stakataka are wild only** (`recruitable: false` in `SPECIES_OVERRIDES`, with the reason): Eternatus
+  until its chase-lens regression is fixed or signed off, Stakataka because its partner framing needs more than
+  `frame.max` (14 m). Cosmog and Cosmoem learn no damaging move, so they have no opening move or Tag Action
+  (`unavailable` in `tests/playability.test.ts`) and are never offered either.
+- **Checksum layer:** `rules.spawning.waves.catalogue` off takes the wave out of every pool and the habitat profiles;
+  `catalogue-off`, `gen-catalogue-off` and `deck-catalogue-off` print the hashes from before it.
+
+### Default roles
+
+A wild entry that names no behaviour takes one from the default role rule (`src/rules/roles.ts`, thresholds in
+`rules.wildRole`), read once when the roster loads. A field the entry sets always wins, so the 50 hand roles written
+before the rule keep theirs. The first matching row decides:
+
+| Row | Behaviour | Condition |
+|---|---|---|
+| 1 | `healer` | learns an ally-heal move at level-up (`heal_pulse`, `floral_healing`, `life_dew`, `pollen_puff`) and BST < 500 |
+| 2 | `swarm` | flies, extent class Medium or smaller, BST ≤ 300 |
+| 3 | `ranged` | Sp. Atk ≥ Atk + 10; no `shot`, so it fires its primary type's element |
+| 4 | `tank` | HP + Def ≥ 1.15 × (max(Atk, Sp. Atk) + Speed) |
+| 5 | `charger` | Speed ≥ 80 |
+| 6 | `chase` | everything else |
+
+**Flying:** a Flying type flies unless its shape is `legs` (Dodrio). Any other species flies with the ability Levitate,
+the shape `bug-wings`, or as a Ghost type shaped `ball`, `arms`, `squiggle`, `tentacles` or `heads`.
+
+The move lists read `canon.levelUp` and `canon.levelUpOther` (level-up moves with no game row, such as status moves).
+On the catalogue wave the rule gives ranged 50, charger 39, chase 33, tank 32, healer 6 and swarm 2, with 39 flyers.
+Against the 50 hand roles it agrees on about 29: those carry balance decisions (Pichu moved off `swarm`), which the rule
+does not try to reproduce.
 
 ## Joltik and Onix (Meadow and Badlands wild encounters)
 

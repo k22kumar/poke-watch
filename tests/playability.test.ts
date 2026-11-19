@@ -24,9 +24,15 @@ test('every species in the registry is graded, with a reason for anything short 
 });
 
 test('the current roster: partners, their evolutions and every wild species are ready; bosses are partial (boss-scale body)', () => {
+  // the catalogue wave (docs/size-extremes-plan.md §S2): Cosmog and Cosmoem learn no damaging move, so they have no opening
+  // move and no Tag Action; they stay wild Pokémon and are never offered as partners
+  const NO_ATTACK = ['cosmoem', 'cosmog'];
   for (const r of controlRoster()) {
     const sp = SPECIES_BY_ID[r.id];
-    if (sp.boss) {
+    if (NO_ATTACK.includes(r.id)) {
+      assert.equal(r.tier, 'unavailable', r.id);
+      assert.deepEqual(r.checks.filter((c) => !c.ok).map((c) => c.id).sort(), ['openingKit', 'tagAction'], r.id);
+    } else if (sp.boss) {
       assert.equal(r.tier, 'partial', r.id);
       assert.ok(r.checks.some((c) => c.id === 'body' && !c.ok), `${r.id} flags its body`);
     } else assert.equal(r.tier, 'ready', `${r.id}: ${r.reasons.join('; ')}`);

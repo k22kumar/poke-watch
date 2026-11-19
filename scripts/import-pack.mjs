@@ -30,7 +30,7 @@ import { decodePng, encodePng } from './lib/png.mjs';
 
 // ----------------------------------------------------------------------------- options
 const argv = process.argv.slice(2);
-const VALUED = new Set(['out', 'id', 'name', 'evolutions', 'mirror', 'clones', 'cry-era', 'learnsets']);
+const VALUED = new Set(['out', 'id', 'name', 'evolutions', 'mirror', 'clones', 'cry-era', 'learnsets', 'sprite-folders']);
 const opts = {}, names = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -53,7 +53,14 @@ const CRIES = !flag('no-cries');
 const CRY_ERA = opt('cry-era', 'latest');
 // curated learnsets: JSON { <baseSpecies>: { starter, moves: [[gameLevel, moveKey], ...] } }
 const LEARNSETS = opt('learnsets', null) ? JSON.parse(fs.readFileSync(opt('learnsets', null), 'utf8')) : {};
+// pinned SpriteCollab form folders: JSON { <pokemon id>: "<form folder, e.g. 0003>" } (content/roster.json spriteFolders), for
+// a species whose own sprite folder is empty and whose ordinary form is drawn in a form subfolder
+const SPRITE_FOLDERS = opt('sprite-folders', null) ? JSON.parse(fs.readFileSync(opt('sprite-folders', null), 'utf8')) : {};
 const CACHE = '.import-cache';
+
+/** A species with no usable art (no sprite folder, no AnimData.xml, neither Idle nor Walk): skipped and reported, never
+ *  fatal, so the rest of the roster still imports and a later fetch picks it up once SpriteCollab has the art. */
+class NoUsableArt extends Error {}
 
 const POKEAPI = 'https://pokeapi.co/api/v2/';
 const SPRITES = 'https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/';
@@ -245,10 +252,11 @@ async function creditNames() {
   return creditNameMap;
 }
 
-async function importSprites(dex) {
+async function importSprites(dex, folder) {
   const d4 = String(dex).padStart(4, '0');
-  const base = `${SPRITES}sprite/${d4}/`;
-  const xmlBuf = await get(base + 'AnimData.xml');
+  const base = `${SPRITES}sprite/${d4}/${folder ? folder + '/' : ''}`;
+  const xmlBuf = await get(base + 'AnimData.xml', { optional: true });
+  if (!xmlBuf) throw new NoUsableArt(`no sprite folder or AnimData.xml at sprite/${d4}/${folder ? folder + '/' : ''}`);
   const ad = parseAnimData(xmlBuf.toString('utf8'));
   const frames = []; // { anim, dir, i, img, sx, sy, w, h, ax, ay }
   const anims = {};
@@ -283,7 +291,9 @@ async function importSprites(dex) {
     anims[name] = { frames: out, durations: a.durations.slice(0, n), hit: a.hit, fw: a.fw, fh: a.fh, rows, copiedFrom: a.copiedFrom };
     if (!shadow) warnings.push(`${name}: no shadow sheet; feet anchored at the lowest opaque row`);
   }
-  if (!anims.Walk) throw new Error(`sprite ${d4}: no usable Walk animation`);
+  // the game walks on Idle when a species has no Walk clip (ANIM_FALLBACKS in src/assets/art.ts)
+  if (!anims.Walk && !anims.Idle) throw new NoUsableArt(`sprite ${d4}${folder ? '/' + folder : ''}: neither an Idle nor a Walk animation`);
+  if (!anims.Walk) warnings.push('no Walk animation: the game walks on Idle');
   // pack: dedupe identical frames, shelf-pack by height
   const key = (f) => sha(Buffer.concat(Array.from({ length: f.h }, (_, y) => Buffer.from(f.img.data.buffer, f.img.data.byteOffset + ((f.sy + y) * f.img.width + f.sx) * 4, f.w * 4))));
   const uniq = new Map();
@@ -311,7 +321,7 @@ async function importSprites(dex) {
   const credits = creditsBuf ? [...new Set(creditsBuf.toString('utf8').split(/\r?\n/).map((l) => l.split('\t')[1] ?? l).map((s) => s.trim()).filter(Boolean).map((c) => names[c] ?? (/^<@!\d+>$/.test(c) ? 'unnamed SpriteCollab contributor ' + c.replace(/\D/g, '') : c)))] : [];
   if (!credits.length) warnings.push(`no credits.txt for sprite ${d4}; credit the artists listed for ${d4} in SpriteCollab's tracker.json`);
   return {
-    d4, atlasPng, W, H, anims: packAnims, shadowSize: ad.shadowSize, heightPx, portraitPng: portraitBuf, credits, warnings,
+    d4, folder: folder ?? null, atlasPng, W, H, anims: packAnims, shadowSize: ad.shadowSize, heightPx, portraitPng: portraitBuf, credits, warnings,
     available: Object.keys(ad.anims), used: Object.keys(anims), frames: frames.length, uniqueFrames: list.length,
   };
 }
@@ -328,13 +338,13 @@ async function importOne(nameOrId, role, report) {
   const stats = {};
   for (const s of pokemon.stats) stats[STAT[s.stat.name]] = s.base_stat;
   const dex = species.id;
-  const sprites = await importSprites(dex);
+  const sprites = await importSprites(dex, SPRITE_FOLDERS[id]);
   const evo = await evolutionInfo(species, pokemon.name);
   const { list } = levelUpMoves(pokemon);
-  const rows = [];
+  const rows = [], other = new Set();
   for (const { name, url, level } of list) {
     const row = toMoveRow(await move(name, url));
-    if (row) rows.push({ row, level });
+    if (row) rows.push({ row, level }); else other.add(name.replace(/-/g, '_'));
   }
   let cry = null;
   if (CRIES) {
@@ -352,10 +362,12 @@ async function importOne(nameOrId, role, report) {
     if (magic === 'OggS' || magic === 'RIFF') cry = { src: dataUrl(magic === 'OggS' ? 'audio/ogg' : 'audio/wav', buf), source: url, era, license: MIRROR && !CLONES ? 'fixture (generated test tone)' : 'PokeAPI/cries (CC0 repository); audio © The Pokémon Company' };
     else sprites.warnings.push('cry missing or not an OGG/WAV file; the game will synthesise a call');
   }
-  report.push({ id, dex, role, levelUpMoves: list.length, usableMoves: rows.length, sprite: { folder: `sprite/${sprites.d4}`, available: sprites.available, used: sprites.used, frames: sprites.frames, uniqueFrames: sprites.uniqueFrames, atlas: `${sprites.W}x${sprites.H}`, heightPx: sprites.heightPx }, warnings: sprites.warnings });
+  report.push({ id, dex, role, levelUpMoves: list.length, usableMoves: rows.length, sprite: { folder: `sprite/${sprites.d4}${sprites.folder ? '/' + sprites.folder : ''}`, available: sprites.available, used: sprites.used, frames: sprites.frames, uniqueFrames: sprites.uniqueFrames, atlas: `${sprites.W}x${sprites.H}`, heightPx: sprites.heightPx }, warnings: sprites.warnings });
   // Keep canonical facts separate from game balance; include every listed ability, including hidden abilities.
   const abilities = (pokemon.abilities ?? []).sort((a, b) => a.slot - b.slot).map((a) => a.ability.name.replace(/-/g, '_'));
-  const canon = { levelUp: rows.map((r) => [r.level, r.row.key]), abilities, heightM: pokemon.height / 10, weightKg: pokemon.weight / 10, evolveLevel: evo?.level ?? undefined, evolveTrigger: evo?.trigger };
+  // levelUpOther: the canonical level-up moves with no game move row (most status moves, one-hit KOs), kept as data for
+  // rules that read what a species learns (the default role rule, src/rules/roles.ts)
+  const canon = { levelUp: rows.map((r) => [r.level, r.row.key]), levelUpOther: [...other].sort(), abilities, heightM: pokemon.height / 10, weightKg: pokemon.weight / 10, evolveLevel: evo?.level ?? undefined, evolveTrigger: evo?.trigger };
   return {
     id, dex, display, types, stats, sprites, evo, rows, cry, canon,
     flying: types.includes('flying'),
@@ -372,7 +384,7 @@ function buildSpecies(e, { playable, learnset, starter, evolvesTo, evolveLevel, 
     blurb: `${typeLabel} type.${evolvesTo ? ` Evolves at Lv ${evolveLevel}.` : ''} Imported from PokéAPI and PMD SpriteCollab.`,
     starter, learnset, evolvesTo, evolveLevel, coverage, canon: e.canon,
     art: {
-      source: `PMD SpriteCollab sprite/${e.sprites.d4}`,
+      source: `PMD SpriteCollab sprite/${e.sprites.d4}${e.sprites.folder ? '/' + e.sprites.folder : ''}`,
       atlas: dataUrl('image/png', e.sprites.atlasPng), anims: e.sprites.anims, shadowSize: e.sprites.shadowSize,
       portrait: e.sprites.portraitPng ? dataUrl('image/png', e.sprites.portraitPng) : undefined,
       credits: e.sprites.credits.length ? e.sprites.credits : ['PMD SpriteCollab contributors (see tracker.json)'],
@@ -387,14 +399,25 @@ async function main() {
   const report = [];
   const species = [];
   const moves = new Map();
+  const skipped = [];
   for (const n of names) {
     console.log(`importing ${n}…`);
-    const base = await importOne(n, 'starter', report);
+    let base;
+    try { base = await importOne(n, 'starter', report); } catch (e) {
+      if (!(e instanceof NoUsableArt)) throw e;
+      skipped.push({ id: n, reason: e.message });
+      continue;
+    }
     // evolution chain (N stages)
     const chain = [base];
     let cur = base;
     for (let k = 0; k < EVOS && cur.evo; k++) {
-      const next = await importOne(cur.evo.to, 'evolution', report);
+      let next;
+      try { next = await importOne(cur.evo.to, 'evolution', report); } catch (e) {
+        if (!(e instanceof NoUsableArt)) throw e;
+        skipped.push({ id: cur.evo.to, reason: e.message });
+        break;
+      }
       chain.push(next); cur = next;
     }
     for (const e of chain) for (const r of e.rows) moves.set(r.row.key, r.row);
@@ -422,12 +445,14 @@ async function main() {
     // starter: an early same-type attack if there is one (Ember over Scratch), else the first attack
     const primary = TYPE_TO_ELEMENT[base.types[0]];
     const starterRow = damaging.find((r) => r.row.power > 0 && r.row.element === primary && r.level <= 10) ?? damaging.find((r) => r.row.power > 0) ?? damaging[0];
-    if (!starterRow) throw new Error(`${base.id}: no damaging level-up move to start with`);
-    const seen = new Set([starterRow.row.key]);
+    // a species with no damaging level-up move (Cosmog) still imports: as a wild Pokémon it needs none, and the
+    // playability grade (src/sim/playability.ts) reports it as a partner
+    if (!starterRow) report.find((r) => r.id === base.id)?.warnings.push('no damaging level-up move: no starting move');
+    const seen = new Set(starterRow ? [starterRow.row.key] : []);
     const baseMoves = [];
     for (const r of base.rows) { if (seen.has(r.row.key) || baseMoves.length >= BASE_SLOTS.length - 1) continue; if (r.row.cls === 'status' && baseMoves.some((m) => m.cls === 'status')) continue; seen.add(r.row.key); baseMoves.push(r.row); }
     species.push(buildSpecies(base, {
-      playable: true, starter: starterRow.row.key,
+      playable: true, starter: starterRow?.row.key,
       learnset: baseMoves.map((m, i) => [BASE_SLOTS[i], m.key]),
       evolvesTo: chain[1]?.id, evolveLevel: chain[1] ? base.evo.level ?? 16 : undefined,
     }));
@@ -456,11 +481,12 @@ async function main() {
   // previews: every used animation, 8 directions, anchors marked
   const previews = [];
   for (const s of species) previews.push(writePreview(s, OUT));
-  fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify({ pack: PACK_ID, generated: pack.created, mirror: MIRROR ?? null, species: report, sources: provenance }, null, 2));
+  fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify({ pack: PACK_ID, generated: pack.created, mirror: MIRROR ?? null, species: report, skipped, sources: provenance }, null, 2));
   fs.writeFileSync(path.join(OUT, 'preview', 'index.html'), `<!doctype html><meta charset="utf-8"><title>${PACK_NAME} preview</title><style>body{font:13px sans-serif;background:#202430;color:#eee;margin:16px}img{image-rendering:pixelated;background:#78dcac;display:block;margin:6px 0 18px}</style><h1>${PACK_NAME}</h1><p>${pack.notice}</p>` + previews.map((p) => `<h2>${p.name}</h2><p>${p.note}</p><img src="${p.file}" width="${p.w * 2}">`).join(''));
   const warn = report.flatMap((r) => r.warnings.map((w) => `${r.id}: ${w}`));
   console.log(`\nwrote ${file} (${(fs.statSync(file).size / 1024).toFixed(0)} KB): ${species.length} species, ${pack.moves.length} moves`);
   console.log(`preview: ${path.join(OUT, 'preview', 'index.html')}  report: ${path.join(OUT, 'report.json')}`);
+  if (skipped.length) console.log(`\nskipped (no usable art): ${skipped.length}\n  ` + skipped.map((k) => `${k.id}: ${k.reason}`).join('\n  '));
   if (warn.length) console.log('\nwarnings:\n  ' + warn.join('\n  '));
 }
 

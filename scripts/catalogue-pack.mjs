@@ -298,6 +298,10 @@ const pack = {
   // every species' official shape in the snapshot, by national dex number: the role lane reads it for runtime species
   // (scripts/build-content.mjs); it is not written to src/content/catalogue.ts
   shapes: Object.fromEntries(src.pokemon_species.map((r) => [r.id, shapeOfSpecies(r)])),
+  // the species the snapshot flags legendary or mythical (pokemon_species.is_legendary / is_mythical), by national dex
+  // number: the role lane adds it to `canon.special`, and `everyWild` pools leave those species out by default
+  // (rules.spawning.everyWildSkips). Like `shapes`, it is not written to src/content/catalogue.ts
+  special: Object.fromEntries(src.pokemon_species.filter((r) => r.is_mythical === '1' || r.is_legendary === '1').map((r) => [r.id, r.is_mythical === '1' ? 'mythical' : 'legendary'])),
   totals: {
     records: records.length,
     species: speciesSlugs.length,

@@ -40,7 +40,8 @@ A pool is a `SpawnPoolDef`:
 {
   preset?: string;                             // start over from this preset (its spawns, elites, boss)
   only?: (string | [string, number])[];        // replace the spawns with exactly these
-  everyWild?: boolean;                         // add every wild species in the roster at weight 1
+  everyWild?: boolean;                         // add every wild species in the roster at weight 1, except the
+                                               // legendary and mythical ones (rules.spawning.everyWildSkips)
   include?: (string | [string, number])[];     // add species, or set their weight ('id' = weight 1)
   weights?: Record<string, number>;            // change weights of species already in the pool
   filter?: { types?, behaviours?, sizeClasses?, fly? };  // keep only species that pass every test (size class and
@@ -60,6 +61,8 @@ only through `boss`. The resolver does this silently; the validators below repor
 | 2. Map pool | `spawns` on a `LocationDef` (`src/world/locations/*.ts`) or a `HabitatRecipe` (`src/world/habitat/recipes.ts`) | none set |
 | 3. Mode or mod override | `rules.spawning.override` | none |
 | 4. Debug | `?pool=<preset>` or `?pool=id,id` in the URL | none |
+
+Two rules act on every layer. `everyWild` leaves out a species whose `canon.special` (the pinned snapshot's legendary or mythical flag) is in `rules.spawning.everyWildSkips`, so such a species appears only in a pool that names it. A roster wave set false in `rules.spawning.waves` (`content/roster.json` `wave`) leaves every pool, whatever named it, and so the habitat profiles too (`spawnableSpecies`); older replay layers turn the `catalogue` wave off.
 
 The resolved table is computed once per stage (`startStage` → `ctx.spawnTable`). Every system reads it: the director, compositions, Hunt and Hold objectives, recruit offers and the debug boss button. `STAGES` (`src/rules/stages.ts`) is the region tables with no map or override, kept for biomes and UI.
 

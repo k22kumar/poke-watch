@@ -6,6 +6,8 @@
 //   npx tsx scripts/sizegiants.ts --pack .capture/giants/giants.bonkpack.json --fixture tests/fixtures/giants-frame.json
 // When S2 imports the real species, the camera test switches to them and fails until this fixture is deleted, so the
 // same giant is never defined in two places (tests/camframe.test.ts).
+// S2 imported both (2026-11-18) and the fixture was deleted, so FRAME_GIANTS is empty; the loader stays for the next
+// capture-only giant.
 import fs from 'node:fs';
 import { bodyOf } from '../../src/rules/sizing';
 import { SPECIES_BY_ID } from '../../src/rules/species';

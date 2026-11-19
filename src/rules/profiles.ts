@@ -36,6 +36,11 @@ export interface SpeciesOverride {
   traversal?: string[];
   /** habitat vents do not hurt it on the ground (default: it holds an air capability) */
   ventImmune?: boolean;
+  /** false: it never joins the squad (no Hunt objective offers it, nothing recruits it); it stays a wild Pokémon.
+   *  Needs `recruitableReason` (validateProfiles) */
+  recruitable?: false;
+  /** why it is not recruitable, and what would change that */
+  recruitableReason?: string;
 }
 
 export interface SpeciesProfile {
@@ -83,7 +88,13 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   murkrow: { prefers: HAB.forest }, litwick: { prefers: HAB.rock | HAB.forest }, haunter: { prefers: HAB.forest | HAB.rock },
   gengar: { prefers: HAB.forest | HAB.rock }, impidimp: { prefers: HAB.forest }, noibat: { prefers: HAB.rock },
   honedge: { prefers: HAB.rock | HAB.forest }, dreepy: { prefers: HAB.forest },
+  // the catalogue wave (docs/size-extremes-plan.md §S2)
+  eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/size-extremes-plan.md "F3 done")' },
+  stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/size-extremes-plan.md §S2)' },
 };
+
+/** May this species join the squad? (SPECIES_OVERRIDES `recruitable: false` says no, with a reason) */
+export const isRecruitable = (id: string): boolean => SPECIES_OVERRIDES[id]?.recruitable !== false;
 
 const cache = new Map<string, SpeciesProfile>();
 
@@ -202,6 +213,8 @@ export function validateProfiles(): string[] {
     }
     if (o.requires && o.avoids && (o.requires & ~o.avoids) === 0) out.push(`${id}: every required habitat is also avoided, so it can never spawn`);
     if (o.sizeClass !== undefined && !SIZE_IDS.has(o.sizeClass)) out.push(`${id}.sizeClass: unknown class '${o.sizeClass}'`);
+    if (o.recruitable !== undefined && o.recruitable !== false) out.push(`${id}.recruitable: only false is meaningful (recruitable is the default)`);
+    if (o.recruitable === false && !o.recruitableReason?.trim()) out.push(`${id}: recruitable false needs a recruitableReason`);
   }
   return out;
 }

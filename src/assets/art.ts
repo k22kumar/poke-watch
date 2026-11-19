@@ -93,7 +93,7 @@ export const ANIM_FALLBACKS: Record<AnimState, string[]> = {
   hurt: ['Hurt', 'Pain', 'Cringe', '@flash'],
   // no Faint clip: hold the Sleep pose (lying, eyes shut) and sink into the ground with a flash,
   // like a Gen 4 battle faint; Hurt frames carry pain marks, so they're only the last resort
-  faint: ['Faint', 'Sleep@0:sink', 'Hurt@0:sink', 'Walk@0:sink'],
+  faint: ['Faint', 'Sleep@0:sink', 'Hurt@0:sink', 'Walk@0:sink', 'Idle@0:sink'],
   sleep: ['Sleep', 'EventSleep', 'Laying', 'Idle', '@bob'],
 };
 

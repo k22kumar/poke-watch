@@ -191,6 +191,32 @@ export const defaultRules = {
     /** a pool layered over every region's and map's (a mode or mod sets it; see SpawnPoolDef in src/rules/spawning.ts) */
     override: null as SpawnPoolDef | null,
     retries: 4, // [B] spots tried for a species before the director picks another or skips the spawn
+    /** roster waves in play (content/roster.json `wave`): a wave set false leaves every pool, so neither the director nor
+     *  the habitat navigation profiles (spawnableSpecies) see its species. Older replay layers turn `catalogue` off */
+    waves: { catalogue: true } as Record<string, boolean>,
+    /** canon.special values (the snapshot's legendary / mythical flags) an `everyWild` layer leaves out: such a species
+     *  appears only in a pool that names it (`only`, `include`) */
+    everyWildSkips: ['legendary', 'mythical'] as string[],
+  },
+  // The default role rule (src/rules/roles.ts, docs/SPECIES.md "Default roles"): a wild roster entry with no behaviour
+  // takes one from its base stats, types, shape, abilities and level-up moves; a field the entry sets always wins. The
+  // first matching row decides. Read once when the roster loads (src/rules/species.ts), so these are the defaults' values.
+  wildRole: {
+    /** healer: learns one of these at level-up (they heal allies' HP) and its base-stat total is under healBstBelow */
+    healMoves: ['heal_pulse', 'floral_healing', 'life_dew', 'pollen_puff'] as string[],
+    healBstBelow: 500, // [B] keeps legendary and late-evolution supports out of the Mender job
+    /** swarm: a flyer of the extent class swarmMaxClass or smaller, base-stat total at most swarmBstMax */
+    swarmMaxClass: 'medium' as 'tiny' | 'small' | 'medium' | 'large' | 'xl',
+    swarmBstMax: 300, // [B]
+    rangedMargin: 10, // [B] ranged: Sp. Atk ≥ Atk + this (the shot is the primary type's element, the sim default)
+    tankRatio: 1.15, // [B] tank: HP + Def ≥ this × (max(Atk, Sp. Atk) + Spe)
+    chargerSpeed: 80, // [B] charger: Speed at least this; otherwise chase
+    /** flying: a Flying type flies unless its shape is grounded; any other species flies with a float ability, a float
+     *  shape, or as a Ghost type with a ghost float shape */
+    groundedShapes: ['legs'] as string[],
+    floatAbilities: ['levitate'] as string[],
+    floatShapes: ['bug-wings'] as string[],
+    ghostFloatShapes: ['ball', 'arms', 'squiggle', 'tentacles', 'heads'] as string[],
   },
   // Size classes (src/rules/sizing.ts, docs/SIZING.md). Each Pokémon belongs to one class, picked from its canonical
   // extent (`below` is the class's upper cut in metres) or pinned in src/rules/profiles.ts. A class fixes how big the

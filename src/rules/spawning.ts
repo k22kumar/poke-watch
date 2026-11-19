@@ -42,7 +42,8 @@ export interface SpawnPoolDef {
   preset?: string;
   /** replace the spawns with exactly these: 'id' (weight 1) or ['id', weight] */
   only?: (string | [string, number])[];
-  /** add every wild species in the roster at weight 1 (so a new Pokémon is eligible without editing any pool) */
+  /** add every wild species in the roster at weight 1 (so a new Pokémon is eligible without editing any pool), except a
+   *  species whose canon.special is in rules.spawning.everyWildSkips (legendary, mythical): only a pool naming it fields it */
   everyWild?: boolean;
   /** add species, or set their weight: 'id' (weight 1) or ['id', weight] */
   include?: (string | [string, number])[];
@@ -139,7 +140,7 @@ function applyLayer(pool: Pool, L: SpawnPoolDef, rules: Rules, depth = 0): Pool 
   };
   if (L.only) p.spawns = [];
   for (const e of L.only ?? []) typeof e === 'string' ? put(e, 1) : put(e[0], e[1]);
-  if (L.everyWild) for (const sp of SPECIES) if (isWild(sp) && !p.spawns.some(([s]) => s === sp.id)) p.spawns.push([sp.id, 1]);
+  if (L.everyWild) for (const sp of SPECIES) if (isWild(sp) && !rules.spawning.everyWildSkips.includes(sp.canon?.special ?? '') && !p.spawns.some(([s]) => s === sp.id)) p.spawns.push([sp.id, 1]);
   for (const e of L.include ?? []) typeof e === 'string' ? put(e, 1) : put(e[0], e[1]);
   for (const [id, w] of Object.entries(L.weights ?? {})) { const at = p.spawns.findIndex(([s]) => s === id); if (at >= 0) p.spawns[at][1] = w; }
   // a boss spawns only as the boss: never as a wild spawn, never seen by a filter (no logging here; the validators report it)
@@ -148,8 +149,14 @@ function applyLayer(pool: Pool, L: SpawnPoolDef, rules: Rules, depth = 0): Pool 
   if (L.exclude) { const x = new Set(L.exclude); p.spawns = p.spawns.filter(([id]) => !x.has(id)); p.elites = p.elites.filter((id) => !x.has(id)); }
   if (L.elites) p.elites = [...L.elites];
   if (L.boss !== undefined) p.boss = L.boss;
+  // a roster wave turned off (rules.spawning.waves) leaves every pool, whatever named it
+  p.spawns = p.spawns.filter(([id]) => waveOn(SPECIES_BY_ID[id], rules));
+  p.elites = p.elites.filter((id) => waveOn(SPECIES_BY_ID[id], rules));
   return p;
 }
+
+/** Is this species' roster wave in play under these rules? (a species with no wave always is) */
+export const waveOn = (sp: SpeciesDef | undefined, rules: Rules) => !sp?.wave || rules.spawning.waves[sp.wave] !== false;
 
 const regionOf = (stage: number) => ((stage % REGION_BIOMES.length) + REGION_BIOMES.length) % REGION_BIOMES.length;
 

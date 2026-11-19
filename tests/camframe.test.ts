@@ -8,6 +8,7 @@ import { CHASE_CONFIG, ChaseRig, boomElevation, chaseArm, type ChaseFrame } from
 import { KEEP_SLACK, classOutline, fadeFor, reserveCorner, seen, subjectBox, type Outline } from '../src/render/framing';
 import { bodyOf } from '../src/rules/sizing';
 import { SPECIES_BY_ID } from '../src/rules/species';
+import { isRecruitable } from '../src/rules/profiles';
 import { atPitch, composition, hudOverlap, onScreen } from '../scripts/camframe';
 import { settled } from '../scripts/lib/camrig';
 import { framedSpecies, playFrames, spriteOutline } from '../scripts/lib/silhouette';
@@ -26,8 +27,11 @@ test('criterion A: on open ground no standing or walking frame of any species is
     else assert.ok(!arm.capped || arm.need > R.reach, id);
     assert.ok(!arm.sideCapped, `${id}: the shoulder (${arm.shoulder.toFixed(2)} m) reaches past the widest row`);
   }
-  // (the roster of 2026-11: 22 species have attack, shoot, charge or hurt frames past the 4° allowance; those frames dissolve)
-  assert.ok(capped <= 24, `${capped} species have frames past the allowance`);
+  // (the roster of 2026-11: 22 species have attack, shoot, charge or hurt frames past the 4° allowance; those frames
+  // dissolve. The catalogue wave adds 37 more, docs/size-extremes-plan.md §S2)
+  const older = [...ROSTER, ...fixtureOnly()].filter((id) => !SPECIES_BY_ID[id]?.wave && composition(id).cast + composition(id).hurt > 0).length;
+  assert.ok(older <= 24, `${older} pre-wave species have frames past the allowance`);
+  assert.ok(capped - older <= 40, `${capped - older} catalogue-wave species have frames past the allowance`);
 });
 
 // F3 (docs/size-extremes-plan.md, docs/THIRD_PERSON_IMPLEMENTATION.md §26): the capture-only giants Wailord and
@@ -60,8 +64,11 @@ test('criterion B: every species has the same corner on the keep-out, its whole 
   // criterion E4: with no input the crosshair meets flat ground inside the planar aim range, for every class (a partner
   // whose neutral ground point would lie past aim.max is framed with the subject tilt that brings it back: chaseTilt)
   for (const id of PARTNERS) { const g = composition(id).ground; assert.ok(g >= CHASE_CONFIG.aim.min && g <= CHASE_CONFIG.aim.max, `${id} (${frameBodyOf(id).className}): neutral crosshair ground point ${g} m`); }
-  // no partner is held short of its framing by frame.max (a future giant that needs more than it fails here)
-  assert.deepEqual(PARTNERS.filter(backCapped), []);
+  // no partner is held short of its framing by frame.max (a future giant that needs more than it fails here). A species
+  // that is never a partner (SPECIES_OVERRIDES `recruitable: false`) is not framed by the chase camera: Stakataka is held
+  // out for exactly this (docs/size-extremes-plan.md §S2)
+  assert.deepEqual(PARTNERS.filter((id) => isRecruitable(id) && backCapped(id)), []);
+  assert.deepEqual(PARTNERS.filter(backCapped), ['stakataka']);
 });
 
 test('the whole look range: inside the orbit range no standing or walking frame enters the keep-out; past it the crosshair ray still passes beside the outline and what crosses the keep-out dissolves', () => {

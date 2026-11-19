@@ -232,19 +232,33 @@ test('form and regional restrictions are kept as scoped source references', () =
   assert.deepEqual([...new Set(FORM_CONDITIONS.map((c) => c.region).filter(Boolean))].sort(), ['alola', 'galar', 'hisui']);
 });
 
+// The catalogue wave (docs/size-extremes-plan.md §S2): the 169 species of the catalogue families that had no role came in
+// through content/roster.json as wild entries with `wave: "catalogue"`. Seven have no usable SpriteCollab art yet, so
+// the import skips them (content/report.json `skipped`) and a later fetch picks them up.
+const roster = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/roster.json'), 'utf8'));
+const WAVE = Object.keys(roster.wild).filter((id) => roster.wild[id].wave === 'catalogue');
+const SKIPPED = ['amoonguss', 'carkol', 'coalossal', 'crustle', 'gimmighoul', 'shroodle', 'toedscruel'];
+const WAVE_IN = WAVE.filter((id) => !SKIPPED.includes(id));
+
 test('isolation: catalogue records are not game species and move nothing in the sim', () => {
-  // the active registry holds the roster's 72 species, the same ids, and no catalogue leak.
+  // the active registry holds the roster's 234 species, the same ids, and no catalogue leak.
   // 38 predate the catalogue lane; Joltik and Onix and then the 2026-11 wave of 32 (docs/SPECIES.md) were added
-  // deliberately through content/roster.json as wild encounters, so they are role records that coincide with catalogue
-  // records, not a catalogue leak. A catalogue record still never becomes a species on its own.
-  assert.equal(POKEDEX_SPECIES.length, 72);
-  assert.equal(SPECIES.length, 72);
+  // deliberately through content/roster.json as wild encounters, and then the catalogue wave of 162 (169 less the 7
+  // skipped), so they are role records that coincide with catalogue records, not a catalogue leak. A catalogue record
+  // still never becomes a species on its own.
+  assert.equal(WAVE.length, 169);
+  assert.equal(WAVE_IN.length, 162);
+  assert.equal(POKEDEX_SPECIES.length, 234);
+  assert.equal(SPECIES.length, 234);
   assert.equal(SPECIES, POKEDEX_SPECIES);
   assert.deepEqual(STAGES.map((s) => s.biome), ['meadow', 'badlands', 'frost', 'dusk']);
-  assert.equal(POKEDEX_MOVES.length, 263, 'the catalogue adds no move rows; every row is a role species\' level-up move');
+  assert.equal(POKEDEX_MOVES.length, 396, 'the catalogue adds no move rows; every row is a role species\' level-up move');
+  const report = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/report.json'), 'utf8'));
+  assert.deepEqual(report.skipped.map((k: { id: string }) => k.id).sort(), SKIPPED, 'the species skipped for want of art, reported');
+  for (const id of SKIPPED) assert.equal(SPECIES_BY_ID[id], undefined, `${id} has no art yet: catalogue-only`);
   const roleIds = new Set(SPECIES.map((s) => s.id));
   const catalogueOnly = CATALOGUE.filter((r) => !roleIds.has(r.id));
-  assert.equal(catalogueOnly.length, 228, '228 of the 269 records have no runtime role');
+  assert.equal(catalogueOnly.length, 66, '66 of the 269 records have no runtime role (59 varieties, 7 species without art)');
   for (const r of catalogueOnly) assert.equal(SPECIES_BY_ID[r.id], undefined, `${r.id} is not a game species`);
   // a catalogue record carries no gameplay field at all
   for (const r of CATALOGUE) {
@@ -254,8 +268,8 @@ test('isolation: catalogue records are not game species and move nothing in the 
   }
   // The active roster membership itself, pinned. The habitat navigation profiles (`profilesFor()`,
   // src/world/habitat/mode.ts) take the extremes of the bodies the spawn pools can field, so a change to
-  // this set is what moves habitat layout acceptance and the replay hashes.
-  assert.deepEqual(SPECIES.map((s) => s.id).sort(), [
+  // this set is what moves habitat layout acceptance and the replay hashes. The pre-wave roster by name, then the wave.
+  assert.deepEqual(SPECIES.filter((s) => !s.wave).map((s) => s.id).sort(), [
     'articuno', 'bayleef', 'bergmite', 'blastoise', 'budew', 'bulbasaur', 'cetoddle', 'charizard', 'charmander', 'charmeleon',
     'chikorita', 'croconaw', 'cutiefly', 'cyndaquil', 'delibird', 'diglett', 'doduo', 'dreepy', 'ekans', 'feraligatr', 'furret',
     'gastly', 'gengar', 'geodude', 'hariyama', 'haunter', 'heracross', 'honedge', 'houndoom', 'houndour', 'impidimp', 'ivysaur',
@@ -264,15 +278,19 @@ test('isolation: catalogue records are not game species and move nothing in the 
     'silicobra', 'sizzlipede', 'slugma', 'sneasel', 'snom', 'snorlax', 'snorunt', 'squirtle', 'sudowoodo', 'swinub', 'togepi',
     'totodile', 'turtwig', 'typhlosion', 'venusaur', 'vulpix', 'wartortle', 'zubat',
   ]);
+  assert.deepEqual(SPECIES.filter((s) => s.wave).map((s) => s.id).sort(), [...WAVE_IN].sort());
+  // the wave follows every older species in the registry, so their indices are unchanged
+  assert.ok(SPECIES.findIndex((s) => s.wave) === 72 && SPECIES.slice(72).every((s) => s.wave === 'catalogue'));
   const wild = SPECIES.filter((s) => !s.boss && !s.flying);
   const bosses = SPECIES.filter((s) => s.boss && !s.flying);
-  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 72);
+  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 234);
   assert.equal(Math.max(...SPECIES.map((s) => s.height)), 4.5, 'the overall height extremes are unchanged');
   assert.equal(Math.min(...SPECIES.map((s) => s.height)), 0.9);
-  // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large (Onix: its
-  // 8.8 m listed length stands 4.4 m with the measurement axis, 0.9 m × its tilt; 0.972 with the size flags off).
-  // Pinned so a later accidental change to the set is still caught.
-  assert.equal(+Math.max(...wild.map((s) => bodyOf(s).radius)).toFixed(3), 0.93);
+  // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large at the top of
+  // its tilt (0.9 m × 1.08: Wailord and Eternatus; before the wave Onix, 0.93). Pinned so a later accidental change to
+  // the set is still caught.
+  assert.equal(+Math.max(...wild.map((s) => bodyOf(s).radius)).toFixed(3), 0.972);
+  assert.equal(+Math.max(...wild.filter((s) => !s.wave).map((s) => bodyOf(s).radius)).toFixed(3), 0.93);
   assert.equal(SPECIES_BY_ID['onix'].height, 3.02);
   assert.equal(SPECIES_BY_ID['joltik'].height, 0.9);
   // a Gigantamax placeholder would read as "Massive" and Eternamax's 0 hg as "Weightless";
@@ -298,9 +316,9 @@ test('isolation: nothing in the sim, world, render, ui or audio imports the cata
   assert.deepEqual(offenders, [], 'the catalogue stays out of the sim bundle and the species registry');
 });
 
-test('the 41 records with a game role agree with the catalogue and keep their role', () => {
+test('the records with a game role agree with the catalogue and keep their role', () => {
   // 7 records already had a role when this lane landed; Joltik and Onix, then the 2026-11 wave of 32, were added to
-  // the roster deliberately as wild encounters, so the overlap is 41.
+  // the roster deliberately as wild encounters (41), then the catalogue wave (162 with art): an overlap of 203.
   const overlap = [
     'charmander', 'charmeleon', 'charizard', 'rattata', 'gastly', 'slugma', 'magcargo', 'joltik', 'onix',
     'pichu', 'pikachu', 'togepi', 'sentret', 'furret', 'budew', 'cutiefly', 'turtwig', 'doduo', 'snorlax',
@@ -308,8 +326,8 @@ test('the 41 records with a game role agree with the catalogue and keep their ro
     'snorunt', 'snom', 'sneasel', 'bergmite', 'cetoddle', 'lapras',
     'murkrow', 'litwick', 'haunter', 'gengar', 'impidimp', 'noibat', 'honedge', 'dreepy',
   ];
-  assert.deepEqual(CATALOGUE.map((r) => r.id).filter((id) => SPECIES_BY_ID[id]).sort(), [...overlap].sort());
-  for (const id of overlap) {
+  assert.deepEqual(CATALOGUE.map((r) => r.id).filter((id) => SPECIES_BY_ID[id]).sort(), [...overlap, ...WAVE_IN].sort());
+  for (const id of [...overlap, ...WAVE_IN]) {
     const sp = SPECIES_BY_ID[id];
     const rec = catalogueRecord(id)!;
     assert.deepEqual(sp.types, rec.types, `${id} types agree in slot order`);
@@ -344,7 +362,7 @@ test('provenance: the generated module records the pinned source revision', () =
   assert.deepEqual(report.catalogue.totals, { ...CATALOGUE_TOTALS });
   assert.equal(report.catalogue.source.files.length, authored.source.csv.length);
   for (const f of report.catalogue.source.files) assert.match(f.sha256, /^[0-9a-f]{64}$/, `${f.file} checksum`);
-  assert.equal(report.species.length, 72, 'the role lane\'s provenance is preserved');
+  assert.equal(report.species.length, 234, 'the role lane\'s provenance is preserved');
 });
 
 test('shape: every record and every runtime species carries its official shape from the pinned snapshot', () => {

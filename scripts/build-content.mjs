@@ -87,8 +87,9 @@ if (CATALOGUE_ONLY) {
 }
 
 fs.writeFileSync(path.join(tmp, 'learnsets.json'), JSON.stringify(roster.learnsets ?? {}));
+fs.writeFileSync(path.join(tmp, 'sprite-folders.json'), JSON.stringify(roster.spriteFolders ?? {}));
 function runImport(id, names, evolutions) {
-  const args = [path.join(ROOT, 'scripts/import-pack.mjs'), ...names, '--out', path.join(tmp, id), '--id', id, '--evolutions', String(evolutions), '--cry-era', roster.cryEra ?? 'latest', '--learnsets', path.join(tmp, 'learnsets.json')];
+  const args = [path.join(ROOT, 'scripts/import-pack.mjs'), ...names, '--out', path.join(tmp, id), '--id', id, '--evolutions', String(evolutions), '--cry-era', roster.cryEra ?? 'latest', '--learnsets', path.join(tmp, 'learnsets.json'), '--sprite-folders', path.join(tmp, 'sprite-folders.json')];
   if (CLONES) args.push('--clones', CLONES);
   console.log(`importing ${names.length} species (${id})…`);
   const out = execFileSync('node', args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'inherit'] }).toString();
@@ -101,7 +102,9 @@ function runImport(id, names, evolutions) {
 }
 
 const partners = runImport('partners', roster.partners, roster.partnerEvolutions ?? 1);
-const enemyNames = [...Object.keys(roster.wild), ...Object.keys(roster.bosses)];
+// a wild entry with a `wave` imports after the bosses, so every species before it keeps its registry index
+const waveless = Object.keys(roster.wild).filter((id) => !roster.wild[id].wave);
+const enemyNames = [...waveless, ...Object.keys(roster.bosses), ...Object.keys(roster.wild).filter((id) => roster.wild[id].wave)];
 const enemies = runImport('enemies', enemyNames, 0);
 
 // ------------------------------------------------------------------ species
@@ -112,7 +115,10 @@ for (const s of partners.pack.species) species.push(s);
 for (const s of enemies.pack.species) {
   const wild = roster.wild[s.id], boss = roster.bosses[s.id];
   const out = { ...s, playable: undefined, starter: undefined, learnset: undefined, evolvesTo: undefined, evolveLevel: undefined, blurb: undefined, coverage: undefined };
-  if (wild) Object.assign(out, { behaviour: wild.behaviour, shot: wild.shot, flying: wild.flying ?? s.flying });
+  // A wild entry's role is authored field by field; whatever it leaves out comes from the default role rule
+  // (src/rules/roles.ts) when the roster loads. So the importer's type-based `flying` is kept only beside an authored
+  // behaviour (the entries written before the rule), and a `flying` the entry sets always wins.
+  if (wild) Object.assign(out, { wild: true, wave: wild.wave, behaviour: wild.behaviour, shot: wild.shot, flying: 'flying' in wild ? wild.flying : wild.behaviour ? s.flying : undefined });
   if (boss) {
     const px = idleHeight(s);
     const scale = Math.max(2, Math.min(3, Math.round(roster.bossPixelHeight / px)));
@@ -148,11 +154,12 @@ const defs = species.map((s) => {
   const d = {
     id: s.id, name: s.name, dex: s.dex, types: s.types, elements: s.elements, stats: s.stats, height: s.height, art: 'pokemon:' + s.id,
   };
-  for (const k of ['flying', 'scale', 'playable', 'blurb', 'starter', 'learnset', 'coverage', 'evolvesTo', 'evolveLevel', 'behaviour', 'shot', 'boss', 'canon']) if (s[k] !== undefined) d[k] = s[k];
+  for (const k of ['flying', 'scale', 'playable', 'blurb', 'starter', 'learnset', 'coverage', 'evolvesTo', 'evolveLevel', 'wild', 'wave', 'behaviour', 'shot', 'boss', 'canon']) if (s[k] !== undefined) d[k] = s[k];
   if (d.canon) {
     const shape = catalogue.shapes[String(s.dex)];
     if (!shape) throw new Error(`${s.id}: no shape for species ${s.dex} in the pinned snapshot`);
-    d.canon = { ...d.canon, shape };
+    const special = catalogue.special[String(s.dex)];
+    d.canon = { ...d.canon, shape, ...(special ? { special } : {}) };
   }
   return d;
 });
@@ -199,7 +206,9 @@ fs.mkdirSync(path.join(ROOT, 'src/content'), { recursive: true });
 fs.writeFileSync(path.join(ROOT, 'src/content/pokedex.ts'), ts);
 const bundle = { generated: new Date().toISOString(), notice: partners.pack.notice, licenses: partners.pack.licenses, species: art };
 fs.writeFileSync(path.join(ROOT, 'src/content/art.json'), JSON.stringify(bundle));
-fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ generated: bundle.generated, sources: CLONES ? 'git checkouts' : 'network', species: [...partners.report.species, ...enemies.report.species], files: [...partners.report.sources, ...enemies.report.sources] }, null, 1));
+const skipped = [...(partners.report.skipped ?? []), ...(enemies.report.skipped ?? [])];
+fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ generated: bundle.generated, sources: CLONES ? 'git checkouts' : 'network', species: [...partners.report.species, ...enemies.report.species], skipped, files: [...partners.report.sources, ...enemies.report.sources] }, null, 1));
+if (skipped.length) console.log(`\n${skipped.length} roster species skipped (no usable art; a later fetch picks them up):\n  ` + skipped.map((k) => `${k.id}: ${k.reason}`).join('\n  '));
 // canonical catalogue (built above): its provenance is appended to the report the role lane just wrote
 reportCatalogue(catalogue);
 // music slots: licensed recordings listed in content/music/manifest.json (none ship by default)

@@ -24,7 +24,7 @@ When two settings disagree, the later one wins:
 
 Implemented. Example: Wooper as a Meadow wild Pokémon.
 
-1. Add it to `wild` in `content/roster.json`. The behaviour is one of `chase`, `tank`, `swarm`, `ranged` (then also `shot`, an element), `charger` or `healer`. Add `"flying": true` for a flyer, or `"flying": false` to ground a Flying type such as Doduo.
+1. Add it to `wild` in `content/roster.json`. The behaviour is one of `chase`, `tank`, `swarm`, `ranged` (then also `shot`, an element), `charger` or `healer`. Add `"flying": true` for a flyer, or `"flying": false` to ground a Flying type such as Doduo. Both are optional: an entry with no behaviour takes the default role rule (`src/rules/roles.ts`, docs/SPECIES.md "Default roles"), and one with no `flying` takes the rule's flight. A field you set always wins. The key is the PokéAPI Pokémon slug (`aegislash-shield`). If the species' own SpriteCollab folder is empty, `spriteFolders` can pin a form folder (`"falinks": "0003"`); a species with no usable art is skipped and reported, not fatal.
    ```json
    "wooper": { "behaviour": "chase" }
    ```
@@ -36,7 +36,8 @@ Implemented. Example: Wooper as a Meadow wild Pokémon.
 3. Put it in a pool. For example, add `['wooper', 1]` to the `meadow` preset's `include` in `src/rules/spawning.ts`. Without this step it is already eligible wherever a pool uses `all-wild`.
 4. Optional:
    - a habitat preference in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`): `wooper: { prefers: HAB.water }`;
-   - an authored Tag Action in `src/rules/tags.ts`, if the derived one (its earliest damaging move of its own type, then its strongest by Lv 30) doesn't suit.
+   - an authored Tag Action in `src/rules/tags.ts`, if the derived one (its earliest damaging move of its own type, then its strongest by Lv 30) doesn't suit;
+   - `recruitable: false` with a `recruitableReason` in `SPECIES_OVERRIDES`, to keep it wild only (no Hunt objective offers it).
 5. Update the roster pins in `tests/catalogue.test.ts`: species count, sorted id list, move count. They are pinned on purpose, so an accidental roster change fails loudly.
 
 No map, spawning, combat or render code changes. The size class comes from its canonical height (0.4 m: Small). The sim body, drawn size, habitat navigation profile and Tag Action all follow from that.

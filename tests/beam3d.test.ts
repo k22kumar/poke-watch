@@ -49,7 +49,8 @@ const K = (W: World, i: number, j: number) => j * W.w + i;
 const C = (W: World, i: number) => i - W.half + 0.5;
 
 function speciesOf(cls: string): string {
-  const sp = SPECIES.filter((s) => bodyOf(s, defaultRules.size).sizeClass === cls && !bodyOf(s, defaultRules.size).authored && !s.flying).map((s) => s.id).sort();
+  // the pre-wave roster (no `wave`): the geometry here is tuned to its bodies (a 1.2 m aim height clears a Medium top)
+  const sp = SPECIES.filter((s) => !s.wave && bodyOf(s, defaultRules.size).sizeClass === cls && !bodyOf(s, defaultRules.size).authored && !s.flying).map((s) => s.id).sort();
   assert.ok(sp.length, `a ${cls} species`);
   return sp[0];
 }

@@ -2847,6 +2847,9 @@ that is still on its way in when the rock has passed never gets as short.
   the arm sideways (a corridor: the arm shortens before rock reaches it; smooth, but the arm length then follows the
   surroundings); ease the pivot down for a slab over the arm when the lens itself is clear of it; a shorter arm for
   Large and Extra Large. Needs hands on a pad to choose.
+- **Lens jumps after F3 (§26):** Eternatus' lens regression at 13.75 m is a gate before it becomes a partner (§26.2).
+  Furret's strafe-right lens jumps rose from 25.7 to 35.7 a minute. The owner says that is not a blocker
+  (`docs/size-extremes-plan.md` "F3 done"). Same candidate fix: a shorter arm near rock.
 - **Aiming past a close enemy, and the muzzle's parallax (E5).** Owner's call between: accept it with the blocked marker;
   move where shots leave from, or trace from the camera (sim work, its own checksum set); a smaller keep-out or
   `shoulderMax` (the sprite's widest rows dissolve instead).

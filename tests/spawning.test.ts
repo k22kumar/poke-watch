@@ -11,6 +11,10 @@ import { STAGES } from '../src/rules/stages';
 import { allMapSpawnPools } from '../src/world/maps';
 import { createRun, step } from '../src/sim/run';
 import type { InputFrame } from '../src/sim/types';
+import { deepMerge } from '../src/core/util';
+import type { Rules } from '../src/rules/defaults';
+
+const merge = (over: object): Rules => deepMerge(defaultRules, over as never) as Rules;
 
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 const ids = (t: { spawns: [string, number][] }) => t.spawns.map(([id]) => id);
@@ -116,7 +120,17 @@ test('filters select by type, behaviour, size class and flight, never by map', (
 
 test('all-wild makes every wild species eligible, so a new Pokémon needs no map edit', () => {
   const all = resolveSpawnTable(2, undefined, { preset: 'all-wild' });
-  assert.deepEqual(new Set(ids(all)), new Set(SPECIES.filter(isWild).map((s) => s.id)));
+  // ...except a legendary or mythical one (canon.special, rules.spawning.everyWildSkips): it appears only where named
+  assert.deepEqual(new Set(ids(all)), new Set(SPECIES.filter((s) => isWild(s) && !s.canon?.special).map((s) => s.id)));
+  const special = SPECIES.filter((s) => isWild(s) && s.canon?.special).map((s) => s.id);
+  assert.equal(special.length, 23, 'the legendary and mythical wild species (catalogue wave)');
+  assert.ok(ids(resolveSpawnTable(2, undefined, { preset: 'all-wild', include: ['lugia'] })).includes('lugia'), 'a pool that names one fields it');
+  assert.deepEqual(new Set(ids(spawnTableFor(merge({ spawning: { everyWildSkips: [] } }), 2, { preset: 'all-wild' }))), new Set(SPECIES.filter(isWild).map((s) => s.id)), 'with no skips, every wild species');
+  // the catalogue wave off (older replay layers) leaves every pool, even one naming its species
+  const off = merge({ spawning: { waves: { catalogue: false } } });
+  const offIds = ids(spawnTableFor(off, 2, { preset: 'all-wild', include: ['lugia'] }));
+  assert.ok(offIds.length && offIds.every((id) => !SPECIES_BY_ID[id].wave), 'no wave species with the wave off');
+  assert.deepEqual([...spawnableSpecies([], off).spawns].filter((id) => SPECIES_BY_ID[id].wave), [], 'nor in the habitat profiles');
   // a species added to the roster (simulated) appears in all-wild with no other change
   const fake = { ...SPECIES_BY_ID.rattata, id: '__newmon', name: 'Newmon' } as SpeciesDef;
   SPECIES.push(fake); SPECIES_BY_ID.__newmon = fake;

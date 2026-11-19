@@ -17,6 +17,7 @@ import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
 import { SPECIES_BY_ID } from '../rules/species';
 import { tagLineOf } from '../rules/tags';
+import { isRecruitable } from '../rules/profiles';
 import { fits } from '../rules/compositions';
 import { spawnBody, tpl } from './bodies';
 import { compositionsFor, forcePeak, spawnComposition } from './director';
@@ -32,7 +33,7 @@ const SCHEDULE: ObjectiveKind[][] = [['hold', 'hunt'], ['transport', 'hunt']];
 function recruitables(ctx: SimContext): string[] {
   const table = ctx.spawnTable;
   const have = new Set(ctx.player.squad.map((m) => lineage(m.species)[0].id));
-  return [...new Set([...table.spawns.map(([id]) => id), ...table.elites])].filter((id) => tagLineOf(id) && !have.has(id));
+  return [...new Set([...table.spawns.map(([id]) => id), ...table.elites])].filter((id) => tagLineOf(id) && isRecruitable(id) && !have.has(id));
 }
 
 /** the objective the next Peak should open, if one is due */

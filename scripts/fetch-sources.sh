@@ -21,10 +21,15 @@ clone PokeAPI/cries cries
 IDS=$(node -e "
 const fs=require('fs'),p=require('path'),D='$DIR/api-data/data/api/v2';
 const sp={}; for (const d of fs.readdirSync(D+'/pokemon-species')) { const f=p.join(D,'pokemon-species',d,'index.json'); if (fs.existsSync(f)) { const j=JSON.parse(fs.readFileSync(f)); sp[j.name]=j; } }
+// a roster key is a pokemon slug: the species name, or the default variety's own slug (aegislash-shield)
+const byPoke={}; for (const j of Object.values(sp)) for (const v of j.varieties ?? []) if (v.is_default) byPoke[v.pokemon.name]=j;
+const S=(n)=>{ const j=sp[n]??byPoke[n]; if (!j) throw new Error('no pokemon-species for roster key '+n); return j; };
 const r=require('./content/roster.json'); const want=new Set([...r.partners, ...Object.keys(r.wild), ...Object.keys(r.bosses)]);
 const depth=r.partnerEvolutions ?? 1;
-for (const n of r.partners) { const c=JSON.parse(fs.readFileSync(p.join(D,'evolution-chain',sp[n].evolution_chain.url.split('/').at(-2),'index.json'))).chain; const f=x=>x.species.name===n?x:x.evolves_to.map(f).find(Boolean); let cur=f(c); for (let k=0;k<depth&&cur?.evolves_to?.[0];k++){ cur=cur.evolves_to[0]; want.add(cur.species.name); } }
-console.log([...want].map(n=>sp[n].id).join(' '));")
+for (const n of r.partners) { const c=JSON.parse(fs.readFileSync(p.join(D,'evolution-chain',S(n).evolution_chain.url.split('/').at(-2),'index.json'))).chain; const f=x=>x.species.name===n?x:x.evolves_to.map(f).find(Boolean); let cur=f(c); for (let k=0;k<depth&&cur?.evolves_to?.[0];k++){ cur=cur.evolves_to[0]; want.add(cur.species.name); } }
+console.log([...want].map(n=>S(n).id).join(' '));
+// pinned form folders (roster spriteFolders) as sparse patterns, read by the SpriteCollab line below
+fs.writeFileSync('$DIR/.sprite-folders', Object.entries(r.spriteFolders ?? {}).map(([n,f])=>{ const d=String(S(n).id).padStart(4,'0'); return '/sprite/'+d+'/'+f+'/* !/sprite/'+d+'/'+f+'/*/'; }).join(' '));")
 (cd "$DIR/api-data" && git sparse-checkout add $(for i in $IDS; do echo "/data/api/v2/pokemon/$i/"; done))
 MOVES=$(node -e "
 const fs=require('fs'),D='$DIR/api-data/data/api/v2/pokemon',s=new Set();
@@ -36,7 +41,8 @@ const fs=require('fs'),D='$DIR/api-data/data/api/v2/pokemon',s=new Set();
 for (const d of fs.readdirSync(D)) for (const a of JSON.parse(fs.readFileSync(D+'/'+d+'/index.json')).abilities) s.add(a.ability.url.split('/').at(-2));
 console.log([...s].join(' '));")
 (cd "$DIR/api-data" && git sparse-checkout add $(for i in $ABIL; do echo "/data/api/v2/ability/$i/"; done))
-(cd "$DIR/spritecollab" && git sparse-checkout set --no-cone $(for i in $IDS; do d=$(printf %04d "$i"); echo "/sprite/$d/*"; echo "!/sprite/$d/*/"; echo "/portrait/$d/Normal.png"; done) /LICENSE.md /credit_names.txt)
+FOLDERS=$(cat "$DIR/.sprite-folders")
+(cd "$DIR/spritecollab" && git sparse-checkout set --no-cone $(for i in $IDS; do d=$(printf %04d "$i"); echo "/sprite/$d/*"; echo "!/sprite/$d/*/"; echo "/portrait/$d/Normal.png"; done) $FOLDERS /LICENSE.md /credit_names.txt)
 # cry recordings: latest, plus legacy as the importer's fallback when a latest file is missing or not a real OGG
 (cd "$DIR/cries" && git sparse-checkout set --no-cone $(for i in $IDS; do echo "/cries/pokemon/latest/$i.ogg"; echo "/cries/pokemon/legacy/$i.ogg"; done) /LICENSE)
 # UI icons: Pokémon type badges and bag icons for the items the game maps upgrades to
