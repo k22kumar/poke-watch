@@ -8,6 +8,7 @@ import { defaultRules, type Rules } from '../src/rules/defaults';
 import { BIOMES } from '../src/rules/stages';
 import { DECK_SLAB, HEAD_EPS, World } from '../src/sim/world';
 import { createRun, step } from '../src/sim/run';
+import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
 import { bodyOf, enemyHeight, footprintOf, navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
@@ -16,15 +17,15 @@ import { LOCATIONS } from '../src/world/locations';
 
 /** an authored world whose map is replaced by a private flat plain at height 0 with a 3.0 m deck (gap 2.4 m) over
  *  columns i0..i0+5, rows j0..j0+5 (the map arrays are copied: the base map is shared by every World) */
-function deckWorld(rules: Rules = defaultRules) {
+function deckWorld(rules: Rules = defaultRules, top = 3) {
   const W = new World(rules, BIOMES.meadow, 5);
   const n = W.w * W.h, M = W.map;
   const map = { ...M, terrain: new Uint8Array(n), elev: new Float32Array(n), stairs: new Uint8Array(n), wall: new Uint8Array(n), platform: new Float32Array(n), over: new Float32Array(n), wlevel: undefined };
   Object.assign(W, { map, over: map.over, voids: new Uint8Array(n) });
   const i0 = 40, j0 = 40;
-  for (let j = j0; j < j0 + 6; j++) for (let i = i0; i < i0 + 6; i++) map.over[j * W.w + i] = 3;
+  for (let j = j0; j < j0 + 6; j++) for (let i = i0; i < i0 + 6; i++) map.over[j * W.w + i] = top;
   /** west edge of the deck and the centre row, world coordinates */
-  return { W, edge: i0 - W.half, z: j0 + 3 - W.half, under: 3 - DECK_SLAB };
+  return { W, edge: i0 - W.half, z: j0 + 3 - W.half, under: top - DECK_SLAB };
 }
 const off = { ...defaultRules, size: { ...defaultRules.size, headroom: false } } as Rules;
 
@@ -65,9 +66,9 @@ test('headroom: World.moveBody stops a body taller than the gap at the deck edge
 });
 
 /** a run on the authored meadow as `species` with no enemies, on a private deck world */
-function scene(species: string, rules?: object): { ctx: SimContext; W: World; edge: number; z: number; under: number } {
+function scene(species: string, rules?: object, top = 3): { ctx: SimContext; W: World; edge: number; z: number; under: number } {
   const ctx = createRun({ seed: 1, species, ruleOverrides: rules as never });
-  const D = deckWorld(ctx.rules);
+  const D = deckWorld(ctx.rules, top);
   ctx.world = D.W;
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear();
   return { ctx, ...D };
@@ -156,4 +157,51 @@ test('headroom: every narrow body the sim can field fits under the lowest deck g
   }
   // the bodies headroom changes most: Onix is the one species over 2.4 m at ×1; every Medium-or-larger elite is over it
   assert.ok(bodyOf(SPECIES_BY_ID.onix, R.size).height > 2.4 && bodyOf(SPECIES_BY_ID.feraligatr, R.size).height < 2.4);
+});
+
+// xlTall (docs/SIZING.md "Giants", size-extremes-plan xlTall): with xlContinuous on too, an Extra Large body's height is
+// its drawn size × (class height ÷ class visual), and headroom reads it like any other height
+const TALL = { size: { xlContinuous: true, xlTall: true } };
+const GIANTS = { size: { axis: true, xlContinuous: true, xlTall: true } };
+const FLAG_SETS: [string, object | undefined][] = [['defaults', undefined], ['axis', { size: { axis: true } }], ['xl', { size: { xlContinuous: true } }], ['tall', TALL], ['giants', GIANTS]];
+
+test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and stops at the edge once it is as tall as drawn', () => {
+  const at = (sp: string, rules?: object) => {
+    const { ctx, W, edge, z } = scene(sp, rules, 3.3);
+    const P = ctx.player, tall = partnerHeight(P.species, ctx.rules), foot = partnerFootprint(P.species, ctx.rules);
+    P.x = P.px = edge - 3; P.z = P.pz = z; P.y = P.py = 0; P.grounded = true;
+    for (let t = 0; t < 120; t++) {
+      step(ctx, { ...NO_INPUT, mx: 1 });
+      assert.ok(W.fits(P.x, P.z, P.y, foot - 2e-3, 0.6, tall - 2e-3), `${sp}: clear of the slab at tick ${t}`);
+    }
+    return { tall, inside: P.x > edge + 1.5, outside: P.x < edge };
+  };
+  const base = at('onix'), giants = at('onix', GIANTS), tall = at('onix', TALL), gator = at('feraligatr', GIANTS);
+  assert.ok(base.tall < 2.7 && base.inside, `Onix at ${base.tall.toFixed(2)} m walks under`);
+  assert.ok(giants.tall > 2.7 && giants.outside, `Onix at ${giants.tall.toFixed(2)} m (all three flags) stops`);
+  assert.ok(tall.tall > giants.tall && tall.outside, `Onix at ${tall.tall.toFixed(2)} m (no axis) stops`);
+  assert.ok(gator.tall < 2.7 && gator.inside, `Feraligatr at ${gator.tall.toFixed(2)} m walks under`);
+  // a wild Onix carries the same height in its hit window (E.tall) and its spawn fit
+  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: GIANTS as never });
+  const e = spawnEnemy(ctx, 'onix', ctx.player.x + 6, ctx.player.z);
+  assert.equal(ctx.enemies.tall[e], Math.fround(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules)), 'E.tall (float32)');
+  assert.equal(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules), giants.tall);
+});
+
+test('headroom: no narrow body is taller than the lowest deck gap under any size flag set (S1, xlTall)', () => {
+  const gap = CLEARANCE - DECK_SLAB;
+  for (const [name, over] of FLAG_SETS) {
+    const R = createRun({ seed: 1, species: 'totodile', ruleOverrides: over as never }).rules, roles = R.enemy.roles;
+    const bad: string[] = [];
+    for (const sp of SPECIES) {
+      if (sp.flying) continue;
+      for (const size of sp.boss ? [roles.boss.size] : [1, roles.elite.size, roles.alpha.size]) {
+        const f = footprintOf(sp, size, R);
+        if (!navWide(f, R) && enemyHeight(sp, size, R) > gap) bad.push(`${sp.id} ×${size}: ${enemyHeight(sp, size, R).toFixed(2)} m, footprint ${f.toFixed(2)}`);
+      }
+      const pf = partnerFootprint(sp, R);
+      if (!navWide(pf, R) && partnerHeight(sp, R) > gap) bad.push(`${sp.id} as partner: ${partnerHeight(sp, R).toFixed(2)} m`);
+    }
+    assert.deepEqual(bad, [], name);
+  }
 });

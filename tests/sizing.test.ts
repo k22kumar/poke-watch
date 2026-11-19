@@ -272,3 +272,19 @@ test('UIHooks.sizeRules (runSizeRules): the run\'s size rules during a run, the 
   assert.equal(bodyOf(SPECIES_BY_ID.lapras, runSizeRules(null)).sizeClass, 'xl');
   assert.equal(bodyOf(SPECIES_BY_ID.lapras, got).sizeClass, 'large');
 });
+
+test('xlTall: alone it leaves every body bit-identical; with xlContinuous an XL body is as tall as drawn at the class ratio', () => {
+  const T = { ...S, xlTall: true }, C = { ...S, xlContinuous: true }, CT = { ...S, xlContinuous: true, xlTall: true }, xl = S.classes[4];
+  for (const sp of SPECIES) {
+    assert.deepEqual(bodyOf(sp, T), bodyOf(sp, S), `${sp.id}: xlTall alone`);
+    const c = bodyOf(sp, C), ct = bodyOf(sp, CT);
+    if (ct.sizeClass === 'xl' && !ct.authored) {
+      assert.equal(ct.height, c.visualM * (xl.height / xl.visual), sp.id);
+      assert.equal(ct.radius, c.radius, `${sp.id}: radius unchanged`);
+      assert.equal(ct.body, c.body, `${sp.id}: footprint unchanged`);
+    } else assert.deepEqual(ct, c, `${sp.id}: not Extra Large, unchanged`);
+  }
+  // Onix: 3.11 m drawn with the axis on, 2.78 m tall; 3.83 m drawn without it, 3.42 m tall
+  assert.ok(Math.abs(bodyOf(SPECIES_BY_ID.onix, { ...CT, axis: true }).height - 2.78) < 0.01);
+  assert.ok(Math.abs(bodyOf(SPECIES_BY_ID.onix, CT).height - 3.42) < 0.01);
+});

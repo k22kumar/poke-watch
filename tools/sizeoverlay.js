@@ -115,12 +115,20 @@
       const art = sh.art, sz = sh.size, s = sz.scale, f = idle0(art), o = opaque(art, f), Px = pixels(art);
       const tall = sz.height, rad = sz.radius;
       let n = 0, above = 0, outside = 0;
-      for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) {
-        if (Px.data[((f.y + y) * Px.width + f.x + x) * 4 + 3] === 0) continue;
-        n++;
-        const ly = (f.ay - (y + 0.5)) / TPM * s, lx = (x + 0.5 - f.ax) / TPM * s;
-        if (ly > tall) above++;
-        if (ly > tall || Math.abs(lx) > rad) outside++;
+      // per texel row: [height of the row's centre above the anchor (m), opaque texels, opaque texels further than the
+      // radius from the centre line], so a report can split the silhouette for any hit height (xlTall)
+      const rows = [];
+      for (let y = 0; y < f.h; y++) {
+        let rn = 0, rw = 0;
+        for (let x = 0; x < f.w; x++) {
+          if (Px.data[((f.y + y) * Px.width + f.x + x) * 4 + 3] === 0) continue;
+          n++; rn++;
+          const ly = (f.ay - (y + 0.5)) / TPM * s, lx = (x + 0.5 - f.ax) / TPM * s;
+          if (Math.abs(lx) > rad) rw++;
+          if (ly > tall) above++;
+          if (ly > tall || Math.abs(lx) > rad) outside++;
+        }
+        if (rn) rows.push([(f.ay - (y + 0.5)) / TPM * s, rn, rw]);
       }
       let half = 0, widest = 0, widestAt = '';
       for (const clip of ['idle', 'walk']) {
@@ -140,7 +148,7 @@
         outline: sh.outline ?? null, // the measured outline at the drawn scale: what the chase rig frames since 90fc1b7 (render/framing.ts)
         idleLeft: (f.ax - o.x0) / TPM * s, idleRight: (o.x1 + 1 - f.ax) / TPM * s,
         maxHalfWidth: half, maxWidth: widest, maxWidthAt: widestAt,
-        shareAboveHurt: above / n, shareOutsideCylinder: outside / n,
+        shareAboveHurt: above / n, shareOutsideCylinder: outside / n, rows,
       };
     }
     return out;

@@ -43,11 +43,17 @@ const measure = (f?: string) => {
   const r = JSON.parse(fs.readFileSync(f, 'utf8')).results as any[];
   return r.find((x) => x && !Array.isArray(x) && x.snorlax) as Record<string, any>;
 };
-const M = { on: measure(arg('--measure-on')), off: measure(arg('--measure-off')) };
-const RULES: Record<'on' | 'off', Rules> = {
+// `tall` = `on` + rules.size.xlTall (the sim height follows the drawn size): it draws exactly as `on` (the renderer reads
+// no sim height), so it shares the `on` measurements
+const MON = measure(arg('--measure-on'));
+const M = { on: MON, off: measure(arg('--measure-off')), tall: MON };
+type V = 'off' | 'on' | 'tall';
+const RULES: Record<V, Rules> = {
   on: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true } } as Rules,
+  tall: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true, xlTall: true } } as Rules,
   off: defaultRules,
 };
+const VS = ['off', 'on', 'tall'] as const;
 const f2 = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : String(n));
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
@@ -56,7 +62,7 @@ const out: string[] = [];
 out.push('### Sizes (class values, role size 1; drawn = idle reference frame at level view, from the capture build)\n');
 out.push('| | flags | class | extent | visual | drawn h × w (front) | widest frame | radius | sim height | footprint |');
 out.push('|---|---|---|---:|---:|---:|---:|---:|---:|---:|');
-for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
+for (const id of GIANTS) for (const v of VS) {
   const b = bodyOf(SPECIES_BY_ID[id], RULES[v].size), m = M[v][id];
   out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | ${b.className.replace('Extra Large', 'XL')} | ${f2(b.extentM)} | ${f2(b.visualM)} | ${m ? `${f2(m.drawnH)} × ${f2(m.drawnW)}` : '?'} | ${m ? `${f2(m.maxWidth)} (${m.maxWidthAt})` : '?'} | ${f2(b.radius)} | ${f2(b.height)} | ${f2(b.body)} |`);
 }
@@ -76,7 +82,7 @@ out.push('Sim: `World.collides` with the body\'s sim height under the slab (true
 out.push('| | flags | sim height | elite ×2 | 2.4 m: sim enters? | 2.4 m: drawn above underside | 2.9 m: sim enters? | 2.9 m: drawn above underside |');
 out.push('|---|---|---:|---:|---|---|---|---|');
 const headroom: any[] = [];
-for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
+for (const id of GIANTS) for (const v of VS) {
   const sp = SPECIES_BY_ID[id], h = enemyHeight(sp, 1, RULES[v]), m = M[v][id];
   const cells = [2.4, 2.9].map((gap) => {
     const { W, x, z } = deckWorld(RULES[v], gap);
@@ -91,7 +97,7 @@ for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
 // ------------------------------------------------------------------ targeting
 /** a run on a private flat world with one frozen giant at the centre (as tests/spatial.test.ts `put`) */
 function targetScene(id: string, rules: Rules) {
-  const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { size: { axis: rules.size.axis, xlContinuous: rules.size.xlContinuous } } });
+  const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { size: { axis: rules.size.axis, xlContinuous: rules.size.xlContinuous, xlTall: rules.size.xlTall } } });
   const W = new World(ctx.rules, BIOMES.meadow, 5), n = W.w * W.h, Mp = W.map;
   const map = { ...Mp, terrain: new Uint8Array(n), elev: new Float32Array(n), stairs: new Uint8Array(n), wall: new Uint8Array(n), platform: new Float32Array(n), over: new Float32Array(n), wlevel: undefined };
   Object.assign(W, { map, over: map.over, voids: new Uint8Array(n) });
@@ -103,12 +109,13 @@ function targetScene(id: string, rules: Rules) {
   return { ctx, e };
 }
 out.push('\n### Targeting (shots at the drawn sprite)\n');
-out.push('A horizontal shot from 10 m in front, through the drawn point, against the sim cylinder (`spatial.sweep`, enemies only). "ray" is a crosshair trace (radius 0); "bolt" a 0.3 m shot. Silhouette shares are the idle frame\'s opaque texels above the hurt window, and outside the cylinder\'s side view (above it or wider than its radius).\n');
-out.push('| | flags | hurt window | feet 0.15 m | middle | top (95% drawn) | wing (middle, 75% of half-width) | silhouette above window | outside cylinder |');
-out.push('|---|---|---|---|---|---|---|---:|---:|');
+out.push('A horizontal shot from 10 m in front, through the drawn point, against the sim cylinder (`spatial.sweep`, enemies only). "ray" is a crosshair trace (radius 0); "bolt" a 0.3 m shot. `tall` = `on` + xlTall. Silhouette shares are of the idle frame\'s opaque texels, against the cylinder\'s side view: **height** = above the hurt window; **width** = inside the window\'s height but further than the radius from the centre line; **outside** = their sum.\n');
+out.push('| | flags | hurt window | feet 0.15 m | middle | top (95% drawn) | wing (middle, 75% of half-width) | height (above window) | width (beside, within window) | outside |');
+out.push('|---|---|---|---|---|---|---|---:|---:|---:|');
 const contacts = new Contacts();
-const targets: Record<'on' | 'off', Record<string, any[]>> = { on: {}, off: {} };
-for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
+const targets: Record<V, Record<string, any[]>> = { on: {}, off: {}, tall: {} };
+const silhouette: any[] = [];
+for (const id of GIANTS) for (const v of VS) {
   const m = M[v][id]; if (!m) continue;
   const { ctx, e } = targetScene(id, RULES[v]);
   const E = ctx.enemies, tall = E.tall[e], rad = E.radius[e];
@@ -121,11 +128,17 @@ for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
     { label: 'wing', y: m.drawnH / 2, dx: half * 0.75 },
   ].map((p) => ({ ...p, ray: shot(p.y, p.dx, 0), bolt: shot(p.y, p.dx, 0.3) }));
   const cell = (p: any) => `${p.ray ? 'hit' : '**miss**'} / ${p.bolt ? 'hit' : '**miss**'} (y ${f2(p.y)}${p.dx ? `, x ${f2(p.dx)}` : ''})`;
-  out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | 0–${f2(tall)} m × r ${f2(rad)} | ${pts.map(cell).join(' | ')} | ${pct(m.shareAboveHurt)} | ${pct(m.shareOutsideCylinder)} |`);
+  // split from the measured rows at this run's window (rows: [m above the anchor, texels, texels beyond the radius]); the
+  // browser measured them against the class radius, which xlTall keeps
+  let n = 0, hi = 0, wide = 0;
+  for (const [ly, rn, rw] of (m.rows ?? []) as [number, number, number][]) { n += rn; if (ly > tall) hi += rn; else wide += rw; }
+  if (!n) throw new Error(`${id} ${v}: the measurement has no rows (re-run the size-giants scenes with tools/sizeoverlay.js)`);
+  silhouette.push({ id, v, tall, radius: rad, height: hi / n, width: wide / n, outside: (hi + wide) / n });
+  out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | 0–${f2(tall)} m × r ${f2(rad)} | ${pts.map(cell).join(' | ')} | ${pct(hi / n)} | ${pct(wide / n)} | ${pct((hi + wide) / n)} |`);
   // overlay marks drawn at the frame-scaled height (the classic card is stretched; the mark follows the drawn point)
   targets[v][id] = pts.map((p) => ({ label: `${p.label} ${p.ray ? 'hit' : 'miss'}`, hit: p.ray, y: p.y * 1.4658, dx: p.dx }));
 }
-for (const v of ['on', 'off'] as const) fs.writeFileSync(path.join(OUT, `targets-${v}.json`), JSON.stringify(targets[v]));
+for (const v of VS) fs.writeFileSync(path.join(OUT, `targets-${v}.json`), JSON.stringify(targets[v]));
 
 // ------------------------------------------------------------------ terrain clipping
 /** every map a run plays: the four authored arenas and the four generated regions (Pokémon locations by default) */
@@ -202,5 +215,5 @@ for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
   out.push(`| ${SPECIES_BY_ID[id].name} | ${v} | ${f2(o.top)} / ${f2(o.drop ?? 0)} / ${f2(o.right)} | ${f2(drawn)} | ${f2(arm.back)}${arm.back >= FR.max - 1e-9 ? ' (max)' : ''} | ${f2(arm.shoulder)} | ${arm.sideCapped ? 'yes' : 'no'} | ${f2(piv)} | ${pct(piv / drawn)} |`);
 }
 
-fs.writeFileSync(path.join(OUT, 'sizegiants.json'), JSON.stringify({ headroom, clipRows, framing }, null, 1));
+fs.writeFileSync(path.join(OUT, 'sizegiants.json'), JSON.stringify({ headroom, silhouette, clipRows, framing }, null, 1));
 console.log(out.join('\n'));

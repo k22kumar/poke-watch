@@ -21,6 +21,7 @@ import { blockMask, blockNeighbours, blockNodes, DIAG_R } from '../src/world/nav
 import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
+import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 /** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m), an Extra Large (0.88 m) and
  *  a Large elite (×2, capped at 0.95 m) */
@@ -38,7 +39,7 @@ export function freshRun(kind: 'location' | 'habitat', id: string, seed: number,
   const wg = kind === 'location'
     ? { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } }
     : { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } };
-  const ctx = createRun({ seed: 1, species, ruleOverrides: { worldgen: wg, ...calm } as never });
+  const ctx = createRun({ seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...sizeOverride() } as never });
   const E = ctx.enemies;
   for (let e = 0; e < E.hi; e++) if (E.alive[e]) E.kill(e);
   return ctx;
@@ -243,6 +244,7 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
 }
 
 if (process.argv[1]?.endsWith('navwalk.ts')) {
+  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 5), first = Number(process.argv[4] ?? 1);
   const ids: ['location' | 'habitat', string][] = [];
   if (which === 'all' || which === 'location') for (const id of Object.keys(LOCATIONS)) ids.push(['location', id]);

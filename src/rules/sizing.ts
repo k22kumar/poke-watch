@@ -163,7 +163,9 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
     factor,
     visualM: authored ? sp.height : C.id === 'xl' && size.xlContinuous ? xlVisual(ext.m, size) : C.visual * factor,
     radius: authored ? legacyRadius(sp) : C.radius * factor,
-    height: authored ? sp.height : C.height * factor,
+    // xlTall (with xlContinuous): an XL body is as tall as it is drawn, at the class's height-to-visual ratio. Otherwise
+    // the class height × tilt, unchanged (xlTall alone moves nothing)
+    height: authored ? sp.height : C.id === 'xl' && size.xlContinuous && size.xlTall ? xlVisual(ext.m, size) * (C.height / C.visual) : C.height * factor,
     // an authored boss keeps its encounter-scale hurtbox; its footprint is capped like every role-scaled body
     body: authored ? Math.min(size.bodyCap, legacyRadius(sp)) : C.body,
     authored,

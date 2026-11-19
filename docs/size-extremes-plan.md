@@ -765,3 +765,98 @@ alone decides it: Eternatus on is the only out-of-frame case, and only with `xlC
 - Until then, **feet on the move bar for Onix and Wailord are accepted.**
 - **`xlVisualCap` stays at 4.0.**
 
+---
+
+## xlTall: Extra Large sim height follows the drawn size (2026-11-18, flag off)
+
+Grilled before implementation (owner answers 2026-11-18):
+1. **Rule.** With `rules.size.xlTall` and `xlContinuous` both on, an XL body's height is `visualM × (C.height ÷ C.visual)`,
+   the exact class ratio (0.892), not a literal. Otherwise today's `C.height × tilt` branch runs unchanged, so `xlTall`
+   alone is bit-identical to today.
+2. **Readers.** One height feeds everything: the hit window, headroom (`moveBody`, the wide fields' height classes,
+   spawn fit, `nearestFit`) and the spatial muzzle (0.6 × height).
+3. **Scope.** Partners and enemies alike. Authored bosses unchanged. Role sizes multiply the new height.
+4. **Checksum.** Sets `tall` (`xlContinuous` + `xlTall`), `gen-tall`, `giants` (all three), `gen-giants`. A unit test
+   proves `xlTall` alone leaves every body identical. No aim variant unless a flag-on set shows the partner affected.
+5. **Gates** under defaults, all three flags, and the no-axis worst case (`xlContinuous` + `xlTall`). The worst case is
+   report-only, except that any mandatory space Onix can't reach in navwalk is a blocker. Headroom tests include an
+   xlTall case and the narrow-body-vs-lowest-gap check under each flag set. `perf-sim` under defaults and all three flags.
+6. **Targeting** rerun split into height (above the window) and width (beside the cylinder, within the window).
+7. No `HAB_VERSION` / `LOC_VERSION` bump, no baseline regeneration.
+8. Own commit, flag off; stop before any default flips.
+
+### What was built
+
+- `src/rules/defaults.ts`: `size.xlTall: false`. `src/rules/sizing.ts` `bodyOf`: the height rule above.
+- `scripts/checksum.ts`: `tall`, `gen-tall`, `giants`, `gen-giants`.
+- `scripts/lib/sizeflags.ts`: `--size a,b,c` for navwalk, stuckwatch, habplay and perf-sim (boolean `rules.size` flags
+  only; the pair is removed from `process.argv`, so positional arguments keep their places).
+- Tests: `tests/sizing.test.ts` (xlTall alone identical; with `xlContinuous` the class ratio, radius and footprint
+  unchanged; Onix 2.78 / 3.42 m); `tests/headroom.test.ts` (at a 2.7 m gap Onix walks under at the class height and
+  stops at the edge with all three flags and without `axis`, Feraligatr walks under, a wild Onix's `E.tall` carries the
+  height; no narrow body taller than the lowest generator gap under defaults, `axis`, `xl`, `tall`, `giants`).
+- `tools/sizeoverlay.js` `measure` returns per-row texel counts, so `scripts/sizegiants.ts` splits the silhouette for any
+  hit height; `sizegiants.ts` adds a `tall` column set (`on` + `xlTall`; same drawing as `on`).
+- Docs: `docs/SIZING.md` "Tall giants", the checksum paragraph and "Checking it"; `CLAUDE.md` checksum list and `--size`.
+
+### Hashes
+
+Every set `main` prints is unchanged, and `axis`, `gen-axis`, `xl` are unchanged. The new sets print existing hashes:
+`tall` = `on`, `gen-tall` = `gen`, `giants` = `axis`, `gen-giants` = `gen-axis`. **No replay config exercises xlTall**:
+the bot's planar shots never reach an XL body above its class height, the authored arenas have no decks, and the `gen`
+runs never put a changed XL body against a deck it no longer fits. The flag's behaviour is covered by the unit and
+headroom tests, not by the replays. A replay that does cover it (for example an `aim`-style set with the giants flags,
+or a deck map in the replay configs) is a choice for the owner before the flag flips.
+
+### Gates (worktree, 2026-11-18)
+
+| Gate | defaults | all three flags | no axis (worst case: Onix 3.42 m) |
+|---|---|---|---|
+| `navwalk all 5` | 0 failures (xl arrive 291/291, trainer-xl 83/83) | 0 failures, same tallies | 0 failures, same tallies: Onix reaches every mandatory space |
+| `stuckwatch all 3` | 67 bot episodes (1 pinned, **0 trapped**), 2 enemy episodes / 115,818 enemy-s | 67 (1 pinned, 0 trapped), 2 / 115,807 | 67 (1 pinned, 0 trapped), 2 / 115,807 |
+| `habplay all 6 1 --raid` | 72/72 | 72/72 | 72/72 |
+| headroom + sizing tests | pass | pass (flag sets inside the tests) | pass |
+| `perf-sim 500 --repeat 3 --gate` (min of 3) | p50 0.400, p95 0.530, p99 0.860 ms: PASS | p50 0.394, p95 0.514, p99 0.874 ms: PASS | not run (agreed sets only) |
+
+`npm test`: 601 pass, 4 fail, 2 todo of 607; the four reds are the known pointer-lock tests, which fail on `main` too
+(`docs/tasks/pointerlock-red-tests.md`). Typecheck clean.
+
+**Routing cost (height classes).** perf-sim plays the authored arenas, which have no decks, so it cannot show the cost.
+Measured directly on generated maps (seeds 1–3): every location map and every habitat except Volcanic Ridge has at most
+one distinct deck gap (2.4 or 2.9 m), so wide bodies fall in classes 0–1 under every flag set; xlTall never adds a
+class there. It only moves Onix between existing ones (Mt. Moon, 2.9 m gap: class 0 → 1 without `axis`, unchanged with
+it). Volcanic Ridge has 46–66 distinct gaps (2.9–4.4 m), so continuous heights land in more classes: the wide bodies the
+pools can field use 9–11 classes with defaults, 11–12 with all three flags, 10–12 without `axis`. Fields are built on
+demand per class present. Live cost there, `stuckwatch volcanic-ridge 3 120`: 9.17 s defaults, 9.22 s all three flags,
+9.11 s without `axis` (noise).
+
+### Targeting rerun (S3 check; `tall` = all three flags)
+
+Hurt window and the share of each giant's idle silhouette outside the cylinder. **Height** = above the window; **width**
+= within the window's height but further than the radius from the centre line. Shots are ray / 0.3 m bolt, from 10 m.
+
+| | flags | window | height | width | outside | top (95% drawn) ray / bolt | wing ray / bolt |
+|---|---|---|---:|---:|---:|---|---|
+| Snorlax | off | 0–2.22 × r 0.83 | 8% | 21% | 30% | miss / hit | miss / hit |
+| Snorlax | all three | 0–2.22 × r 0.83 | 8% | 21% | 30% | miss / hit | miss / hit |
+| Onix | off | 0–2.59 × r 0.97 | 4% | 0% | 4% | miss / hit | hit / hit |
+| Onix | axis + xlContinuous | 0–2.48 × r 0.93 | 11% | 0% | 11% | miss / miss | hit / hit |
+| Onix | all three | 0–2.78 × r 0.93 | 4% | 0% | 4% | miss / hit | hit / hit |
+| Wailord | off | 0–2.59 × r 0.97 | 6% | 6% | 11% | miss / hit | hit / hit |
+| Wailord | axis + xlContinuous | 0–2.59 × r 0.97 | 12% | 13% | 25% | miss / miss | miss / hit |
+| Wailord | all three | 0–3.23 × r 0.97 | 6% | 13% | 19% | miss / hit | miss / hit |
+| Eternatus | off | 0–2.59 × r 0.97 | 5% | 24% | 29% | miss / hit | miss / hit |
+| Eternatus | axis + xlContinuous | 0–2.59 × r 0.97 | 24% | 30% | 53% | miss / miss | miss / miss |
+| Eternatus | all three | 0–3.55 × r 0.97 | 5% | 40% | 45% | miss / hit | miss / miss |
+
+- **Height is fixed by xlTall.** Above-window shares return to the flags-off level (4–8%), and a bolt at the drawn top
+  hits every giant again.
+- **Width is what remains.** Radius is the class value (0.93–0.97 m), so what was above the window and is now inside it
+  adds to the width share: Eternatus 30% → 40%, Wailord 13%. Eternatus' wing misses with a bolt. Onix (narrow front) has
+  none. This is the agreed scope (radius and footprint unchanged), reported, not changed.
+- **Headroom (2.9 m deck):** with all three flags the sim now refuses Wailord (3.23 m) and Eternatus (3.55 m), whose
+  sprites rise 0.72 / 1.08 m through it; Onix (2.78 m) still enters, its sprite 0.21 m (7%) over the underside. At 2.4 m
+  every giant but Snorlax is refused, as before. The 0.892 ratio leaves the top ~11% of a giant's draw above its window
+  by design (the class's own height-to-visual ratio).
+- Raw output: `.capture/out-tall/sizegiants.md` (not committed).
+

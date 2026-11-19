@@ -54,8 +54,11 @@ const which = process.argv[2] ?? 'all';
 // before it, and every older set (all but `on`, `gen`, `aim`, `aim-off`) turns it off too.
 // Size extremes S1 (docs/SIZING.md "Measurement axis", "Giants"; docs/size-extremes-plan.md): rules.size.axis and
 // rules.size.xlContinuous are both off by default, so `on` and every set above print the hashes from before them.
-// `axis` and `gen-axis` turn the measurement axis on (a listed body length counts 0.35 × itself); `xl` turns the
+// `axis` and `gen-axis` turn the measurement axis on (a listed body length counts 0.5 × itself); `xl` turns the
 // continuous Extra Large draw on and must print the `on` hashes exactly (no sim system reads the drawn size).
+// xlTall (default off): with xlContinuous an XL body's sim height follows its drawn size. `tall` / `gen-tall` turn on
+// xlContinuous + xlTall; `giants` / `gen-giants` all three flags (the candidate default). xlTall alone moves nothing
+// (tests/sizing.test.ts checks every body is bit-identical), so `on` and every set above are its "off" layer.
 const HEADROOM_OFF = { headroom: false };
 const TOPS_OFF = { wallTops: false };
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF, world: TOPS_OFF };
@@ -89,6 +92,10 @@ const SETS: Record<string, object | undefined> = {
   axis: { size: { axis: true } },
   'gen-axis': { worldgen: { mode: 'generated' }, size: { axis: true } },
   xl: { size: { xlContinuous: true } },
+  tall: { size: { xlContinuous: true, xlTall: true } },
+  'gen-tall': { worldgen: { mode: 'generated' }, size: { xlContinuous: true, xlTall: true } },
+  giants: { size: { axis: true, xlContinuous: true, xlTall: true } },
+  'gen-giants': { worldgen: { mode: 'generated' }, size: { axis: true, xlContinuous: true, xlTall: true } },
 };
 const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off', 'aim-tops-off']);
 
