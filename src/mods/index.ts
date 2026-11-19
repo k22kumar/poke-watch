@@ -3,6 +3,9 @@ import { enemiesInRadius, hitScratch } from '../sim/moves';
 import { damageEnemy } from '../sim/combat';
 import { healPlayer } from '../sim/combat';
 import type { Mod, Mode } from './types';
+import { deepMerge } from '../core/util';
+import { defaultRules } from '../rules/defaults';
+import { validateSpawnOverride, type SpawnPoolDef } from '../rules/spawning';
 
 // ---------------------------------------------------------------- example mods
 export const vampiric: Mod = {
@@ -65,3 +68,17 @@ export const MODES: Mode[] = [
     rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, xp: { base: 4, linear: 3 }, director: { alphaAt: 60, eliteEvery: 20 } },
   },
 ];
+
+/** What validateSpawnOverride reports for a mode's own rules.spawning.override and each of its mods' (bosses named in
+ *  the spawns, unknown species, empty pools), with the regions the mode's rules select. Checked where a mode is loaded:
+ *  src/main.ts startRun warns with these; tests/spawning.test.ts requires none for MODES. */
+export function modeSpawnProblems(mode: Mode): string[] {
+  const layers: [string, Mod | Mode][] = [[`mode ${mode.id}`, mode], ...(mode.mods ?? []).map((m): [string, Mod] => [`mod ${m.id}`, m])];
+  const rules = deepMerge(defaultRules, mode.rules, ...(mode.mods ?? []).map((m) => m.rules));
+  const out: string[] = [];
+  for (const [where, src] of layers) {
+    const o = src.rules?.spawning?.override;
+    if (o) out.push(...validateSpawnOverride(`${where} rules.spawning.override`, o as SpawnPoolDef, rules.spawning.regions, rules));
+  }
+  return out;
+}

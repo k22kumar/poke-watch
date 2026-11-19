@@ -17,6 +17,9 @@
 // Inside one layer: `preset` (start over from that preset), `only` (replace the spawns), then `everyWild`, `include`,
 // `weights`, `filter`, `exclude`,
 // then `elites` / `boss` (replace). A layer that does not mention something leaves it as it was.
+// A boss never enters the spawns: each layer drops any boss id from them before its filter runs, so no filter (size
+// class, type, …) ever sees one. Bosses spawn only through `boss`. validateSpawnConfig / validateSpawnOverride report
+// a boss named in `only`, `include` or `weights`; the resolver itself stays silent.
 import { SPECIES, SPECIES_BY_ID, type Behaviour, type SpeciesDef } from './species';
 import { bodyOf, type SizeClassId } from './sizing';
 import { habitatAllows, traversalOf } from './profiles';
@@ -139,6 +142,8 @@ function applyLayer(pool: Pool, L: SpawnPoolDef, rules: Rules, depth = 0): Pool 
   if (L.everyWild) for (const sp of SPECIES) if (isWild(sp) && !p.spawns.some(([s]) => s === sp.id)) p.spawns.push([sp.id, 1]);
   for (const e of L.include ?? []) typeof e === 'string' ? put(e, 1) : put(e[0], e[1]);
   for (const [id, w] of Object.entries(L.weights ?? {})) { const at = p.spawns.findIndex(([s]) => s === id); if (at >= 0) p.spawns[at][1] = w; }
+  // a boss spawns only as the boss: never as a wild spawn, never seen by a filter (no logging here; the validators report it)
+  p.spawns = p.spawns.filter(([id]) => !SPECIES_BY_ID[id]?.boss);
   if (L.filter) p.spawns = p.spawns.filter(([id]) => SPECIES_BY_ID[id] && passes(SPECIES_BY_ID[id], L.filter!, rules));
   if (L.exclude) { const x = new Set(L.exclude); p.spawns = p.spawns.filter(([id]) => !x.has(id)); p.elites = p.elites.filter((id) => !x.has(id)); }
   if (L.elites) p.elites = [...L.elites];
@@ -184,20 +189,39 @@ export function spawnableSpecies(mapPools: SpawnPoolDef[] = [], rules: Rules = d
   return { spawns, elites };
 }
 
+/** the problems inside one layer, before it is resolved */
+function layerProblems(where: string, L: SpawnPoolDef): string[] {
+  const out: string[] = [];
+  if (L.preset !== undefined && !SPAWN_PRESETS[L.preset]) out.push(`${where}: unknown preset '${L.preset}'`);
+  const spawnIds = [...[...(L.include ?? []), ...(L.only ?? [])].map((e) => (typeof e === 'string' ? e : e[0])), ...Object.keys(L.weights ?? {})];
+  const ids = [...spawnIds, ...(L.exclude ?? []), ...(L.elites ?? [])];
+  for (const id of ids) if (!SPECIES_BY_ID[id]) out.push(`${where}: '${id}' is not a game species (content/roster.json)`);
+  for (const id of spawnIds) if (SPECIES_BY_ID[id]?.boss) out.push(`${where}: '${id}' is a boss; a boss spawns only through 'boss', so the pool drops it from the spawns`);
+  for (const e of [...(L.include ?? []), ...(L.only ?? [])]) if (typeof e !== 'string' && !(e[1] > 0)) out.push(`${where}: '${e[0]}' has weight ${e[1]} (must be > 0)`);
+  for (const [id, w] of Object.entries(L.weights ?? {})) if (!(w > 0)) out.push(`${where}: '${id}' has weight ${w} (must be > 0)`);
+  for (const id of L.elites ?? []) if (SPECIES_BY_ID[id]?.boss) out.push(`${where}: elite '${id}' is a boss`);
+  if (L.boss !== undefined && !SPECIES_BY_ID[L.boss]?.boss) out.push(`${where}: boss '${L.boss}' has no boss kit (content/roster.json bosses)`);
+  return out;
+}
+
+/** Problems with a mode's or mod's rules.spawning.override, checked where it is loaded (src/main.ts startRun; tests
+ *  over MODES). The same layer checks as validateSpawnConfig, then the override resolved over every region. */
+export function validateSpawnOverride(where: string, L: SpawnPoolDef, regions: readonly string[] = defaultRules.spawning.regions, rules: Rules = defaultRules): string[] {
+  const out = layerProblems(where, L);
+  if (out.length) return out;
+  for (let s = 0; s < REGION_BIOMES.length; s++) {
+    let t: StageDef;
+    try { t = resolve(s, regions, rules, [L]); } catch (e) { out.push(`${where} ${s}: ${(e as Error).message}`); continue; }
+    if (!t.spawns.length) out.push(`${REGION_BIOMES[s]} with ${where}: no wild Pokémon left in the pool`);
+  }
+  return out;
+}
+
 /** Problems with the spawn configuration, as readable messages (tests/spawning.test.ts asserts none). */
 export function validateSpawnConfig(mapPools: Record<string, SpawnPoolDef> = {}, regions: readonly string[] = defaultRules.spawning.regions, rules: Rules = defaultRules): string[] {
   const out: string[] = [];
-  const check = (where: string, L: SpawnPoolDef) => {
-    if (L.preset !== undefined && !SPAWN_PRESETS[L.preset]) out.push(`${where}: unknown preset '${L.preset}'`);
-    const ids = [...[...(L.include ?? []), ...(L.only ?? [])].map((e) => (typeof e === 'string' ? e : e[0])), ...Object.keys(L.weights ?? {}), ...(L.exclude ?? []), ...(L.elites ?? [])];
-    for (const id of ids) if (!SPECIES_BY_ID[id]) out.push(`${where}: '${id}' is not a game species (content/roster.json)`);
-    for (const e of [...(L.include ?? []), ...(L.only ?? [])]) if (typeof e !== 'string' && !(e[1] > 0)) out.push(`${where}: '${e[0]}' has weight ${e[1]} (must be > 0)`);
-    for (const [id, w] of Object.entries(L.weights ?? {})) if (!(w > 0)) out.push(`${where}: '${id}' has weight ${w} (must be > 0)`);
-    for (const id of L.elites ?? []) if (SPECIES_BY_ID[id]?.boss) out.push(`${where}: elite '${id}' is a boss`);
-    if (L.boss !== undefined && !SPECIES_BY_ID[L.boss]?.boss) out.push(`${where}: boss '${L.boss}' has no boss kit (content/roster.json bosses)`);
-  };
-  for (const [id, L] of Object.entries(SPAWN_PRESETS)) check(`preset ${id}`, L);
-  for (const [id, L] of Object.entries(mapPools)) check(`map ${id}`, L);
+  for (const [id, L] of Object.entries(SPAWN_PRESETS)) out.push(...layerProblems(`preset ${id}`, L));
+  for (const [id, L] of Object.entries(mapPools)) out.push(...layerProblems(`map ${id}`, L));
   if (regions.length !== REGION_BIOMES.length) out.push(`rules.spawning.regions: ${regions.length} presets for ${REGION_BIOMES.length} regions`);
   regions.forEach((id, i) => { if (!SPAWN_PRESETS[id]) out.push(`region ${REGION_BIOMES[i]}: unknown preset '${id}'`); });
   if (!out.length) {

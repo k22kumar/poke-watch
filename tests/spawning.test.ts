@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { REGION_BIOMES, SPAWN_PRESETS, isWild, resolveSpawnTable, spawnTableFor, spawnableSpecies, validateSpawnConfig, type SpawnPoolDef } from '../src/rules/spawning';
+import { REGION_BIOMES, SPAWN_PRESETS, isWild, resolveSpawnTable, spawnTableFor, spawnableSpecies, validateSpawnConfig, validateSpawnOverride, type SpawnPoolDef } from '../src/rules/spawning';
+import { MODES, modeSpawnProblems } from '../src/mods';
 import { defaultRules } from '../src/rules/defaults';
 import { bodyOf } from '../src/rules/sizing';
 import { SPECIES_OVERRIDES, traversalOf } from '../src/rules/profiles';
@@ -33,6 +34,44 @@ test('validation names bad pools instead of accepting them', () => {
   assert.match(out, /'rattata' has weight 0/);
   assert.match(out, /boss 'rattata' has no boss kit/);
   assert.match(out, /elite 'sudowoodo' is a boss/);
+  // a boss named in the spawns (only / include / weights) is reported: it spawns only through `boss`
+  const spawned = validateSpawnConfig({ e: { include: ['magcargo'] }, f: { only: ['onix', ['sudowoodo', 2]] }, g: { weights: { articuno: 3 } } }).join('\n');
+  assert.match(spawned, /map e: 'magcargo' is a boss/);
+  assert.match(spawned, /map f: 'sudowoodo' is a boss/);
+  assert.match(spawned, /map g: 'articuno' is a boss/);
+});
+
+test('a boss never enters the spawns: an override or a ?pool-style only naming one ends up without it', () => {
+  const boss = (id: string) => SPECIES_BY_ID[id].boss;
+  // a mode's or mod's override that includes the boss, with a size filter that would otherwise select it by its class
+  // (Magcargo's extent class is Small with rules.size.axis, Medium without)
+  const override: SpawnPoolDef = { include: ['magcargo'], filter: { sizeClasses: ['small', 'medium'] } };
+  // ?pool=magcargo,onix becomes { only: [...] } (src/main.ts poolOverride, which warns and leaves the boss out itself)
+  const pool: SpawnPoolDef = { only: ['magcargo', 'onix'] };
+  for (const size of [{ axis: false }, { axis: true }]) {
+    for (const L of [override, pool]) {
+      const ctx = createRun({ seed: 1, species: 'charmander', ruleOverrides: { size, spawning: { override: L } } as never });
+      assert.ok(!ids(ctx.spawnTable).includes('magcargo'), `${JSON.stringify(L)} axis ${size.axis}: no boss in the spawns`);
+      assert.ok(ids(ctx.spawnTable).length > 0);
+      for (let s = 0; s < REGION_BIOMES.length; s++) assert.ok(!ids(spawnTableFor(ctx.rules, s, L)).some(boss), `region ${s}`);
+    }
+  }
+  assert.deepEqual(ids(spawnTableFor(defaultRules, 0, pool)), ['onix']);
+  // the boss slot itself is untouched
+  assert.equal(spawnTableFor(defaultRules, 1, override).boss, 'magcargo');
+  // the validator, run where a mode's or mod's override loads, reports both
+  assert.match(validateSpawnOverride('mod m rules.spawning.override', override).join('\n'), /mod m rules.spawning.override: 'magcargo' is a boss/);
+  assert.match(validateSpawnOverride('pool', pool).join('\n'), /'magcargo' is a boss/);
+  // no shipped preset or map pool lists a boss among its spawns
+  for (let s = 0; s < REGION_BIOMES.length; s++) assert.ok(!resolveSpawnTable(s).spawns.some(([id]) => boss(id)));
+});
+
+test('the shipped modes and their mods load spawn overrides without problems', () => {
+  for (const m of MODES) assert.deepEqual(modeSpawnProblems(m), [], m.id);
+  const bad = { id: 'x', name: 'x', description: '', rules: { spawning: { override: { include: ['magcargo'] } } }, mods: [{ id: 'y', name: 'y', rules: { spawning: { override: { only: ['sudowoodo', 'onix'] } } } }] };
+  const out = modeSpawnProblems(bad as never).join('\n');
+  assert.match(out, /mode x rules.spawning.override: 'magcargo' is a boss/);
+  assert.match(out, /mod y rules.spawning.override: 'sudowoodo' is a boss/);
 });
 
 test('layers apply in order: preset, only, everyWild, include, weights, filter, exclude, elites/boss', () => {

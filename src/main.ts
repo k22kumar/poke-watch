@@ -2,7 +2,7 @@
 import { buildRecap, debugLine } from './sim/caplog';
 import { Audio } from './audio/audio';
 import { Input } from './input/input';
-import { MODES } from './mods';
+import { MODES, modeSpawnProblems } from './mods';
 import type { Mode } from './mods/types';
 import { BIOMES, STAGES } from './rules/stages';
 import { SPECIES_BY_ID } from './rules/species';
@@ -189,8 +189,12 @@ function poolOverride(): { spawning?: { override: SpawnPoolDef } } {
   const q = params.get('pool');
   if (!q) return {};
   if (SPAWN_PRESETS[q]) return { spawning: { override: { preset: q } } };
-  const ids = q.split(',').filter((id) => SPECIES_BY_ID[id]);
-  if (!ids.length) { console.warn(`?pool=${q}: no preset or species by that name; presets: ${Object.keys(SPAWN_PRESETS).join(', ')}`); return {}; }
+  const known = q.split(',').filter((id) => SPECIES_BY_ID[id]);
+  // a boss spawns only as the region's boss: the pool drops it from the spawns (src/rules/spawning.ts), so say so here
+  const bosses = known.filter((id) => SPECIES_BY_ID[id].boss);
+  if (bosses.length) console.warn(`?pool=${q}: ${bosses.join(', ')} ${bosses.length > 1 ? 'are bosses' : 'is a boss'}, which spawn only as a region's boss; left out of the pool`);
+  const ids = known.filter((id) => !SPECIES_BY_ID[id].boss);
+  if (!ids.length) { console.warn(`?pool=${q}: no preset or wild species by that name; presets: ${Object.keys(SPAWN_PRESETS).join(', ')}`); return {}; }
   return { spawning: { override: { only: ids } } };
 }
 
@@ -215,6 +219,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   cancelEnd();
   audio.setPaused(false); // restarting from the pause menu must not keep the muffled pause mix
   current = { mode, species, seed };
+  for (const msg of modeSpawnProblems(mode)) console.warn(msg); // a mode's or mod's spawn override, checked as it loads
   // the URL beats the saved settings: ?loc= names the map, and ?world= asks for handcrafted or classic regions, so the
   // saved Map (Settings → World → Map) applies only when the URL says neither
   const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);

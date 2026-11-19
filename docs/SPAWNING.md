@@ -50,7 +50,9 @@ A pool is a `SpawnPoolDef`:
 }
 ```
 
-Within one layer the fields apply in the order listed. The layers then apply in this order, each one editing the result of the one before:
+Within one layer the fields apply in the order listed. A boss never enters the spawns: each layer drops any boss id
+from them before its `filter` runs, so no filter (size class, type, behaviour, flight) ever sees one, and a boss spawns
+only through `boss`. The resolver does this silently; the validators below report it. The layers then apply in this order, each one editing the result of the one before:
 
 | Layer | Source | Default |
 |---|---|---|
@@ -78,7 +80,13 @@ The resolved table is computed once per stage (`startStage` → `ctx.spawnTable`
 - weights ≤ 0;
 - unknown presets and preset loops;
 - an elite that is a boss, or a boss without a boss kit;
+- a boss named in `only`, `include` or `weights` (the pool drops it from the spawns);
 - a region or map pool that ends up with no wild Pokémon, no elites or no boss.
+
+A mode's or mod's `rules.spawning.override` is checked where it loads, not inside the sim: `modeSpawnProblems(mode)`
+(`src/mods/index.ts`) runs `validateSpawnOverride` on the mode's override and each of its mods', `src/main.ts`
+`startRun` warns with the result, and `tests/spawning.test.ts` requires none for `MODES`. `?pool=` warns in
+`src/main.ts` beside its unknown-id warning and leaves a named boss out.
 
 `validateProfiles()` (`tests/profiles.test.ts`) does the same for `SPECIES_OVERRIDES`: unknown ids, invalid habitat masks, a `requires` that is fully `avoid`ed, and unknown size classes.
 
