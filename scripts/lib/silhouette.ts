@@ -11,10 +11,18 @@ import { cardOf, outlineOf, type CardBounds, type Outline } from '../../src/rend
 import { bodyOf, speciesSizing } from '../../src/rules/sizing';
 import { SPECIES_BY_ID } from '../../src/rules/species';
 import { decodePng } from './png.mjs';
+import { FRAME_GIANTS } from './giants';
 
 type PackArt = { atlas: string; anims: Record<string, { frames: number[][][]; durations: number[]; hit?: number }> };
 let bundle: Record<string, { art: PackArt }> | null = null;
 const art = () => (bundle ??= (JSON.parse(fs.readFileSync(new URL('../../src/content/art.json', import.meta.url), 'utf8')) as { species: Record<string, { art: PackArt }> }).species);
+
+/** add art for species this process alone knows (scripts/sizegiants.ts --pack: the capture-only giants), so their
+ *  outline is measured exactly as the roster's is */
+export function registerArt(species: Record<string, { art: PackArt }>): void {
+  Object.assign(art(), species);
+  for (const id of Object.keys(species)) cache.delete(id);
+}
 
 export interface SpriteOutline {
   id: string;
@@ -37,6 +45,8 @@ export function spriteOutline(id: string): SpriteOutline | null {
   const hit = cache.get(id);
   if (hit !== undefined) return hit;
   const a = art()[id]?.art, sp = SPECIES_BY_ID[id];
+  // a capture-only giant with no art here: its measured numbers from the fixture (scripts/lib/giants.ts)
+  if ((!a || !sp) && FRAME_GIANTS[id]) { const g = FRAME_GIANTS[id].sprite as unknown as SpriteOutline; cache.set(id, g); return g; }
   if (!a || !sp) { cache.set(id, null); return null; }
   const src: Record<string, SourceAnim> = {};
   for (const [name, an] of Object.entries(a.anims)) {

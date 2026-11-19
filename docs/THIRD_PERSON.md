@@ -68,7 +68,8 @@ composition, not from its code.
     length. Past the orbit range the pivot stays where that range left it (`chasePivotH`): see "Arm elevation".
   - **Shoulder** = the corner's reach + back × cos(3°) × tan(7°), at most `shoulderMax` (0.6) × the back distance. No
     species of the roster reaches the cap (the most is 0.48).
-  - **Back distance** = 4.3 m × (drawn body height / 1.9 m), inside 1.8 to 9 m. The drawn body height is `top + drop`: a
+  - **Back distance** = 4.3 m × (drawn body height / 1.9 m), inside 1.8 to 14 m (9 m until F3, 2026-11-18: Onix, Furret
+    and the capture-only giants were held short of their framing; the largest, Eternatus, wants 13.75 m). The drawn body height is `top + drop`: a
     PMD sprite's anchor is the middle of its ground footprint, and the picture reaches below it by a fifth of its height
     at the median species and three quarters for a few (Diglett, Sizzlipede, Quilava). With the top pinned, the arm's
     length is what decides where the body's lowest drawn point lands: 0.88 to 0.94 of the frame height, for every
@@ -81,6 +82,13 @@ composition, not from its code.
     dissolve instead.
   - A subject with no measured art (a Node run that decodes no atlas, a synthetic frame) gets the roster's medians for its
     size class (`classOutline`: top 1.2 ×, reach 0.7 ×, drop 0.25 × the visible core).
+  - **Subject tilt** (`chaseTilt`, F3): with no input the view axis meets flat ground inside `aim.max` (26 m, criterion
+    E4) for every partner. One whose ground point would lie past it is framed with just enough extra pitch to bring it
+    back (at most `aimPitch.tiltMax`, 10°), and the arm elevation follows, so the corner stays on the keep-out's. Today
+    only Onix (0.52°) and the capture-only Eternatus (2.35°) get any; every other partner gets none. Like the ideal arm it
+    is one figure per outline, eased over `frame.settle` when the outline changes (a tag swap, an evolution, any size
+    change), never otherwise. The look band stays absolute (±89° about the horizon). This is the one condition-bound
+    exception to "the crosshair ray does not move without input" (`THIRD_PERSON_IMPLEMENTATION.md` §26).
 
   | (roster of 68, open flat ground, no input, FOV 64°) | min | median | max |
   |---|---|---|---|

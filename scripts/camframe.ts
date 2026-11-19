@@ -24,6 +24,7 @@ import { bodyOf } from '../src/rules/sizing';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { RIG_VERSION, applySet, fadeOf, settled } from './lib/camrig';
 import { framedSpecies, playFrames, spriteOutline } from './lib/silhouette';
+import { frameBodyOf } from './lib/giants';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const D2R = Math.PI / 180;
@@ -73,7 +74,7 @@ export function composition(id: string): FrameRow {
   const feet = seen(rig, 0, 0, 0);
   // the corner the composition pins: the reserved outline's top-right point, as the shader draws it
   const cp = cardPoint(rig, A, rig.cornerRight, rig.cornerTop), cs = seen(rig, cp[0], cp[1], cp[2]);
-  const row: FrameRow = { id, cls: bodyOf(SPECIES_BY_ID[id]).className, boom: +rig.boomUsed.toFixed(2), shoulder: +rig.shoulderUsed.toFixed(2), lensY: +rig.eye[1].toFixed(2), cornerX: +cs[0].toFixed(2), cornerY: +cs[1].toFixed(2), feetY: +(0.5 - Math.tan(feet[1] * D2R) / tf / 2).toFixed(3), bottomY: 0, share: +((Math.tan(bb.top * D2R) - Math.tan(feet[1] * D2R)) / tf / 2).toFixed(3), drawn: 0, left: +bb.left.toFixed(1), body: 0, bodyDeep: 0, cast: 0, castDeep: 0, hurt: 0, hurtDeep: 0, frames: 0, ground: 0 };
+  const row: FrameRow = { id, cls: frameBodyOf(id).className, boom: +rig.boomUsed.toFixed(2), shoulder: +rig.shoulderUsed.toFixed(2), lensY: +rig.eye[1].toFixed(2), cornerX: +cs[0].toFixed(2), cornerY: +cs[1].toFixed(2), feetY: +(0.5 - Math.tan(feet[1] * D2R) / tf / 2).toFixed(3), bottomY: 0, share: +((Math.tan(bb.top * D2R) - Math.tan(feet[1] * D2R)) / tf / 2).toFixed(3), drawn: 0, left: +bb.left.toFixed(1), body: 0, bodyDeep: 0, cast: 0, castDeep: 0, hurt: 0, hurtDeep: 0, frames: 0, ground: 0 };
   for (const fr of playFrames(o)) {
     const sb = subjectBox(rig, A, fr.card, KEEP_OUT), d = sb.depth;
     if (fr.clip === 'idle' || fr.clip === 'walk') row.bottomY = Math.max(row.bottomY, +(0.5 - Math.tan(sb.bottom * D2R) / tf / 2).toFixed(3));

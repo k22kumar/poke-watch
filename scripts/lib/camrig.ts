@@ -14,13 +14,14 @@ import { SPECIES_BY_ID } from '../../src/rules/species';
 import type { SimContext } from '../../src/sim/types';
 import type { RigAdapter } from './cambench';
 import { spriteOutline } from './silhouette';
+import { frameBodyOf } from './giants';
 
 export const RIG_VERSION = '2026-11-18 second pass';
 const D2R = Math.PI / 180;
 
 /** the subject fields of a synthetic frame for a species (what chaseFrameFor passes for it in a run) */
 export function subjectOf(id: string): Partial<ChaseFrame> {
-  const b = bodyOf(SPECIES_BY_ID[id]);
+  const b = frameBodyOf(id); // a game species, or a capture-only giant from the fixture (scripts/lib/giants.ts)
   return { height: b.height, visual: b.visualM, outline: spriteOutline(id)?.outline };
 }
 
@@ -32,7 +33,7 @@ export function chaseFrame(ctx: SimContext, s: ChaseSubject): ChaseFrame {
 /** the ideal arm for the rig's yaw and pitch, as a polyline pivot → hand → ideal lens (world space): what must be free
  *  of solids for the frame to count as "clear" */
 export function armPath(rig: ChaseRig, f: ChaseFrame): number[][] {
-  const el = boomElevation(rig.userPitch), e = el * D2R, back = rig.backWant, s = rig.shoulderWant;
+  const el = boomElevation(rig.userPitch + rig.tilt), e = el * D2R, back = rig.backWant, s = rig.shoulderWant;
   const sy = Math.sin(rig.yaw), cy = Math.cos(rig.yaw), ox = f.x, oy = f.y + chasePivotH(rig.cornerTop, back, s, el), oz = f.z;
   const hx = ox - cy * s, hz = oz + sy * s;
   return [[ox, oy, oz], [hx, oy, hz], [hx - sy * Math.cos(e) * back, oy + Math.sin(e) * back, hz - cy * Math.cos(e) * back]];

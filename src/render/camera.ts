@@ -63,8 +63,11 @@ export const CHASE_CONFIG = {
    *  footprint; the picture reaches a fifth of its height below it at the median, three quarters for a few). With the top
    *  pinned `reticle.below` under the crosshair line and exp 1, every body's lowest drawn point lands at about the same
    *  height in the frame (0.88 to 0.94 of it): over the HUD's move bar in a 1080p window, at most 2 % of the frame under
-   *  it at 720p (scripts/camframe.ts "HUD"). `settle`: smoothing (s) when the squad tags a Pokémon with another outline */
-  frame: { ref: 1.9, boom: 4.3, exp: 1, min: 1.8, max: 9, settle: 0.45 },
+   *  it at 720p (scripts/camframe.ts "HUD"). `settle`: smoothing (s) when the squad tags a Pokémon with another outline
+   *  (an evolution or any size change counts: the outline changes). `max` 14 (F3, docs/size-extremes-plan.md; was 9):
+   *  the law itself sets every partner's distance under it, the largest giant (Eternatus, capture-only) wanting 13.75 m,
+   *  so no partner is held short of its framing */
+  frame: { ref: 1.9, boom: 4.3, exp: 1, min: 1.8, max: 14, settle: 0.45 },
   /** the keep-out around the crosshair (degrees, render/framing.ts): the player's own Pokémon lies left of `side` or
    *  below `below`. The outline's top-right corner is put on the keep-out's lower-left corner: `below` is how far the arm
    *  sits over the view axis, `side` sets the shoulder offset. `reach`: the most the fixed combat allowance may move that
@@ -80,8 +83,10 @@ export const CHASE_CONFIG = {
    *  crosshair ray) is `neutral` + the player's pitch, inside `up` degrees above and `down` below the horizon. The arm's
    *  elevation follows the pitch (boomElevation: view pitch + `reticle.below`, inside `elevation`); past the elevation
    *  cap it rises with the view (owner decision C, the 40° start approved 2026-11-17); under a deck CHASE_CONFIG.deck
-   *  caps it */
-  aimPitch: { neutral: 11, up: 89, down: 89 },
+   *  caps it. `tiltMax`: the most the subject tilt may add (chaseTilt, F3): a partner whose neutral crosshair would meet
+   *  flat ground past `aim.max` is framed with just enough extra pitch to bring it back to `aim.max`; every other partner
+   *  gets none */
+  aimPitch: { neutral: 11, up: 89, down: 89, tiltMax: 10 },
   /** R3 (§19, audit F9): billboards seen from steeper than the stretch can square (acos(1 / 1.6) = 51.3°, the shaders'
    *  stretch cap) lean back by the excess, top away from a lens above them (toward one below), so from overhead a sprite
    *  keeps the height it has at 51.3° instead of flattening into a sliver. Below 51.3° nothing changes. False: upright */
@@ -211,13 +216,39 @@ export function lookPitchRange(): [number, number] {
   const A = CFG.aimPitch;
   return [-A.up - A.neutral, A.down - A.neutral];
 }
-/** the view axis' pitch below the horizon (rad) for the player's pitch offset */
-const ownedPitch = (userPitch: number) => (CFG.aimPitch.neutral + userPitch) * D2R;
+/** the view axis' pitch below the horizon (rad) for a pitch offset about the neutral pitch (the player's own pitch plus
+ *  the subject tilt) */
+const ownedPitch = (up: number) => (CFG.aimPitch.neutral + up) * D2R;
 
 /** The ideal arm for a subject (CHASE_CONFIG.frame, .reticle, .shoulderMax; render/framing.ts idealArm): the frame's
- *  outline, or the fallback for a subject with no measured art */
-export function chaseArm(f: { outline?: Outline; height: number; visual?: number }): IdealArm {
-  return idealArm(f.outline ?? classOutline(f.visual ?? f.height), CFG.frame, CFG.reticle, CFG.shoulderMax);
+ *  outline, or the fallback for a subject with no measured art. `tilt`: its subject tilt (chaseTilt) */
+export function chaseArm(f: { outline?: Outline; height: number; visual?: number }): IdealArm & { tilt: number } {
+  const I = idealArm(f.outline ?? classOutline(f.visual ?? f.height), CFG.frame, CFG.reticle, CFG.shoulderMax);
+  return { ...I, tilt: chaseTilt(I) };
+}
+
+/** Where the neutral view axis meets flat ground (m ahead of the feet, along the yaw) for an ideal arm with `tilt`
+ *  degrees of extra pitch: the lens on the arm at the elevation that pitch gives (boomElevation), the pivot on the
+ *  outline's top as drawn (chasePivotH). This is criterion E4's ground point (scripts/camframe.ts composition) */
+export function neutralGround(I: IdealArm, tilt: number): number {
+  const v = (CFG.aimPitch.neutral + tilt) * D2R;
+  if (v <= 1e-6) return Infinity;
+  const el = boomElevation(tilt), e = el * D2R, ph = chasePivotH(I.top, I.back, I.shoulder, el);
+  return -I.back * Math.cos(e) + (ph + I.back * Math.sin(e)) / Math.tan(v);
+}
+
+/** The subject tilt (deg, F3; docs/THIRD_PERSON_IMPLEMENTATION.md §26): zero for every subject whose neutral crosshair
+ *  meets flat ground within CHASE_CONFIG.aim.max, otherwise just enough extra pitch to bring that point back to
+ *  `aim.max` (at most `aimPitch.tiltMax`). One fixed figure per outline, like the ideal arm: the rig eases it over
+ *  `frame.settle` when the outline changes (a tag swap, an evolution, any size change). A deliberate, condition-bound
+ *  exception to §24.2's "the crosshair ray does not move without input" */
+export function chaseTilt(I: IdealArm): number {
+  const max = CFG.aim.max;
+  if (neutralGround(I, 0) <= max) return 0;
+  let lo = 0, hi = CFG.aimPitch.tiltMax;
+  if (neutralGround(I, hi) > max) return hi;
+  for (let k = 0; k < 40; k++) { const m = (lo + hi) / 2; if (neutralGround(I, m) > max) lo = m; else hi = m; }
+  return hi;
 }
 
 /** The arm's elevation (deg, before a deck) for the player's pitch offset `up`: the view pitch + reticle.below, inside
@@ -283,6 +314,11 @@ export class ChaseRig {
   private colT = 1; private colV = 0; private clearT = 1; // the same for the back distance
   private ready = false;
   private wantV = [0, 0, 0, 0]; private sizeSet = false;
+  /** the subject tilt in force (deg, chaseTilt): eased over frame.settle toward the outline's own; it adds to the
+   *  player's pitch everywhere the rig turns a pitch into a view or an arm elevation */
+  tilt = 0; private tiltV = 0;
+  /** the look band last given to update() (lookPitchRange()), kept so the tilt's easing keeps the view inside it */
+  private band: [number, number] = [-Infinity, Infinity];
   /** the Pokémon's last tick height and support state (the stair smoothing). The rig keeps no velocity: where the
    *  Pokémon is going never moves the camera */
   private ly = 0; private lGround = false;
@@ -315,7 +351,7 @@ export class ChaseRig {
     this.frameYaw = yaw; this.ix = x; this.iy = y; this.iz = z;
     this.clock = 0; this.lastTick = 0; this.nextTick = 0; this.tkFirst = true; this.tk = { ...blankTick(), px: x, py: y, pz: z };
     this.colT = 1; this.colV = 0; this.clearT = 1; this.sideT = 1; this.sideV = 0; this.sideClear = 1;
-    this.wantV = [0, 0, 0, 0]; this.sizeSet = false;
+    this.wantV = [0, 0, 0, 0]; this.sizeSet = false; this.tiltV = 0;
     this.ly = y; this.lGround = false; this.fGround = false; this.stepY = 0; this.fStep = 0;
     this.fresh = true; this.coveredTk = false;
     this.slabLim = 90; this.slabV = 0; this.pivDrop = 0; this.pivDropV = 0;
@@ -335,7 +371,8 @@ export class ChaseRig {
     const y1 = wrap(this.yaw - f.lookYaw);
     const y0 = this.frameYaw, dY = wrap(y1 - y0);
     this.fovOffset = clamp(opt.fovOffset, -10, 12);
-    this.userPitch = clamp(this.userPitch + f.lookPitch / D2R, opt.pitchRange[0], opt.pitchRange[1]);
+    this.band = opt.pitchRange;
+    this.userPitch = clamp(this.userPitch + f.lookPitch / D2R, opt.pitchRange[0] - this.tilt, opt.pitchRange[1] - this.tilt);
     const t0 = this.clock, t1 = t0 + dt;
     const x0 = this.ix, h0 = this.iy, z0 = this.iz;
     while (this.nextTick <= t1 + 1e-9) {
@@ -367,7 +404,7 @@ export class ChaseRig {
     this.px = f.x; this.py = f.y + sY; this.pz = f.z;
     this.pivotH = mix(A.pivotH, B.pivotH);
     this.boomUsed = mix(A.boom, B.boom); this.shoulderUsed = mix(A.shoulder, B.shoulder); this.lensGap = mix(A.gap, B.gap); this.fov = mix(A.fov, B.fov);
-    this.viewPitch = ownedPitch(this.userPitch);
+    this.viewPitch = ownedPitch(this.userPitch + this.tilt);
     const d = wrap(y1 - yawAt), cd = Math.cos(d), sd = Math.sin(d);
     // the arm: the ticks' lens relative to the ticks' anchor (the feet, plus the step not yet taken up)
     const ex = mix(A.eye[0], B.eye[0]) - ax, ey = mix(A.eye[1] - A.py - A.stepY, B.eye[1] - B.py - B.stepY), ez = mix(A.eye[2], B.eye[2]) - az;
@@ -384,7 +421,7 @@ export class ChaseRig {
   /** the arm elevation (deg) the player's pitch `up` gives, as the tick composes it (only differences are used:
    *  swingLens); under a deck the slab decides it, so pitch does not move the lens there */
   private elevFor(up: number) {
-    return this.coveredTk ? 0 : boomElevation(up);
+    return this.coveredTk ? 0 : boomElevation(up + this.tilt);
   }
 
   /** Swing the composed lens for a change of the arm's elevation from `e0` to `e1` degrees, as a tick would compose it:
@@ -481,11 +518,14 @@ export class ChaseRig {
 
     // ---- stage 1: the ideal arm for the sprite's outline, eased when the squad tags a Pokémon with another outline
     const I = chaseArm(f), F = CFG.frame, V = this.wantV;
-    if (!this.sizeSet) { this.backWant = I.back; this.shoulderWant = I.shoulder; this.cornerTop = I.top; this.cornerRight = I.right; this.sizeSet = true; }
+    if (!this.sizeSet) { this.backWant = I.back; this.shoulderWant = I.shoulder; this.cornerTop = I.top; this.cornerRight = I.right; this.tilt = I.tilt; this.sizeSet = true; }
     else {
       [this.backWant, V[0]] = smoothDamp(this.backWant, I.back, V[0], F.settle, dt); [this.shoulderWant, V[1]] = smoothDamp(this.shoulderWant, I.shoulder, V[1], F.settle, dt);
       [this.cornerTop, V[2]] = smoothDamp(this.cornerTop, I.top, V[2], F.settle, dt); [this.cornerRight, V[3]] = smoothDamp(this.cornerRight, I.right, V[3], F.settle, dt);
+      [this.tilt, this.tiltV] = smoothDamp(this.tilt, I.tilt, this.tiltV, F.settle, dt);
     }
+    // the look band is absolute (aimPitch up / down about the horizon): the player's own pitch gives way to the tilt
+    this.userPitch = clamp(this.userPitch, this.band[0] - this.tilt, this.band[1] - this.tilt);
     const want = this.backWant, wantS = this.shoulderWant;
 
     // the anchor: the Pokémon itself, no lag
@@ -500,7 +540,7 @@ export class ChaseRig {
     // the cap is coming in before the lens itself is under a slab. A slab over the Pokémon, beside it or over the
     // shoulder arm also lowers the pivot (the outline's top may stand taller than the gap). Both are eased (in over
     // deck.enter s, out over deck.exit s) and depend only on where the Pokémon stands, never on where it is going
-    const DK = CFG.deck, free = boomElevation(this.userPitch);
+    const DK = CFG.deck, free = boomElevation(this.userPitch + this.tilt);
     const sPrev = this.fresh ? wantS : this.shoulderUsed, bPrev = this.fresh ? want : this.boomUsed;
     // the pivot on the corner's top as the shader draws it from where the lens was (the stretch follows the arm in use)
     const tall = chasePivotH(this.cornerTop, bPrev, sPrev, Math.min(free, this.slabLim));
@@ -630,7 +670,7 @@ export class ChaseRig {
     // it is); the frame's own P1 check (clearLens) has the last word
     this.eye = [hx - sy * cp * back, oy + sp * back + this.stepY, hz - cy * cp * back];
     this.lensGap = Math.hypot(this.eye[0] - ox, this.eye[1] - this.stepY - oy, this.eye[2] - oz);
-    this.viewPitch = ownedPitch(this.userPitch);
+    this.viewPitch = ownedPitch(this.userPitch + this.tilt);
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
     this.target = [this.eye[0] + sy * vc * 20, this.eye[1] - vs * 20, this.eye[2] + cy * vc * 20];
     this.fov = clamp(CFG.fov + this.fovOffset, CFG.fovRange[0], CFG.fovRange[1]) * D2R;
@@ -648,7 +688,7 @@ export class ChaseRig {
   look(dyaw: number, dpitch: number, range: [number, number] = lookPitchRange()) {
     const y0 = this.yaw, up0 = this.userPitch;
     this.yaw = wrap(y0 - dyaw);
-    this.userPitch = clamp(up0 + dpitch / D2R, range[0], range[1]);
+    this.userPitch = clamp(up0 + dpitch / D2R, range[0] - this.tilt, range[1] - this.tilt);
     if (!this.ready) return; // nothing composed yet: the first update() snaps onto the Pokémon with this yaw and pitch
     const d = wrap(this.yaw - y0), cd = Math.cos(d), sd = Math.sin(d);
     const ex = this.raw[0] - this.px, ez = this.raw[2] - this.pz;
@@ -657,7 +697,7 @@ export class ChaseRig {
     this.raw = [this.eye[0], this.eye[1], this.eye[2]];
     this.lensGap = Math.hypot(this.eye[0] - this.px, this.eye[1] - this.py - this.pivotH, this.eye[2] - this.pz);
     this.clearLens();
-    this.viewPitch = ownedPitch(this.userPitch);
+    this.viewPitch = ownedPitch(this.userPitch + this.tilt);
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
     this.target = [this.eye[0] + Math.sin(this.yaw) * vc * 20, this.eye[1] - vs * 20, this.eye[2] + Math.cos(this.yaw) * vc * 20];
   }

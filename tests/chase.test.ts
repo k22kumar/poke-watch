@@ -1,7 +1,7 @@
 // Third-person camera rig (render/camera.ts): pure maths, no GL. Run with `npm test`.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ChaseRig, CHASE_CONFIG, RING, RETICLE_Y, bearingOf, boomElevation, chaseAim, chaseArm, cameraPreset, CAMERA_PRESETS, lookPitchRange, ringAdd, type ChaseFrame } from '../src/render/camera';
+import { ChaseRig, CHASE_CONFIG, RING, RETICLE_Y, bearingOf, boomElevation, chaseAim, chaseArm, chaseTilt, cameraPreset, CAMERA_PRESETS, lookPitchRange, neutralGround, ringAdd, type ChaseFrame } from '../src/render/camera';
 import { backFor, cardPoint, classOutline, pivotHeight, seen, type Outline } from '../src/render/framing';
 import { defaultRules } from '../src/rules/defaults';
 
@@ -338,4 +338,95 @@ test('stair smoothing: the sprite shares the step offset up to step.sprite of it
     assert.equal(r.spriteStep, 0, `${name}: back on the body`);
     assert.equal(r.stepOffset, 0);
   }
+});
+
+// ---------------------------------------------------------------------------------------------- F3: the subject tilt
+// (docs/THIRD_PERSON_IMPLEMENTATION.md §26, docs/size-extremes-plan.md F3): a partner whose neutral crosshair would meet
+// flat ground past aim.max gets just enough extra pitch to bring it back; every other partner gets none. Eased over
+// frame.settle whenever the outline changes (a tag swap, an evolution, any size change); never moving otherwise.
+/** giant outlines as the capture-only pack measures them (tests/fixtures/giants-frame.json): Onix-like and Eternatus-like */
+const ONIXISH: Outline = { top: 3.92, right: 3.11, left: 3.11, drop: 0.41, combat: [] };
+const ETERNATUSISH: Outline = { top: 4.54, right: 3.49, left: 3.49, drop: 1.54, combat: [] };
+/** where the settled rig's view axis meets flat ground, metres ahead of the feet along the yaw (criterion E4) */
+const groundAhead = (r: ChaseRig, x = 0, z = 0) => {
+  const fx = Math.sin(r.yaw), fz = Math.cos(r.yaw), s = r.eye[1] / Math.sin(r.viewPitch);
+  return (r.eye[0] - x) * fx + (r.eye[2] - z) * fz + Math.cos(r.viewPitch) * s;
+};
+
+test('subject tilt: none for any outline whose neutral ground point is inside aim.max, just enough for one past it', () => {
+  const max = CHASE_CONFIG.aim.max;
+  for (const c of defaultRules.size.classes) {
+    const I = chaseArm({ outline: classOutline(c.visual), height: 1 });
+    assert.equal(I.tilt, 0, `${c.id}: no tilt`);
+    assert.ok(neutralGround(I, 0) <= max, `${c.id}: ground point ${neutralGround(I, 0).toFixed(1)} m`);
+  }
+  for (const [id, outline] of [['onix-like', ONIXISH], ['eternatus-like', ETERNATUSISH]] as const) {
+    const I = chaseArm({ outline, height: 1 });
+    assert.ok(neutralGround(I, 0) > max && I.tilt > 0 && I.tilt < CHASE_CONFIG.aimPitch.tiltMax, `${id}: tilt ${I.tilt.toFixed(2)}°`);
+    assert.equal(I.tilt, chaseTilt(I));
+    assert.ok(Math.abs(neutralGround(I, I.tilt) - max) < 1e-3, `${id}: brought back to aim.max (${neutralGround(I, I.tilt).toFixed(3)} m)`);
+    assert.ok(neutralGround(I, I.tilt - 0.01) > max, `${id}: and no more than that`);
+    // the settled rig frames it so: the view axis is neutral + tilt, the corner still on the keep-out's, the ground point
+    // where the closed form puts it
+    const r = new ChaseRig();
+    settle(r, { outline }, 4);
+    assert.ok(Math.abs(r.tilt - I.tilt) < 1e-6 && Math.abs(r.viewPitch / D2R - (CHASE_CONFIG.aimPitch.neutral + I.tilt)) < 1e-6, `${id}: view pitch ${(r.viewPitch / D2R).toFixed(3)}°`);
+    assert.ok(Math.abs(groundAhead(r) - max) < 0.05, `${id}: the rig's neutral ground point ${groundAhead(r).toFixed(2)} m`);
+    const c = cardPoint(r, [0, 0, 0], I.right, I.top), a = seen(r, c[0], c[1], c[2]);
+    assert.ok(Math.abs(a[0] + CHASE_CONFIG.reticle.side) < 0.05 && Math.abs(a[1] + CHASE_CONFIG.reticle.below) < 0.05, `${id}: corner (${a[0].toFixed(2)}°, ${a[1].toFixed(2)}°)`);
+  }
+});
+
+/** the tilt over a change of outline from `a` to `b` (the same Pokémon, no look input): every frame's tilt and view pitch */
+const across = (a: Outline, b: Outline) => {
+  const r = new ChaseRig();
+  settle(r, { outline: a }, 3);
+  const up = r.userPitch, from = r.tilt, to = chaseArm({ outline: b, height: 1 }).tilt, tilts: number[] = [];
+  for (let t = 0; t < 3; t += 1 / 60) { r.update(frame({ outline: b })); tilts.push(r.tilt); assert.equal(r.userPitch, up, 'the player\'s own pitch never moves'); }
+  return { r, from, to, tilts };
+};
+const eases = (label: string, { from, to, tilts }: ReturnType<typeof across>) => {
+  const F = CHASE_CONFIG.frame.settle, at = (s: number) => tilts[Math.round(s * 60) - 1];
+  assert.ok(Math.abs(to - from) > 0.5, `${label}: the tilt changes (${from.toFixed(2)}° -> ${to.toFixed(2)}°)`);
+  const share = (v: number) => (v - from) / (to - from);
+  assert.ok(share(at(1 / 60)) < 0.1, `${label}: no jump on the first frame (${(100 * share(at(1 / 60))).toFixed(0)} %)`);
+  assert.ok(share(at(F)) > 0.4 && share(at(F)) < 0.95, `${label}: about half way after frame.settle (${(100 * share(at(F))).toFixed(0)} %)`);
+  assert.ok(Math.abs(share(tilts[tilts.length - 1]) - 1) < 1e-3, `${label}: there after 3 s`);
+  for (let k = 1; k < tilts.length; k++) assert.ok(share(tilts[k]) >= share(tilts[k - 1]) - 1e-12 && share(tilts[k]) <= 1 + 1e-12, `${label}: monotonic, no overshoot`);
+};
+
+test('subject tilt: a tag swap onto a giant eases it in over frame.settle; swapping back eases it out', () => {
+  const small = classOutline(defaultRules.size.classes[1].visual);
+  eases('swap in', across(small, ETERNATUSISH));
+  eases('swap out', across(ETERNATUSISH, small));
+});
+
+test('subject tilt: an evolution (or any size change) that changes the tilt eases it over frame.settle', () => {
+  // the same Pokémon, its outline grown from one giant's to a larger one's: both tilted, by different amounts
+  const run = across(ONIXISH, ETERNATUSISH);
+  assert.ok(run.from > 0 && run.to > run.from, `${run.from.toFixed(2)}° -> ${run.to.toFixed(2)}°`);
+  eases('evolution', run);
+});
+
+test('subject tilt: while the same partner stays, the crosshair ray never moves without input', () => {
+  const r = new ChaseRig();
+  settle(r, { outline: ETERNATUSISH }, 4);
+  const p0 = r.viewPitch, t0 = r.tilt;
+  // standing, then walking straight ahead (no look input): the view pitch and the tilt stay exactly where they are
+  for (let k = 0; k < 120; k++) r.update(frame({ outline: ETERNATUSISH }));
+  for (let k = 0; k < 240; k++) r.update(frame({ outline: ETERNATUSISH, z: -k * 0.05 }));
+  assert.equal(r.viewPitch, p0);
+  assert.equal(r.tilt, t0);
+});
+
+test('subject tilt: the look band stays absolute (aimPitch up / down about the horizon) for a tilted partner', () => {
+  const r = new ChaseRig(), A = CHASE_CONFIG.aimPitch;
+  settle(r, { outline: ETERNATUSISH }, 4);
+  assert.ok(r.tilt > 0);
+  r.look(0, 200 * D2R);
+  settle(r, { outline: ETERNATUSISH }, 0.2);
+  assert.ok(Math.abs(r.viewPitch / D2R - A.down) < 1e-6, `looking fully down: ${(r.viewPitch / D2R).toFixed(3)}°`);
+  r.look(0, -400 * D2R);
+  settle(r, { outline: ETERNATUSISH }, 0.2);
+  assert.ok(Math.abs(r.viewPitch / D2R + A.up) < 1e-6, `looking fully up: ${(r.viewPitch / D2R).toFixed(3)}°`);
 });

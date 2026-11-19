@@ -11,6 +11,7 @@ import { SPECIES_BY_ID } from '../src/rules/species';
 import { atPitch, composition, hudOverlap, onScreen } from '../scripts/camframe';
 import { settled } from '../scripts/lib/camrig';
 import { framedSpecies, playFrames, spriteOutline } from '../scripts/lib/silhouette';
+import { FRAME_GIANTS, fixtureOnly, frameBodyOf } from '../scripts/lib/giants';
 
 const R = CHASE_CONFIG.reticle, D2R = Math.PI / 180;
 const ROSTER = framedSpecies();
@@ -18,7 +19,7 @@ const ROSTER = framedSpecies();
 test('criterion A: on open ground no standing or walking frame of any species is inside the keep-out; a combat frame is only where the fixed allowance is capped', () => {
   assert.ok(ROSTER.length >= 60, `${ROSTER.length} species with art and a size class`);
   let capped = 0;
-  for (const id of ROSTER) {
+  for (const id of [...ROSTER, ...fixtureOnly()]) { // the capture-only giants too (F3)
     const row = composition(id), arm = chaseArm({ outline: spriteOutline(id)!.outline, height: 1 });
     assert.equal(row.body, 0, `${id}: ${row.body} idle / walk frames inside the keep-out (deepest ${row.bodyDeep}°)`);
     if (row.cast + row.hurt > 0) { capped++; assert.ok(arm.capped, `${id}: ${row.cast + row.hurt} combat frames inside, yet its allowance (${arm.need.toFixed(1)}° needed) is not at the cap`); }
@@ -29,39 +30,38 @@ test('criterion A: on open ground no standing or walking frame of any species is
   assert.ok(capped <= 24, `${capped} species have frames past the allowance`);
 });
 
-// F3 (docs/size-extremes-plan.md): a partner whose chase back distance is capped at CHASE_CONFIG.frame.max is framed short
-// of what the law wants for it (an Extra Large giant: Onix since the size-extremes default flip), so its lowest point,
-// drawn share, move-bar overlap and neutral crosshair ground point run past the limits. Until F3 frames such a partner
-// (aim lower / tilt the pitch, or a raised frame.max) it gets these ceilings instead; every other partner keeps the
-// limits below. This stops applying by itself once F3 raises frame.max far enough that the law is no longer capped. A
-// capped partner over these ceilings still fails, on purpose: F3 comes before S2's giants become partners.
-const CAPPED = { bottomY: 0.96, drawn: 0.42, under720: 0.04, ground: 28 };
-const NORMAL = { bottomY: 0.95, drawn: 0.4, under720: 0.025, ground: CHASE_CONFIG.aim.max };
+// F3 (docs/size-extremes-plan.md, docs/THIRD_PERSON_IMPLEMENTATION.md §26): the capture-only giants Wailord and
+// Eternatus are checked as partners from their measured numbers (tests/fixtures/giants-frame.json, scripts/lib/giants.ts)
+// until S2 makes them game species; then the real species are used and the fixture must go
+const PARTNERS = [...ROSTER, ...fixtureOnly()];
 const backCapped = (id: string) => chaseArm({ outline: spriteOutline(id)!.outline, height: 1 }).back >= CHASE_CONFIG.frame.max - 1e-9;
-const limitsOf = (id: string) => (backCapped(id) ? CAPPED : NORMAL);
+
+test('the capture-only giants: in the fixture only while they are not game species', () => {
+  assert.ok(fixtureOnly().length >= 2 || ['wailord', 'eternatus'].every((id) => SPECIES_BY_ID[id]), 'Wailord and Eternatus are checked: from the fixture or as game species');
+  for (const id of Object.keys(FRAME_GIANTS)) assert.ok(!SPECIES_BY_ID[id], `${id} is a game species now (S2): switch to it and delete tests/fixtures/giants-frame.json`);
+});
 
 test('criterion B: every species has the same corner on the keep-out, its whole drawn body in frame at 0.30 to 0.40 of the frame height, and its lowest point over the move bar', () => {
-  for (const id of ROSTER) {
-    const row = composition(id), L = limitsOf(id);
+  for (const id of PARTNERS) {
+    const row = composition(id);
     assert.ok(Math.abs(row.cornerX + R.side) < 0.5 && Math.abs(row.cornerY + R.below) < 0.5, `${id}: corner (${row.cornerX}°, ${row.cornerY}°)`);
     assert.ok(row.feetY <= 0.95, `${id}: feet at ${row.feetY}`);
     // a PMD sprite's anchor is the middle of its footprint: the picture reaches below it (a fifth of its height at the
     // median). The size and the bottom edge are judged on what is drawn, not on the anchor: framed from the top alone,
     // idle and walk frames reached 0.85 to 1.11 of the frame height (six species off the bottom edge)
-    assert.ok(row.bottomY <= L.bottomY, `${id}: lowest drawn point of an idle / walk frame at ${row.bottomY}`);
-    assert.ok(row.drawn >= 0.3 && row.drawn <= L.drawn, `${id}: drawn body ${row.drawn} of the frame height`);
+    assert.ok(row.bottomY <= 0.95, `${id}: lowest drawn point of an idle / walk frame at ${row.bottomY}`);
+    assert.ok(row.drawn >= 0.3 && row.drawn <= 0.4, `${id}: drawn body ${row.drawn} of the frame height`);
     for (const aspect of [4 / 3, 16 / 9]) assert.ok(onScreen(id, CHASE_CONFIG.fov, aspect).feet, `${id}: feet on screen at aspect ${aspect.toFixed(2)}`);
     // the HUD's move bar (fixed pixels, bottom centre): no idle or walk frame under it in a 1080p window; in a
     // 1280 x 720 one a frame reaches at most 2.5 % of the screen height under it
     assert.equal(hudOverlap(id, 1920, 1080).under, 0, `${id}: a frame under the move bar at 1920 x 1080`);
-    assert.ok(hudOverlap(id, 1280, 720).under <= L.under720, `${id}: ${(100 * hudOverlap(id, 1280, 720).under).toFixed(1)} % of the screen height under the move bar at 1280 x 720`);
+    assert.ok(hudOverlap(id, 1280, 720).under <= 0.025, `${id}: ${(100 * hudOverlap(id, 1280, 720).under).toFixed(1)} % of the screen height under the move bar at 1280 x 720`);
   }
-  // criterion E4: with no input the crosshair meets flat ground inside the planar aim range, for every class (a capped
-  // partner to 28 m: chaseAim clamps it to aim.max, about 0.46° of planar heading for Onix, accepted under F3)
-  for (const id of ROSTER) { const g = composition(id).ground; assert.ok(g >= CHASE_CONFIG.aim.min && g <= limitsOf(id).ground, `${id} (${bodyOf(SPECIES_BY_ID[id]).className}): neutral crosshair ground point ${g} m`); }
-  // which partners are capped today (F3 removes them; S2 must not add one past the ceilings). Furret was capped before
-  // the default flip too and passes the ordinary limits; Onix is the one that needs the ceilings
-  assert.deepEqual(ROSTER.filter(backCapped).sort(), ['furret', 'onix']);
+  // criterion E4: with no input the crosshair meets flat ground inside the planar aim range, for every class (a partner
+  // whose neutral ground point would lie past aim.max is framed with the subject tilt that brings it back: chaseTilt)
+  for (const id of PARTNERS) { const g = composition(id).ground; assert.ok(g >= CHASE_CONFIG.aim.min && g <= CHASE_CONFIG.aim.max, `${id} (${frameBodyOf(id).className}): neutral crosshair ground point ${g} m`); }
+  // no partner is held short of its framing by frame.max (a future giant that needs more than it fails here)
+  assert.deepEqual(PARTNERS.filter(backCapped), []);
 });
 
 test('the whole look range: inside the orbit range no standing or walking frame enters the keep-out; past it the crosshair ray still passes beside the outline and what crosses the keep-out dissolves', () => {

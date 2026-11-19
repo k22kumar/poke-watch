@@ -6,7 +6,7 @@ Written for the Claude Code sessions that run S2 and S3, and for the owner decid
 - **Stage completed:** S1, revised after the owner's decisions on 2026-11-18 (§S1.9). The measurement axis and the XL visual law exist behind two `rules.size` flags. **[Superseded: `axis`, `xlContinuous` and `xlTall` are on by default since 2026-11-18, "Default flip" below.]**
 - **S2:** skipped for now (owner).
 - **S3:** done (§S3). The owner decided on the adjustments on 2026-11-18 (§S3.10): A approved behind a new flag, B and C rejected, D accepted (F2), E goes to the camera session (F3). **[Since done: F1, A as `xlTall`, then the default flip ("Default flip" below).]**
-- **Next, in order:** the camera session commits → rebase this branch onto `main` → F1 → A (`rules.size.xlTall`) → S2 (§S3.10). [Done up to A; then the default flip (2026-11-18, "Default flip"). Next: S2, with F3 before S2 makes Eternatus a partner.]
+- **Next, in order:** the camera session commits → rebase this branch onto `main` → F1 → A (`rules.size.xlTall`) → S2 (§S3.10). [Done up to A; then the default flip (2026-11-18, "Default flip") and F3 ("F3 done" below). Next: S2. Gate before S2 makes Eternatus a partner: its lens regression ("F3 done").]
 - **Branch:** `size-extremes-s1`, in its own worktree (`../poke-watch-s1`), based on `b89fb55`. The main checkout has another session's uncommitted camera work, and switching its branch would have moved that session's work. S1 and S3 are committed on the branch (§S3.10). It is not pushed and not merged into `main`.
 - **Owner decisions:** recorded in §S1.9, §S3.1 and §S3.10. Follow-ups F1–F3 are in §S1.10.
 - **Separate task:** the pre-existing `tests/pointerlock.test.ts` failures, in `docs/tasks/pointerlock-red-tests.md`.
@@ -422,7 +422,7 @@ Gates after these changes:
 
 - **F1 [done 2026-11-18, §F1 below]: the renderer, UI and spawn size filters read `ctx.rules`.** `speciesSizing` in `src/render/renderer.ts`, the class label and search in `src/ui/ui.ts`, and `passes` in `src/rules/spawning.ts` (the `sizeClasses` filter) must take the run's `rules.size`, not `defaultRules.size`. **When:** after the camera session commits (`renderer.ts` and `ui.ts` are its files) and **before any S1 flag becomes a default.** With the flags off it moves no hash: classes and draws equal the defaults. Add a test that a `ruleOverrides` flag reaches all three readers.
 - **F2: props near large sprites fade** (owner accepted D, §S3.10). Wall props (trees, buildings, rock) that a large creature card overlaps fade or dissolve, the way the chase lens dissolves props near the lens. That way a giant's wide sprite (Eternatus' widest frame crosses a wall at 15% of standable positions, §S3.4) is not cut by the crowns in front of it. Renderer work (`src/render/renderer.ts`, `tilestage.ts`). **When:** after the camera session commits. Moves no sim hash.
-- **F3 (for the camera session): giant framing** (owner sent E there, §S3.10). **F3 must be fixed before S2 makes Eternatus playable as a partner** (owner, default flip). Accepted meanwhile (default flip): Onix as a partner sits at the back-distance cap, and its neutral crosshair ground point (27.4 m) is clamped to `CHASE_CONFIG.aim.max` 26 m by `chaseAim`, about 0.46° of planar heading; `tests/camframe.test.ts` gives every capped partner looser ceilings until F3 lands. From the S3 numbers (§S3.7) on the chase rig at `b89fb55`:
+- **F3 [done 2026-11-18, "F3 done" below]: giant framing** (owner sent E there, §S3.10). **F3 must be fixed before S2 makes Eternatus playable as a partner** (owner, default flip). Accepted meanwhile (default flip): Onix as a partner sits at the back-distance cap, and its neutral crosshair ground point (27.4 m) is clamped to `CHASE_CONFIG.aim.max` 26 m by `chaseAim`, about 0.46° of planar heading; `tests/camframe.test.ts` gives every capped partner looser ceilings until F3 lands. From the S3 numbers (§S3.7) on the chase rig at `b89fb55`:
   - **Pivot cap:** the pivot caps at `pivot.max` 2.4 m for every giant except Snorlax. With flags on it sits at 60% (Eternatus) and 66% (Wailord) of the drawn height, against about 80% (`chest`) for smaller Pokémon.
   - **Size-factor cap:** the factor caps at `size.max` 1.8 (Explore boom 7.56 m) for Wailord and Eternatus with flags on, so the largest giants get no more boom than a 4 m one.
   - **Crosshair:** Eternatus seen from behind covers the screen centre, where the crosshair is, **even with flags off**. Its card's right edge is at 658 px off and 706 px on, against a centre of 640 px (1280 × 720).
@@ -1047,3 +1047,32 @@ Moved against the pre-flip `on`: totodile (7th mark `d634f7af` → `f9b91e67`, k
 | habaudit | not run (owner: profiles and fresh loads already match the baseline) |
 
 Not merged, not pushed.
+
+---
+
+## F3 done: giant framing (2026-11-18)
+
+Grilled with the owner, then built on `main`; full record in `docs/THIRD_PERSON_IMPLEMENTATION.md` §26 and
+`docs/THIRD_PERSON.md` "Composition".
+
+- **Measured first:** a per-subject pitch alone cannot pass criterion B (it moves E4, not the feet or the drawn share);
+  only distance brings the drawn share to 0.40, and distance alone leaves E4 failing for Onix (27.1 m) and Eternatus
+  (31.0 m).
+- **Built:** `frame.max` 9 → 14 m (the law sets every partner's distance under it; Eternatus wants 13.75 m), and a
+  condition-bound subject tilt (`chaseTilt`): zero unless a partner's neutral crosshair ground point lies past
+  `aim.max` (26 m), then just enough extra pitch to bring it back. Onix 0.52°, Eternatus 2.35°, every other partner 0.
+  Eased over `frame.settle` on a tag swap, an evolution or any size change; a deliberate exception to §24.2.
+- **Result:** all 70 partners (68 game species, Wailord and Eternatus from `tests/fixtures/giants-frame.json`) pass
+  criterion B at the normal limits; the `frame.max` exception in `tests/camframe.test.ts` is gone; criterion A (nothing
+  in the keep-out) covers the giants too. Captures: Eternatus' feet back in frame (bottom margin −76 → 77 px), Onix 31 →
+  58 px, Wailord 30 → 84 px; every card left of the crosshair. Every checksum set identical.
+- **Gate before S2 makes Eternatus a partner:** its lens regression at 13.75 m must be fixed or explicitly re-accepted.
+  Tuning clear share 87.6 → 83.3 % forward and 78.1 → 73.3 % reverse; lens pops reverse 19.2 → 32.6 /min, strafeR 43.0
+  → 52.1 /min with the largest 4.7 → 9.8 m; holdout approach hard pull-ins 4.8 → 11.9 %. Onix and Wailord move within
+  about 1.5 points; Furret strafeR pops 25.7 → 35.7 /min; Feraligatr (control) identical. Full tables:
+  `docs/camaudit/2026-11-18-f3-{before,after}.json`.
+- **The fixture goes with S2:** when Wailord and Eternatus become game species, `tests/camframe.test.ts` switches to them
+  and fails until `tests/fixtures/giants-frame.json` is deleted.
+- **Capture tooling:** `.capture/build.mjs` (local, git-ignored) now builds one variant at the current defaults
+  (`node .capture/build.mjs defaults --out <dir>`); its old `on` variant could not build once the flags were default-on.
+

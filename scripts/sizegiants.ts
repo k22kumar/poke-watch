@@ -21,6 +21,7 @@ import { createRun, startStage } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { Contacts, SK, spatialQuery, sweep } from '../src/sim/spatial';
 import { CHASE_CONFIG, boomElevation, chaseArm, chasePivotH } from '../src/render/camera';
+import { PLAY_CLIPS, registerArt, spriteOutline } from './lib/silhouette';
 
 const arg = (k: string) => { const i = process.argv.indexOf(k); return i >= 0 ? process.argv[i + 1] : undefined; };
 const OUT = arg('--out') ?? '.capture/out';
@@ -37,6 +38,24 @@ if (packFile) {
     const d = { id: s.id, name: s.name, dex: s.dex, types: s.types, elements: s.elements, stats: s.stats, height: s.height, art: 'pokemon:' + s.id, canon: { ...s.canon, shape, axis: axisOf(s.id, shape) } } as SpeciesDef;
     SPECIES.push(d); SPECIES_BY_ID[d.id] = d;
   }
+  // --fixture <out.json>: the camera checks' fixture of the capture-only giants (scripts/lib/giants.ts): their body under
+  // the default size rules and the measured outline numbers the framing reads, no art. Written, then the script stops
+  const fixtureOut = arg('--fixture');
+  if (fixtureOut) {
+    registerArt(Object.fromEntries(pack.species.map((sp: { id: string; art: unknown }) => [sp.id, { art: sp.art }])) as never);
+    const species: Record<string, unknown> = {};
+    for (const sp of pack.species as { id: string }[]) {
+      if (CATALOGUE_BY_ID[sp.id] === undefined && !SPECIES_BY_ID[sp.id]) continue;
+      const o = spriteOutline(sp.id)!, b = bodyOf(SPECIES_BY_ID[sp.id]);
+      const clips = Object.fromEntries(PLAY_CLIPS.map((c) => [c, { overlay: o.clips[c].overlay }]));
+      const frames = Object.fromEntries(PLAY_CLIPS.map((c) => [c, o.silhouette.frames[c]]));
+      species[sp.id] = { body: { height: b.height, visualM: b.visualM, className: b.className, sizeClass: b.sizeClass }, sprite: { id: sp.id, scale: o.scale, outline: o.outline, clips, silhouette: { frames } } };
+    }
+    fs.mkdirSync(path.dirname(fixtureOut), { recursive: true });
+    fs.writeFileSync(fixtureOut, JSON.stringify({ note: 'measured numbers only, no art: scripts/lib/giants.ts; delete when S2 imports these species', pack: path.basename(packFile), species }) + '\n');
+    console.log(`${fixtureOut}: ${Object.keys(species).join(', ')}`);
+    process.exit(0);
+  }
 }
 const measure = (f?: string) => {
   if (!f) return {} as Record<string, any>;
@@ -48,10 +67,11 @@ const measure = (f?: string) => {
 const MON = measure(arg('--measure-on'));
 const M = { on: MON, off: measure(arg('--measure-off')), tall: MON };
 type V = 'off' | 'on' | 'tall';
+// every flag explicit: since the size-extremes default flip all three are on by default (`tall` = the defaults)
 const RULES: Record<V, Rules> = {
-  on: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true } } as Rules,
+  on: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true, xlTall: false } } as Rules,
   tall: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true, xlTall: true } } as Rules,
-  off: defaultRules,
+  off: { ...defaultRules, size: { ...defaultRules.size, axis: false, xlContinuous: false, xlTall: false } } as Rules,
 };
 const VS = ['off', 'on', 'tall'] as const;
 const f2 = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : String(n));

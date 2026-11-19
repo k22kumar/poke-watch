@@ -2857,3 +2857,68 @@ that is still on its way in when the rock has passed never gets as short.
 - `raycastWorld` for the lens; a shoulder-swap binding; a finer dissolve than the 4 × 4 dither.
 - B5 (the sprite's own size by row and clip) stays with Stage 6B.
 
+## 26. F3: giant framing (2026-11-18)
+
+Owner request (`docs/size-extremes-plan.md` F3): frame Extra Large partners by aiming lower and tilting the pitch rather
+than only raising `frame.max`; if the distance must rise, cap it around 14 m and measure lens blocking. Acceptance: every
+partner, including the capture-only Wailord and Eternatus, passes criterion B at the normal limits, with the `frame.max`
+exception removed, the crosshair clear and the feet in frame. Grilled before any change.
+
+### 26.1 What the measurements decided
+
+- **Pitch alone cannot pass criterion B.** A per-subject view pitch moves the neutral ground point (E4) a lot and the
+  feet and drawn share very little: Eternatus at 9 m back and a 22° pitch still has its lowest point at 1.080 and a drawn
+  share of 0.538. Only the back distance brings the drawn share to 0.40 or less (Eternatus needs about 12.5–13 m).
+- **Distance alone leaves E4 failing**: with `frame.max` 14, Onix 27.1 m and Eternatus 31.0 m, against 26 m.
+- Lowering `reticle.below` per subject moves the corner (fails "same corner") and is floored at 0 by the "never below
+  the view pitch" rule; lowering the pivot is the same geometry. Neither was taken.
+
+### 26.2 Decisions (owner, 2026-11-18)
+
+| Decision | Detail |
+|---|---|
+| One law, keyed on a condition | Nothing per class: the new behaviour only engages where the current law asks for more than the camera allowed |
+| `frame.max` 9 → 14 m | The law sets every partner's distance under it (Eternatus 13.75 m); partners under 9 m frame exactly as before |
+| Subject tilt (`chaseTilt`) | Zero unless the neutral ground point lies past `aim.max`; then just enough extra pitch to bring it to `aim.max` (at most `aimPitch.tiltMax` 10°). Onix 0.52°, Eternatus 2.35°, every other partner 0. The global neutral (11°) and its pins stay |
+| Exception to §24.2 | Deliberate and condition-bound: a tag swap, an evolution or any size change of the current partner eases the tilt over `frame.settle` (0.45 s), as the arm already does; the player's own pitch never moves, the look band stays absolute |
+| Eternatus lens regression | Accepted and recorded as a gate: it must be fixed or explicitly re-accepted before S2 makes Eternatus a partner (§25.8 "shorter arm for Large and Extra Large near rock" stays the candidate) |
+| Wailord / Eternatus in CI | `tests/fixtures/giants-frame.json`: measured numbers only (body, outline, per-frame silhouette bounds, clip overlays), regenerated with `scripts/sizegiants.ts --pack … --fixture`. When S2 imports the real species the test switches to them and fails until the fixture is deleted |
+| Replays | Framing is render-only: every checksum set prints what it printed before (the `aim` sets use a fixed lens, `scripts/lib/aimbot.ts`) |
+
+### 26.3 What changed
+
+- `src/render/camera.ts`: `frame.max` 14; `aimPitch.tiltMax`; `neutralGround` (E4 in closed form for an ideal arm and a
+  tilt) and `chaseTilt`; `chaseArm` returns the tilt; `ChaseRig.tilt` eased with the arm and added to the player's pitch
+  wherever the rig turns a pitch into a view or an arm elevation; the player's pitch band shifts by the tilt so the view
+  stays inside ±89°.
+- `scripts/lib/giants.ts` (new), `scripts/lib/silhouette.ts` (`registerArt`, fixture outlines), `scripts/lib/camrig.ts`
+  and `scripts/camframe.ts` (fixture bodies), `scripts/sizegiants.ts` (`--fixture`; its `off` / `on` / `tall` rules pin
+  every size flag).
+- Tests: `tests/camframe.test.ts` criterion A and B run the 68 game partners plus the two fixture giants at the normal
+  limits; the capped-partner exception is gone and "no partner is capped at `frame.max`" replaces its list;
+  `tests/chase.test.ts` adds the tilt cases (none inside the range, just enough past it, a tag swap and an evolution ease
+  it over `frame.settle`, the ray never moves while the same partner stays, the look band stays absolute).
+
+### 26.4 Verification (before = main `6ac6ab2`, after = this change)
+
+Criterion B, 70 partners at the normal limits: before, Onix, Wailord and Eternatus fail; after, none.
+
+| partner | back (m) | tilt | bottomY | drawn | 720p under the bar | E4 (m) |
+|---|---|---|---|---|---|---|
+| Onix | 9 → 9.80 | 0 → 0.52° | 0.957 → 0.919 | 0.415 → 0.377 | 3.78 % → 0 | 27.4 → 26.0 |
+| Furret | 9 → 9.66 | 0 | 0.938 → 0.908 | 0.396 → 0.366 | 1.82 % → 0 | 21.6 → 21.5 |
+| Wailord (pack) | 9 → 10.76 | 0 | 0.992 → 0.912 | 0.450 → 0.370 | 6.39 % → 0 | 25.8 → 25.3 |
+| Eternatus (pack) | 9 → 13.75 | 0 → 2.35° | 1.123 → 0.905 | 0.581 → 0.363 | 6.39 % → 0 | 32.6 → 26.0 |
+
+Browser captures (`size-frame` scenes, private build, 1280 × 720): bottom margin Onix 31 → 58 px, Wailord 30 → 84 px,
+Eternatus −76 px (feet off the screen) → 77 px; Snorlax unchanged; every card ends left of the crosshair (Onix 454,
+Wailord 536, Eternatus 545 px; centre 640).
+
+Lens (`scripts/lib/cambench.ts` proxies, full tables in `docs/camaudit/2026-11-18-f3-{before,after}.json`): Feraligatr
+(control, not capped) is identical. Onix and Wailord move within about 1.5 points of clear share. Furret strafeR lens
+pops 25.7 → 35.7 /min (tuning). Eternatus (the gate above): tuning clear 87.6 → 83.3 % forward, 78.1 → 73.3 % reverse;
+pops reverse 19.2 → 32.6 /min, strafeL 7.2 → 15.5 /min, strafeR 43.0 → 52.1 /min with the largest 4.7 → 9.8 m; holdout
+approach C3 4.8 → 11.9 %. `scripts/camstats.ts` (default run): every summary value identical.
+
+Camera tests 111/111 (105 before, plus the new ones). Checksums: every set identical.
+
