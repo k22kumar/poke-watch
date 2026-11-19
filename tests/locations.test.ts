@@ -319,15 +319,15 @@ test('decks in the sim: the slab stops lines of fire through it; the flow field 
 });
 
 test('decks: the chase camera stays under a deck above the Pokémon instead of climbing on top of it', async () => {
-  const { ChaseRig, NO_THREAT } = await import('../src/render/camera');
+  const { ChaseRig } = await import('../src/render/camera');
   const rig = new ChaseRig();
   // a flat floor at 0 with a cliff 3 m high behind (z < -1) and a deck at 3 m overhead everywhere z < 2
   const ground = (_x: number, z: number) => (z < -1 ? 3 : 0);
   const ceiling = (_x: number, z: number) => (z < 2 && z >= -1 ? 2.4 : Infinity);
   rig.yaw = Math.PI; // looking toward -z: the boom points back into the open (+z)
-  for (let t = 0; t < 120; t++) rig.update({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1, threat: NO_THREAT, lookYaw: 0, lookPitch: 0, ground, ceiling });
+  for (let t = 0; t < 120; t++) rig.update({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1, lookYaw: 0, lookPitch: 0, ground, ceiling });
   assert.ok(rig.eye[1] < 2.4, `eye ${rig.eye[1].toFixed(2)} under the slab while the Pokémon is beneath it`);
   rig.yaw = 0; // looking toward +z: the boom points back into the cliff under the shelf
-  for (let t = 0; t < 120; t++) rig.update({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1, threat: NO_THREAT, lookYaw: 0, lookPitch: 0, ground, ceiling });
+  for (let t = 0; t < 120; t++) rig.update({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1, lookYaw: 0, lookPitch: 0, ground, ceiling });
   assert.ok(rig.eye[1] < 2.4 && rig.eye[2] > -1, `eye (${rig.eye[1].toFixed(2)}, z ${rig.eye[2].toFixed(2)}) stays in the alcove`);
 });

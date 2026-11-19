@@ -13,8 +13,9 @@ import { pinchActive } from '../sim/combat';
 import { tidePhase } from '../sim/hazards';
 import { MOVE_BY_KEY } from '../rules/moves';
 const MOVE_NAMES: Record<string, string> = new Proxy({}, { get: (_t, k: string) => MOVE_BY_KEY[k]?.name });
-import { CAST_CLIP, TEXELS_PER_METRE, clipLength, dirIndex, frameAt, hitTime, type AnimState, type CreatureArt } from '../assets/art';
+import { CAST_CLIP, OVERLAY, TEXELS_PER_METRE, clipLength, dirIndex, frameAt, hitTime, type AnimState, type CreatureArt } from '../assets/art';
 import { loadBuiltinArt, type ArtBundle } from '../assets/builtin';
+import { overlayReach } from '../assets/measure';
 import { registry } from '../assets/registry';
 import { InstanceBatch, QUAD_CENTER, QUAD_FEET } from './batches';
 import { hexToRgb, mat4, Program, type GL } from './gl';
@@ -27,8 +28,9 @@ import { skyFor } from './sky';
 
 /** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
 const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
-import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, offFrameCue, RING, ringAdd, wobble, type CameraPreset, type OffFrameCue, type ViewSample } from './camera';
-import { chaseFrameFor, chaseSubjectSize } from './chaseinput';
+import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, offFrameCue, RING, ringAdd, type CameraPreset, type OffFrameCue, type ViewSample } from './camera';
+import { chaseFrameFor } from './chaseinput';
+import { cardOf, fadeFor, outlineOf, subjectBox, type CardBounds, type Outline, type SubjectBox } from './framing';
 import { SPRITE_SAMPLE_GLSL } from './spritesample';
 
 // creature billboard: per-frame rect + anchor, stretched like the props so texels stay square on screen
@@ -116,7 +118,12 @@ const COAT_RING: [number, number, number][] = [[1, 1, 1], [1, 0.45, 0.15], [0.3,
 const ELC: Record<string, [number, number, number]> = Object.fromEntries(ELEMENTS.map((e) => [e, hexToRgb(ELEMENT_DEFS[e].color)]));
 const TAU = Math.PI * 2;
 
-interface SpriteSet { art: CreatureArt; tex: WebGLTexture; batch: InstanceBatch; tw: number; th: number; walkRate: number; size: SpeciesSizing }
+interface SpriteSet {
+  art: CreatureArt; tex: WebGLTexture; batch: InstanceBatch; tw: number; th: number; walkRate: number; size: SpeciesSizing;
+  /** the sprite's measured outline at its drawn scale: what the third-person rig frames (render/framing.ts); absent when
+   *  the art was not measured */
+  outline?: Outline;
+}
 interface Dying { sp: string; x: number; y: number; z: number; dir: number; frame: number; t: number; scale: number }
 interface Ribbon { ax: number; ay: number; az: number; bx: number; by: number; bz: number; w: number; c: [number, number, number]; life: number; max: number }
 interface Ring { x: number; z: number; r: number; c: [number, number, number]; life: number; max: number; kind: number; grow: boolean }
@@ -250,7 +257,7 @@ export class Renderer {
     // asset's own neutral reference pose (idle, facing the camera, frame 0; width-normalised when Wide). Bosses keep their authored
     // `sp.scale`, which `drawSprites` applies on top, so `size.scale` is 1 for them and nothing compounds.
     const size = speciesSizing(sp ?? { id, name: id, elements: [], stats: { hp: 0, atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, height: art.heightPx / TEXELS_PER_METRE, art: id, scale: 1 }, art.heightPx / TEXELS_PER_METRE, (art.widthPx ?? 0) / TEXELS_PER_METRE);
-    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, size });
+    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, size, outline: art.silhouette ? outlineOf(art.silhouette, size.scale * (sp?.scale ?? 1)) : undefined });
   }
 
   /** What the visible-size rule (rules/sizing.ts) submits for every loaded sheet: source extent and its
@@ -610,18 +617,13 @@ export class Renderer {
       this.stretch = 1 / Math.max(0.35, Math.cos(this.pitch));
     } else {
       // third person: the rig orbits the Pokémon (mouse / right stick), nothing is snapped to a texel grid
+      // (the rig frames the Pokémon from its size class, render/chaseinput.ts chaseSubject. No screen shake in third
+      // person: the lens is the crosshair ray's origin, so shaking it moved the player's aim; the fixed views keep theirs)
       const rig = this.rig;
-      const pSet = this.sheets.get(P.species.id);
-      const f0 = pSet?.art.clips.idle?.frames[0]?.[0];
-      const subject = chaseSubjectSize(f0, pSet ? pSet.size.scale : 1);
-      // shake: smooth noise sized for a lens ~4 m from the Pokémon (a new random 0.45 m offset every frame was ~8x the
-      // fixed views' angular shake, and shook harder the higher the frame rate)
-      const SK = CHASE_CONFIG.shake, sa = sh * SK.amp, st = this.time * SK.freq;
-      const sx = sa * wobble(st, 0.3), sy = sa * wobble(st, 2.1) * 0.6, sz = sa * wobble(st, 4.7);
-      rig.update(chaseFrameFor(ctx, {
-        dt, x: px, y: cy, z: pz, height: subject.height, width: subject.width,
-        lookPitch: 0, shake: [sx, sy, sz],
-      }), { pitchRange: lookPitchRange(), fovOffset: this.fovOffset });
+      // (the rig frames the sprite as it is drawn: its measured outline, render/framing.ts)
+      rig.update(chaseFrameFor(ctx, { dt, x: px, y: cy, z: pz, lookPitch: 0, outline: this.sheets.get(P.species.id)?.outline }), { pitchRange: lookPitchRange(), fovOffset: this.fovOffset });
+      // the drawn sprite's height (idle frame x the species' visible-size scale), for the off-frame cue's points
+      const pSet = this.sheets.get(P.species.id), f0 = pSet?.art.clips.idle?.frames[0]?.[0];
       this.yaw = rig.yaw; this.pitch = rig.viewPitch; this.dist = rig.boomUsed;
       fov = rig.fov; [tx, ty, tz] = rig.target;
       [fx, fz] = rig.forward();
@@ -629,7 +631,7 @@ export class Renderer {
       this.camX = rig.px; this.camY = rig.py; this.camZ = rig.pz;
       near = 0.3; far = 240;
       this.stretch = -1; // per-object (see the billboard shaders)
-      this.subjectH = subject.height;
+      this.subjectH = f0 ? (f0.h / TEXELS_PER_METRE) * (pSet ? pSet.size.scale : 1) : 1.1;
     }
     // R2: the basis from the yaw, not lookAt's world up (degenerate at a vertical view). Both views look from the eye along
     // (yaw, pitch) at the target, so this is the same matrix inside today's envelope and stays orthonormal past it
@@ -668,7 +670,9 @@ export class Renderer {
       gl.bindVertexArray(null);
       gl.enable(gl.DEPTH_TEST); gl.depthMask(true);
       const bx = this.eye[0] - px, bz = this.eye[2] - pz, bl = Math.hypot(bx, bz) || 1;
-      fog = { col: sk.hor, near: sk.fogNear, far: sk.fogFar, k: sk.fog, behind: [bx / bl, 0, bz / bl] };
+      // props dissolve around the lens out to where the Pokémon stands (they never stop the lens: render/chaseinput.ts),
+      // so one between the two is seen through, whatever the back distance
+      fog = { col: sk.hor, near: sk.fogNear, far: sk.fogFar, k: sk.fog, behind: [bx / bl, 0, bz / bl], lens: Math.max(4, bl + 0.5) };
       // cull around the lens, not a point ahead of it: the old disc (74 m around a point 20 m ahead) swung with the yaw
       // and dropped props that were still on screen and only ~30 % fogged, so turning on the spot popped hundreds of
       // trees in and out on the horizon. Past chaseViewR the fog is complete, so distance never culls anything visible.
@@ -783,6 +787,8 @@ export class Renderer {
     const E = ctx.enemies;
     const r2 = (view.r + 4) * (view.r + 4);
     const right = this.right;
+    // the frame the last push() drew (row, frame, scale, procedural offset): read back for the player's own sprite
+    let lastRow = 0, lastFrame = 0, lastScale = 1, lastDx = 0, lastDy = 0;
     const push = (id: string, x: number, y: number, z: number, scale: number, facing: number, state: AnimState, t: number, flash: number, dissolve: number, tint: number[], bias = 0) => {
       const set = this.sheets.get(id);
       if (!set) return;
@@ -793,13 +799,16 @@ export class Renderer {
       const row = clip.frames[dir] ?? clip.frames[0];
       const fi = Math.min(frameAt(clip, t), row.length - 1);
       const f = row[fi];
+      lastRow = clip.frames[dir] ? dir : 0; lastFrame = fi; lastScale = scale;
       // procedural overlays for states the source didn't animate
       let dx = 0, dy = 0;
-      if (clip.overlay === 'bob') dy = Math.floor((Math.sin(this.time * 4 + x) * 0.5 + 0.5) * 1.99) / TEXELS_PER_METRE;
-      else if (clip.overlay === 'lunge') { const k = Math.sin(Math.min(1, t / 0.25) * Math.PI) * 0.18; dx = (Math.sin(facing) * right[0] + Math.cos(facing) * right[2]) * k; dy = k * 0.2; }
+      // (the offsets are OVERLAY's: assets/measure.ts reserves the same reach in the third-person framing)
+      if (clip.overlay === 'bob') dy = Math.floor((Math.sin(this.time * 4 + x) * 0.5 + 0.5) * 1.99) * OVERLAY.bob;
+      else if (clip.overlay === 'lunge') { const k = Math.sin(Math.min(1, t / 0.25) * Math.PI) * OVERLAY.lunge; dx = (Math.sin(facing) * right[0] + Math.cos(facing) * right[2]) * k; dy = k * OVERLAY.lungeLift; }
       else if (clip.overlay === 'flash') flash = Math.max(flash, 0.7);
       else if (clip.overlay === 'dissolve') dissolve = Math.max(dissolve, Math.min(1, t / 0.6));
       else if (clip.overlay === 'sink') { const k = Math.min(1, t / 0.5); dy = -k * k * (f.h / TEXELS_PER_METRE) * scale * this.stretch; if (t < 0.1) flash = Math.max(flash, 0.8); }
+      lastDx = dx; lastDy = dy;
       const o = set.batch.push();
       set.batch.data.set([x, y, z, scale, f.w, f.h, f.ax, f.ay, f.x / set.tw, f.y / set.th, (f.x + f.w) / set.tw, (f.y + f.h) / set.th, flash, dissolve, dx, bias, tint[0], tint[1], tint[2], dy], o);
     };
@@ -884,8 +893,33 @@ export class Renderer {
     // lens reaches the near plane (a Pokémon backed into a wall, the lens slid in right behind it). The x-ray silhouette
     // is not drawn then: with the sprite at the near plane it filled the screen with cyan stipple
     const gap = this.rig.lensGap;
-    const close = !this.chase ? 0 : gap >= 0.45 ? Math.min(0.75, Math.max(0, (0.95 - gap) / 0.5)) : Math.min(0.95, 0.75 + (0.45 - gap) / 0.15 * 0.2);
-    if (!blink && !this.debugHide.actors && !this.debugHide.player) { push(id, px, py, pz, 1, P.facing, state, t, flash, close, [1, 1, 1], inGrass ? -0.12 : 0); const ps = this.sheets.get(id); if (ps && ps.batch.count && close <= 0) { this.silSheet = ps; this.silData.set(ps.batch.data.subarray((ps.batch.count - 1) * 20, ps.batch.count * 20)); } }
+    const near = !this.chase ? 0 : gap >= 0.45 ? Math.min(0.75, Math.max(0, (0.95 - gap) / 0.5)) : Math.min(0.95, 0.75 + (0.45 - gap) / 0.15 * 0.2);
+    // third person: the sprite shares the rig's stair smoothing (CHASE_CONFIG.step, up to step.sprite of its own height:
+    // more would sink a small sprite into the tile it has just climbed), so a tile step moves neither the world nor the Pokémon in
+    // the frame in one tick. Presentation only: the shadow, the ground ring, the hurtbox, the muzzle and the shots stay
+    // where the body is
+    const sy = this.chase ? py + this.rig.spriteStep : py;
+    const ps = this.sheets.get(id);
+    // the keep-out around the crosshair (CHASE_CONFIG.reticle): the framing keeps the sprite out of it; where it cannot
+    // (a wall on the shoulder, a slab over the pivot, a frame past the fixed combat allowance), the sprite dissolves by
+    // how far the frame about to be drawn reaches in: at once going in, eased out over a quarter of a second
+    let keep = 0;
+    const sil = this.chase ? ps?.art.silhouette : undefined;
+    if (sil && ps) {
+      const clip = ps.art.clips[state], dir = dirIndex(P.facing - (this.yaw - Math.PI)), row = clip.frames[dir] ? dir : 0;
+      const fb = sil.frames[state]?.[row]?.[Math.min(frameAt(clip, t), clip.frames[row].length - 1)];
+      if (fb) { const ov = overlayReach(clip); keep = fadeFor(subjectBox({ eye: this.eye, yaw: this.yaw, viewPitch: this.pitch }, [px, sy, pz], cardOf(fb, ps.size.scale, ov.x, ov.y), CHASE_CONFIG.reticle).depth); }
+    }
+    this.keepFade = Math.max(keep, this.keepFade - dt / 0.25);
+    const close = Math.max(near, this.keepFade);
+    this.drawn = null;
+    if (!blink && !this.debugHide.actors && !this.debugHide.player) {
+      push(id, px, sy, pz, 1, P.facing, state, t, flash, close, [1, 1, 1], inGrass ? -0.12 : 0);
+      if (ps && ps.batch.count && close <= 0) { this.silSheet = ps; this.silData.set(ps.batch.data.subarray((ps.batch.count - 1) * 20, ps.batch.count * 20)); }
+      // the frame just drawn, for subjectBox(): its measured outline at the drawn scale, with its procedural offset
+      const fb = ps?.art.silhouette?.frames[state]?.[lastRow]?.[lastFrame];
+      if (fb) this.drawn = { anchor: [px, sy, pz], card: cardOf(fb, lastScale, lastDx, lastDy), state, row: lastRow, frame: lastFrame, fade: close };
+    }
 
     const gl = this.gl;
     const p = this.creature.use();
@@ -915,6 +949,23 @@ export class Renderer {
     }
   }
   private fog: Fog = NO_FOG;
+  /** the player's own sprite frame as drawn last frame (third person): where its anchor is, its measured outline (m),
+   *  which clip / row / frame it is and the dissolve it was drawn with; null while it is not drawn */
+  private drawn: { anchor: [number, number, number]; card: CardBounds; state: AnimState; row: number; frame: number; fade: number } | null = null;
+  /** the dissolve the keep-out asks of the player's own sprite (render/framing.ts fadeFor), eased out */
+  private keepFade = 0;
+  /** Third person: where the player's own sprite frame drawn last frame lies on screen, measured against the keep-out
+   *  around the crosshair (render/framing.ts subjectBox, CHASE_CONFIG.reticle): bounds in degrees from the crosshair, the
+   *  same as screen fractions (`screen`: 0..1 from the left / top), how far inside the keep-out it is (`depth`, deg; 0 or
+   *  less: outside), and what was drawn. For captures and diagnostics (pokewatch.renderer.subjectBox()) */
+  subjectBox(): (SubjectBox & { screen: { left: number; right: number; top: number; bottom: number }; state: AnimState; row: number; frame: number; fade: number }) | null {
+    const d = this.drawn;
+    if (!this.chase || !d) return null;
+    const b = subjectBox({ eye: this.eye, yaw: this.yaw, viewPitch: this.pitch }, d.anchor, d.card, CHASE_CONFIG.reticle);
+    const tv = Math.tan(this.rig.fov / 2), th = tv * (this.width / this.height), R = Math.PI / 180;
+    const sx = (a: number) => 0.5 + Math.tan(a * R) / th / 2, sy = (a: number) => 0.5 - Math.tan(a * R) / tv / 2;
+    return { ...b, screen: { left: sx(b.left), right: sx(b.right), top: sy(b.top), bottom: sy(b.bottom) }, state: d.state, row: d.row, frame: d.frame, fade: d.fade };
+  }
   /** drawn height of the player's own Pokémon (m), as the rig frames it */
   private subjectH = 1.1;
   /** R3: the billboard lean in force (CHASE_CONFIG.lean, third person only): the camera's horizontal forward and the seen

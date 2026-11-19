@@ -141,6 +141,10 @@ export class Player {
   vx = 0; vz = 0; vy = 0;
   kx = 0; kz = 0;
   grounded = true;
+  /** `grounded` at the start of the latest tick: with px/py/pz, the start of the span the renderer interpolates (the
+   *  third-person camera smooths a step only over a span that was on the ground at both ends). Render-only: no system
+   *  reads it and the state hash does not include it */
+  pgrounded = true;
   /** locomotion state after the last player tick (sim/locomotion.ts): the integrator the next tick runs unless another
    *  system changes the body first (a lunge, a respawn), and the medium the body ended in. Read-only outside player.ts */
   loco: LocoState = { integrator: 0, medium: 0 }; // LOCO.supported, MEDIUM.support (type-only import: no cycle)

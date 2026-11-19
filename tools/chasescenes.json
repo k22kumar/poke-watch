@@ -19,7 +19,7 @@
     "shot": "b"
    },
    {
-    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {yaw:r.yaw,state:r.rig.state,boom:r.rig.boomUsed,eye:r.rig.eye,aim:r.chaseAim(c),player:[c.player.x,c.player.z]}})()"
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {yaw:r.yaw,boom:r.rig.boomUsed,eye:r.rig.eye,aim:r.chaseAim(c),player:[c.player.x,c.player.z]}})()"
    }
   ]
  },
@@ -42,7 +42,7 @@
     "shot": "b"
    },
    {
-    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {state:r.rig.state,boom:r.rig.boomUsed,aim:r.chaseAim(c),player:[c.player.x,c.player.z],n:c.enemies.count}})()"
+    "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {boom:r.rig.boomUsed,aim:r.chaseAim(c),player:[c.player.x,c.player.z],n:c.enemies.count}})()"
    }
   ]
  },
@@ -65,7 +65,7 @@
     "shot": "a"
    },
    {
-    "eval": "(()=>{const r=pokewatch.renderer;return {state:r.rig.state,boom:r.rig.boomUsed}})()"
+    "eval": "(()=>{const r=pokewatch.renderer;return {boom:r.rig.boomUsed}})()"
    }
   ]
  }

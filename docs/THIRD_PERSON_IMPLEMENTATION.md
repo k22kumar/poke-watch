@@ -31,6 +31,13 @@ R3 (2026-11-16, completed 2026-11-17) widened the envelope to ±89° (audit F4, 
 the lens rises with the view (owner-approved, replacing the first draft's 50° start), looking up an edge cue shows the body,
 billboards lean back past 51.3° of seen elevation. Render only: every checksum set unchanged; from 60° up to 40° down the
 rig is the R2 rig bit for bit (§19).
+R6a–R6c and R1b followed (§20–§23). The camera overhaul (2026-11-18, §24) replaced the threat states, the lagging pivot,
+the climb, the shoulder swap and the lens shake with one size-class framing attached to the Pokémon, eased the deck cap
+along the boom, and fixed the look input; every checksum set unchanged. Statements below about Explore / Combat /
+Pressure, the climb or the swap describe the rig before §24. The second pass (2026-11-18, §25) reframed that rig from
+the sprite as drawn, in screen space, against pass marks fixed before tuning: an L-shaped arm, a keep-out around the
+crosshair, a fade; statements below about the single diagonal boom, the 0.24 shoulder, the dense-prop pull-in or the
+collision look-ahead describe the rig before §25.
 
 **Phases and stages are different numbers.** A *phase* is a work order (Phase 0, 1, 2A, 2B, …); a *stage* is a roadmap row
 in §5. They do not line up: Phase 1 = Stage 2A and part of Stage 1; Phase 2A = Stage 3; Phase 2B = Stage 2B + Stage 4A
@@ -2564,3 +2571,289 @@ more beside 2.75 m canopies (23.5 G12), and the two staging sightlines (23.6).
 - **R6d inherits:** `over` / `LocoTick.over` (its first template sets it), `World.topUnder` (the stop at a top),
   `World.inRock` (recovery), T31 (capability loss above a prop), the sky ceiling.
 - **Next:** owner review of R1b; R6d once authorised.
+
+## 24. Camera overhaul: one stable combat framing (2026-11-18)
+
+The user asked for an evidence-based rework of the third-person camera toward a close, stable, Garden Warfare 2-style
+shooter camera, consistent across the five size classes, with the supporting input and integration fixes. Implemented
+on b89fb55; nothing committed. Doc of record: `docs/THIRD_PERSON.md` "Camera" and "Overhaul: what was wrong" (the
+before/after tables live there, not here).
+
+### 24.1 Root causes (reproduced at b89fb55 before changing anything)
+
+A headless probe drove the real sim and the real rig on a flat plain (60 and 144 fps): the lens trailed the Pokémon by
+speed / 16 (pivot lag: 0.51 m walking, 1.03 m reversing, 1.0 m dashing, 0.51 m strafing); a jump moved the Pokémon 0.24–0.42
+of the half-height on screen (65 % air follow, vertical lag); one hostile 15 m away and then a crowd changed boom (+1.8 to
++3.1 m), FOV (+8°) and the crosshair's point 15 m ahead (1.6–2.8 m) with no input (threat states); the automatic climb and
+shoulder swap changed angle and composition; shake moved the ray's origin; framing came from the art's idle frame with
+boom ∝ size^0.55 (Tiny 0.17 of the frame, XL 0.30) and an XL pivot above a 2.4 m deck's clearance (F5); the deck cap
+switched in one tick (1.5–9 m pops leaving a deck); mouse pitch was 82 % of yaw per count; the look stick had a per-axis
+0.18 dead zone with no rescale. Found on the way: `P.px` went stale in the `dead` state (the drawn Pokémon swung up to
+0.9 m a frame at 144 fps).
+
+### 24.2 Decisions (and the alternatives not taken)
+
+| Decision | Why | Not taken |
+|---|---|---|
+| One framing, no threat states | entity independence; the crosshair ray must not move without input (decision hierarchy 1–2) | a softer state blend (still entity-driven); a "combat zoom" (moves the aim) |
+| Rigid anchor at the drawn position, all axes | the Pokémon never moves in the frame; the ray moves with the body exactly; Cinemachine documents its third-person camera as rigidly attached to its target, and Unreal's spring arm makes lag an opt-in | a shorter lag (still drifts with speed); partial jump follow (moves the Pokémon in frame) |
+| Stair smoothing on the ground only: rate-limited (4 m/s, ≤ 0.6 m), keyed to the sim's support flags over the span drawn | the sim snaps tile steps (0.25 / 0.5 m) in one tick; a rate limit follows ramps exactly | a critically damped filter (lags on ramps); a speed threshold (missed small steps and 30 fps) |
+| Size-class framing: boom = 3.5 m × (visual / 1.37)^0.85, shoulder 0.24 × boom, pivot 0.8 × body height | one law, data in `rules.size`; near-constant composition (share 0.28–0.34); pivot from the body fixes F5 | exponent 1 (7.3 m XL boom, 0.74 m Tiny lens); per-class rows (more data, steps at class edges) |
+| No climb, no automatic shoulder swap: collision shortens the boom | both were automatic view changes; Nesky's "intent wins" | keeping them with longer holds |
+| Deck cap from every slab over the boom's track (and 0.5 s ahead, ≤ 3 m), eased in 0.2 s / out 0.3 s; replaces R3's separate overhead easing | one mechanism; no frame moves the lens > 0.5 m walking under, out of or through a 2.4 m deck at any pitch or size | the pivot-only switch (the pops) |
+| No shake in third person | the lens is the ray's origin (Cinemachine's 3rd-person aim cancels noise for this reason) | an aim-neutral view-only shake (the crosshair would no longer be the ray) |
+| Equal mouse yaw/pitch; stick radial dead zone 0.18, rescale, exponent 2 | precision and direction fidelity | a settings UI for curves (later, with a playtest) |
+| Fixed views (Classic / Overhead / Wide) kept | isolated from the rig; their removal belongs with the planar retirement (H) and the capture tooling | removal now |
+
+### 24.3 What changed
+
+- `src/render/camera.ts`: the rig rewritten around the decisions above (822 → ~690 lines): `CHASE_CONFIG.frame`, `pivot`,
+  `fov`, `arm`, `step`, `deck`; `chaseBoom`, `chasePivot`; `boomElevation(up, overhead)`; removed `states`, `threat`,
+  `blend`, `size`, `swap`, `maxLift`/`liftStep`/`liftClear`/`liftTime`/`liftTilt`, `air`, `slope`, `pitchRange`, `shake`,
+  `aimPitch.on`, `aimPitch.overhead`, `ChaseThreat`, `NO_THREAT`, `CHASE_STATES`, `wobble`, `ChaseRig.pick/state/cur/liftDeg`.
+  Collision (terrain, decks, edge, dense props, anticipation, the slide, the floor), the 120 Hz clock, the view-state
+  contract, the envelope, the cue and `chaseAim` are kept.
+- `src/render/chaseinput.ts`: `chaseSubject` (size class), the span support flag; `threatOf` and the traversal coupling
+  removed. `scripts/lib/chasesize.ts` (art-measured size) deleted.
+- `src/render/renderer.ts`: no lens shake; the cue's sprite height computed locally.
+- `src/render/hostframe.ts` `LOOK`; `src/input/stick.ts` `shapeStick`; `src/input/input.ts` `pad().look`.
+- `src/sim/types.ts` `Player.pgrounded`, `src/sim/player.ts`, `src/sim/run.ts` (the `dead`-state span refresh): render
+  interpolation state only, read by no system, not hashed.
+- `src/ui/ui.ts`: "Screen shake (fixed views)". `src/main.ts`: the `pokewatch.chase` hint.
+- Diagnostics: `scripts/camstats.ts` (`*RelDvP99`, `*LagMax`, `walkStepMax`; legacy flags removed), `scripts/habcam.ts`,
+  `tools/chasescenes.json`.
+- Tests: `tests/camfollow.test.ts` (new, the regression scenarios), `tests/lookinput.test.ts` (new); `chase`,
+  `camstability`, `freelook`, `viewsample` rewritten where they pinned removed behaviour (states, climb, swap, legacy
+  pitch, the R2 rig, art sizes); `aim3d`, `locations`, `controls` adjusted.
+- Docs: `docs/THIRD_PERSON.md`, `docs/CONTROLS.md` "Look", `docs/SIZING.md`, `docs/CAMERA.md`.
+
+### 24.4 Verification
+
+- `scripts/checksum.ts`: all 64 lines identical to b89fb55 (every set, `aim` included).
+- `npm test`: every test passes except the four known `tests/pointerlock.test.ts` failures (unchanged since 060f184).
+- `scripts/camstats.ts --fps 60,144,30 --sweep` (36 runs per rate) and `tools/chasecheck.json` captures of private builds
+  of both trees: the tables in `docs/THIRD_PERSON.md`.
+- Not done: any hands-on play with a mouse or a pad, real-GPU timing, a long-run multiplayer check (there is no
+  multiplayer).
+
+### 24.5 Open
+
+- Playtest (owed): the closer framing per class, the fixed FOV in fights (no widening for a boss), the stick curve, steps
+  and knockback read with a rigid lens, a shoulder-swap binding.
+- Frame-rate dependence rose (144 vs 60 fps: 0.033 / 0.175 m against 0.004 / 0.065 m): the stair smoothing's per-frame
+  decision and unfiltered probe inputs.
+- Thin ridges in caves still slide (0 / 15 per 36 runs, from 0 / 814).
+- Planar move families (strikes, cones, lobs, areas) still read `aimX/aimZ`; shooter facing; the fixed views and the
+  planar aim path they feed (decision H).
+
+## 25. Camera, second pass: composition, apparent size, aim (2026-11-18)
+
+The owner asked for an evidence-based diagnosis of what was still wrong after §24 (the Pokémon over the crosshair, its
+apparent size changing when reversing, turning and attacking, a camera that keeps moving), an independent look at §24's
+own claims, and the fix, judged on the picture the player sees and not on camera transforms. Implemented on the
+uncommitted §24 tree (b89fb55); nothing committed. Doc of record: `docs/THIRD_PERSON.md` "Camera", "Second pass" and
+"Known limits". Figures: `docs/camaudit/2026-11-18-before.json` and `-after.json`.
+
+### 25.1 Root causes (measured on the §24 rig before changing it)
+
+| # | Symptom | Cause | Evidence |
+|---|---|---|---|
+| A1 | Pokémon over the crosshair | shoulder = 0.24 × boom from the size class alone | all 68 species have idle or walk frames inside 7° / 3° of the crosshair; 23 548 of 24 952 gameplay frames |
+| A2 | Head over the crosshair line | pivot at 0.8 × the class height, arm 3° over the view | body top at 0.20 to 0.44 of the frame height (crosshair 0.5) |
+| A3 | Framing figures are not what is drawn | boom and pivot read the class's visible core | drawn body 0.31 to 0.76 of the frame height, median 0.48; §24's doc said 0.28 to 0.34 |
+| B1 | Pokémon grows | one diagonal arm: collision shortens it and the shoulder with it, so the sprite grows into the centre | over 1.25 × its size in 39 % of tuning frames, 74 % in the worst cell |
+| B2 | ... mostly in woods | dense props pull the boom to 45 % | props passing through: forward 48 % to 5 % (Quilava) |
+| B3 | ... more when reversing or strafing | collision looks 0.35 s ahead along the velocity and the turn | without it: strafing 73 to 64 % (Pichu); lens steps over 0.25 m 481 to 298 (Quilava) |
+| B4 | ... amplified | billboard stretch rises as the lens closes in | shader formula on the measured lens positions |
+| B5 | The sprite itself changes size | facing follows movement and snaps to the aim on an attack; rows and clips differ 0.9 to 3.0 × in area | atlas bounds per row and clip. Not the camera |
+| C1 | Camera keeps moving | B1 to B3: 0.39 m/s of arm travel, a lens step over 0.25 m 12 times a minute | relative lens motion |
+| C2 | Pokémon bounces in frame | the stair smoothing moved the lens, the sprite was drawn at the true height | 4 to 21 steps a minute of walking |
+| C3 | View jolts with the body | rigid follow shows dashes and knockback 1:1 | by design; unchanged |
+
+Why §24's report missed it: its tests ran on a flat plain and compared lens against body. None projected the drawn sprite
+to the screen, none measured real maps by movement direction, and its pass marks were set after the fact.
+
+### 25.2 Decisions
+
+- **Owner, asked before the plan:** props never block the lens (they dissolve; replaces R1b Q10's "the lens reads
+  `wallTop`"); camera only (B5, the facing rule, stays with Stage 6B / D7).
+- **Owner's review of the plan** (five points, all taken): combat frames are in the space reserved for the Pokémon, as a
+  fixed allowance and never a per-frame camera move; success is decided before the results, with maps held out; the
+  framing promises are conditional (P1 to P4) and tested on the final pose over the whole look and FOV range; the stair
+  smoothing is checked for detaching the Pokémon from the game (criterion F); aim is tested alongside the replay hashes
+  (criteria E).
+- **Architecture:** improve the existing rig with proven structure. Libraries rejected (camera-controls,
+  three-player-controller, ecctrl, Babylon and PlayCanvas cameras: each needs three.js or an engine and mesh colliders;
+  none frames a sprite's silhouette). The repo's own exact cast (`sim/spatial.ts raycastWorld`) not used: it has no
+  "props open, bare walls solid" mode, and some 60 rig tests drive synthetic terrain through callbacks. Borrowed:
+  Cinemachine Third Person Follow (origin, shoulder, hand, camera), Cinemachine Decollider (clearance apart from
+  smoothing), Unreal's spring arm (pull-in only on a hit), Little Polygon (frame in picture-plane coordinates).
+  GW2: only its 70° vertical FOV is documented; the target picture is an inference.
+- **Data-driven body proportions, not size-class parameters:** the class's core is 0.64 to 1.33 × the drawn top and says
+  nothing of the reach or of what is drawn below the anchor. The outline is measured once per sprite at load; nothing in
+  the camera follows the animation frame.
+
+### 25.3 Where the result departs from the approved plan
+
+1. **The allowance moves the corner sideways only** (`reticle.rise` 0). Moving it up put feet off the screen. More hurt
+   frames go to the fade for it.
+2. **34 of 68 species need an allowance, not 13.** The plan's figure was measured against the crosshair point, not the
+   keep-out's corner. 22 need more than the 4° cap.
+3. **`shoulderMax` 0.6, not 0.45:** no species is capped (the most is 0.48), so the plan's exception for long bodies in
+   side rows is not used.
+4. **`aimPitch.neutral` 11°, from 6°:** what E4 needs with the higher lens.
+5. **The framing law reads the drawn height** (top + drop), proportional, 4.3 m at 1.9 m. The plan's law read the top. See
+   25.5.
+6. **The pivot holds past the orbit range.** See 25.5.
+7. **The sprite's share of a step is capped at 0.35 × its outline top,** not at the plan's fixed 0.3 m. Same bound on what
+   is hidden (one sprite over half on the first frame, three over a third three frames later), and 47 sprites instead of
+   none still take a 0.5 m step whole.
+8. **The benches were corrected after the first baseline and before any result was judged** (relative lens motion in the
+   view's frame; "obstruction starting" also when the free length drops; a forced-step test by carrying the previous arm
+   along; path clearance on the rig's own ring; chasm falls and ended runs as the renderer treats them; the 0.3° slack).
+   To keep before and after comparable the §24 rig was rebuilt from its source, checked against its first recording
+   (330 values over 55 cells, no difference), and re-measured with the final benches.
+9. **Criterion B's size is read on the drawn body.** As first written (top to anchor) it measured a point inside the
+   picture; 21 species are under 0.30 on it because they draw far below their anchor. The lowest drawn point and the
+   move bar were added to the bench. This is stricter than what was fixed, and it was changed after results were seen.
+10. **The way in is neither eased, as the plan kept it, nor all at once, as P1 first made it.** An eased pull-in leaves
+    the lens in rock for a few frames; all at once moved it up to 8 m in a frame (25.5). The lens comes in at a capped
+    speed along the straight line to its new place and hops only the part of that line that is itself blocked.
+11. **Bounds loosened in tests, each with its measured figure in a comment:** the frame-rate replay in caves (was "within
+    0.6 m", is "within 0.6 m for nine tenths of the walk and at its end"); an Extra Large under a 2.4 m deck (0.9 to
+    1.1 m in a frame); the on-screen shift of a Small on stepped terrain (0.5 to 1 % of clear frames); a cliff in a
+    synthetic turn test moved from 1.5 to 1.6 m.
+
+### 25.4 Acceptance criteria (fixed before tuning) and where they ended
+
+"Clear" frame: the ideal arm unobstructed now and for the previous 2 s. Tuning set: generated seeds 1 to 3, four regions,
+8 headings, 5 movement modes, Pichu, Cyndaquil, Quilava, Charizard, Feraligatr (423 588 frames). Hold-out set: generated
+seeds 7 to 9, authored arenas, the river-gorge and volcanic-ridge approaches, Joltik, Totodile, Croconaw, Venusaur, Lapras
+(754 347 frames).
+
+| # | Pass mark | Before | After, tuning | After, hold-out | |
+|---|---|---|---|---|---|
+| A | No gameplay frame in the keep-out on clear frames, except past the 4° cap, and those dissolved by half | 68 of 68 species; 100 % of clear frames | 0 species with an idle or walk frame; 131 of 24 952 frames past the cap, dissolved; 53 of 336 000 clear frames (see note) | 0 of 654 000 | met |
+| B | Same corner (±0.5°); feet in frame at 4:3 and 16:9; body 0.30 to 0.40 of the frame | corner 4.5 to 20.7° over the line; drawn body 0.31 to 0.76 | corner (−7°, −3°) for all 68; lowest drawn point 0.88 to 0.94; drawn body 0.34 to 0.40 | (composition is not per set) | met on the drawn body (25.3 no. 9) |
+| C1 | Clear frames: size 1 ± 2 %, every frame | 39.5 % off | 0.14 % off | 0.03 % off | not to the letter |
+| C2 | Same pose, any velocity or yaw rate: same arm | differed | the rig reads neither (`tests/camfollow`, `camframe`) | | met |
+| C3 | Over 1.25 ×: each cell ≤ 25 %, the sum over cells ≤ ⅓ of before | 39.4 % of frames; worst cell 74.5 %; sum 985.5 | 2.6 %; worst 7.4 %; sum 65.0 | 2.3 %; worst 10.9 %; sum 90.1 (before 1101.9) | met |
+| C4 | Tight frames: P1 and P2 always; in the keep-out only dissolved | 70 % undissolved; lens in a solid 0.28 %, within 0.3 m 3.9 % | 0 undissolved; view turned 0; lens in a solid 0.062 % (all while falling into a chasm), within 0.3 m 0.24 % | 0; 0; 0; 0.17 % | P2 and the fade met; P1 not 100 % |
+| D1 | Clear frames: lens within 1 mm of its place against the drawn Pokémon; the Pokémon within 0.2 % of the screen height, steps included | 20.5 % / 10.0 % of clear frames | 0.22 % / 0.21 % (largest 0.52 m / 0.080) | 0.07 % / 0.07 % (0.33 m / 0.098) | not to the letter |
+| D2 | Lens steps over 0.25 m only within 0.3 s of an obstruction starting; rate ≤ ½ of before | 12.1 a minute, 9.6 of them late; over 1 m: 0.01 a minute, largest 1.1 m | 5.5, 2.0 late, 1.2 nothing forced; over 1 m: 0.93, largest 4.3 m | 3.4, 1.4 late, 0.4 unforced (before 9.5); over 1 m: 0.39 (before 0.00), largest 7.6 m (1.4 m) | rate met; late steps remain; **steps are larger than before** (not a mark that was set: 25.5) |
+| E1 | Aim, standing, every tight pose: within 0.05° of the crosshair | 0.0003° | 0.0026° | | met |
+| E2 | Moving, mid pull-in, mid step: error ≤ that frame's lens travel + 0.05° | 0° unexplained | 0.0044° unexplained (largest one-frame error 14°, all of it lens travel as an arm comes in) | | met |
+| E3 | Bolt, orb, beam at a target on the crosshair: hits, or reports blocked and stops on the cover | 28 hit, 7 occluded | 28 hit, 6 blocked and stopped, 1 occluded, 0 missed | | met |
+| E4 | No input, flat ground: crosshair's ground point inside 4 to 26 m (Tiny to Large) | inside; Extra Large 19.8 to 23 m | inside for every class (Extra Large 18.9 to 25.4 m) | | met |
+| E5 | Blocked crosshair in a bot fight: no more than 5 points over before, per species | 7.0 to 27.2 % | 28.2 to 38.1 %: 1 of 7 species within 5 points | | **not met** |
+| F | Step: gap ≤ 0.6 m, gone in 0.15 s; ring and shadow on the true ground; hidden part ≤ 50 %, ≤ ⅓ after 3 frames; ≤ 3 % of shots with over 0.15 m offset | sprite popped against the camera | gone in 0.117 s; ring on the true ground (code, and the step strip); 67 of 68 sprites ≤ 50 % (Diglett 60 %), 65 of 68 ≤ ⅓; 1.23 % of casts | | met with the fallback, bar three sprites |
+| G | Hashes identical; no new test failure; rig cost ≤ 0.10 ms median, 0.20 ms p99 | 0.008 / 0.016 ms | 64 lines identical; 596 tests, the 4 pointer-lock failures only; 0.010 to 0.017 ms median, 0.041 to 0.075 ms p99 | | met |
+
+Notes.
+- A, the 54 clear frames: 53 are one stand of Quilava's against a deck's edge, where the bench's path test calls the
+  ideal arm free while the slab holds the lens down (a tight pose the bench classes clear); one is a Pichu frame. All
+  dissolved.
+- C1 / D1: the tail of an arm easing back out after rock (the bench's 2 s of "clear" does not always outlast it), and,
+  for D1, small sprites on 0.5 m steps (25.5).
+- E5 is the cost of A: see "Known limits" in the doc. With the crosshair on an enemy, the world stopped the shot in 8.4 to
+  15.4 % of frames (1.3 to 2.9 % before); the bot had the crosshair on an enemy in 41 to 51 % of aimed frames (61 to
+  71 %) and looked over 60° down in 10 to 41 % (2 to 15 %), chasing enemies nearer than the shoulder offset.
+- The Pokémon is out of the frame (a wall right behind) in 0.026 % of tuning frames and 0.001 % of hold-out frames.
+
+### 25.5 What looking at the frames found
+
+The first complete version passed A to D, E1 to E4 and G on both sets. Reading the captured frames, the split of E5's
+blocked frames by cause and the browser stress scenes found four defects the marks had not been written to see. Each was
+fixed, or reduced, and everything re-run.
+
+- **The feet under the move bar.** Criterion B measured the sprite's anchor (0.88 to 0.94 of the frame). The drawn
+  picture reaches below it: the lowest drawn point of an idle or walk frame was at 0.85 to 1.11, half the roster under
+  the HUD's move bar at 1280 × 720 and six species off the bottom of the screen. Fix: `Outline.drop`, and the back
+  distance from the drawn height (4.3 m at 1.9 m, proportional; it was 3.5 m × (top / 1.45 m)^0.92). Arms are 0.91 to
+  1.59 × what they were (median 1.15); the lowest point is at 0.88 to 0.94 for every species.
+- **The lens flying up when looking down.** The pivot follows the drawn top; past the orbit range, where a card leans,
+  that put it five to six outline heights up at 89° (the lens 8 m over a Pichu, 24 m over a Feraligatr) and the Pokémon
+  shrank to a third. Found because the fight bot was looking straight down from 24 m. Fix: `chasePivotH` holds the
+  pivot at the orbit range's end. Fewer frames enter the keep-out straight down for it (46 % against 100 %).
+- **The sprite sunk into the step.** Criterion F's own measure: a 0.5 m step's whole offset drew over half of 12 of the
+  68 sprites under the tile on its first frame. Fix: the sprite's share is capped by its own height.
+
+- **The size of a lens step.** D2 counted steps over 0.25 m and asked for half as many. `tools/chasecheck.json`'s stress
+  scenes, run on both builds, showed what it had not asked: the largest one-frame lens move in the cave walk went from
+  0.42 m to 2.78 m and in the cave fight from 0.73 m to 3.25 m. On the tuning tracks, by region, with each arm coming in
+  all at once: over a metre 2.3 times a minute in the forest and 4.3 in the cave, up to 8.1 m; the rig before, never
+  over 1.1 m. Three in four of those cuts had 1.3 m of rock or less on the lens's own straight way in (the rest of the
+  arm was cut by a wall's end or a ridge's corner crossing it near the Pokémon), and a longer hold before easing back
+  out changed little (they are first contacts, not a cycle). Fix: `boomTime.in`, the lens comes in at 15 m/s and hops
+  only what is in its own way. Forest 1.2 a minute over a metre and none over 4 m; cave 2.6 and 4.3 m at most; the
+  stress scenes' cave fight is back to 0.77 m, the cave walk (an Extra Large) is still 2.78 m. Not removed: what is left is rock thicker than that on the line, a tall Pokémon's pivot coming down under a deck's slab
+  (half of the forest's), and a small Pokémon pressed into a corner where no arm fits. The bench now reports steps by
+  size (`pops1`, `pops2`, `popMax`).
+
+The hold-out set was therefore run five times, and all five are here. None of the four changes was chosen from a
+hold-out figure: the first two came from frames and from the tuning-side aim split, the third from criterion F's roster
+table, computed before either bench was run with it, the fourth from the stress scenes and the tuning tracks.
+
+| Hold-out run | Over 1.25 × (sum; worst cell) | Lens steps a minute (late; unforced) | Clear frames with lens moved / Pokémon shifted |
+|---|---|---|---|
+| 1: first complete version (law on the top) | 100.8; 11.7 % | 2.99 (0.96; 0.67) | 0.0 % / 0.0 % |
+| 2: drawn-height law, pivot held | 120.2; 16.7 % | 3.54 (1.15; 0.79) | 0.0 % / 0.0 % |
+| 3: sprite's step share capped at a fixed 0.3 m | 120.2; 16.7 % | 3.92 (1.47; 1.15) | 0.3 % / 0.3 % |
+| 4: capped at 0.35 × the outline top | 120.2; 16.7 % | 3.62 (1.20; 0.87); over 1 m not recorded | 0.1 % / 0.1 % |
+| 5: the lens comes in at 15 m/s and hops only what is in its way (final) | 90.1; 10.9 % | 3.37 (1.40; 0.43); over 1 m 0.39, largest 7.6 m | 0.1 % / 0.1 % |
+
+The longer arms cost a little on every motion figure (run 1 to run 2), and the step share shows in the bench as the
+sprite moving against the lens (runs 3 and 4). All of it is inside the marks. Run 5 is better on every column: an arm
+that is still on its way in when the rock has passed never gets as short.
+
+### 25.6 What changed
+
+- `src/assets/art.ts`, `measure.ts`, `pack.ts`: `FrameBounds`, `Silhouette` (every frame's bounds, the body, the combat
+  corners), `OVERLAY` (the procedural lunge and bob, shared with the renderer); one atlas readback.
+- `src/render/framing.ts` (new, pure): the card as the shaders draw it, `seen`, `subjectBox`, the keep-out, `fadeFor`,
+  `Outline` (top, right, left, drop), `backFor`, `reserveCorner`, `pivotHeight`, `idealArm`.
+- `src/render/camera.ts`: the L-shaped arm in four stages (ideal, clearance, smoothing, a last P1 check in `update` and
+  `look`); `chasePivotH`; `spriteStep`; `boomTime.in`. Removed: `shoulder`, `pivot`, `arm.lift`, the lens floor and safety net, the
+  dense-prop channel (`propsBlockLens`, `propDense`, `propBoom`, `minBoom`), `pullIn`, `anticipate`, the deck lead.
+- `src/render/chaseinput.ts`: the outline; `solid` is bare walls only, deck-aware.
+- `src/render/renderer.ts`, `tilestage.ts`: the measured outline to the rig; the sprite at `py + rig.spriteStep`; the
+  keep-out fade from the frame about to be drawn; `subjectBox()`; the prop dissolve radius follows the lens distance.
+- Benches: `scripts/camframe.ts`, `scripts/camaim.ts`, `scripts/camstats.ts --bench`, `scripts/lib/cambench.ts`,
+  `camrig.ts`, `camposes.ts`, `silhouette.ts`; `tools/camframescenes.gen.mjs` and `.json`.
+- Tests: `tests/camframe.test.ts`, `tests/camaim.test.ts` (new); `chase`, `camstability`, `freelook`, `viewsample`,
+  `camfollow`, `walltops` rewritten where they pinned removed behaviour.
+- No sim file. Every checksum line is the tree's before this pass.
+
+### 25.7 Verification
+
+- `npx tsx scripts/checksum.ts`: 64 lines, identical.
+- `npm run typecheck`: clean. `npm test`: 596 tests, 590 pass, 2 skipped, the 4 known `tests/pointerlock.test.ts`
+  failures.
+- `scripts/camframe.ts`, `scripts/camstats.ts --bench tuning|holdout`, `scripts/camaim.ts --fight`: the table above;
+  the same on the rebuilt §24 rig for the "before" column.
+- Captures: a private build of each tree, `tools/cap.mjs` with `tools/camframescenes.json` (27 scenes; headless
+  Chromium, software rendering), read frame by frame: ten species on open ground in every state, four at 1280 × 720,
+  walls, a corner, a deck, forest and cave walks, the step strips, a target fired at. `tools/chasecheck.json` still runs
+  on the new build.
+- Not done: any hands-on play with a mouse or a pad; real-GPU timing; the off-frame cue in a wall-behind pose at a real
+  window size (in the 640 × 360 captures it falls under the move bar).
+- At commit: `npm run check` (typecheck clean; 596 tests, 590 pass, the same 4 `tests/pointerlock.test.ts` failures,
+  so it stops before the build), `npm run build` separately (clean), the camera suites 156 / 156, and all 64
+  `scripts/checksum.ts` lines identical to a b89fb55 snapshot.
+
+### 25.8 Open
+
+- **Large lens steps near rock** (0.9 a minute over a metre on the tuning maps; before, none). Options: look ahead of
+  the arm sideways (a corridor: the arm shortens before rock reaches it; smooth, but the arm length then follows the
+  surroundings); ease the pivot down for a slab over the arm when the lens itself is clear of it; a shorter arm for
+  Large and Extra Large. Needs hands on a pad to choose.
+- **Aiming past a close enemy, and the muzzle's parallax (E5).** Owner's call between: accept it with the blocked marker;
+  move where shots leave from, or trace from the camera (sim work, its own checksum set); a smaller keep-out or
+  `shoulderMax` (the sprite's widest rows dissolve instead).
+- Playtest, owed: the framing by class; aiming at enemies in contact; a wall behind; steps for the smallest sprites; the
+  dissolve when looking down; the move bar in a small window.
+- The move bar is in the picture's lower centre in fixed pixels; a HUD that left the band under the crosshair free would
+  let the Pokémon be drawn larger.
+- `raycastWorld` for the lens; a shoulder-swap binding; a finer dissolve than the 4 × 4 dither.
+- B5 (the sprite's own size by row and clip) stays with Stage 6B.
+

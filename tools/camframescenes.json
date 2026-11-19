@@ -1,0 +1,2802 @@
+[
+ {
+  "name": "open-pichu",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=pichu&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=cyndaquil&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-quilava",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=quilava&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-charizard",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=charizard&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-feraligatr",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=feraligatr&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-joltik",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=joltik&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-venusaur",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=venusaur&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-lapras",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=lapras&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-onix",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=onix&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "open-koffing",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=koffing&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "shot": "3strafeL"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "advance": 0.4,
+    "frames": 24
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "shot": "5fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.1,
+    "frames": 6,
+    "input": {
+     "btn": 16
+    }
+   },
+   {
+    "shot": "6fire"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "eval": "pokewatch.damage(5)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "shot": "7hurt"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.016666666666666666,
+    "frames": 1
+   },
+   {
+    "shot": "7hurt2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "8up30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(30)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "9down30"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(60)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "adown60"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(89)"
+   },
+   {
+    "advance": 0.3,
+    "frames": 18
+   },
+   {
+    "shot": "bdown89"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "hd-pichu",
+  "w": 1280,
+  "h": 720,
+  "query": "go=1&seed=1&species=pichu&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.hud()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "hd-quilava",
+  "w": 1280,
+  "h": 720,
+  "query": "go=1&seed=1&species=quilava&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.hud()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "hd-feraligatr",
+  "w": 1280,
+  "h": 720,
+  "query": "go=1&seed=1&species=feraligatr&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.hud()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "hd-snorlax",
+  "w": 1280,
+  "h": 720,
+  "query": "go=1&seed=1&species=snorlax&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "shot": "1idle"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.hud()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafeR"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "wall-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=cyndaquil&calm=1&cam=chase&stage=3",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.wallBehind(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "1behind1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallBehind(2)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "2behind2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallRight(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "3right1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.corner(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "4corner"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(40)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "5corner-down40"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "6corner-up30"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "wall-quilava",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=quilava&calm=1&cam=chase&stage=3",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.wallBehind(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "1behind1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallBehind(2)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "2behind2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallRight(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "3right1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.corner(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "4corner"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(40)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "5corner-down40"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "6corner-up30"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "wall-feraligatr",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=feraligatr&calm=1&cam=chase&stage=3",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.wallBehind(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "1behind1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallBehind(2)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "2behind2"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.wallRight(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "3right1"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.corner(1)"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "4corner"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(40)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "5corner-down40"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(-30)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "6corner-up30"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "deck-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=cyndaquil&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.deck()"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "1under"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "pokewatch.renderer.look(1.4,0)"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "shot": "2turned"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(40)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "3down40"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "forest-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=cyndaquil&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1
+   },
+   {
+    "advance": 2.5,
+    "frames": 150,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "shot": "1in"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafe"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "deck-quilava",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=quilava&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.deck()"
+   },
+   {
+    "advance": 1.5,
+    "frames": 90
+   },
+   {
+    "shot": "1under"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "pokewatch.renderer.look(1.4,0)"
+   },
+   {
+    "advance": 0.8,
+    "frames": 48
+   },
+   {
+    "shot": "2turned"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.pitch(40)"
+   },
+   {
+    "advance": 0.5,
+    "frames": 30
+   },
+   {
+    "shot": "3down40"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "forest-quilava",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=quilava&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1
+   },
+   {
+    "advance": 2.5,
+    "frames": 150,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "shot": "1in"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "2strafe"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 0.6,
+    "frames": 36,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "3reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "cave-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=3&stage=3&species=cyndaquil&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 2
+   },
+   {
+    "shot": "1start"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 4,
+    "frames": 240,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "shot": "2walk"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "3strafe"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "cave-feraligatr",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=3&stage=3&species=feraligatr&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 2
+   },
+   {
+    "shot": "1start"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 4,
+    "frames": 240,
+    "input": {
+     "mz": -1
+    }
+   },
+   {
+    "shot": "2walk"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "shot": "3strafe"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "advance": 1,
+    "frames": 60,
+    "input": {
+     "mz": 1
+    }
+   },
+   {
+    "shot": "4reverse"
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "steps-pichu",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=pichu&calm=1&cam=chase&stage=1",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.step(0.5,0)"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "shot": "0before"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "strip": "up",
+    "n": 20,
+    "dt": 0.016666666666666666,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.step(0.5,1)"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "strip": "down",
+    "n": 20,
+    "dt": 0.016666666666666666,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "steps-feraligatr",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=feraligatr&calm=1&cam=chase&stage=1",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 0.5
+   },
+   {
+    "eval": "camtest.step(0.5,0)"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "shot": "0before"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "strip": "up",
+    "n": 20,
+    "dt": 0.016666666666666666,
+    "input": {
+     "mx": 1
+    }
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "eval": "camtest.step(0.5,1)"
+   },
+   {
+    "advance": 1,
+    "frames": 60
+   },
+   {
+    "strip": "down",
+    "n": 20,
+    "dt": 0.016666666666666666,
+    "input": {
+     "mx": -1
+    }
+   },
+   {
+    "eval": "camtest.box()"
+   }
+  ]
+ },
+ {
+  "name": "shot-cyndaquil",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=cyndaquil&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "eval": "camtest.target('snorlax',9)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "eval": "camtest.aim()"
+   },
+   {
+    "shot": "0target"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "strip": "fire",
+    "n": 10,
+    "dt": 0.03333333333333333,
+    "frames": 2,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "eval": "camtest.aim()"
+   }
+  ]
+ },
+ {
+  "name": "shot-feraligatr",
+  "w": 640,
+  "h": 360,
+  "query": "go=1&seed=1&species=feraligatr&calm=1&cam=chase",
+  "steps": [
+   {
+    "eval": "(()=>{window.camtest={\nbox(){const r=pokewatch.renderer,b=r.subjectBox(),g=r.rig;return b&&{st:b.state,row:b.row,L:+b.screen.left.toFixed(3),R:+b.screen.right.toFixed(3),T:+b.screen.top.toFixed(3),B:+b.screen.bottom.toFixed(3),depth:+b.depth.toFixed(1),fade:+b.fade.toFixed(2),boom:+g.boomUsed.toFixed(2),gap:+g.lensGap.toFixed(2),eyeY:+(g.eye[1]-pokewatch.ctx.player.y).toFixed(2)}},\nyaw(y){const r=pokewatch.renderer;r.look(r.rig.yaw-y,0);return +r.rig.yaw.toFixed(3)},\npitch(deg){const r=pokewatch.renderer,g=r.rig;r.look(0,(deg-(pokewatch.chase.aimPitch.neutral+g.userPitch))*Math.PI/180);return +(pokewatch.chase.aimPitch.neutral+g.userPitch).toFixed(1)},\nput(i,j){const c=pokewatch.ctx,W=c.world,P=c.player;P.x=P.px=i-W.half+0.5;P.z=P.pz=j-W.half+0.5;P.y=P.py=W.height(P.x,P.z);P.vx=P.vz=P.vy=0;pokewatch.renderer.snapCamera(c);return [i,j,+P.y.toFixed(2)]},\nrock(k,q){const c=pokewatch.ctx,W=c.world,M=W.map;if(q<0||q>=M.w*M.h)return true;return (M.wall[q]===1&&(!W.wallTop||W.wallTop[q]===Infinity))||(!M.wall[q]&&!M.stairs[q]&&M.elev[q]-M.elev[k]>=2)},\nopen(k,q){const M=pokewatch.ctx.world.map;return q>=0&&q<M.w*M.h&&!M.wall[q]&&!M.stairs[q]&&M.terrain[q]===M.terrain[k]&&Math.abs(M.elev[q]-M.elev[k])<0.1&&!(M.over&&M.over[q]>0)},\nfind(dirs,gap,room){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w,sx=M.spawn[0],sy=M.spawn[1];let best=-1,bd=1e9;\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i;if(M.wall[k]||M.stairs[k]||M.terrain[k]!==M.terrain[sy*w+sx]||(M.over&&M.over[k]>0))continue;let ok=true;\nfor(const[dx,dy]of dirs){for(let s=1;s<gap&&ok;s++)if(!this.open(k,(j+dy*s)*w+i+dx*s))ok=false;if(ok&&!this.rock(k,(j+dy*gap)*w+i+dx*gap))ok=false;for(let s=1;s<=room&&ok;s++)if(!this.open(k,(j-dy*s)*w+i-dx*s))ok=false;if(!ok)break}\nif(!ok)continue;const d=(i-sx)**2+(j-sy)**2;if(d<bd){bd=d;best=k}}\nreturn best<0?null:[best%w,(best/w)|0]},\nwallBehind(gap){const t=this.find([[0,1]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\nwallRight(gap){const t=this.find([[1,0]],gap,5);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ncorner(gap){const t=this.find([[0,1],[1,0]],gap,4);if(!t)return 'no spot';this.put(t[0],t[1]);return {tile:t,yaw:this.yaw(Math.PI)}},\ndeck(){const c=pokewatch.ctx,W=c.world,M=W.map;let best=-1;for(let k=0;k<M.w*M.h;k++){if(M.over&&M.over[k]>0&&!M.wall[k]&&M.terrain[k]!==6){const i=k%M.w,j=(k/M.w)|0;let open=0;for(const[dx,dy]of[[0,1],[0,-1],[1,0],[-1,0]]){const q=(j+dy)*M.w+i+dx;if(!M.wall[q])open++}if(open>=3){best=k;break}}}if(best<0)return 'no deck';const P=c.player;P.x=P.px=best%M.w-W.half+0.5;P.z=P.pz=((best/M.w)|0)-W.half+0.5;P.y=P.py=W.height(P.x,P.z,0);pokewatch.renderer.snapCamera(c);return {deck:best,over:M.over[best],y:P.y}},\nstep(rise,down){const c=pokewatch.ctx,W=c.world,M=W.map,w=M.w;const lvl=(k,q)=>q>=0&&!M.wall[q]&&!M.stairs[q]&&Math.abs(M.elev[q]-M.elev[k])<0.02&&!(M.over&&M.over[q]>0);\nfor(let j=8;j<M.h-8;j++)for(let i=8;i<w-8;i++){const k=j*w+i,q=k+1;if(M.wall[k]||M.wall[q]||M.stairs[k]||M.stairs[q])continue;if(Math.abs(M.elev[q]-M.elev[k]-rise)>0.01)continue;if(!lvl(k,k-1)||!lvl(k,k-2)||!lvl(k,k-3)||!lvl(q,q+1)||!lvl(q,q+2)||!lvl(q,q+3))continue;if(!lvl(k,k-w)||!lvl(k,k+w)||!lvl(q,q-w)||!lvl(q,q+w))continue;this.put(down?i+1:i,j);return {tile:[i,j],lo:M.elev[k],hi:M.elev[q],yaw:this.yaw(down?-Math.PI/2:Math.PI/2)}}return 'no step'},\ntarget(id,dist){const c=pokewatch.ctx,P=c.player,v=pokewatch.renderer.viewSample();let t=dist;if(v.dir[1]<0){const tg=(v.eye[1]-P.y-0.6)/-v.dir[1];if(tg<t)t=tg}const x=v.eye[0]+v.dir[0]*t,z=v.eye[2]+v.dir[2]*t;const e=pokewatch.spawn(id,x-P.x,z-P.z);return {e,at:[+(x-P.x).toFixed(1),+(z-P.z).toFixed(1)],t:+t.toFixed(1)}},\naim(){const a=pokewatch.ctx.aim;return a&&{on:a.on,blocked:a.blocked,kind:a.hitKind,dist:+(a.dist||0).toFixed(1)}},\nhud(){const b=document.querySelector('.hud-bottom').getBoundingClientRect();return {l:+(b.left/innerWidth).toFixed(3),r:+(b.right/innerWidth).toFixed(3),t:+(b.top/innerHeight).toFixed(3),b:+(b.bottom/innerHeight).toFixed(3),w:innerWidth,h:innerHeight}}\n};return 1})()"
+   },
+   {
+    "advance": 1.5
+   },
+   {
+    "eval": "camtest.target('snorlax',9)"
+   },
+   {
+    "advance": 0.05,
+    "frames": 3
+   },
+   {
+    "eval": "camtest.aim()"
+   },
+   {
+    "shot": "0target"
+   },
+   {
+    "eval": "camtest.box()"
+   },
+   {
+    "strip": "fire",
+    "n": 10,
+    "dt": 0.03333333333333333,
+    "frames": 2,
+    "input": {
+     "btn": 16,
+     "press": 16
+    }
+   },
+   {
+    "eval": "camtest.aim()"
+   }
+  ]
+ }
+]

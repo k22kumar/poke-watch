@@ -36,7 +36,7 @@ for (const sc of scenes) {
       fs.writeFileSync(`${out}/${sc.name}-${st.raw}.png`, Buffer.from(data.split(',')[1], 'base64'));
     }
   }
-  if (logs.length) console.log(`[${sc.name}]\n  ` + logs.slice(0, 20).join('\n  '));
+  if (logs.length) console.log(`[${sc.name}]\n  ` + logs.slice(0, 80).join('\n  '));
   await p.close();
 }
 await b.close();

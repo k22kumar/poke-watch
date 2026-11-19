@@ -2,6 +2,8 @@
 // grid and integer upscaling; they differ in pitch and in how many internal lines (how much of the
 // arena) fit on screen. The 'chase' preset is the third-person rig (docs/THIRD_PERSON.md): a low,
 // over-the-shoulder camera behind the Pokémon that the player orbits with the mouse or right stick.
+import { classOutline, idealArm, pivotHeight, type IdealArm, type Outline } from './framing';
+
 export interface CameraPreset {
   id: string; name: string; pitch: number; fov: number; lines: number; note: string;
   /** look-at shift toward the camera (m): puts the player higher on screen so threats from the south show earlier */
@@ -20,177 +22,142 @@ export const CAMERA_PRESETS: CameraPreset[] = [
 export const CAMERA_DEFAULT = 'chase';
 export const cameraPreset = (id: string | undefined) => CAMERA_PRESETS.find((p) => p.id === id) ?? CAMERA_PRESETS.find((p) => p.id === CAMERA_DEFAULT)!;
 
+
 // ----------------------------------------------------------------------------------------------------------
-// Third-person rig. Pure maths (no GL, no DOM, never touches the sim) so it can be unit-tested.
+// Third-person rig (docs/THIRD_PERSON.md "Camera" and "Composition"). Pure maths (no GL, no DOM, never touches the sim)
+// so it can be unit-tested. One stable combat framing, attached to the Pokémon and turned only by the player:
 //
-//   pivot  = the Pokémon's shoulder line (a fraction of its drawn height); the boom swings behind it by yaw/elevation
-//   eye    = pivot - dir(yaw, elevation) * boom + right * shoulder * boom, pulled in by terrain, walls and decks
-//   view   = parallel to the yaw, tilted `tilt` degrees below the horizon, so the horizon sits just above the screen
-//            centre, the Pokémon fills the lower third beside the crosshair and the world runs away into the distance
+//   anchor = the Pokémon's feet exactly where they are drawn this frame (no follow lag in any axis)
+//   pivot  = anchor + up * pivotH: on the top of the sprite's outline as drawn (render/framing.ts pivotHeight); past
+//            the orbit range it stays where that range left it (chasePivotH)
+//   hand   = pivot + right * shoulder: far enough to the side that the outline's right edge is `reticle.side` left of
+//            the crosshair
+//   lens   = hand - arm(yaw, elevation) * back: the arm sits `reticle.below` over the view axis, so the outline's top
+//            stays that far under the crosshair line whatever the back distance
+//   view   = the player's yaw and pitch, nothing else (the axis is the crosshair ray: screen centre)
 //
-// Every number lives in CHASE_CONFIG: tune the camera there, not in the maths.
+// What wins when they conflict (the rig's stages run in this order):
+//   P1  always: the lens keeps `lens.clear` from terrain, bare walls, deck undersides and the map edge, on every drawn
+//       frame and every view sample. Props are not solids for the lens: they dissolve (render/tilestage.ts)
+//   P2  always: the view direction is the player's yaw and pitch. Nothing here turns it
+//   P3  when it fits: the composition above. It holds while no wall takes the shoulder, no slab the pivot, and the
+//       pitch is inside the orbit range (CHASE_CONFIG.elevation)
+//   P4  otherwise: the renderer dissolves the Pokémon by how far its drawn frame is inside the keep-out (framing.ts fadeFor)
+//
+//   1 ideal      the arm for the sprite's measured outline (framing.ts idealArm): one fixed figure per sprite
+//   2 clearance  two sweeps, sideways then back: how much of each arm the world leaves free, unsmoothed
+//   3 smoothing  the lens comes in at a capped speed, hopping only what is in its own way (boomTime.in: its own point is
+//                never within lens.clear of a solid), and the arm eases back out after a hold; the
+//                grounded step of a tile edge is taken up at a capped rate; a deck's cap on the elevation is eased
+//   4 final      the composed lens is checked once more for P1 (clearLens) after a frame's yaw, pitch and step offset
+//
+// Nothing depends on enemies, combat, speed, animation, the Pokémon's traversal mode or the direction it moves in.
+// Every number lives in CHASE_CONFIG.
 // ----------------------------------------------------------------------------------------------------------
-export type ChaseState = 'explore' | 'combat' | 'pressure';
-export interface ChaseParams {
-  /** elevation of the boom above the horizontal (deg): how far the lens sits above the pivot */
-  pitch: number;
-  /** boom length (m) for a Pokémon of CHASE_CONFIG.size.ref metres */
-  boom: number;
-  /** vertical field of view (deg) */
-  fov: number;
-  /** how far below the horizon the view axis points (deg); sets where the horizon and the crosshair's ground hit fall */
-  tilt: number;
-}
 
 /** Every camera tuning value. Angles in degrees, distances in metres, times in seconds. */
 export const CHASE_CONFIG = {
-  /** Explore: nothing hostile near. Combat: a hostile within 20 m. Pressure: a boss within 25 m or a crowd.
-   *  Garden Warfare sits the lens about a head above its hero and a body-and-a-half behind: Explore is that,
-   *  Combat and Pressure rise and back off a little so a crowd stays readable, never past a 17° boom. */
-  states: {
-    explore: { pitch: 9, boom: 4.2, fov: 64, tilt: 6 },
-    combat: { pitch: 13, boom: 5, fov: 68, tilt: 7.5 },
-    pressure: { pitch: 17, boom: 6.2, fov: 72, tilt: 10 },
-  } as Record<ChaseState, ChaseParams>,
-  /** when the state changes: entry and exit thresholds are apart (a crowd hovering at the threshold must not pump the
-   *  boom in and out), and a calmer state is only taken after its reading has lasted `hold` / `pressureHold` */
-  threat: { combatIn: 20, combatOut: 26, weightIn: 20, weightOut: 12, bossIn: 25, bossOut: 32, hold: 3, pressureHold: 2 },
-  /** critically damped blend between states: `out` towards a busier state, `in` back to a calmer one */
-  blend: { out: 0.25, in: 0.6 },
-  /** boom scale for the Pokémon's size: (framing size / ref) ^ exp, clamped. Small Pokémon sit closer and lower,
-   *  big ones further back and higher; `settle` is the smoothing time (s) of the change when the squad tags a different Pokémon */
-  size: { ref: 1.2, exp: 0.55, min: 0.7, max: 1.8, settle: 0.45, bodyMin: 0.35, bodyMax: 5, widthWeight: 0.6 },
-  /** pivot height = body height * chest (flyers: flyerChest), clamped */
-  pivot: { chest: 0.8, flyerChest: 0.9, min: 0.5, max: 2.4 },
-  /** over-the-shoulder offset as a fraction of the boom (+ = camera to the right, the Pokémon appears left). The lens
-   *  swaps shoulder when its side has left less than `below` of the boom open, and the other side `gain` more, for
-   *  `confirm` s; at most once every `every` s; the swap glides over `settle` s */
-  shoulder: 0.24,
-  swap: { below: 0.8, gain: 0.25, every: 1, settle: 0.25, confirm: 0.2 },
-  /** the player's own pitch window around the state's pitch (deg); + looks down. Read only with aimPitch.on false: use
-   *  lookPitchRange() for the band in force */
-  pitchRange: [-14, 20] as [number, number],
-  /** Phase 4A (docs/THIRD_PERSON_IMPLEMENTATION.md §16): the player owns the view direction. With `on`, the view axis (the
-   *  crosshair ray) is `neutral` + the player's pitch and nothing else, inside `up` degrees above and `down` degrees below
-   *  the horizon. The state tilt, the slope tilt and the climb over a wall behind no longer turn it: they move only the lens
-   *  (boom elevation and length), and look input alone turns the axis. `neutral` is the Explore tilt, so a rig with no
-   *  input frames Explore on level ground exactly as before. The boom elevation still follows the pitch (state pitch +
-   *  userPitch, inside `elevation`), so the lens placement for a given input is unchanged. The bounds come from the
-   *  measurements in §16.3: past ~48° down even the highest boom's crosshair falls behind the Pokémon on level ground, and
-   *  past ~31° up the Pokémon has left the bottom of the frame. With `on` false: the pre-4A rig (axis = state tilt +
-   *  userPitch + slope + liftTilt × climb, userPitch inside pitchRange).
-   *  R3 (§19, owner decisions B, C, E, and the owner's 2026-11-17 approval of the 40° start): the envelope is ±89°, and
-   *  with `overhead.on` the boom elevation never drops below the view pitch (boomElevation). Up to 40° down that is the
-   *  Phase 4A elevation bit for bit (it is never below the pitch there); past 40° the lens leaves the 40° cap and rises
-   *  with the view, so the crosshair ray passes the pivot's vertical line at the pivot (beside it by the shoulder offset)
-   *  and meets level ground pivotHeight / tan(pitch) ahead of the feet, moving toward them as the view goes down. Under a
-   *  deck the rise eases out over `overhead.enter` s (the slab sets the elevation there) and back in over
-   *  `overhead.settle` s after it. Looking up, the lens stays where Phase 4A put it (2° elevation) and the body leaves the
-   *  frame: an edge cue shows where it is (offFrameCue). up 60 / down 50 with `overhead.on` false is the R2 rig bit for bit */
-  aimPitch: { on: true, neutral: 6, up: 89, down: 89, overhead: { on: true, settle: 0.3, enter: 0.1 } },
+  /** framing from the sprite as it is drawn (render/framing.ts; the outline is measured from the art, assets/measure.ts):
+   *  back distance = `boom` × (the body's drawn height / `ref`) ^ `exp`, inside [`min`, `max`]: one law for every sprite.
+   *  The drawn height is the outline's top plus what it draws below its anchor (a PMD anchor is the middle of the
+   *  footprint; the picture reaches a fifth of its height below it at the median, three quarters for a few). With the top
+   *  pinned `reticle.below` under the crosshair line and exp 1, every body's lowest drawn point lands at about the same
+   *  height in the frame (0.88 to 0.94 of it): over the HUD's move bar in a 1080p window, at most 2 % of the frame under
+   *  it at 720p (scripts/camframe.ts "HUD"). `settle`: smoothing (s) when the squad tags a Pokémon with another outline */
+  frame: { ref: 1.9, boom: 4.3, exp: 1, min: 1.8, max: 9, settle: 0.45 },
+  /** the keep-out around the crosshair (degrees, render/framing.ts): the player's own Pokémon lies left of `side` or
+   *  below `below`. The outline's top-right corner is put on the keep-out's lower-left corner: `below` is how far the arm
+   *  sits over the view axis, `side` sets the shoulder offset. `reach`: the most the fixed combat allowance may move that
+   *  corner (attack, shoot, charge and hurt frames that reach past the body's outline; framing.ts reserveCorner) */
+  reticle: { side: 7, below: 3, reach: 4, rise: 0 },
+  /** the shoulder offset is at most this share of the back distance (a body too long for it sideways is listed by
+   *  scripts/camframe.ts; its side rows fall to the fade) */
+  shoulderMax: 0.6,
+  /** the vertical field of view (deg) before the player's offset (Settings: Field of view), and the reachable range */
+  fov: 64,
+  fovRange: [40, 85] as [number, number],
+  /** the player owns the view direction (Phase 4A / R3, docs/THIRD_PERSON_IMPLEMENTATION.md §16, §19): the view axis (the
+   *  crosshair ray) is `neutral` + the player's pitch, inside `up` degrees above and `down` below the horizon. The arm's
+   *  elevation follows the pitch (boomElevation: view pitch + `reticle.below`, inside `elevation`); past the elevation
+   *  cap it rises with the view (owner decision C, the 40° start approved 2026-11-17); under a deck CHASE_CONFIG.deck
+   *  caps it */
+  aimPitch: { neutral: 11, up: 89, down: 89 },
   /** R3 (§19, audit F9): billboards seen from steeper than the stretch can square (acos(1 / 1.6) = 51.3°, the shaders'
    *  stretch cap) lean back by the excess, top away from a lens above them (toward one below), so from overhead a sprite
    *  keeps the height it has at 51.3° instead of flattening into a sliver. Below 51.3° nothing changes. False: upright */
   lean: true,
-  /** R3 (decision B): the edge cue for the player's own Pokémon once it has left the frame (looking up past ~33°).
+  /** R3 (decision B): the edge cue for the player's own Pokémon once it has left the frame (looking up).
    *  `fade`: how far past the frame edge (fraction of the half-screen) the cue takes to reach full opacity */
   cue: { fade: 0.15 },
-  /** the boom elevation is kept inside this (deg) */
+  /** the arm's elevation is kept inside this (deg) below the overhead rise: the orbit range */
   elevation: [2, 40] as [number, number],
-  /** a tall wall or cliff right behind the Pokémon: the boom may climb this much (deg) before it only shortens. Climbing
-   *  is the last resort: every climb tips the whole view, and along a cave wall it bobbed the camera up and down */
-  maxLift: 12,
-  liftStep: 3,
-  /** the boom only climbs when shortening would leave less than `liftClear` of it, and only by the smallest climb
-   *  that clears that much (a moderate wall behind just brings the lens closer, as in Garden Warfare; a wall too tall
-   *  to see over is never climbed at all) */
-  liftClear: 0.35,
-  /** climbing: smoothing up and down (s), and how long a lower climb must stay clear before the boom comes back down */
-  liftTime: { up: 0.2, down: 0.8, hold: 1 },
-  /** how much of the climb the view axis follows (the rest drops the Pokémon lower in frame) */
-  liftTilt: 0.7,
-  /** lens clearances (m): over the ground (`inside`: how deep into a rise counts as a wall rather than a skim),
-   *  under a deck; solids count up to `solidTop` above the ground (with R1b wall tops on, only bare walls do: a wall
-   *  prop counts up to its World.wallTop, the obstacle height bodies and shots read; solidTop is a lens margin, not an
-   *  obstacle height, render/chaseinput.ts). The lens' own floor over the ground under it
-   *  is `ground` (eased over `floorTime` s when the ground steps up under it), never less than `hardFloor` */
-  lens: { ground: 0.4, inside: 0.5, ceiling: 0.35, solidTop: 2.4, floorTime: 0.06, hardFloor: 0.2 },
-  /** what may block the lens. Terrain, deck undersides and the map edge always do, on the quick `boomTime` response.
-   *  Props (trees, rocks, buildings) do too, but never below minBoom.frac of the boom, never make it climb, and on the
-   *  gentler `propBoom` response, and only where they are dense: at least `propDense` of the nine points of a 1 m
-   *  grid around the lens (a thicket, a forest wall, a building). A lone tree or rock never moves the boom: the lens
-   *  passes through it and it dissolves (props within 4 m of the lens dither away, and any prop between the lens and
-   *  the Pokémon is screen-doored). Blocking on every trunk within 0.7 m of the boom pumped the zoom by 2-3 m each
-   *  time the camera turned past a single tree. With false the lens passes through all props (steadiest framing, but
-   *  in a forest it sits inside the canopy and dithered trees fill the screen) */
-  propsBlockLens: true,
-  propDense: 3,
-  propBoom: { in: 0.3, out: 0.8, hold: 0.5 },
-  /** solids (props, when they block) keep the boom out to at least max(floor, frac * wanted boom) (under a deck:
-   *  `deck`): closer than that the lens dissolves them instead of the Pokémon filling the screen. Terrain and decks may
-   *  bring it in to `hard` metres, right behind the Pokémon */
-  minBoom: { frac: 0.45, floor: 1.2, deck: 0.7, hard: 0.4 },
-  /** boom collision response: comes in over `in` s (never faster than `pullIn` m/s), goes back out over `out` s once the
-   *  air behind has been clear for `hold` s. Where that is too slow and the lens would end up in the ground or a rise, the
-   *  final placement slides it in along the boom (see ChaseRig.step) */
-  boomTime: { in: 0.1, out: 0.45, hold: 0.25 },
-  pullIn: 25,
-  /** how much of a jump or glide the camera follows (the Pokémon rises in frame by the rest) */
-  air: { follow: 0.65, flyerFollow: 0.85 },
-  /** slopes: follow the walkable ground ahead for up to `probe` m (a rise of more than `step` between metres is a wall
-   *  or a cliff and ends it; at least `minRun` m is needed), tilt the view by -gain * that slope, clamped (deg), smoothed
-   *  over `settle` s. Uphill looks up so the crest shows, a drop looks down so what is below does; a cliff face or a
-   *  wall ahead is not a slope and never tips the view */
-  slope: { probe: 10, step: 0.6, minRun: 3, gain: 0.5, range: [-9, 8] as [number, number], settle: 0.5 },
-  /** the field of view the player may reach with the setting (deg) */
-  fovRange: [40, 85] as [number, number],
-  /** collision looks this many seconds ahead along the Pokémon's velocity (up to 2.5 m) */
-  anticipate: 0.35,
-  /** the aim point is kept this far from the Pokémon (m) */
+  /** grounded steps: the sim moves a supported body up or down a tile edge (0.25 and 0.5 m are the common ones, up to
+   *  rules.player.stepHeight) in one tick. While the body is on the ground (ChaseFrame.grounded: the sim's own flag over
+   *  the span drawn; a synthetic frame without it: within `ground` m of the support under it at both ends of a rig tick),
+   *  the rig's height follows it at no more than `rate` m/s and never more than `max` m behind (a rate-limited stair
+   *  smoothing, both ways): a ramp or stairs climbed slower than `rate` is followed exactly, a 0.5 m step is taken up in
+   *  0.125 s instead of in one tick. The renderer draws the Pokémon's sprite with the same offset (ChaseRig.spriteStep),
+   *  so the Pokémon does not move in the frame either, up to `sprite` × the outline's top: the offset puts the drawn
+   *  feet under the tile just climbed, and all of a 0.5 m step hid more than half of 12 of the 68 sprites on its first
+   *  frame (0.43 m of a body 0.5 to 0.8 m tall). At 0.35 that happens to one (Diglett), 48 sprites still take a 0.5 m
+   *  step whole, and the 20 smallest move against the lens on its first frame instead (11 of them by over 0.1 m).
+   *  In the air the rig follows the body 1:1 */
+  step: { rate: 4, max: 0.6, ground: 0.05, sprite: 0.35 },
+  /** P1: the lens, and every point of the arm, stays `clear` m from terrain, bare walls and deck undersides (the near
+   *  plane is 0.3 m): over a floor, under a slab, and beside rock or a wall along x and z */
+  lens: { clear: 0.3 },
+  /** a deck over the back arm caps its elevation so the lens stays `clearance` m under the slab above any point of the
+   *  arm's ground track (down to `minElev` degrees), and a slab over the Pokémon, beside it or over the shoulder arm
+   *  lowers the pivot to `clearance` under it. Both come in over `enter` s and go over `exit` s (critically damped), so
+   *  walking under or out from under a deck does not move the lens in one frame; the cap also eases the overhead rise
+   *  out under a deck and back in after one (R3). The track is tested out to `reach` of the back distance, so the cap is
+   *  coming in before the lens itself is under the slab, and a slab within `near` m of the Pokémon starts the pivot coming
+   *  down. Where the Pokémon is going plays no part */
+  deck: { clearance: 0.45, minElev: -5, enter: 0.2, exit: 0.3, reach: 1.2, near: 2 },
+  /** arm response: each arm comes in to what its sweep leaves free and goes back out over `out` s (critically damped)
+   *  once there has been room for `hold` s. Coming in, the lens travels at no more than `in` m/s (a quarter metre a
+   *  frame at 60 fps) along the straight line to where the shortened arm puts it, and hops only across the stretch of
+   *  that line that is itself within `lens.clear` of a solid: what cuts an arm is usually a wall's end or a ridge's
+   *  corner crossing it near the Pokémon, with free air on the lens's own way in (measured: in three of four cuts of
+   *  over a metre the line had 1.3 m of rock on it or less). Coming in all at once, as the first version of the second
+   *  pass did, moved the lens over 1 m in a frame 2.3 times a minute in the forest and 4.3 in the cave (up to 8 m); the
+   *  lens point itself is never in a solid either way. Only what is in the way moves the arm: never the direction the
+   *  Pokémon moves in, how fast the view turns, or a prop */
+  boomTime: { out: 0.45, hold: 0.25, in: 15 },
+  /** the planar aim point is kept this far from the Pokémon (m) */
   aim: { min: 4, max: 26 },
-  /** screen shake in third person: smooth noise (not a new random offset every frame, which shakes harder the higher
-   *  the frame rate) of `amp` metres at full trauma; `freq` is the noise's angular speed (rad/s, its fastest component
-   *  ~4x that). The fixed views keep their own, larger shake: they look from 20-30 m away, this lens from about 4 m */
-  shake: { amp: 0.12, freq: 30 },
   /** the longest step the rig takes at once (s): longer frames are split (see ChaseRig.update) */
   tick: 1 / 120,
 };
-/** the state table (angles in degrees, distances in metres) */
-export const CHASE_STATES = CHASE_CONFIG.states;
 /** where the aim crosshair sits on screen, as a fraction of height from the top (0.5 = the view axis) */
 export const RETICLE_Y = 0.5;
 
-export interface ChaseThreat {
-  /** distance to the nearest hostile (m), Infinity if none */
-  nearest: number;
-  /** summed threat weight of hostiles within 12 m (fodder 1, elite 3, alpha 4, boss 8) */
-  weight: number;
-  /** distance to the nearest living boss (m), Infinity if none */
-  boss: number;
-}
-export const NO_THREAT: ChaseThreat = { nearest: Infinity, weight: 0, boss: Infinity };
-
 export interface ChaseFrame {
   dt: number;
-  /** interpolated player position (feet) */
+  /** interpolated player position (feet), exactly where it is drawn this frame */
   x: number; y: number; z: number;
-  /** drawn sprite height in metres (sets the shoulder line and, with `width`, the boom) */
+  /** the sprite's outline as drawn (render/framing.ts Outline: the body's top and reach, the combat frames' corners):
+   *  sets the whole arm. Absent (a synthetic frame, a run with no art decoded) = classOutline(`visual` ?? `height`) */
+  outline?: Outline;
+  /** the size class's body height and visible core (m, rules/sizing.ts bodyOf): only the fallback outline reads them */
   height: number;
-  /** drawn sprite width in metres: a wide, low Pokémon needs the lens as far back as a tall one */
-  width?: number;
-  /** the Pokémon glides or floats */
-  flying?: boolean;
-  threat: ChaseThreat;
+  visual?: number;
+  /** the body was on its support over the whole latest span (the sim's Player.pgrounded && grounded: the previous tick
+   *  and the latest), for the stair smoothing. The motion between two frames lies in that span or the one before it
+   *  (drawn near the start of a span, a frame shows the previous one's end), so a step is taken up when this frame or the
+   *  last one says so; a frame in the air on both never is. A property of the sim's ticks, not of when frames fall, so
+   *  the smoothing decides the same at every frame rate. Absent (synthetic frames) = within CHASE_CONFIG.step.ground of
+   *  `ground` under it now and at the rig's last tick */
+  grounded?: boolean;
   /** look input this frame: radians of yaw (+ turns the camera to the right: the view direction is (sin yaw, cos yaw), so a right turn lowers yaw) and of pitch (+ looks down) */
   lookYaw: number; lookPitch: number;
   /** terrain height under (x, z) */
   ground: (x: number, z: number) => number;
   /** underside of an overhead deck above the Pokémon at (x, z), Infinity where open sky (layered maps) */
   ceiling?: (x: number, z: number) => number;
-  /** something solid (a tree trunk, a boulder, rock wall, the map edge) occupies the point; the lens stays out of it */
+  /** something solid that is neither floor nor deck occupies the point (a bare wall: rock mass, cave wall, the map edge
+   *  is ground): the lens stays out of it. Props are not solids for the lens */
   solid?: (x: number, y: number, z: number) => boolean;
-  /** screen-shake offset in metres, already scaled */
-  shake?: [number, number, number];
 }
 
 /** One immutable sample of the third-person view (docs/THIRD_PERSON.md, "View-state contract"): everything that places
@@ -215,13 +182,14 @@ export interface ViewSample {
 export interface AimView { readonly eye: readonly [number, number, number]; readonly yaw: number; readonly viewPitch: number; readonly fov: number }
 
 export interface ChaseSettings {
-  /** the pitch the player may add to the state's pitch (deg) */
+  /** the band the player's pitch offset is clamped to (deg, + looks down): lookPitchRange() */
   pitchRange: [number, number];
   /** FOV offset the player chose (deg), -10..+12 */
   fovOffset: number;
 }
 
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
+const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 /** critically damped easing towards a target (no overshoot, no jump at the start, continuous velocity whatever the frame
  *  rate); returns [value, velocity]. `maxSpeed` caps the speed (units/s). */
 export function smoothDamp(cur: number, target: number, vel: number, smoothTime: number, dt: number, maxSpeed = Infinity): [number, number] {
@@ -234,96 +202,100 @@ export function smoothDamp(cur: number, target: number, vel: number, smoothTime:
   if ((target - cur > 0) === (out > target)) { out = target; v = 0; }
   return [out, v];
 }
-/** smooth noise in -1..1 (a sum of incommensurate sines): continuous in t, so the same at every frame rate */
-export const wobble = (t: number, seed: number) => (Math.sin(t * 1.0 + seed) * 0.5 + Math.sin(t * 2.31 + seed * 1.7) * 0.3 + Math.sin(t * 4.13 + seed * 2.9) * 0.2);
 const D2R = Math.PI / 180;
 const CFG = CHASE_CONFIG;
 
-/** the band (deg, + looks down) the player's pitch offset `userPitch` is clamped to: under CHASE_CONFIG.aimPitch the
- *  absolute view limits expressed around the neutral pitch, else the legacy window around the state's pitch */
+/** the band (deg, + looks down) the player's pitch offset `userPitch` is clamped to: the absolute view limits
+ *  (CHASE_CONFIG.aimPitch up / down about the horizon) expressed around the neutral pitch */
 export function lookPitchRange(): [number, number] {
   const A = CFG.aimPitch;
-  return A.on ? [-A.up - A.neutral, A.down - A.neutral] : CFG.pitchRange;
+  return [-A.up - A.neutral, A.down - A.neutral];
 }
-/** the view axis' pitch below the horizon (rad) for the player's pitch offset under CHASE_CONFIG.aimPitch */
+/** the view axis' pitch below the horizon (rad) for the player's pitch offset */
 const ownedPitch = (userPitch: number) => (CFG.aimPitch.neutral + userPitch) * D2R;
 
-/** The boom elevation (deg, before any climb or deck) for the state's boom pitch `statePitch` and the player's pitch
- *  offset `up`: the Phase 4A expression (state pitch + up, inside CHASE_CONFIG.elevation), and under
- *  aimPitch.overhead.on (R3) never below the view pitch. Every state's pitch is above the neutral pitch, so the Phase 4A
- *  value is never below the view pitch until the 40° cap: up to 40° down this returns it bit for bit. Past 40° the lens
- *  rises with the view (elevation = view pitch): the crosshair ray then passes the pivot's vertical line at the pivot,
- *  so its ground point stays ahead of the feet and moves toward them as the view goes down, and the lens never swings
- *  faster than the look. (R3 first kept the Phase 4A lens to 50° and closed the 10° gap above it along a smoothstep:
- *  the crosshair then fell 0.2–0.6 m behind the feet at 46°–57° and the lens swung at up to 2.25 × the look, §19.)
- *  `overhead` scales the rise, 0..1 (the rig eases it out under a deck and back in after one). Continuous in `up`. */
-export function boomElevation(statePitch: number, up: number, overhead = 1): number {
-  const E = CFG.elevation, e = clamp(statePitch + up, E[0], E[1]);
-  const A = CFG.aimPitch, p = A.neutral + up;
-  if (!A.on || !A.overhead.on || p <= e) return e;
-  return e + (p - e) * overhead;
+/** The ideal arm for a subject (CHASE_CONFIG.frame, .reticle, .shoulderMax; render/framing.ts idealArm): the frame's
+ *  outline, or the fallback for a subject with no measured art */
+export function chaseArm(f: { outline?: Outline; height: number; visual?: number }): IdealArm {
+  return idealArm(f.outline ?? classOutline(f.visual ?? f.height), CFG.frame, CFG.reticle, CFG.shoulderMax);
 }
 
-interface TickOut { px: number; py: number; pz: number; pivotH: number; eye: [number, number, number]; viewPitch: number; fov: number; boom: number; shoulder: number; gap: number; yaw: number; up: number }
-const blankTick = (): TickOut => ({ px: 0, py: 0, pz: 0, pivotH: 0.9, eye: [0, 0, 0], viewPitch: 0.1, fov: 64 * D2R, boom: 4.2, shoulder: 0, gap: 4, yaw: Math.PI, up: 0 });
+/** The arm's elevation (deg, before a deck) for the player's pitch offset `up`: the view pitch + reticle.below, inside
+ *  CHASE_CONFIG.elevation, and never below the view pitch (R3, owner decisions C and E). Up to the elevation cap the arm
+ *  sits `reticle.below` over the view axis (the composition's vertical term); past it the lens rises with the view
+ *  (elevation = view pitch): the crosshair ray then passes the pivot's vertical line at the pivot, so its ground point
+ *  stays ahead of the feet and moves toward them as the view goes down, and the lens never swings faster than the look.
+ *  `overhead` scales the rise, 0..1 (0: the elevation without it). Continuous in `up`. */
+export function boomElevation(up: number, overhead = 1): number {
+  const E = CFG.elevation, A = CFG.aimPitch, p = A.neutral + up, e = clamp(p + CFG.reticle.below, E[0], E[1]);
+  return p <= e ? e : e + (p - e) * overhead;
+}
+
+/** The pivot's height over the feet for an arm of `back` m and `shoulder` m at `elevDeg`: on the outline's top as the
+ *  shader draws it (framing.ts pivotHeight) through the orbit range (CHASE_CONFIG.elevation). Past it, in the overhead
+ *  rise, the pivot stays where the orbit range left it: the lens then rises on an arc of constant length about a fixed
+ *  point, so the Pokémon keeps its size as the view goes down (a pivot that kept following the leaning card's top stood
+ *  5 to 6 outline heights up at 89°: the lens 8 m over a Tiny, 24 m over an Extra Large). The composition is not
+ *  promised there; the fade is */
+export function chasePivotH(top: number, back: number, shoulder: number, elevDeg: number): number {
+  return pivotHeight(top, back, shoulder, Math.min(elevDeg, CFG.elevation[1])).h;
+}
+
+interface TickOut { px: number; py: number; pz: number; pivotH: number; eye: [number, number, number]; fov: number; boom: number; shoulder: number; gap: number; yaw: number; up: number; stepY: number }
+const blankTick = (): TickOut => ({ px: 0, py: 0, pz: 0, pivotH: 0.9, eye: [0, 0, 0], fov: 64 * D2R, boom: 3.5, shoulder: 0, gap: 3.5, yaw: Math.PI, up: 0, stepY: 0 });
 
 export class ChaseRig {
   yaw = Math.PI;
-  /** the player's own pitch offset on top of the state pitch (deg) */
+  /** the player's own pitch offset about the neutral pitch (deg, + looks down) */
   userPitch = 0;
   fovOffset = 0;
-  state: ChaseState = 'explore';
-  cur: ChaseParams = { ...CFG.states.explore };
-  /** smoothed pivot base (follows the Pokémon with a short lag) */
+  /** the pivot base: the Pokémon's feet as drawn, raised by the step being absorbed (stepOffset) */
   px = 0; py = 0; pz = 0;
-  /** height of the pivot above the smoothed feet (m) */
+  /** height of the pivot above the feet (m) */
   pivotH = 0.9;
   eye: [number, number, number] = [0, 0, 0];
   /** a point on the view axis, 20 m from the lens */
   target: [number, number, number] = [0, 0, 0];
   /** vertical field of view (rad) and the view axis' pitch below the horizon (rad) */
   fov = 64 * D2R; viewPitch = 0.1;
-  /** boom actually used after collision and size scaling (m) */
-  boomUsed = 4.2;
-  /** lateral offset of the lens from the Pokémon (m, + = right of it) */
+  /** the back distance in use (m): from the hand to the lens */
+  boomUsed = 3.5;
+  /** the shoulder offset in use (m): from the pivot to the hand, to the right */
   shoulderUsed = 0;
-  /** smoothed framing size of the Pokémon (m): eases when the squad tags another one */
-  size = 1.1;
-  /** ticks on which the final placement had to correct the lens (slide it in along the boom, or lift a lens with no clear
-   *  anchor): the eased boom was too slow there. A diagnostic (scripts/camstats.ts `slides`) */
+  /** the ideal arm for the Pokémon framed (stage 1; eased when the squad tags one with another outline): back distance,
+   *  shoulder offset, and the outline corner the composition pins (m, before the stretch) */
+  backWant = 3.5; shoulderWant = 0.8; cornerTop = 1.4; cornerRight = 0.7;
+  /** what the world left free of each arm at the last tick (stage 2, unsmoothed, m) */
+  backFree = 3.5; shoulderFree = 0.8;
+  /** ticks or frames on which the composed lens had to be brought in for P1 (clearLens): the step offset, a turn or a
+   *  held arm put it within `lens.clear` of something. A diagnostic (scripts/camstats.ts `slides`) */
   groundPops = 0;
-  /** distance from the lens to the pivot (m): under ~0.8 m the lens is at the Pokémon's back and the renderer fades it */
-  lensGap = 4;
-  private floor = 0; private floorV = 0; private fresh2 = true;
-  private softT = 1; private softV = 0; private softClear = 0;
-  /** extra elevation taken over a wall behind the Pokémon (deg) */
-  get liftDeg() { return this.lift; }
-  private curV = { pitch: 0, boom: 0, fov: 0, tilt: 0 };
-  /** seconds since a reading that justified Combat / Pressure */
-  private sinceC = 99; private sinceP = 99;
-  private colT = 1; private colV = 0; // 0..1 fraction of the boom the world allows (smoothed) and its rate
-  private clearT = 1;
-  /** extra elevation (deg) taken to see over a wall or cliff behind the Pokémon (smoothed), its target and rate */
-  private lift = 0; private liftV = 0; private liftWant = 0; private liftLowT = 0;
+  /** distance from the lens to the pivot (m): under ~0.95 m the lens is at the Pokémon and the renderer fades it */
+  lensGap = 3.5;
+  /** the vertical offset (m) the rig has from the body this frame: a grounded step not yet taken up (CHASE_CONFIG.step);
+   *  0 almost always */
+  get stepOffset() { return this.fStep; }
+  /** the part of that offset the renderer draws the Pokémon's sprite with: all of it up to `step.sprite` × the outline's
+   *  top. The shadow, the ground ring, the hurtbox, the muzzle and the shots stay where the body is */
+  get spriteStep() { const m = Math.min(CFG.step.max, CFG.step.sprite * this.cornerTop); return clamp(this.fStep, -m, m); }
+  private fStep = 0;
+  private sideT = 1; private sideV = 0; private sideClear = 0; // the share of the shoulder in use, its rate, and how long there has been room
+  private colT = 1; private colV = 0; private clearT = 1; // the same for the back distance
   private ready = false;
-  /** which shoulder the lens is on (+1 right, -1 left), its smoothed value and rate, and the seconds since it last swapped */
-  private side = 1; private sideSm = 1; private sideV = 0; private sideT = 9; private swapT = 0;
-  private sizeV = 0;
-  private vx = 0; private vz = 0; private lx = 0; private lz = 0;
-  private slope = 0; private slopeV = 0;
-  private yawV = 0; private lastYaw = Math.PI;
-  private sizeSet = false;
-  /** the last tick was under a deck (the slab, not the player's pitch, set the boom elevation) */
+  private wantV = [0, 0, 0, 0]; private sizeSet = false;
+  /** the Pokémon's last tick height and support state (the stair smoothing). The rig keeps no velocity: where the
+   *  Pokémon is going never moves the camera */
+  private ly = 0; private lGround = false;
+  /** the last frame's ChaseFrame.grounded: the motion between two frames may lie in the span before the latest one */
+  private fGround = false;
+  /** the grounded step not yet taken up (m, the rig's height less the body's), at the last tick */
+  private stepY = 0;
+  /** the last tick's elevation was set by a deck over the arm (the slab, not the player's pitch) */
   private coveredTk = false;
-  /** R3: how much of the overhead rise (boomElevation above the Phase 4A elevation) the lens takes, 0..1, and its rate. 0
-   *  under a deck (the slab sets the elevation there); eased back to 1 after one, so stepping out from under a deck while
-   *  looking down does not throw the lens overhead in one tick */
-  private ovW = 1; private ovV = 0;
-  /** R3: the player's pitch rate (deg/s): this frame's change over the frame (`pitchRaw`, the same at every tick of the
-   *  frame, so the estimate does not depend on the frame rate), smoothed per tick (`pitchRate`); `frameUp` is the pitch
-   *  the last frame ended with. Read only while the overhead rise is in force (overhead anticipation) */
-  private frameUp = 0; private pitchRaw = 0; private pitchRate = 0;
-  /** the next update follows a snap: take the collision answer at once instead of easing to it */
+  /** the eased cap (deg) the decks over the arm put on its elevation (90: no slab), and how far a slab over the Pokémon
+   *  lowers the pivot (m), with their rates */
+  private slabLim = 90; private slabV = 0; private pivDrop = 0; private pivDropV = 0;
+  /** the next update follows a snap: take the clearance answer at once instead of easing to it */
   private fresh = false;
   /** the rig's clock (s), its last and next tick, and the yaw and the Pokémon's position at the end of the last drawn
    *  frame (the ticks interpolate from them) */
@@ -331,385 +303,337 @@ export class ChaseRig {
   private frameYaw = Math.PI; private ix = 0; private iy = 0; private iz = 0;
   /** what the last two ticks produced (the frame is drawn between them) */
   private tk: TickOut = blankTick(); private tkPrev: TickOut = blankTick(); private tkFirst = true;
+  /** the world as the last frame gave it (its probes): look() checks P1 against it between frames */
+  private world: ChaseFrame | null = null;
+  /** the composed lens before P1's last check (clearLens): look() turns this one, so a view it composes is exactly the
+   *  one update() would with no time passed, whatever the check did to the frame before */
+  private raw: [number, number, number] = [0, 0, 0];
 
-  /** hard reset onto the player (stage change, new run) */
+  /** hard reset onto the player (stage change, new run, a respawn) */
   snapTo(x: number, y: number, z: number, yaw = this.yaw) {
     this.px = x; this.py = y; this.pz = z; this.yaw = yaw; this.ready = true;
     this.frameYaw = yaw; this.ix = x; this.iy = y; this.iz = z;
     this.clock = 0; this.lastTick = 0; this.nextTick = 0; this.tkFirst = true; this.tk = { ...blankTick(), px: x, py: y, pz: z };
-    this.colT = 1; this.colV = 0; this.clearT = 1; this.softT = 1; this.softV = 0; this.softClear = 0; this.lift = this.liftV = this.liftWant = this.liftLowT = 0;
-    this.sinceC = this.sinceP = 99;
-    this.sizeV = 0; this.vx = this.vz = 0; this.lx = x; this.lz = z; this.slope = this.slopeV = 0; this.yawV = 0; this.lastYaw = yaw;
-    this.side = 1; this.sideSm = 1; this.sideV = 0; this.sideT = 9; this.swapT = 0; this.sizeSet = false; this.fresh = true; this.fresh2 = true; this.coveredTk = false;
-    this.ovW = 1; this.ovV = 0; this.frameUp = this.userPitch; this.pitchRaw = 0; this.pitchRate = 0;
-    this.state = 'explore'; this.cur = { ...CFG.states.explore }; this.curV = { pitch: 0, boom: 0, fov: 0, tilt: 0 };
-  }
-
-  /** the state the threat calls for, with hysteresis: entering takes the `In` threshold, staying only the `Out` one,
-   *  and a calmer state is taken only once the busier one's reading has been gone for its hold time */
-  pick(t: ChaseThreat, dt: number): ChaseState {
-    const H = CFG.threat;
-    const inP = t.boss < H.bossIn || t.weight >= H.weightIn, keepP = t.boss < H.bossOut || t.weight >= H.weightOut;
-    const inC = t.nearest < H.combatIn, keepC = t.nearest < H.combatOut;
-    if (inP || (this.state === 'pressure' && keepP)) this.sinceP = 0; else this.sinceP += dt;
-    if (inC || inP || (this.state !== 'explore' && keepC)) this.sinceC = 0; else this.sinceC += dt;
-    if (inP || (this.state === 'pressure' && this.sinceP < H.pressureHold)) return 'pressure';
-    if (inC || (this.state !== 'explore' && this.sinceC < H.hold)) return 'combat';
-    return 'explore';
+    this.colT = 1; this.colV = 0; this.clearT = 1; this.sideT = 1; this.sideV = 0; this.sideClear = 1;
+    this.wantV = [0, 0, 0, 0]; this.sizeSet = false;
+    this.ly = y; this.lGround = false; this.fGround = false; this.stepY = 0; this.fStep = 0;
+    this.fresh = true; this.coveredTk = false;
+    this.slabLim = 90; this.slabV = 0; this.pivDrop = 0; this.pivDropV = 0;
+    this.raw = [x, y, z];
   }
 
   /** One drawn frame. The rig itself runs on a fixed clock of CHASE_CONFIG.tick (120 Hz), whatever the frame rate: the
-   *  Pokémon's position and the yaw are interpolated to each tick's exact time, and the frame shows the rig between its
-   *  last two ticks (at most one tick, 8 ms, behind). Every hold timer and threshold (shoulder swap, climb, state,
-   *  collision) is then decided at the same instants on the same inputs at 30, 60 or 144 fps; stepping once per frame,
-   *  a 30 fps run and a 144 fps run swapped shoulder or cut the boom at different moments. The yaw and the player's
-   *  pitch are applied on top at the frame itself, so look input has no added latency. */
+   *  Pokémon's position and the yaw are interpolated to each tick's exact time, so every hold timer and threshold
+   *  (clearance, steps) is decided at the same instants on the same inputs at 30, 60 or 144 fps. The frame then takes
+   *  the arm (the lens relative to the pivot) between the last two ticks and puts it on the Pokémon where it is drawn
+   *  now, turned to the yaw and swung for the pitch the player has now: the body never moves in the frame because the
+   *  camera lags it, and look input has no added latency. Last, P1 is checked on the composed lens. */
   update(f: ChaseFrame, opt: ChaseSettings = { pitchRange: lookPitchRange(), fovOffset: this.fovOffset }) {
     if (!this.ready) this.snapTo(f.x, f.y, f.z);
+    this.world = f;
     const dt = clamp(f.dt, 0, 0.25), h = CFG.tick;
-    const y1 = Math.atan2(Math.sin(this.yaw - f.lookYaw), Math.cos(this.yaw - f.lookYaw));
-    const y0 = this.frameYaw, dY = Math.atan2(Math.sin(y1 - y0), Math.cos(y1 - y0));
+    const y1 = wrap(this.yaw - f.lookYaw);
+    const y0 = this.frameYaw, dY = wrap(y1 - y0);
     this.fovOffset = clamp(opt.fovOffset, -10, 12);
     this.userPitch = clamp(this.userPitch + f.lookPitch / D2R, opt.pitchRange[0], opt.pitchRange[1]);
-    this.pitchRaw = dt > 0 ? (this.userPitch - this.frameUp) / dt : 0; this.frameUp = this.userPitch;
     const t0 = this.clock, t1 = t0 + dt;
     const x0 = this.ix, h0 = this.iy, z0 = this.iz;
-    // the tick state (the public fields double as the rig's own state while it steps)
-    this.px = this.tk.px; this.py = this.tk.py; this.pz = this.tk.pz;
     while (this.nextTick <= t1 + 1e-9) {
       const u = dt > 0 ? clamp((this.nextTick - t0) / dt, 0, 1) : 1;
-      this.yaw = Math.atan2(Math.sin(y0 + dY * u), Math.cos(y0 + dY * u));
+      this.yaw = wrap(y0 + dY * u);
       this.step({ ...f, dt: this.fresh ? 0 : h, x: x0 + (f.x - x0) * u, y: h0 + (f.y - h0) * u, z: z0 + (f.z - z0) * u, lookYaw: 0, lookPitch: 0 });
       const was = this.tk;
-      this.tk = { px: this.px, py: this.py, pz: this.pz, pivotH: this.pivotH, eye: this.eye.slice() as [number, number, number], viewPitch: this.viewPitch, fov: this.fov, boom: this.boomUsed, shoulder: this.shoulderUsed, gap: this.lensGap, yaw: this.yaw, up: this.userPitch };
+      this.tk = { px: this.px, py: this.py, pz: this.pz, pivotH: this.pivotH, eye: this.eye.slice() as [number, number, number], fov: this.fov, boom: this.boomUsed, shoulder: this.shoulderUsed, gap: this.lensGap, yaw: this.yaw, up: this.userPitch, stepY: this.stepY };
       this.tkPrev = this.tkFirst ? this.tk : was; this.tkFirst = false;
       this.lastTick = this.nextTick; this.nextTick += h;
     }
     this.clock = t1; this.frameYaw = y1; this.ix = f.x; this.iy = f.y; this.iz = f.z;
-    // the frame: between the last two ticks, then turned to the yaw (and tilted by the pitch) the player has now
-    const a = clamp((t1 - this.lastTick) / h, 0, 1), A = this.tkPrev, B = this.tk, mix = (p: number, q: number) => p + (q - p) * a;
-    const dyAB = Math.atan2(Math.sin(B.yaw - A.yaw), Math.cos(B.yaw - A.yaw)), yawAt = A.yaw + dyAB * a;
+    // the frame: the arm between the last two ticks, on the Pokémon where it is now, turned to the yaw (and swung for
+    // the pitch) the player has now
+    // (an arm that came in between the two ticks is taken as the later tick has it: a lens still on its way in would be
+    // where the sweep has just found something)
+    const A = this.tkPrev, B = this.tk, a = B.boom < A.boom - 1e-6 || B.shoulder < A.shoulder - 1e-6 ? 1 : clamp((t1 - this.lastTick) / h, 0, 1), mix = (p: number, q: number) => p + (q - p) * a;
+    const dyAB = wrap(B.yaw - A.yaw), yawAt = A.yaw + dyAB * a;
     this.yaw = y1;
-    this.px = mix(A.px, B.px); this.py = mix(A.py, B.py); this.pz = mix(A.pz, B.pz); this.pivotH = mix(A.pivotH, B.pivotH);
+    const ax = mix(A.px, B.px), az = mix(A.pz, B.pz);
+    // the rig's height at the frame's own time: the stair smoothing run on from the last tick over the part of a tick
+    // since (not kept: the next tick redoes it), so the drawn height is continuous across a tile edge
+    const S = CFG.step, m = S.rate * Math.max(0, t1 - this.lastTick);
+    let sY = B.stepY;
+    if (f.grounded === undefined ? Math.abs(f.y - f.ground(f.x, f.z)) < S.ground && this.lGround : f.grounded || this.fGround) sY -= f.y - B.py;
+    sY = clamp(Math.abs(sY) <= m ? 0 : sY - Math.sign(sY) * m, -S.max, S.max);
+    this.fGround = !!f.grounded;
+    this.fStep = sY;
+    this.px = f.x; this.py = f.y + sY; this.pz = f.z;
+    this.pivotH = mix(A.pivotH, B.pivotH);
     this.boomUsed = mix(A.boom, B.boom); this.shoulderUsed = mix(A.shoulder, B.shoulder); this.lensGap = mix(A.gap, B.gap); this.fov = mix(A.fov, B.fov);
-    // the axis: player-owned (aimPitch), or the ticks' automatic tilt with the pitch input since them on top (legacy)
-    this.viewPitch = CFG.aimPitch.on ? ownedPitch(this.userPitch) : mix(A.viewPitch, B.viewPitch) + (this.userPitch - mix(A.up, B.up)) * D2R;
-    const d = Math.atan2(Math.sin(y1 - yawAt), Math.cos(y1 - yawAt)), cd = Math.cos(d), sd = Math.sin(d);
-    const ex = mix(A.eye[0], B.eye[0]) - this.px, ez = mix(A.eye[2], B.eye[2]) - this.pz;
-    this.eye = [this.px + ex * cd + ez * sd, mix(A.eye[1], B.eye[1]), this.pz - ex * sd + ez * cd];
-    // the player's pitch also sets the boom's elevation (step): pitch input since the ticks swings the lens about the
+    this.viewPitch = ownedPitch(this.userPitch);
+    const d = wrap(y1 - yawAt), cd = Math.cos(d), sd = Math.sin(d);
+    // the arm: the ticks' lens relative to the ticks' anchor (the feet, plus the step not yet taken up)
+    const ex = mix(A.eye[0], B.eye[0]) - ax, ey = mix(A.eye[1] - A.py - A.stepY, B.eye[1] - B.py - B.stepY), ez = mix(A.eye[2], B.eye[2]) - az;
+    this.eye = [f.x + ex * cd + ez * sd, this.py + ey, f.z - ex * sd + ez * cd];
+    // the player's pitch also sets the arm's elevation (step): pitch input since the ticks swings the lens about the
     // pivot now, as the yaw does, instead of a tick later (zero once a tick has run with it)
-    this.swingLens(this.elevFor(this.userPitch) - this.elevFor(mix(A.up, B.up)));
+    this.swingLens(this.elevFor(mix(A.up, B.up)), this.elevFor(this.userPitch));
+    this.raw = [this.eye[0], this.eye[1], this.eye[2]];
+    this.clearLens();
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch), fy = Math.sin(y1), fz = Math.cos(y1);
     this.target = [this.eye[0] + fy * vc * 20, this.eye[1] - vs * 20, this.eye[2] + fz * vc * 20];
   }
 
-  /** the boom elevation (deg) the player's pitch `up` gives in the current state, as the tick composes it with its
-   *  climb, less that climb (only differences are used: swingLens); under a deck the slab decides it, so pitch does not
-   *  move the lens there. Inside the Phase 4A envelope it is boomElevation's Phase 4A value exactly; past it (R3) the
-   *  tick's cap on elevation + climb (elevCap) is taken into account, so a swing never overshoots what the tick draws */
+  /** the arm elevation (deg) the player's pitch `up` gives, as the tick composes it (only differences are used:
+   *  swingLens); under a deck the slab decides it, so pitch does not move the lens there */
   private elevFor(up: number) {
-    if (this.coveredTk) return 0;
-    const b = boomElevation(this.cur.pitch, up, this.ovW), cap = CFG.elevation[1] + CFG.maxLift;
-    return b + this.lift <= cap ? b : Math.max(cap, b) - this.lift;
+    return this.coveredTk ? 0 : boomElevation(up);
   }
 
-  /** turn the composed lens about the pivot in the vertical plane of the view yaw by `dElev` degrees (+ = higher) */
-  private swingLens(dElev: number) {
-    if (!dElev) return;
+  /** Swing the composed lens for a change of the arm's elevation from `e0` to `e1` degrees, as a tick would compose it:
+   *  about the pivot's sideways axis (the one the hand lies on), and with the pivot itself moved to where it stands at the
+   *  new elevation (it sits on the outline's top as drawn, and the stretch the sprite is drawn with follows the lens) */
+  private swingLens(e0: number, e1: number) {
+    if (e0 === e1) return;
     const fx = Math.sin(this.yaw), fz = Math.cos(this.yaw), oy = this.py + this.pivotH;
     const rx = this.eye[0] - this.px, ry = this.eye[1] - oy, rz = this.eye[2] - this.pz;
     const back = -(rx * fx + rz * fz), lx = rx + fx * back, lz = rz + fz * back; // behind the pivot, and across
-    const R = Math.hypot(back, ry), e = Math.atan2(ry, back) + dElev * D2R;
+    const R = Math.hypot(back, ry), e = Math.atan2(ry, back) + (e1 - e0) * D2R;
     const b2 = R * Math.cos(e);
-    this.eye = [this.px + lx - fx * b2, oy + R * Math.sin(e), this.pz + lz - fz * b2];
+    const dH = this.coveredTk ? 0 : chasePivotH(this.cornerTop, this.boomUsed, this.shoulderUsed, e1) - chasePivotH(this.cornerTop, this.boomUsed, this.shoulderUsed, e0);
+    this.pivotH += dH;
+    this.eye = [this.px + lx - fx * b2, oy + dH + R * Math.sin(e), this.pz + lz - fz * b2];
+  }
+
+  /** P1's test: is the point within `lens.clear` of a solid: less than that over the floor or under a deck's underside
+   *  there, in a bare wall, or beside rock, a wall or a slab that stands `lens.clear` away along x or z */
+  private blocked(f: ChaseFrame, x: number, y: number, z: number): boolean {
+    const c = CFG.lens.clear;
+    if (y < f.ground(x, z) + c || (!!f.ceiling && y > f.ceiling(x, z) - c) || (!!f.solid && f.solid(x, y, z))) return true;
+    for (let k = 0; k < 4; k++) {
+      const qx = x + (k === 0 ? c : k === 1 ? -c : 0), qz = z + (k === 2 ? c : k === 3 ? -c : 0);
+      if (y < f.ground(qx, qz) || (!!f.ceiling && y > f.ceiling(qx, qz)) || (!!f.solid && f.solid(qx, y, qz))) return true;
+    }
+    return false;
+  }
+
+  /** is the point in a solid: under the floor, over a deck's underside, or in a bare wall */
+  private inside(f: ChaseFrame, x: number, y: number, z: number): boolean {
+    return y < f.ground(x, z) || (!!f.ceiling && y > f.ceiling(x, z)) || (!!f.solid && f.solid(x, y, z));
+  }
+
+  /** How far a point can go from (ax, ay, az) along the unit (dx, dy, dz), up to `len` m, before it is blocked: sampled
+   *  every 0.25 m at most (walls are a metre thick), then bisected, so the answer is continuous as the Pokémon walks.
+   *  The start is where the body or the arm already is: it counts as free unless it is in a solid, and so does the
+   *  first stretch out of it (twice `lens.clear`) while that is only close to something, not in it: a Pokémon pressed
+   *  into a corner has its pivot inside the walls' clearance, and its arm still leaves that place for the first clear
+   *  point beyond. 0 when the way never gets clear */
+  private sweep(f: ChaseFrame, ax: number, ay: number, az: number, dx: number, dy: number, dz: number, len: number, every = 0.25): number {
+    if (!(len > 0)) return 0;
+    if (this.inside(f, ax, ay, az)) return 0;
+    const n = Math.max(1, Math.ceil(len / every)), grace = 2 * CFG.lens.clear;
+    let out = !this.blocked(f, ax, ay, az), prev = 0; // `out`: a clear point has been met; `prev`: the last sample that was free to pass
+    for (let i = 1; i <= n; i++) {
+      const t = (len * i) / n, x = ax + dx * t, y = ay + dy * t, z = az + dz * t;
+      if (!this.blocked(f, x, y, z)) { out = true; prev = t; continue; }
+      if (!out) {
+        if (t <= grace + 1e-9 && !this.inside(f, x, y, z)) { prev = t; continue; }
+        return 0;
+      }
+      let lo = prev, hi = t;
+      for (let k = 0; k < 7; k++) { const q = (lo + hi) / 2; if (this.blocked(f, ax + dx * q, ay + dy * q, az + dz * q)) hi = q; else lo = q; }
+      return lo;
+    }
+    return out ? len : 0;
+  }
+
+  /** P1 on the composed lens (stage 4): where the step offset, a turn since the last tick or a held arm leaves the lens
+   *  within `lens.clear` of a solid, it comes in along the back arm to the nearest clear point from the hand (from the
+   *  pivot when the hand itself is not clear). Never lifted, never turned: the view direction is untouched */
+  private clearLens() {
+    const f = this.world, e = this.eye;
+    if (!f || !this.blocked(f, e[0], e[1], e[2])) return;
+    const rx = -Math.cos(this.yaw), rz = Math.sin(this.yaw), oy = this.py + this.pivotH;
+    for (const s of [this.shoulderUsed, 0]) {
+      const hx = this.px + rx * s, hz = this.pz + rz * s;
+      if (this.inside(f, hx, oy, hz)) continue;
+      const dx = e[0] - hx, dy = e[1] - oy, dz = e[2] - hz, len = Math.hypot(dx, dy, dz);
+      const t = len > 1e-6 ? this.sweep(f, hx, oy, hz, dx / len, dy / len, dz / len, len) : 0, k = len > 1e-6 ? t / len : 0;
+      this.eye = [hx + dx * k, oy + dy * k, hz + dz * k];
+      this.lensGap = Math.hypot(this.eye[0] - this.px, this.eye[1] - oy, this.eye[2] - this.pz);
+      this.groundPops++;
+      return;
+    }
   }
 
   /** one tick of the rig */
   private step(f: ChaseFrame) {
     const dt = f.dt;
-    // the Pokémon's velocity (smoothed), for collision anticipation
+    // a grounded step (CHASE_CONFIG.step): on the ground the rig's height follows the body at a capped rate, so a tile
+    // edge the sim walked it up or down in one tick is taken up over a few ticks; a ramp walked slower than the cap, a
+    // jump, a fall and flight are followed 1:1
+    // (the sim's own support flag over the span drawn: a position interpolated across a tile edge is between the two
+    // floors, not in the air, and a landing span is not a step)
+    const S = CFG.step, onGround = Math.abs(f.y - f.ground(f.x, f.z)) < S.ground, absorb = f.grounded === undefined ? onGround && this.lGround : f.grounded || this.fGround;
     if (dt > 0) {
-      const vk = 1 - Math.exp(-10 * dt);
-      this.vx += ((f.x - this.lx) / dt - this.vx) * vk; this.vz += ((f.z - this.lz) / dt - this.vz) * vk;
+      if (absorb) this.stepY -= f.y - this.ly;
+      const m = S.rate * dt;
+      this.stepY = clamp(Math.abs(this.stepY) <= m ? 0 : this.stepY - Math.sign(this.stepY) * m, -S.max, S.max);
     }
-    this.lx = f.x; this.lz = f.z;
-    // how fast the camera is turning (rad/s, smoothed): the boom is also tested where it will be shortly, so turning
-    // into a cliff pulls the lens in ahead of the rock instead of cutting it in when it gets there
-    if (dt > 0) { let dy = this.yaw - this.lastYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); this.yawV += (dy / dt - this.yawV) * (1 - Math.exp(-12 * dt)); }
-    if (dt > 0) this.pitchRate += (this.pitchRaw - this.pitchRate) * (1 - Math.exp(-12 * dt));
-    this.lastYaw = this.yaw;
+    this.ly = f.y; this.lGround = onGround;
 
-    // state: a critically damped blend, quicker towards danger than back to calm
-    const next = this.pick(f.threat, dt);
-    this.state = next;
-    const T = CFG.states[next];
-    const st = T.pitch >= this.cur.pitch ? CFG.blend.out : CFG.blend.in;
-    for (const k of ['pitch', 'boom', 'fov', 'tilt'] as const) [this.cur[k], this.curV[k]] = smoothDamp(this.cur[k], T[k], this.curV[k], st, dt);
-
-    // size: the framing size is the taller of the body and its (weighted) width; eased so tagging a different
-    // Pokémon glides the lens to its new height and distance instead of popping
-    const Z = CFG.size;
-    const body = clamp(f.height, Z.bodyMin, Z.bodyMax);
-    const framing = clamp(Math.max(body, (f.width ?? 0) * Z.widthWeight), Z.bodyMin, Z.bodyMax);
-    if (!this.sizeSet) { this.size = framing; this.sizeSet = true; }
-    else [this.size, this.sizeV] = smoothDamp(this.size, framing, this.sizeV, Z.settle, dt);
-    const sizeK = clamp(Math.pow(this.size / Z.ref, Z.exp), Z.min, Z.max);
-    const want = this.cur.boom * sizeK;
-    const pivH = clamp(this.size * (f.flying ? CFG.pivot.flyerChest : CFG.pivot.chest), CFG.pivot.min, CFG.pivot.max);
-    this.pivotH = pivH;
-
-    // pivot: horizontal follow with a short lag; vertical eased, and only part of a jump or glide is followed, so
-    // the Pokémon rises in frame instead of the whole world bobbing; steps, stairs and slopes do not jerk the view
-    const fk = 1 - Math.exp(-16 * dt);
-    this.px += (f.x - this.px) * fk; this.pz += (f.z - this.pz) * fk;
-    // the lagging pivot cuts corners; it must never cut through a rise (a pivot inside a rock wall put the lens on top of
-    // the wall, then back down, on alternating frames): where it would stand in one, it comes back towards the Pokémon
-    const badPivot = (x: number, z: number) => f.ground(x, z) > f.y + CFG.lens.inside;
-    if (badPivot(this.px, this.pz)) {
-      // as far along the lag as it can stay (bisection keeps the answer continuous as the Pokémon moves)
-      let lo = 0, hi = 1;
-      for (let k = 0; k < 8; k++) { const m = (lo + hi) / 2; if (badPivot(f.x + (this.px - f.x) * m, f.z + (this.pz - f.z) * m)) hi = m; else lo = m; }
-      this.px = f.x + (this.px - f.x) * lo; this.pz = f.z + (this.pz - f.z) * lo;
+    // ---- stage 1: the ideal arm for the sprite's outline, eased when the squad tags a Pokémon with another outline
+    const I = chaseArm(f), F = CFG.frame, V = this.wantV;
+    if (!this.sizeSet) { this.backWant = I.back; this.shoulderWant = I.shoulder; this.cornerTop = I.top; this.cornerRight = I.right; this.sizeSet = true; }
+    else {
+      [this.backWant, V[0]] = smoothDamp(this.backWant, I.back, V[0], F.settle, dt); [this.shoulderWant, V[1]] = smoothDamp(this.shoulderWant, I.shoulder, V[1], F.settle, dt);
+      [this.cornerTop, V[2]] = smoothDamp(this.cornerTop, I.top, V[2], F.settle, dt); [this.cornerRight, V[3]] = smoothDamp(this.cornerRight, I.right, V[3], F.settle, dt);
     }
-    const air = clamp(f.y - f.ground(f.x, f.z), 0, 6);
-    const follow = f.flying ? CFG.air.flyerFollow : CFG.air.follow;
-    this.py += (f.y - air * (1 - follow) - this.py) * (1 - Math.exp(-7 * dt));
-    const ox = this.px, oy = this.py + pivH, oz = this.pz;
+    const want = this.backWant, wantS = this.shoulderWant;
 
+    // the anchor: the Pokémon itself, no lag
+    this.px = f.x; this.py = f.y; this.pz = f.z;
     const sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
     const rx = -cy, rz = sy; // right of the view direction (the same vector the move input uses)
 
-    // the lens may not sink into the ground, a deck or a solid: walk a boom candidate from the pivot out
-    const STEPS = 10;
-    const L = CFG.lens;
-    // the lens deep inside a rise (a cliff, a bluff) must come in at once; skimming the surface of one (a shelf, a slope
-    // under the boom) is eased: the lens is only lifted over it
-    const insideAt = (x: number, y: number, z: number) => y < f.ground(x, z) - L.inside;
-    const groundAt = (x: number, y: number, z: number) => y < f.ground(x, z) + L.ground;
-    const ceilAt = (x: number, y: number, z: number) => !!f.ceiling && y > f.ceiling(x, z) - L.ceiling;
-    // dense props only (see propsBlockLens): props are tile-sized, so a 1 m grid counts each tile near the lens once
-    const solidAt = (x: number, y: number, z: number) => {
-      const s = f.solid;
-      if (!s) return false;
-      let n = 0;
-      for (let i = -1; i <= 1; i++) for (let k = -1; k <= 1; k++) if (s(x + i, y, z + k) && ++n >= CFG.propDense) return true;
-      return false;
-    };
-    // under a deck the lens may come in to an over-the-shoulder 0.7 m (an alcove's back wall is close)
-    const ceilHere = f.ceiling ? f.ceiling(this.px, this.pz) : Infinity;
-    const covered = ceilHere < Infinity;
-    const minBoom = covered ? CFG.minBoom.deck : clamp(CFG.minBoom.frac * want, CFG.minBoom.floor, want);
-    const minFrac = Math.min(1, minBoom / want), hardFrac = Math.min(1, CFG.minBoom.hard / want);
-    const lead = CFG.anticipate;
-    // only motion towards the lens or across it brings an obstacle into the boom; walking away from it never does (and
-    // probing from a point ahead of a Pokémon walking away grazed the walls beside the path)
-    // (R3: an overhead lens is above the pivot, not behind it, so there walking forward brings obstacles into the boom
-    // too: the forward part is kept in proportion to the overhead rise, 0 at the 40° cap, all of it at the vertical. In the
-    // Phase 4A envelope the factor is exactly 1, as before)
-    const ovEl = boomElevation(this.cur.pitch, this.userPitch, this.ovW), dropF = 1 - clamp((ovEl - CFG.elevation[1]) / (90 - CFG.elevation[1]), 0, 1);
-    const vF = Math.max(0, this.vx * sy + this.vz * cy) * dropF, avx = this.vx - sy * vF, avz = this.vz - cy * vF;
-    const spd = Math.hypot(avx, avz), lead2 = Math.min(spd * lead, 2.5), aheadX = spd > 1e-3 ? (avx / spd) * lead2 : 0, aheadZ = spd > 1e-3 ? (avz / spd) * lead2 : 0;
-    let softOut = 1; // the prop part of the last clearFrom (props are eased more gently than terrain)
-    /** the fraction of the boom (at this elevation and shoulder) the world leaves open */
-    const clearFrom = (qx: number, qz: number, elevDeg: number, sf: number, yaw = this.yaw) => {
-      const pr = elevDeg * D2R, c = Math.cos(pr), sn = Math.sin(pr);
-      const sy = Math.sin(yaw), cy = Math.cos(yaw), rx = -cy, rz = sy;
-      // the fraction of the boom that is open before `blocked` first holds: found on STEPS samples, then refined by bisection
-      // so the answer is continuous as the Pokémon walks (a coarse answer would shorten the boom in visible 10 % hops)
-      const first = (blocked: (x: number, y: number, z: number) => boolean) => {
-        const at = (t: number) => blocked(qx + (-sy * c + rx * sf) * want * t, oy + sn * want * t, qz + (-cy * c + rz * sf) * want * t);
-        for (let i = 1; i <= STEPS; i++) {
-          if (!at(i / STEPS)) continue;
-          let lo = (i - 1) / STEPS, hi = i / STEPS;
-          for (let k = 0; k < 6; k++) { const m = (lo + hi) / 2; if (at(m)) hi = m; else lo = m; }
-          return lo;
-        }
-        return 1;
-      };
-      // a rise (a cliff, a bluff), the ground's surface, a deck's underside, a solid
-      const g = first(insideAt), gs = first(groundAt), d = f.ceiling ? first(ceilAt) : 1, w = f.solid ? first(solidAt) : 1;
-      // all of it eased: a rise that cuts the line between the lens and the Pokémon is eased in like everything else
-      // (the x-ray silhouette shows the Pokémon for those few frames; cutting the boom for it in one frame made turning
-      // beside a cliff snap the zoom). The lens itself is never let into a rise: the slide below sees to that
-      softOut = Math.max(w, minFrac);
-      return Math.min(Math.max(g, hardFrac), Math.max(gs, hardFrac), Math.max(d, hardFrac));
-    };
-    // anticipation: the boom is also tested from where the Pokémon will be in `lead` seconds, so walking backwards
-    // into a rise shortens it before the obstacle arrives instead of snapping the lens in
-    // (only as far as the Pokémon can actually go: a point inside a rise or a solid is where it will be stopped)
-    let aheadK = lead2 < 0.05 ? 0 : 1;
-    while (aheadK > 0 && (insideAt(ox + aheadX * aheadK, oy, oz + aheadZ * aheadK) || !!f.solid?.(ox + aheadX * aheadK, oy, oz + aheadZ * aheadK))) aheadK -= 0.25;
-    const turnAhead = clamp(this.yawV * CFG.anticipate, -0.6, 0.6);
-    /** R3: while the overhead rise is in force, the boom is also tested at the elevation the pitch is heading for
-     *  (rate × anticipate, at most 24°), as it is for turns. Inside the Phase 4A envelope: never (exactly Phase 4A) */
-    let pitchAheadElev = NaN;
-    /** [terrain and decks, props] fractions of the boom left open, from here and from where the Pokémon and the
-     *  camera will be shortly; `clearNow` takes the present boom only */
-    const clearBoth = (elevDeg: number, sf: number, now = false): [number, number] => {
-      let here = clearFrom(ox, oz, elevDeg, sf), soft = softOut;
-      if (now) return [here, soft];
-      if (Math.abs(turnAhead) > 0.02) { here = Math.min(here, clearFrom(ox, oz, elevDeg, sf, this.yaw + turnAhead)); soft = Math.min(soft, softOut); }
-      if (aheadK > 0) { here = Math.min(here, clearFrom(ox + aheadX * aheadK, oz + aheadZ * aheadK, elevDeg, sf)); soft = Math.min(soft, softOut); }
-      if (pitchAheadElev === pitchAheadElev) { here = Math.min(here, clearFrom(ox, oz, pitchAheadElev, sf)); soft = Math.min(soft, softOut); }
-      return [here, soft];
-    };
-    /** the boom as it is now (no anticipation): what the shoulder swap and the climb decide on, so neither ever acts
-     *  for an obstacle the Pokémon may never reach */
-    const clearNow = (elevDeg: number, sf: number) => { const [h, so] = clearBoth(elevDeg, sf, true); return Math.min(h, so); };
-
-    // R3: the overhead rise (the elevation past the Phase 4A one, 0 inside its envelope) eases out under a deck and
-    // back in after one. Without the easing, walking under a deck while looking down dropped the lens from overhead to
-    // under the slab in one tick, and stepping out threw it back up
-    const OV = CFG.aimPitch.overhead, want4A = boomElevation(this.cur.pitch, this.userPitch, 0);
-    const rise = boomElevation(this.cur.pitch, this.userPitch, 1) - want4A;
-    if (this.fresh) { this.ovW = covered ? 0 : 1; this.ovV = 0; }
-    else if (covered ? this.ovW > 0 : this.ovW < 1) [this.ovW, this.ovV] = smoothDamp(this.ovW, covered ? 0 : 1, this.ovV, covered ? OV.enter : OV.settle, dt);
-    let baseElev = want4A;
-    // under a deck (a shelf, a bridge): keep the lens below its underside, a flat low boom rather than climbing over
-    // the wall behind, which would put the camera on top of the slab looking down at nothing
-    if (covered) baseElev = clamp(Math.asin(clamp((ceilHere - 0.45 - oy) / want, -1, 1)) / D2R, 2, baseElev);
-    baseElev += rise * this.ovW;
-    this.coveredTk = covered;
-    // elevation + climb stays under the Phase 4A cap (40° + 12°), or under the overhead elevation itself past it (R3):
-    // the climb is for seeing over a wall behind a low boom, and an overhead boom is already above it
-    const elevCap = Math.max(CFG.elevation[1] + CFG.maxLift, baseElev);
-    const withLift = (l: number) => Math.min(baseElev + l, elevCap);
-
-    // shoulder: the lens sits on the right; if that side is walled in and the left is open it swaps (at most once a second)
-    const SW = CFG.swap;
-    this.sideT += dt;
-    const sf0 = CFG.shoulder;
-    if (this.sideT > SW.every) {
-      // the case for swapping must last `confirm` s (a gap glimpsed on one frame is not a reason, and the decision does
-      // not depend on which frames happen to sample it)
-      const mine = clearNow(withLift(this.lift), this.side * sf0);
-      if (mine < SW.below && clearNow(withLift(this.lift), -this.side * sf0) > mine + SW.gain) this.swapT += dt; else this.swapT = 0;
-      if (this.swapT >= SW.confirm) { this.side = -this.side; this.sideT = 0; this.swapT = 0; }
+    // the arm's elevation: the player's pitch (boomElevation, the overhead rise past the orbit range included), capped
+    // by the decks over the arm (a shelf, a bridge) so the lens stays deck.clearance under every underside above the
+    // back arm's ground track: a flat low arm rather than rising over the slab, which would put the camera on top of it
+    // looking down at nothing. The track is sampled out to `reach` of the back distance at the elevation in force, so
+    // the cap is coming in before the lens itself is under a slab. A slab over the Pokémon, beside it or over the
+    // shoulder arm also lowers the pivot (the outline's top may stand taller than the gap). Both are eased (in over
+    // deck.enter s, out over deck.exit s) and depend only on where the Pokémon stands, never on where it is going
+    const DK = CFG.deck, free = boomElevation(this.userPitch);
+    const sPrev = this.fresh ? wantS : this.shoulderUsed, bPrev = this.fresh ? want : this.boomUsed;
+    // the pivot on the corner's top as the shader draws it from where the lens was (the stretch follows the arm in use)
+    const tall = chasePivotH(this.cornerTop, bPrev, sPrev, Math.min(free, this.slabLim));
+    let lim = 90, drop = 0, hard = 0;
+    if (f.ceiling) {
+      const c = CFG.lens.clear;
+      // the lowest underside over anything the shoulder arm's sweep can touch (the pivot, the arm at the sweep's own
+      // spacing, `lens.clear` either side of each) and over the start of the back arm, where it has not yet dropped
+      // under anything: the pivot may not stand higher than `deck.clearance` under it (`must`)
+      let low = Infinity;
+      for (let t = 0; t < wantS + 0.25; t += 0.25) {
+        const q = Math.min(t, wantS), qx = f.x + rx * q, qz = f.z + rz * q;
+        low = Math.min(low, f.ceiling(qx, qz), f.ceiling(qx + c, qz), f.ceiling(qx - c, qz), f.ceiling(qx, qz + c), f.ceiling(qx, qz - c));
+      }
+      low = Math.min(low, f.ceiling(f.x + rx * (wantS + c), f.z + rz * (wantS + c)));
+      // (and over the back arm's ground track as far as the lens: an arm that starts above a slab cannot get under it,
+      // so the pivot stays down until the lens too is out from under)
+      const hbU = Math.cos(Math.min(free, this.slabLim) * D2R) * bPrev;
+      for (const t of [0.07, 0.14, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95, 1.05]) low = Math.min(low, f.ceiling(f.x + rx * sPrev - sy * hbU * t, f.z + rz * sPrev - cy * hbU * t));
+      const must = low < Infinity ? Math.max(0, f.y + tall - (low - DK.clearance)) : 0;
+      // and a slab within `near` m of the Pokémon, any way round, starts the pivot coming down (eased): whichever way
+      // the Pokémon goes under it, most of the drop is done by then. Where it stands decides, never where it is heading
+      let around = low;
+      for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4, ux = Math.sin(a), uz = Math.cos(a); around = Math.min(around, f.ceiling(f.x + ux * DK.near * 0.5, f.z + uz * DK.near * 0.5), f.ceiling(f.x + ux * DK.near, f.z + uz * DK.near)); }
+      drop = around < Infinity ? Math.max(0, f.y + tall - (around - DK.clearance)) : 0;
+      hard = must;
+      const oyT = f.y + tall - Math.max(hard, this.pivDrop), hb = Math.cos(Math.min(free, this.slabLim) * D2R) * want;
+      const cap = (u: number, t: number) => Math.max(DK.minElev, Math.asin(clamp((u - DK.clearance - oyT) / (Math.min(1, t) * want), -1, 1)) / D2R);
+      for (let k = 0; k <= 6; k++) {
+        const t = (k / 5) * DK.reach / 1.2, u = f.ceiling(f.x + rx * sPrev - sy * hb * t, f.z + rz * sPrev - cy * hb * t);
+        if (u < Infinity) lim = Math.min(lim, cap(u, Math.max(t, 0.2)));
+      }
+      // (a slab near the Pokémon caps the whole arm too: a lens high over the pivot, looking down, has no ground track
+      // to speak of, and would otherwise meet the slab only when the Pokémon is already under it)
+      // (looked for as far out as the lens itself stands from the pivot, up to a metre more than `near`)
+      let wide = around;
+      const far = DK.near + Math.min(1, hb);
+      for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4; wide = Math.min(wide, f.ceiling(f.x + Math.sin(a) * far, f.z + Math.cos(a) * far)); }
+      if (wide < Infinity) lim = Math.min(lim, cap(wide, 1));
     }
-    [this.sideSm, this.sideV] = smoothDamp(this.sideSm, this.side, this.sideV, SW.settle, dt);
-    const sf = sf0 * this.sideSm;
-
-    // a tall wall or cliff right behind the Pokémon: rather than ramming the lens into it, climb over it a little
-    // (the smallest climb up to maxLift degrees that leaves `liftClear` of the boom open), else only shorten. The climb wanted is worked out
-    // from no climb at all every frame (never from the current, moving climb, which made it hunt up and down); a higher
-    // answer is taken at once, a lower one only after it has held for liftTime.hold
-    const cl = (l: number) => clearNow(withLift(l), sf);
-    let lift = 0;
-    if (!covered && cl(0) < CFG.liftClear) {
-      // the smallest climb that actually clears it; if none does (a corridor between tall walls), no climb at all
-      for (let a = CFG.liftStep; a <= CFG.maxLift; a += CFG.liftStep) if (cl(a) >= CFG.liftClear) { lift = a; break; }
+    if (this.fresh) { this.slabLim = lim; this.slabV = 0; this.pivDrop = drop; this.pivDropV = 0; }
+    else {
+      // (with nothing above, the cap lets go toward the elevation the pitch asks for, not toward 90°: the lens rises
+      // at the easing's own pace, then the cap is off)
+      if (lim >= free && this.slabLim >= free - 0.01) { this.slabLim = 90; this.slabV = 0; }
+      else if (lim < this.slabLim) [this.slabLim, this.slabV] = smoothDamp(this.slabLim, lim, this.slabV, DK.enter, dt);
+      else [this.slabLim, this.slabV] = smoothDamp(Math.min(this.slabLim, free), Math.min(lim, free), this.slabV, DK.exit, dt);
+      if (drop !== this.pivDrop) [this.pivDrop, this.pivDropV] = smoothDamp(this.pivDrop, drop, this.pivDropV, drop > this.pivDrop ? DK.enter : DK.exit, dt);
     }
-    if (covered || lift >= this.liftWant) { this.liftWant = lift; this.liftLowT = 0; }
-    else if ((this.liftLowT += dt) >= CFG.liftTime.hold) { this.liftWant = lift; this.liftLowT = 0; }
-    [this.lift, this.liftV] = smoothDamp(this.lift, this.liftWant, this.liftV, covered ? 0.05 : this.liftWant > this.lift ? CFG.liftTime.up : CFG.liftTime.down, dt);
-    const elev = clamp(baseElev + this.lift, covered ? 2 : CFG.elevation[0], elevCap);
-    if (!covered && rise > 0) {
-      const bA = boomElevation(this.cur.pitch, this.userPitch + clamp(this.pitchRate * CFG.anticipate, -24, 24), this.ovW);
-      const eA = clamp(bA + this.lift, CFG.elevation[0], Math.max(CFG.elevation[1] + CFG.maxLift, bA));
-      if (Math.abs(eA - elev) > 0.5) pitchAheadElev = eA;
-    }
+    const elev = Math.min(free, this.slabLim);
+    this.coveredTk = this.slabLim < free;
+    // (the easing may still be catching a slab the Pokémon has just come under: the pivot is never left in its clearance)
+    const pivH = Math.max(tall - Math.max(this.pivDrop, hard), 0.2);
+    this.pivotH = pivH;
+    const ox = f.x, oy = f.y + pivH, oz = f.z;
     const cp = Math.cos(elev * D2R), sp = Math.sin(elev * D2R);
-    const [terrainOpen, propOpen] = clearBoth(elev, sf);
-    // props: their own, gentler easing (passing one trunk should not pump the zoom; the dissolve covers the overlap)
-    const PB = CFG.propBoom;
-    if (this.fresh) { this.softT = propOpen; this.softV = 0; this.softClear = 0; }
-    else if (propOpen < this.softT) { this.softClear = 0; [this.softT, this.softV] = smoothDamp(this.softT, propOpen, this.softV, PB.in, dt); }
-    else if ((this.softClear += dt) > PB.hold) [this.softT, this.softV] = smoothDamp(this.softT, propOpen, this.softV, PB.out, dt);
-    else this.softV = 0;
-    const allowed = Math.min(terrainOpen, this.softT);
-    // boom length: in quickly (never faster than pullIn), out slowly once the air behind has been clear for a moment;
-    // both critically damped, so the lens never changes speed in a single frame
-    const B = CFG.boomTime;
-    if (this.fresh) { this.colT = Math.min(1, allowed); this.colV = 0; this.fresh = false; }
-    if (allowed < this.colT) {
-      this.clearT = 0;
-      [this.colT, this.colV] = smoothDamp(this.colT, allowed, this.colV, B.in, dt, CFG.pullIn / want);
-    } else {
-      this.clearT += dt;
-      if (this.clearT > B.hold) [this.colT, this.colV] = smoothDamp(this.colT, allowed, this.colV, B.out, dt);
-      else if (this.colV < 0) { this.colV *= Math.exp(-dt / 0.04); this.colT += this.colV * dt; } // coast to a stop, never bounce back
-    }
-    if (this.colT < hardFrac) { this.colT = hardFrac; this.colV = Math.max(0, this.colV); }
-    if (this.colT > 1) { this.colT = 1; this.colV = 0; }
-    const boom = want * this.colT;
-    this.boomUsed = boom;
-    this.shoulderUsed = sf * boom;
 
-    const sh = f.shake ?? [0, 0, 0];
-    let ex = ox - sy * cp * boom + rx * sf * boom + sh[0], ey = oy + sp * boom + sh[1], ez = oz - cy * cp * boom + rz * sf * boom + sh[2];
-    // the safety net: where the boom's end would still be in the ground, in a rise or against a deck's underside (a
-    // Pokémon backed against a terrace closer than the shortest boom; the eased boom still catching up), the lens slides
-    // in along the boom to the first point from the pivot that is clear, like a spring arm, and the boom is held there.
-    // It is never lifted out vertically: lifting it out of a 2 m terrace put it on the terrace top, a metre over the
-    // Pokémon's head and looking down past it (a 70° boom elevation), and at a terrace edge it popped up and down by a
-    // whole step as the lens crossed the edge
-    const lensBad = (x: number, y: number, z: number) => y < f.ground(x, z) + L.hardFloor || (!!f.ceiling && y > f.ceiling(x, z) - L.ceiling);
-    // (from the pivot; if the eased pivot is itself buried, e.g. lagging a Pokémon that has just hopped onto a rock, from
-    // the Pokémon's own chest. If that reads as buried too, as an interpolated position cutting the corner of a wall can,
-    // the lens holds where it was last tick rather than being lifted out onto whatever is on top)
-    let ax = ox, ay = oy, az = oz;
-    if (lensBad(ax, ay, az)) { ax = f.x; az = f.z; ay = f.y + pivH; }
-    const held = this.tk.eye;
-    if (lensBad(ex, ey, ez) && lensBad(ax, ay, az) && !this.fresh2 && !lensBad(held[0], held[1], held[2])) { ex = held[0]; ey = held[1]; ez = held[2]; }
-    else if (lensBad(ex, ey, ez) && !lensBad(ax, ay, az)) {
-      const seg = (t: number) => lensBad(ax + (ex - ax) * t, ay + (ey - ay) * t, az + (ez - az) * t);
-      // the nearest clear point back along the boom from its end (the near face of whatever the end is in), not the
-      // first obstacle out from the pivot: a lens already behind one rise (eased in, x-ray silhouette showing) that
-      // grazes a second must not be yanked metres forward past the first
-      let m = 0;
-      for (let i = 15; i >= 0; i--) {
-        if (seg(i / 16)) continue;
-        let lo = i / 16, hi = (i + 1) / 16;
-        for (let k = 0; k < 7; k++) { const q = (lo + hi) / 2; if (seg(q)) hi = q; else lo = q; }
-        m = lo; break;
+    // ---- stage 2: clearance. Sideways from the pivot to the hand, then back from the hand to the lens: how much of
+    // each arm the world leaves free (terrain, deck undersides, the map edge, bare walls; never a prop). A pivot that
+    // reads as inside a solid (an interpolated position cutting a wall's corner) leaves both arms as they were
+    const B = CFG.boomTime, c = CFG.lens.clear, held = !this.fresh && this.inside(f, ox, oy, oz);
+    /** the back arm from a hand `sh` m to the side: how much of it is free */
+    const backFrom = (sh: number, every?: number) => this.sweep(f, ox + rx * sh, oy, oz + rz * sh, -sy * cp, sp, -cy * cp, want, every);
+    const sMax = held ? this.shoulderUsed : this.sweep(f, ox, oy, oz, rx, 0, rz, wantS);
+    // The hand to use: the furthest one out, unless the back arm from it is cut short. Then, of the hands the world
+    // leaves free, the one whose lens ends nearest the ideal lens (the two arms are at right angles, so that distance is
+    // hypot(shoulder given up, back given up)): a wall behind the Pokémon keeps the whole shoulder and shortens the back
+    // arm; rock behind the shoulder side is passed on the inside rather than pinning the lens at the hand. The hand in
+    // use is tried first and has to be beaten clearly, so two near-equal answers do not trade places as the Pokémon moves
+    let sBest = sMax, bBest = held ? this.boomUsed : backFrom(sMax);
+    if (!held && bBest < want - 1e-3) {
+      const costOf = (sh: number, b: number) => Math.hypot(wantS - sh, want - b);
+      let cost = costOf(sBest, bBest), top = sMax;
+      const cur = Math.min(this.shoulderUsed, sMax);
+      if (cur < sMax - 0.02) { const b = backFrom(cur, 0.5), k = costOf(cur, b) * 0.85; if (k < cost) { cost = k; sBest = cur; bBest = b; } }
+      const N = 5;
+      for (let k = N - 1; k >= 0 && sMax > 0.05; k--) {
+        const sh = (sMax * k) / N, b = backFrom(sh, 0.5), q = costOf(sh, b);
+        if (q < cost - 1e-6) { cost = q; sBest = sh; bBest = b; top = (sMax * (k + 1)) / N; }
       }
-      if (m < 1) {
-        if ((1 - m) * Math.hypot(ex - ax, ey - ay, ez - az) > 0.05) this.groundPops++;
-        ex = ax + (ex - ax) * m; ey = ay + (ey - ay) * m; ez = az + (ez - az) * m;
-        // the boom stays where the lens could go (it eases back out from there once the air clears, never jumps out)
-        this.colT *= m; this.colV = Math.min(0, this.colV); this.clearT = 0;
-        this.boomUsed = want * this.colT; this.shoulderUsed = sf * this.boomUsed;
+      // a Pokémon pressed to a wall on its shoulder side has no room for the hand there at all (its pivot stands at the
+      // wall's clearance): the hand may back off the other way, up to twice the clearance (P1 before the composition)
+      if (sMax < 2 * c) for (let d = c / 2; d <= 2 * c + 1e-9; d += c / 2) {
+        if (this.blocked(f, ox - rx * d, oy, oz - rz * d)) continue;
+        const b = backFrom(-d, 0.5), q = costOf(-d, b);
+        if (q < cost - 1e-6) { cost = q; sBest = -d; bBest = b; top = -d; }
+      }
+      if (sBest < 0) bBest = backFrom(sBest);
+      else if (sBest < sMax) {
+        // out from the best hand toward the next one tried: as far as the back arm stays as free (an obstacle's inner edge)
+        let lo = sBest, hi = Math.max(sBest, Math.min(top, sMax));
+        for (let i = 0; i < 4 && hi - lo > 0.03; i++) { const m = (lo + hi) / 2; if (backFrom(m, 0.5) >= bBest - 0.1) lo = m; else hi = m; }
+        sBest = lo; bBest = backFrom(lo);
       }
     }
-    // over open ground the lens keeps L.ground over the surface, eased (over L.floorTime s, continuously) so a bump or
-    // a shelf edge under it lifts it smoothly; at most L.ground - L.hardFloor, since the slide above already keeps it
-    // L.hardFloor clear
-    const gl = f.ground(ex, ez), soft = gl + L.ground + 0.05;
-    if (this.fresh2) { this.floor = soft; this.floorV = 0; this.fresh2 = false; }
-    else [this.floor, this.floorV] = smoothDamp(this.floor, soft, this.floorV, soft > this.floor ? L.floorTime : L.floorTime * 3, dt);
-    const g = Math.max(Math.min(this.floor, soft), gl + L.hardFloor);
-    if (ey < gl + L.hardFloor - 0.05) this.groundPops++; // only when even the pivot is buried (should never happen)
-    if (ey < g) ey = g;
-    // and never through a deck overhead (the lens stays under the slab, the boom shortened by the check above)
-    if (f.ceiling) { const c = f.ceiling(ex, ez) - 0.3; if (ey > c) ey = Math.max(g, c); }
-    this.lensGap = Math.hypot(ex - ox, ey - oy, ez - oz);
-    this.eye = [ex, ey, ez];
+    // ---- stage 3: each arm comes in to what is free and eases back out once there has been room for boomTime.hold s
+    const sFree = sBest, sWas = wantS * this.sideT, bWas = want * this.colT, first = this.fresh;
+    const sShare = wantS > 1e-6 ? Math.min(1, sFree / wantS) : 1;
+    if (this.fresh || sShare < this.sideT) { this.sideT = sShare; this.sideV = 0; this.sideClear = 0; }
+    else if (!held && (this.sideClear += dt) > B.hold) [this.sideT, this.sideV] = smoothDamp(this.sideT, sShare, this.sideV, B.out, dt);
+    let sUsed = wantS * this.sideT;
+    const bFree = held ? this.boomUsed : Math.abs(sUsed - sBest) < 1e-9 ? bBest : backFrom(sUsed);
+    const bShare = want > 1e-6 ? Math.min(1, bFree / want) : 1;
+    if (this.fresh || bShare < this.colT) { this.colT = bShare; this.colV = 0; this.clearT = 0; }
+    else if (!held && (this.clearT += dt) > B.hold) [this.colT, this.colV] = smoothDamp(this.colT, bShare, this.colV, B.out, dt);
+    this.fresh = false;
+    let back = want * this.colT;
+    // The way in. (sUsed, back) is where the arms put the lens with everything in their way respected: a clear point.
+    // The lens goes there from where it was (the same two lengths a tick ago, on the Pokémon as it stands now) along the
+    // straight line between the two, at no more than boomTime.in, as long as its own position is clear: what crosses an
+    // arm near the Pokémon leaves the lens, further out, in free air. Where the line itself runs through a solid's
+    // clearance the lens hops that stretch, and only that
+    if (!first && !held && (sUsed < sWas - 1e-9 || back < bWas - 1e-9)) {
+      const ds = sUsed - sWas, db = back - bWas, far = Math.hypot(ds, db), most = B.in * dt;
+      if (far > most) {
+        const lensAt = (u: number) => { const sh = sWas + ds * u, b = bWas + db * u; return this.blocked(f, ox + rx * sh - sy * cp * b, oy + sp * b, oz + rz * sh - cy * cp * b); };
+        let u = most / far;
+        while (u < 1 && lensAt(u)) u = Math.min(1, u + 0.1 / far);
+        if (u < 1) { sUsed = sWas + ds * u; back = bWas + db * u; this.sideT = wantS > 1e-6 ? sUsed / wantS : 1; this.colT = want > 1e-6 ? back / want : 1; }
+      }
+    }
+    const hx = ox + rx * sUsed, hz = oz + rz * sUsed;
+    this.shoulderFree = sFree; this.backFree = bFree;
+    this.shoulderUsed = sUsed; this.boomUsed = back;
 
-    if (CFG.aimPitch.on) {
-      // view axis (Phase 4A): parallel to the yaw, at the player's own pitch. Nothing automatic turns it: the state, the
-      // slope ahead and the climb have moved the lens above, and the crosshair ray only moves with them, never turns
-      this.viewPitch = ownedPitch(this.userPitch);
-    } else {
-      // view axis (legacy): parallel to the yaw, `tilt` below the horizon. Slopes tilt it (uphill looks up so the crest
-      // shows, a drop looks down so what is below does); climbing a wall rotates it with the boom so the Pokémon keeps
-      // its place in frame
-      const S = CFG.slope;
-      const g0 = f.ground(this.px, this.pz);
-      let run = 0, h = g0;
-      for (let d = 1; d <= S.probe; d++) {
-        const gd = f.ground(this.px + sy * d, this.pz + cy * d);
-        if (gd - h > S.step) break; // a wall or a cliff face: the walkable ground ends here
-        h = gd; run = d;
-      }
-      const slopeDeg = run >= S.minRun ? Math.atan2(h - g0, run) / D2R : 0;
-      [this.slope, this.slopeV] = smoothDamp(this.slope, clamp(-S.gain * slopeDeg, S.range[0], S.range[1]), this.slopeV, S.settle, dt);
-      const tilt = this.cur.tilt + this.userPitch + this.slope + this.lift * CFG.liftTilt;
-      this.viewPitch = clamp(tilt, -40, 70) * D2R;
-    }
+    // the grounded step still being taken up rides on the whole rig (presentation only: the sweeps saw the Pokémon where
+    // it is); the frame's own P1 check (clearLens) has the last word
+    this.eye = [hx - sy * cp * back, oy + sp * back + this.stepY, hz - cy * cp * back];
+    this.lensGap = Math.hypot(this.eye[0] - ox, this.eye[1] - this.stepY - oy, this.eye[2] - oz);
+    this.viewPitch = ownedPitch(this.userPitch);
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
-    this.target = [ex + sy * vc * 20, ey - vs * 20, ez + cy * vc * 20];
-    this.fov = clamp(this.cur.fov + this.fovOffset, CFG.fovRange[0], CFG.fovRange[1]) * D2R;
+    this.target = [this.eye[0] + sy * vc * 20, this.eye[1] - vs * 20, this.eye[2] + cy * vc * 20];
+    this.fov = clamp(CFG.fov + this.fovOffset, CFG.fovRange[0], CFG.fovRange[1]) * D2R;
   }
 
   /** unit vector of the horizontal view direction */
@@ -717,20 +641,23 @@ export class ChaseRig {
 
   /** Look input (mouse, right stick): dyaw > 0 turns right, dpitch > 0 looks further down (radians). Both apply at
    *  once, and the composed view (eye, viewPitch, target) is recomposed for them exactly as update() composes a frame:
-   *  the lens turned about the pivot by the yaw change and swung up or down by the boom elevation the pitch change
-   *  gives, the axis tilted by the pitch change. So the rig's public view is
-   *  coherent at every instant, a sample taken now aims where update() with no elapsed time would draw, and the rig's
-   *  clock does not move (only update() advances it). The pitch is clamped to `range` (lookPitchRange()). */
+   *  the lens turned about the pivot by the yaw change and swung up or down by the arm elevation the pitch change
+   *  gives, the axis tilted by the pitch change, then checked for P1 against the world of the last frame. So the rig's
+   *  public view is coherent at every instant, a sample taken now aims where update() with no elapsed time would draw,
+   *  and the rig's clock does not move (only update() advances it). The pitch is clamped to `range` (lookPitchRange()). */
   look(dyaw: number, dpitch: number, range: [number, number] = lookPitchRange()) {
     const y0 = this.yaw, up0 = this.userPitch;
-    this.yaw = Math.atan2(Math.sin(y0 - dyaw), Math.cos(y0 - dyaw));
+    this.yaw = wrap(y0 - dyaw);
     this.userPitch = clamp(up0 + dpitch / D2R, range[0], range[1]);
     if (!this.ready) return; // nothing composed yet: the first update() snaps onto the Pokémon with this yaw and pitch
-    const d = Math.atan2(Math.sin(this.yaw - y0), Math.cos(this.yaw - y0)), cd = Math.cos(d), sd = Math.sin(d);
-    const ex = this.eye[0] - this.px, ez = this.eye[2] - this.pz;
-    this.eye = [this.px + ex * cd + ez * sd, this.eye[1], this.pz - ex * sd + ez * cd];
-    this.swingLens(this.elevFor(this.userPitch) - this.elevFor(up0));
-    this.viewPitch = CFG.aimPitch.on ? ownedPitch(this.userPitch) : this.viewPitch + (this.userPitch - up0) * D2R;
+    const d = wrap(this.yaw - y0), cd = Math.cos(d), sd = Math.sin(d);
+    const ex = this.raw[0] - this.px, ez = this.raw[2] - this.pz;
+    this.eye = [this.px + ex * cd + ez * sd, this.raw[1], this.pz - ex * sd + ez * cd];
+    this.swingLens(this.elevFor(up0), this.elevFor(this.userPitch));
+    this.raw = [this.eye[0], this.eye[1], this.eye[2]];
+    this.lensGap = Math.hypot(this.eye[0] - this.px, this.eye[1] - this.py - this.pivotH, this.eye[2] - this.pz);
+    this.clearLens();
+    this.viewPitch = ownedPitch(this.userPitch);
     const vc = Math.cos(this.viewPitch), vs = Math.sin(this.viewPitch);
     this.target = [this.eye[0] + Math.sin(this.yaw) * vc * 20, this.eye[1] - vs * 20, this.eye[2] + Math.cos(this.yaw) * vc * 20];
   }

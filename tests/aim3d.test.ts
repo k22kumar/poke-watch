@@ -26,7 +26,6 @@ import { HEAD, launchHeading, resolveSpatial } from '../src/sim/aim';
 import { BTN, NO_INPUT, freshAimState, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
 import { ChaseRig, chaseAim, lookPitchRange, type AimView } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
-import { rigSize } from '../scripts/lib/chasesize';
 import { aimRayOf } from '../src/render/hostframe';
 import type { DeepPartial } from '../src/core/util';
 
@@ -417,16 +416,16 @@ test('determinism: the same aim rays replay to the same state, tick for tick', (
 
 test('the host adapter: the crosshair ray of a real ChaseRig sample, quantised; a shot on it hits what the rig looks at', () => {
   const { ctx, P } = scene();
-  // the rig settled behind the partner as the renderer drives it (its own probes, the size the renderer submits)
-  const rig = new ChaseRig(), size = rigSize(ctx.player.species.id);
+  // the rig settled behind the partner as the renderer drives it (its own probes and size-class framing)
+  const rig = new ChaseRig();
   rig.snapTo(P[0], P[1], P[2], 0);
-  for (let f = 0; f < 120; f++) rig.update(chaseFrameFor(ctx, { dt: 1 / 60, x: P[0], y: P[1], z: P[2], height: size.height, width: size.width, lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
+  for (let f = 0; f < 120; f++) rig.update(chaseFrameFor(ctx, { dt: 1 / 60, x: P[0], y: P[1], z: P[2], lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
   const v = rig.sample(1280, 720), ray = aimRayOf(v);
   for (const [k, want] of [['ox', v.eye[0]], ['oy', v.eye[1]], ['oz', v.eye[2]], ['dx', v.dir[0]], ['dy', v.dir[1]], ['dz', v.dir[2]]] as [keyof typeof ray, number][]) {
     assert.equal(ray[k], Math.fround(want), `${k} is the sample's, through Math.fround`);
   }
-  // an enemy on that ray, 12 m from the lens
-  const t = 12, at: V3 = [v.eye[0] + v.dir[0] * t, v.eye[1] + v.dir[1] * t, v.eye[2] + v.dir[2] * t];
+  // an enemy on that ray, 8 m from the lens (the neutral crosshair meets level ground ~11 m out from the close lens)
+  const t = 8, at: V3 = [v.eye[0] + v.dir[0] * t, v.eye[1] + v.dir[1] * t, v.eye[2] + v.dir[2] * t];
   const e = put(ctx, at[0], Math.max(0, at[1] - 0.6), at[2]);
   let hit = 0;
   for (let k = 0; k < 60; k++) for (const ev of step(ctx, { ...NO_INPUT, btn: k === 0 ? BTN.basic : 0, aim: ray, aimDev: 'mouse', aimX: at[0], aimZ: at[2] })) if (ev.t === 'hit' && ev.enemy === e) hit++;

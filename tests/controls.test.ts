@@ -9,6 +9,7 @@ import {
 } from '../src/input/bindings';
 import { loadSettings, SETTINGS_DEFAULT } from '../src/ui/settings';
 import { BTN } from '../src/sim/types';
+import { shapeStick } from '../src/input/stick';
 
 class Target {
   l: Record<string, ((e: unknown) => void)[]> = {};
@@ -177,7 +178,7 @@ test('look is independent of movement: mouse look and the right stick change nei
   const f = input.sample(0.3);
   assert.equal(f.my, 0); assert.equal(f.jumpPressed, false); assert.equal(f.jump, false);
   assert.equal(f.mx, ref.mx); assert.equal(f.mz, ref.mz);
-  assert.deepEqual(input.lookStick(), [0.9, -1], 'the stick went to the camera');
+  assert.deepEqual(input.lookStick(), shapeStick(0.9, -1), 'the stick went to the camera (through the look shaping, input/stick.ts)');
 });
 
 // ------------------------------------------------------------------ bindings tables

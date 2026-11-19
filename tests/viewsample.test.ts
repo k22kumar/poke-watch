@@ -1,20 +1,24 @@
 // Third-person view-state contract (docs/THIRD_PERSON.md "View-state contract", docs/THIRD_PERSON_IMPLEMENTATION.md
 // Phase 1): the host's real frame order (render/hostframe.ts runFrame, the function main.ts calls) driven headless with a
-// real ChaseRig, the renderer's own probes (render/chaseinput.ts) and the size the renderer submits
-// (scripts/lib/chasesize.ts), against a real run. No GL, no DOM.
+// real ChaseRig, the renderer's own probes and size-class framing (render/chaseinput.ts), against a real run. No GL, no
+// DOM.
 //
 // What is pinned: the look input of a frame reaches the aim of that frame's ticks (yaw and pitch together); every tick
 // of a frame aims with the same immutable sample; what is drawn at the end of the frame is that sample advanced by the
 // rig's own clock, once; the sim depends only on the recorded InputFrames.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, type ViewSample } from '../src/render/camera';
-import { chaseFrameFor } from '../src/render/chaseinput';
+import { CHASE_CONFIG, ChaseRig, chaseAim, chaseArm, lookPitchRange, type ViewSample } from '../src/render/camera';
+/** the back distance the framing law gives a subject with no measured art (the fallback outline of its size class) */
+const chaseBoom = (visual: number) => chaseArm({ height: visual, visual }).back;
+
+import { chaseFrameFor, chaseSubject } from '../src/render/chaseinput';
+import { spriteOutline } from '../scripts/lib/silhouette';
+import { bodyOf } from '../src/rules/sizing';
 import { lookDelta, runFrame } from '../src/render/hostframe';
 import { createRun, startStage, step } from '../src/sim/run';
 import { stateHash } from '../src/sim/checksum';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
-import { rigSize, rawFrameSize } from '../scripts/lib/chasesize';
 
 const D2R = Math.PI / 180;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -22,7 +26,7 @@ const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 function mapRun(seed: number, stage: number, species: string) {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  ctx.rules.director.spawnBase = -99; // nothing spawns: no magnetism or threat state in the way
+  ctx.rules.director.spawnBase = -99; // nothing spawns: no magnetism in the way
   for (let i = 0; i < ctx.enemies.hi; i++) ctx.enemies.alive[i] = 0;
   ctx.enemies.count = 0;
   return ctx;
@@ -47,10 +51,8 @@ class Host {
   hitstop = 0;
   /** the InputFrames the sim received, in order (the replay record) */
   readonly log: InputFrame[] = [];
-  readonly size: { height: number; width: number | undefined };
   constructor(readonly ctx: SimContext) {
     const P = ctx.player;
-    this.size = rigSize(P.species.id);
     this.rig.snapTo(P.x, P.y, P.z, Math.PI);
   }
   ground = (x: number, z: number) => this.ctx.world.height(x, z);
@@ -86,7 +88,7 @@ class Host {
   /** Renderer.render, chase branch: the player interpolated by acc / dt, the rig advanced by the frame time */
   render(real: number) {
     const c = this.ctx, P = c.player, a = clamp(this.acc / c.dt, 0, 1);
-    this.rig.update(chaseFrameFor(c, { dt: real, x: P.px + (P.x - P.px) * a, y: P.py + (P.y - P.py) * a, z: P.pz + (P.z - P.pz) * a, height: this.size.height, width: this.size.width, lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
+    this.rig.update(chaseFrameFor(c, { dt: real, x: P.px + (P.x - P.px) * a, y: P.py + (P.y - P.py) * a, z: P.pz + (P.z - P.pz) * a, lookPitch: 0 }), { pitchRange: lookPitchRange(), fovOffset: 0 });
   }
   settle(secs: number, fps = 60) { for (let t = 0; t < secs; t += 1 / fps) this.frame(1 / fps); }
 }
@@ -111,7 +113,7 @@ test('host order: a turn or a pitch on this frame reaches this frame\'s aim, the
     assert.ok(Math.abs(v.dir[0] - Math.sin(v.yaw) * Math.cos(v.viewPitch)) < 1e-12 && Math.abs(v.dir[1] + Math.sin(v.viewPitch)) < 1e-12 && Math.abs(v.dir[2] - Math.cos(v.yaw) * Math.cos(v.viewPitch)) < 1e-12, `${label}: dir`);
     // the lens is behind the Pokémon for the new yaw (not where the old yaw left it)
     const P = h.ctx.player, lat = (v.eye[0] - P.x) * -Math.cos(v.yaw) + (v.eye[2] - P.z) * Math.sin(v.yaw);
-    assert.ok(Math.abs(lat) < CHASE_CONFIG.shoulder * 6.2 * 1.8 + 0.01, `${label}: lens ${lat.toFixed(2)} m to the side of the new view`);
+    assert.ok(Math.abs(lat) < CHASE_CONFIG.shoulderMax * CHASE_CONFIG.frame.max + 0.01, `${label}: lens ${lat.toFixed(2)} m to the side of the new view`);
     const err = dist(f.aims[0], f.drawn);
     assert.ok(err < 0.05, `${label}: the tick aimed ${err.toFixed(3)} m from the crosshair drawn that frame`);
   }
@@ -213,10 +215,10 @@ test('the sample is immutable and never advances the rig clock; one render advan
   assert.ok(Math.abs(h.rig.viewPitch - twin.rig.viewPitch) < 1e-12);
 });
 
-test('shoulder swaps, camera collision and species sizes: walking and turning, the ticks aim where the frame is drawn', () => {
-  // generated cave (walls on both sides: shoulder swaps and boom collision) and forest; tiny, small and XL bodies at the
-  // size the renderer frames them. Walking, the frame drawn at the end of a frame is its sample advanced by one frame of
-  // the rig's own motion (pivot follow, boom easing), so: the sample is exactly the last drawn view when no look input
+test('camera collision and species sizes: walking and turning, the ticks aim where the frame is drawn', () => {
+  // generated cave (walls on both sides: boom collision) and forest; tiny, small and XL bodies at their size-class framing.
+  // Walking, the frame drawn at the end of a frame is its sample advanced by one frame of the rig's own motion (the
+  // Pokémon's own travel, boom easing), so: the sample is exactly the last drawn view when no look input
   // arrived, the view direction drawn is the sample's, and the lens differs by one frame of camera travel. (Aim-point
   // distance is no measure here: a ray grazing the terrain moves its ground hit by metres for centimetres of lens.)
   for (const [seed, stage, sp] of [[3, 3, 'feraligatr'], [1, 3, 'cyndaquil'], [1, 0, 'pichu'], [3, 0, 'feraligatr']] as [number, number, string][]) {
@@ -227,10 +229,9 @@ test('shoulder swaps, camera collision and species sizes: walking and turning, t
     for (let i = 0; i < 60 * 8; i++) {
       const t = i / 60, prev = h.rig.sample(h.width, h.height);
       const look: [number, number] | null = i % 3 === 2 ? null : [Math.sin(t * 1.3) * 0.05, Math.cos(t * 0.9) * 0.01];
-      // the pitch gesture integrates to about ±25°; this test was written when the pre-4A window [-14, 20] clipped it, so
-      // it is kept inside that window and the walk takes the lens path it always took. The wider Phase 4A envelope's lens
-      // stability is measured by scripts/camstats.ts --sweep (docs/THIRD_PERSON_IMPLEMENTATION.md §16.6)
-      if (look) look[1] = (clamp(h.rig.userPitch + look[1] / D2R, ...CHASE_CONFIG.pitchRange) - h.rig.userPitch) * D2R;
+      // the pitch gesture integrates to about ±25°, kept inside [-14, 20] about the neutral pitch (the band this walk was
+      // written for); the whole envelope's lens stability is measured by scripts/camstats.ts --sweep
+      if (look) look[1] = (clamp(h.rig.userPitch + look[1] / D2R, -14, 20) - h.rig.userPitch) * D2R;
       const f = h.frame(1 / 60, look, 0, i % 120 < 80 ? 'fwd' : 'right');
       if (!f.view) continue;
       const v = f.view, r = h.rig;
@@ -243,34 +244,37 @@ test('shoulder swaps, camera collision and species sizes: walking and turning, t
     const p99 = eyeErr[Math.floor(eyeErr.length * 0.99)], max = eyeErr[eyeErr.length - 1];
     const tag = `seed ${seed} stage ${stage} ${sp}`;
     assert.ok(lookless > 100, tag);
-    // the drawn axis turns only by the rig's own easing in one frame (slope tilt, state blend), never by look input
-    assert.ok(dirErr < 0.6 * D2R, `${tag}: drawn direction ${(dirErr / D2R).toFixed(3)} deg off the sample`);
-    // one frame of lens travel walking at speed (a stale lens was metres off)
-    assert.ok(p99 < 0.3 && max < 0.6, `${tag}: lens p99 ${p99.toFixed(3)} max ${max.toFixed(3)} m`);
-    if (seed === 3 && stage === 3) assert.ok(shortest < 3.2, `${tag}: the course cuts the boom (${shortest.toFixed(2)} m)`);
+    // nothing but look input turns the axis, and the frame's look input is in the sample: the drawn axis is the sample's
+    assert.ok(dirErr < 1e-9, `${tag}: drawn direction ${(dirErr / D2R).toFixed(6)} deg off the sample`);
+    // one frame of lens travel: the Pokémon's own walk (0.12 m a frame at 7.2 m/s, followed 1:1), and now and then an
+    // arm coming in at once for rock that has entered it (P1: the lens is never left where the sweep found something),
+    // which no frame can exceed the arm by. A stale lens was metres off on every frame
+    const arm = chaseArm({ height: 1, visual: bodyOf(h.ctx.player.species).visualM, outline: spriteOutline(sp)?.outline });
+    assert.ok(p99 < 0.4 && max < Math.hypot(arm.back, arm.shoulder) + 0.2, `${tag}: lens p99 ${p99.toFixed(3)} max ${max.toFixed(3)} m`);
+    if (seed === 3 && stage === 3) assert.ok(shortest < chaseBoom(bodyOf(h.ctx.player.species).visualM) - 0.5, `${tag}: the course cuts the boom (${shortest.toFixed(2)} m)`);
   }
 });
 
-test('mid shoulder swap, against walls and under pitch: a sample is exactly what the rig would draw with no time passed', () => {
-  // the walled scene of camstability's frame-rate test (a wall on the right forces a swap, rises behind, a ramp);
-  // every frame: look input, a sample, then a zero-time update (what the renderer would draw at that instant) must
-  // equal the sample, so look() composes the view exactly as update() does, whatever the shoulder glide, the boom
-  // collision, the climb or the pitch
-  const flat0 = (x: number, z: number) => (x > 1.4 && z > -14 ? 3 : 0) + (z < -16 ? Math.min(2, (-16 - z) * 0.3) : 0) + (x < -2.5 && Math.floor(z) % 3 === 0 ? 2.2 : 0);
-  const base = { height: 1.75, threat: { nearest: Infinity, weight: 0, boss: Infinity }, lookYaw: 0, lookPitch: 0, ground: flat0 };
+test('against walls, over steps and under pitch: a sample is exactly what the rig would draw with no time passed', () => {
+  // the walled scene of camstability's frame-rate test (a wall on the right, rises behind, a ramp, 0.25 m steps); every
+  // frame: look input, a sample, then a zero-time update (what the renderer would draw at that instant) must equal the
+  // sample, so look() composes the view exactly as update() does, whatever the boom collision, the step being taken up
+  // or the pitch
+  const flat0 = (x: number, z: number) => (x > 1.4 && z > -14 ? 3 : 0) + (z < -16 ? Math.min(2, (-16 - z) * 0.3) : 0) + (x < -2.5 && Math.floor(z) % 3 === 0 ? 2.2 : 0) + (Math.floor(-z / 3) % 2 ? 0.25 : 0);
+  const base = { height: 1.75, lookYaw: 0, lookPitch: 0, ground: flat0, grounded: true };
   const r = new ChaseRig(); r.snapTo(0, 0, 0, Math.PI);
-  let worst = 0, sides = new Set<number>(), x = 0, z = 0;
+  let worst = 0, stepped = 0, x = 0, z = 0;
   for (let i = 1; i <= 600; i++) {
     const t = i / 60;
     x = Math.sin(t * 0.8) * 0.4; z = -t * 2.2;
     r.update({ ...base, dt: 1 / 60, x, y: flat0(x, z), z });
-    sides.add(Math.sign(r.shoulderUsed));
+    stepped = Math.max(stepped, Math.abs(r.stepOffset));
     r.look(Math.cos(t * 0.9) * 0.02, Math.sin(t * 1.7) * 0.03);
     const s = r.sample(1280, 720);
     r.update({ ...base, dt: 0, x, y: flat0(x, z), z });
     worst = Math.max(worst, Math.hypot(s.eye[0] - r.eye[0], s.eye[1] - r.eye[1], s.eye[2] - r.eye[2]), Math.abs(s.viewPitch - r.viewPitch), Math.abs(wrap(s.yaw - r.yaw)));
   }
-  assert.ok(sides.size === 2, 'the walk swaps shoulder');
+  assert.ok(stepped > 0.1, `the walk takes steps up and down (${stepped.toFixed(2)} m being taken up at most)`);
   assert.ok(worst < 1e-9, `sample vs zero-time draw: ${worst}`);
 });
 
@@ -294,11 +298,15 @@ test('deterministic replay: the sim depends only on the recorded InputFrames, no
   assert.ok(a.log.some((x) => x.btn) && new Set(a.log.map((x) => x.aimX)).size > 50, 'the record exercises aim and fire');
 });
 
-test('camera diagnostics use the size the renderer frames: class-scaled idle frame, not the raw frame', () => {
+test('the renderer and the diagnostics frame a Pokémon by its size class, one function for both', () => {
+  // chaseFrameFor (render/chaseinput.ts) is what the renderer, scripts/camstats.ts and these tests feed the rig; it frames
+  // the active Pokémon from rules/sizing.ts bodyOf, never from the art (the old rig read the idle frame, and the
+  // diagnostics had to decode the atlas to match it)
   for (const id of ['cyndaquil', 'charmander', 'feraligatr', 'pichu']) {
-    const s = rigSize(id), raw = rawFrameSize(id);
-    assert.ok(Math.abs(s.height - raw.height * s.scale) < 1e-9, `${id}: rig height = idle frame x species scale`);
+    const ctx = createRun({ seed: 1, species: id }), b = bodyOf(ctx.player.species, ctx.rules.size);
+    const f = chaseFrameFor(ctx, { dt: 1 / 60, x: 0, y: 0, z: 0, lookPitch: 0 });
+    assert.equal(f.visual, b.visualM, `${id}: framed at its class's visible core`);
+    assert.equal(f.height, b.height, `${id}: pivot from its class's body height`);
+    assert.deepEqual(chaseSubject(ctx), { visual: b.visualM, height: b.height });
   }
-  assert.ok(rigSize('feraligatr').height > 2.4, 'Feraligatr is framed as XL (2.7 m), not the 1.75 m raw frame');
-  assert.ok(rigSize('pichu').height < 0.9, 'Pichu is framed as Tiny');
 });

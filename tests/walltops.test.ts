@@ -1,6 +1,6 @@
 // R1b wall tops (docs/SIZING.md "Wall tops", ledger §23): a wall prop (tree, fence, boulder, building) is solid only up to
 // its measured height (PROP_RULES top → World.wallTop) for every reader that opts in: the player's spatial attack traces
-// (QF.tops through combatFlags), the chase lens, and a body given the crossing permission (`over`; no driver gives it
+// (QF.tops through combatFlags) and a body given the crossing permission (`over`; no driver gives it
 // before R6d). Bare walls and the map edge stay infinite; without the opt-in every wall is infinite, as before R1b.
 //
 // The scenes run on a private flat world copied from the authored meadow (as tests/aim3d.test.ts does), with props written
@@ -156,7 +156,7 @@ function gallery(rules?: DeepPartial<Rules>) {
   return { ctx, W, sites, lens };
 }
 
-test('wall tops (T37): body, shot and lens agree on every wall kind\'s top, on the ground and on a plateau', () => {
+test('wall tops (T37): body and shot agree on every wall kind\'s top, on the ground and on a plateau; a prop never stops the lens', () => {
   const { W, sites, lens } = gallery();
   for (const { kind, i, j, base } of sites) {
     const R = PROP_RULES[kind], top = base + R.top!, x = C(W, i), z = C(W, j + R.h - 1), zr = z;
@@ -167,7 +167,9 @@ test('wall tops (T37): body, shot and lens agree on every wall kind\'s top, on t
       const y = top + dy, what = `${kind} at ${dy >= 0 ? '+' : ''}${dy} m of its top (${top.toFixed(2)} m)`;
       assert.equal(W.collides(x, z, y, 0, undefined, true), solid, `body with the permission, ${what}`);
       assert.equal(!segmentClear(W, xa, y, zr, xb, y, zr, MASK.los, QF.tops), solid, `shot, ${what}`);
-      assert.equal(lens(x, y, z), solid, `lens, ${what}`);
+      // the chase lens passes through every wall prop at every height (they dissolve around it: owner decision
+      // 2026-11-18, which replaces Q10's "the lens reads wallTop")
+      assert.equal(lens(x, y, z), false, `lens, ${what}`);
       // without the opt-in every reader keeps the wall infinite
       assert.equal(W.collides(x, z, y, 0), true, `body without the permission, ${what}`);
       assert.equal(segmentClear(W, xa, y, zr, xb, y, zr, MASK.los, 0), false, `shot without QF.tops, ${what}`);
@@ -203,8 +205,9 @@ test('wall tops: with the flag off every reader keeps every wall infinite (the o
     const R = PROP_RULES[kind], x = C(W, i), z = C(W, j + R.h - 1), y = base + R.top! + 0.5;
     assert.equal(W.collides(x, z, y, 0, undefined, true), true, `${kind}: body, even with the permission`);
     assert.equal(segmentClear(W, x - 2, y, z, x + 2 + R.w, y, z, MASK.los, QF.tops), false, `${kind}: shot, even with QF.tops`);
-    assert.equal(lens(x, base + 2.39, z), true, `${kind}: the lens keeps today's 2.4 m margin`);
-    assert.equal(lens(x, base + 2.41, z), false);
+    // (no tile has a top with the flag off, so the lens cannot tell a prop from rock: every wall stops it, at any height)
+    assert.equal(lens(x, base + 2.39, z), true, `${kind}: the lens is stopped by every wall`);
+    assert.equal(lens(x, base + 50, z), true);
   }
 });
 
@@ -323,7 +326,7 @@ test('wall tops (G7): the rock recovery leaves a permitted body above a top alon
   assert.equal(W.inRock(x, z, 99, false), true);
 });
 
-test('wall tops (G8): bare walls and the map edge stay infinite for bodies, shots and (with its margin) the lens', () => {
+test('wall tops (G8): bare walls and the map edge stay infinite for bodies, shots and the lens', () => {
   const { W, sites, lens } = gallery();
   void sites;
   const i = 100, j = 100, x = C(W, i), z = C(W, j);
@@ -331,8 +334,8 @@ test('wall tops (G8): bare walls and the map edge stay infinite for bodies, shot
   assert.equal(W.wallTopAt(x, z), Infinity);
   assert.equal(W.collides(x, z, 100, 0, undefined, true), true, 'body with the permission, 100 m up');
   assert.equal(segmentClear(W, x - 2, 60, z, x + 2, 60, z, MASK.los, QF.tops), false, 'shot with QF.tops, 60 m up');
-  assert.equal(lens(x, 2.39, z), true, 'lens: the bare-wall margin (ground + 2.4 m) is unchanged');
-  assert.equal(lens(x, 2.41, z), false);
+  assert.equal(lens(x, 2.39, z), true, 'lens: a bare wall is solid');
+  assert.equal(lens(x, 100, z), true, 'at every height, as for bodies and shots (it kept a 2.4 m margin before 2026-11-18)');
   // off the map: solid for bodies at any height and a bounds column for shots
   assert.equal(W.collides(W.half + 3, 0, 100, 0, undefined, true), true);
   assert.equal(segmentClear(W, W.half - 2, 80, 0, W.half + 2, 80, 0, MASK.los, QF.tops), false);

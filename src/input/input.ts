@@ -3,6 +3,7 @@
 // defaults plus the player's saved overrides (setBindings).
 import { BTN, type InputFrame } from '../sim/types';
 import { DEFAULT_KEYS, DEFAULT_PAD, resolveBindings, type KeyBindings, type PadBindings } from './bindings';
+import { shapeStick } from './stick';
 
 /** the keyboard defaults (input/bindings.ts DEFAULT_KEYS) */
 export const DEFAULT_BINDINGS = DEFAULT_KEYS;
@@ -230,7 +231,7 @@ export class Input {
   lookStick(): [number, number] {
     if (this.touchLook[0] || this.touchLook[1]) return this.touchLook;
     const p = this.pad();
-    return p ? [p.rx, p.ry] : [0, 0];
+    return p ? p.look : [0, 0];
   }
 
   /** gamepad axes and buttons (first pad): sticks with a dead zone, and `held(action)` through the pad bindings (a
@@ -244,6 +245,8 @@ export class Input {
     const pb = this.padBindings;
     return {
       lx: dz(p.axes[0] ?? 0), ly: dz(p.axes[1] ?? 0), rx: dz(p.axes[2] ?? 0), ry: dz(p.axes[3] ?? 0),
+      // the right stick as the third-person look: radial dead zone, rescaled, response curve (input/stick.ts)
+      look: shapeStick(p.axes[2] ?? 0, p.axes[3] ?? 0),
       held: (action: string) => pb[action]?.some(pr) ?? false,
     };
   }

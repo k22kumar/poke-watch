@@ -65,6 +65,7 @@ Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The cl
 | Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
 | Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
+| Third-person camera framing (2026-11-18) | `visualM` sets the boom (one law, `CHASE_CONFIG.frame`) and so the shoulder offset; class height × 0.8 sets the pivot | `src/render/chaseinput.ts` (`chaseSubject`), `src/render/camera.ts` (`chaseBoom`, `chasePivot`); `docs/THIRD_PERSON.md` "Size" |
 
 Planar (legacy) shots still leave a partner from a fixed +0.8 m, so muzzle and eye heights for the habitat validator stay on the sprite-derived heights. Spatial shots (the chase camera's direct shots, `docs/THIRD_PERSON_IMPLEMENTATION.md` §13) leave from the class muzzle in the row above: Tiny 0.36 m, Medium 0.72 m, Extra Large 1.44 m up.
 
@@ -159,9 +160,13 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
   four runs): an elite reroutes round a low gap, and a generated map's spawn spot drops Onix from the pool where its
   height class has no route (the same draw then picks another species). `gen-headroom-off` prints the earlier `gen`
   hashes.
-- **Not covered here.** Enemy fliers hover with no wall or slab test (R7 moves them onto the shared movement). The chase
-  camera's pivot follows the drawn sprite, not the sim height, so an Extra Large partner that fits a gap can still fold
-  the lens under a slab (ledger F5); that is a camera matter.
+- **Not covered here.** Enemy fliers hover with no wall or slab test (R7 moves them onto the shared movement).
+- **The chase camera (F5, fixed 2026-11-18).** The camera's pivot used to follow the drawn sprite (0.8 × 2.7 m for Extra
+  Large), above a 2.4 m slab's lens clearance, so an Extra Large partner that fits the gap folded the lens onto its back
+  (815 safety-net slides in a camstats run, 9 m lens jumps walking out from under a deck). Since the camera's second pass
+  (2026-11-18) the pivot sits on the sprite's outline again, as drawn, and the slab decides: a deck over the Pokémon, the
+  shoulder arm or the back arm lowers the pivot to 0.45 m under it and caps the arm's elevation, both eased
+  (`docs/THIRD_PERSON.md` "Decks").
 
 ## Wall tops
 
@@ -192,7 +197,7 @@ Who reads the tops (everyone else keeps every wall infinite):
 | Reader | How it opts in |
 |---|---|
 | The player's attack traces: the camera trace, the muzzle, bolt and orb flight, beams, device assist, and the aimbot of the `aim` sets | `QF.tops` from `combatFlags` (`sim/aim.ts`) on `sim/spatial.ts`'s wall column |
-| The chase lens's prop probe | `render/chaseinput.ts`: a wall prop is solid to its `wallTop`. A bare wall keeps the old margin, `CHASE_CONFIG.lens.solidTop` (2.4 m) above its ground: a lens comfort clearance, not an obstacle height |
+| The chase lens | `render/chaseinput.ts`: it no longer reads `wallTop`. No prop stops the lens (trees, boulders, fences, buildings dissolve around it; owner decision 2026-11-18, which replaces Q10). Only a bare wall is solid for it, at every height, or up to the underside of a deck over it |
 | A body with the crossing permission | `over` on `World.blocks` / `collides` / `fits` / `moveBody` and `LocoTick.over`. **No driver passes it before R6d** (a traversal template grants it); walking, jumping, gliding and every enemy meet walls as before |
 
 - **Crossing above a top** (bodies with the permission): the feet must be at or above the top. The swept vertical move
@@ -202,8 +207,8 @@ Who reads the tops (everyone else keeps every wall infinite):
   permission while above a prop (a Tag swap, a capability ending) is R6d's declared transition (T31).
 - **Level fire over low cover** (muzzle = 0.6 × class height): Large (1.02 m) and Extra Large (1.44 m) clear a fence;
   Extra Large alone clears a sign, a thicket and a crystal; no class fires level over a boulder (1.60 m). Hedges and berry
-  bushes are foliage, already open to the player's shots at any height (Phase 2C); their tops matter to the lens and to
-  permitted bodies. A shot
+  bushes are foliage, already open to the player's shots at any height (Phase 2C); their tops matter to permitted
+  bodies. A shot
   clears a prop only where its own line is above the top at the prop: an aimed-up shot passes a boulder, a level one stops
   on it (`tests/walltops.test.ts`, G11).
 - **Steep views.** Billboards stretch up to 1.6× (third person) and lean back past 51°, so from above a canopy is drawn

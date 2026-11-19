@@ -1,6 +1,6 @@
 // Third-person camera framing and occlusion along a Hold approach (no GL): drives the trainer along an approach on a habitat
 // map and feeds the chase rig exactly as the renderer does (interpolated player, the same world probes via render/chaseinput.ts).
-// It reads the rig and never changes it (the camera is being worked on elsewhere: docs/THIRD_PERSON.md).
+// It reads the rig and never changes it (docs/THIRD_PERSON.md).
 //   npx tsx scripts/habcam.ts <river-gorge|volcanic-ridge> [seeds] [--route direct|flank|both] [--yaw ahead|fixed|side|all] [--species totodile] [-v]
 // Per approach and per stretch kind (open ground, ramp, bridge or causeway deck, arch, tunnel) it reports:
 //   boom%    the boom actually used as a share of the largest boom seen on the same walk (100 = nothing in the way)
@@ -9,9 +9,8 @@
 //            counted: the renderer dithers a prop between the lens and the Pokémon away
 //   ahead    how far along the approach the trainer can see from the lens: the median and the 10th percentile of the length
 //            of route (m, at 0.5 m) visible before the first point hidden by terrain; a short "ahead" is a blind corner
-//   lift/pops/state flips  automatic climb (deg), frames the safety net slid the lens in, Explore / Combat changes
+//   pops     ticks the safety net slid the lens in
 //   fpsDev   (printed, but unreliable: use scripts/camstats.ts --fps 60,144 for the frame-rate dependence of the rig)
-import ART from '../src/content/art.json';
 import { ChaseRig } from '../src/render/camera';
 import { chaseFrameFor } from '../src/render/chaseinput';
 import { createRun, step } from '../src/sim/run';
@@ -21,16 +20,21 @@ import { NO_INPUT, type SimContext } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
-const art = (ART as any).species as Record<string, { art: { anims: Record<string, { frames: number[][][] }> } }>;
-const sizeOf = (id: string) => { const f = art[id]?.art.anims.Idle?.frames[0]?.[0]; return f ? { h: f[3] / 16, w: f[2] / 16 } : { h: 1.1, w: 1 }; };
 const D2R = Math.PI / 180;
 
 type Kind = 'open' | 'ramp' | 'deck' | 'tunnel';
 const KINDS: Kind[] = ['open', 'ramp', 'deck', 'tunnel'];
 
-interface Frame { px: number; pz: number; yaw: number; kind: Kind; boom: number; gap: number; hidden: boolean; ahead: number; lift: number; state: string; eye: [number, number, number]; tile: number }
+interface Frame { px: number; pz: number; yaw: number; kind: Kind; boom: number; gap: number; hidden: boolean; ahead: number; eye: [number, number, number]; tile: number }
 
-function walkPath(ctx: SimContext, which: 'direct' | 'flank'): { path: number[]; ticks: { x: number; y: number; z: number; vx: number; vz: number; tile: number }[] } | null {
+/** a calm run on a habitat map (every region is the recipe), as the Hold approach walks use it */
+export function habitatRun(recipe: string, seed: number, species: string): SimContext {
+  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99 } } as never });
+}
+
+/** walk the trainer from the spawn to the contest point along the direct or the flank approach with the real player
+ *  physics; null when the walk does not get there */
+export function walkPath(ctx: SimContext, which: 'direct' | 'flank'): { path: number[]; ticks: { x: number; y: number; z: number; vx: number; vz: number; tile: number; g: boolean }[] } | null {
   const W = ctx.world, m = W.map, n = W.w * W.h, H = W.hab!, cl = clearance(m), N = cl.length;
   const allow = new Uint8Array(N); for (let v = 0; v < N; v++) allow[v] = cl[v] >= 0.75 ? 1 : 0;
   if (W.hazard) for (let k = 0; k < n; k++) if (W.hazard[k]) allow[k] = 0;
@@ -43,7 +47,7 @@ function walkPath(ctx: SimContext, which: 'direct' | 'flank'): { path: number[];
     const p2 = pathBetween(m, from, to, a); if (!p2) return null; path = p2;
   }
   // walk it with the real player physics (a few nodes of look-ahead, never over a ledge: as scripts/habtac.ts)
-  const P = ctx.player, ticks: { x: number; y: number; z: number; vx: number; vz: number; tile: number }[] = [];
+  const P = ctx.player, ticks: { x: number; y: number; z: number; vx: number; vz: number; tile: number; g: boolean }[] = [];
   let i = 0, lastBest = 0, lastT = 0;
   for (let t = 0; t < 60 * 90 && i < path.length - 2; t++) {
     let near = i, nd = Infinity;
@@ -58,7 +62,7 @@ function walkPath(ctx: SimContext, which: 'direct' | 'flank'): { path: number[];
     }
     const tx = (tk % W.w) - W.half + 0.5, tz = ((tk / W.w) | 0) - W.half + 0.5, dx = tx - P.x, dz = tz - P.z, L = Math.hypot(dx, dz) || 1;
     step(ctx, { ...NO_INPUT, mx: dx / L, mz: dz / L });
-    ticks.push({ x: P.x, y: P.y, z: P.z, vx: P.vx, vz: P.vz, tile: W.tile(P.x, P.z) });
+    ticks.push({ x: P.x, y: P.y, z: P.z, vx: P.vx, vz: P.vz, tile: W.tile(P.x, P.z), g: P.grounded });
   }
   return i >= path.length - 2 ? { path, ticks } : null;
 }
@@ -89,11 +93,11 @@ function kindAt(ctx: SimContext, k: number, y: number, dy: number): Kind {
 }
 
 export interface Shot { map: string; seed: number; route: string; yawMode: string; kind: string; tile: string; yaw: number; boomPct: number; why: string }
-export interface CamRow { map: string; seed: number; route: string; yaw: string; kind: Kind; frames: number; boomPct: number; boomMin: number; gapMin: number; hiddenPct: number; aheadMed: number; ahead10: number; liftMax: number; pops: number; flips: number; fpsDev: number; worst: { tile: string; why: string } | null }
+export interface CamRow { map: string; seed: number; route: string; yaw: string; kind: Kind; frames: number; boomPct: number; boomMin: number; gapMin: number; hiddenPct: number; aheadMed: number; ahead10: number; pops: number; fpsDev: number; worst: { tile: string; why: string } | null }
 
 export function walkCamera(recipe: string, seed: number, route: 'direct' | 'flank', yawMode: 'ahead' | 'fixed' | 'side', species: string, fps = 60): { rows: CamRow[]; ok: boolean; shots: Shot[] } {
-  const ctx = createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99 } } as never });
-  const W = ctx.world, P = ctx.player, sz = sizeOf(P.species.id);
+  const ctx = habitatRun(recipe, seed, species);
+  const W = ctx.world, P = ctx.player;
   const walked = walkPath(ctx, route);
   if (!walked) return { rows: [], ok: false, shots: [] };
   const { path, ticks } = walked, n = W.w * W.h;
@@ -114,7 +118,7 @@ export function walkCamera(recipe: string, seed: number, route: 'direct' | 'flan
       // a player turns the camera at most ~3 rad/s
       let d = Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw)); const maxd = 3 * dtF; d = Math.max(-maxd, Math.min(maxd, d)); yaw += d;
       rig.yaw = yaw;
-      rig.update(chaseFrameFor(ctx, { dt: dtF, x: px, y: py, z: pz, height: sz.h, width: sz.w, lookPitch: 0 }));
+      rig.update(chaseFrameFor(ctx, { dt: dtF, x: px, y: py, z: pz, lookPitch: 0, grounded: p.g && q.g }));
       const k = W.tile(p.x, p.z), dy = q.y - p.y;
       // terrain between the lens and the Pokémon's chest
       const cx = rig.px, cy = rig.py + rig.pivotH, cz = rig.pz;
@@ -130,7 +134,7 @@ export function walkCamera(recipe: string, seed: number, route: 'direct' | 'flan
         if (terrainBlocks(ctx, rig.eye[0], rig.eye[1], rig.eye[2], x2, ty, z2)) break;
         seen = acc2;
       }
-      out.push({ px, pz, yaw, kind: kindAt(ctx, k, py, dy), boom: rig.boomUsed, gap: rig.lensGap, hidden, ahead: seen, lift: rig.liftDeg, state: rig.state, eye: rig.eye.slice() as [number, number, number], tile: k });
+      out.push({ px, pz, yaw, kind: kindAt(ctx, k, py, dy), boom: rig.boomUsed, gap: rig.lensGap, hidden, ahead: seen, eye: rig.eye.slice() as [number, number, number], tile: k });
     }
     return { out, pops: rig.groundPops };
   };
@@ -144,12 +148,11 @@ export function walkCamera(recipe: string, seed: number, route: 'direct' | 'flan
   const rows: CamRow[] = [], shots: Shot[] = [];
   for (const kind of KINDS) {
     const f = base.out.filter((x) => x.kind === kind); if (!f.length) continue;
-    let flips = 0; for (let i = 1; i < f.length; i++) if (f[i].state !== f[i - 1].state) flips++;
     const worstF = f.reduce((b, x) => (x.hidden ? x : b), null as Frame | null) ?? f.reduce((b, x) => (x.gap < b.gap ? x : b), f[0]);
     // the frame to replay in a browser: the tightest boom on this kind of stretch (lens nearest the Pokémon), after the first second
     const rf = f.filter((x, i) => i > 20).reduce((b, x) => (x.boom < b.boom ? x : b), f[Math.min(f.length - 1, 20)]);
     shots.push({ map: recipe, seed, route, yawMode, kind, tile: `${rf.tile % W.w},${(rf.tile / W.w) | 0}`, yaw: +rf.yaw.toFixed(3), boomPct: +(100 * rf.boom / boomMax).toFixed(0), why: rf.hidden ? 'terrain between lens and Pokémon' : `lens ${rf.gap.toFixed(2)} m from the pivot` });
-    rows.push({ map: recipe, seed, route, yaw: yawMode, kind, frames: f.length, boomPct: +(100 * pct(f.map((x) => x.boom / boomMax), 0.5)).toFixed(0), boomMin: +(100 * Math.min(...f.map((x) => x.boom / boomMax))).toFixed(0), gapMin: +Math.min(...f.map((x) => x.gap)).toFixed(2), hiddenPct: +(100 * f.filter((x) => x.hidden).length / f.length).toFixed(1), aheadMed: +pct(f.map((x) => x.ahead), 0.5).toFixed(1), ahead10: +pct(f.map((x) => x.ahead), 0.1).toFixed(1), liftMax: +Math.max(...f.map((x) => x.lift)).toFixed(0), pops: base.pops, flips, fpsDev: +fpsDev.toFixed(3), worst: { tile: `${worstF.tile % W.w},${(worstF.tile / W.w) | 0}`, why: worstF.hidden ? 'terrain between lens and Pokémon' : `lens ${worstF.gap.toFixed(2)} m from the pivot` } });
+    rows.push({ map: recipe, seed, route, yaw: yawMode, kind, frames: f.length, boomPct: +(100 * pct(f.map((x) => x.boom / boomMax), 0.5)).toFixed(0), boomMin: +(100 * Math.min(...f.map((x) => x.boom / boomMax))).toFixed(0), gapMin: +Math.min(...f.map((x) => x.gap)).toFixed(2), hiddenPct: +(100 * f.filter((x) => x.hidden).length / f.length).toFixed(1), aheadMed: +pct(f.map((x) => x.ahead), 0.5).toFixed(1), ahead10: +pct(f.map((x) => x.ahead), 0.1).toFixed(1), pops: base.pops, fpsDev: +fpsDev.toFixed(3), worst: { tile: `${worstF.tile % W.w},${(worstF.tile / W.w) | 0}`, why: worstF.hidden ? 'terrain between lens and Pokémon' : `lens ${worstF.gap.toFixed(2)} m from the pivot` } });
   }
   return { rows, ok: true, shots };
 }
@@ -167,5 +170,5 @@ if (process.argv[1]?.endsWith('habcam.ts')) {
     all.push(...rows); shots.push(...sh);
   }
   const so = process.argv.indexOf('--shots'); if (so > 0) (await import('node:fs')).writeFileSync(process.argv[so + 1], JSON.stringify(shots, null, 1));
-  console.table(all.map((r) => ({ seed: r.seed, route: r.route, yaw: r.yaw, kind: r.kind, frames: r.frames, 'boom% med': r.boomPct, 'boom% min': r.boomMin, gapMin: r.gapMin, 'hidden%': r.hiddenPct, 'ahead med m': r.aheadMed, 'ahead p10 m': r.ahead10, lift: r.liftMax, pops: r.pops, flips: r.flips, fpsDev: r.fpsDev, worst: `${r.worst?.tile} ${r.worst?.why}` })));
+  console.table(all.map((r) => ({ seed: r.seed, route: r.route, yaw: r.yaw, kind: r.kind, frames: r.frames, 'boom% med': r.boomPct, 'boom% min': r.boomMin, gapMin: r.gapMin, 'hidden%': r.hiddenPct, 'ahead med m': r.aheadMed, 'ahead p10 m': r.ahead10, pops: r.pops, fpsDev: r.fpsDev, worst: `${r.worst?.tile} ${r.worst?.why}` })));
 }

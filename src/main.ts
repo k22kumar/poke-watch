@@ -566,8 +566,9 @@ async function boot() {
     // it); pokewatch.become('lapras') restarts the current run as that species
     roster: () => playRoster().map((r) => ({ id: r.id, tier: r.tier, opening: r.opening, reasons: r.reasons.join('; ') })),
     become,
-    // third-person camera tuning, live (docs/THIRD_PERSON.md): e.g. pokewatch.chase.lean = false, or for the pre-R3 camera
-    // Object.assign(pokewatch.chase.aimPitch, { up: 60, down: 50 }); pokewatch.chase.aimPitch.overhead.on = false
+    // third-person camera tuning, live (docs/THIRD_PERSON.md): e.g. pokewatch.chase.frame.boom = 3.2 (the back distance
+    // for a 1.45 m outline), pokewatch.chase.reticle.side = 9 (degrees the Pokémon keeps left of the crosshair),
+    // pokewatch.chase.lean = false; pokewatch.renderer.subjectBox() is where its drawn frame lies on screen
     chase: CHASE_CONFIG,
     // Pokémon locations (docs/LOCATIONS.md): pokewatch.loc() prints the current map's location, gates, metrics and zone
     // graph; pokewatch.locations lists what ?loc= accepts

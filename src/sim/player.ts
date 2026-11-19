@@ -53,7 +53,7 @@ export const playerSystem = {
     const R = ctx.rules.player;
     const W = ctx.world;
     const inp = ctx.input;
-    P.px = P.x; P.py = P.y; P.pz = P.z;
+    P.px = P.x; P.py = P.y; P.pz = P.z; P.pgrounded = P.grounded;
     // Phase 8b: things held last tick (Lodestone roots you while you hold), Pressure Jet's root
     P.holding = P.holdNext; P.holdNext = 0;
     if (P.rootT > 0) P.rootT -= dt;

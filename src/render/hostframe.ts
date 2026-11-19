@@ -18,13 +18,18 @@ export function aimRayOf(view: { readonly eye: readonly number[]; readonly dir: 
   return { ox: f(view.eye[0]), oy: f(view.eye[1]), oz: f(view.eye[2]), dx: f(view.dir[0]), dy: f(view.dir[1]), dz: f(view.dir[2]) };
 }
 
+/** look sensitivity: radians per pointer-locked mouse count (the same for yaw and pitch, as in most PC shooters: an unequal
+ *  pair bends a diagonal flick), and the right stick's full-deflection turn rates (rad/s, yaw and pitch) */
+export const LOOK = { mouse: 0.0022, stickYaw: 2.6, stickPitch: 1.5 };
+
 /** what one look gesture turns the camera by: radians of yaw (+ right) and pitch (+ down) from the mouse movement
- *  since the last frame (px, pointer-locked) and the right stick (-1..1, scaled by the frame time), or null for none */
+ *  since the last frame (px, pointer-locked) and the look stick (-1..1, already shaped: input/stick.ts), scaled by the
+ *  frame time, or null for none */
 export function lookDelta(mouse: readonly [number, number], stick: readonly [number, number], dt: number, sens: number, invertY: boolean): [number, number] | null {
   const inv = invertY ? -1 : 1;
-  let yaw = mouse[0] * 0.0022 * sens, pitch = mouse[1] * 0.0018 * sens * inv;
+  let yaw = mouse[0] * LOOK.mouse * sens, pitch = mouse[1] * LOOK.mouse * sens * inv;
   const [rx, ry] = stick;
-  if (rx || ry) { yaw += rx * 2.6 * sens * dt; pitch += ry * 1.5 * sens * inv * dt; }
+  if (rx || ry) { yaw += rx * LOOK.stickYaw * sens * dt; pitch += ry * LOOK.stickPitch * sens * inv * dt; }
   return yaw || pitch ? [yaw, pitch] : null;
 }
 

@@ -1,54 +1,42 @@
 // What the third-person rig (render/camera.ts) is told about the world each frame. Shared by the renderer and the
 // headless camera diagnostics (scripts/camstats.ts) so both drive the rig through exactly the same probes.
 // Reads the sim, never writes it.
-import { TEXELS_PER_METRE } from '../assets/art';
-import { ROLE } from '../sim/pools';
-import { traversalOf } from '../rules/profiles';
+import { bodyOf } from '../rules/sizing';
 import type { SimContext } from '../sim/types';
-import { CHASE_CONFIG, NO_THREAT, type ChaseFrame, type ChaseThreat } from './camera';
+import { DECK_SLAB } from '../sim/world';
+import type { ChaseFrame } from './camera';
+import { classOutline, type Outline } from './framing';
 
 /** ground height the lens sees beyond the map edge (m) */
 const EDGE_WALL = 60;
 
-/** hostiles near (x, z): nearest, weighted crowd within 12 m, nearest boss */
-export function threatOf(ctx: SimContext, x: number, z: number): ChaseThreat {
-  const E = ctx.enemies;
-  let nearest = Infinity, boss = Infinity, weight = 0;
-  for (let i = 0; i < E.hi; i++) {
-    if (!E.alive[i]) continue;
-    const dx = E.x[i] - x, dz = E.z[i] - z, d2 = dx * dx + dz * dz;
-    if (d2 > 900) continue;
-    const d = Math.sqrt(d2), r = E.roles[i];
-    if (d < nearest) nearest = d;
-    if (r & ROLE.boss) { if (d < boss) boss = d; }
-    if (d < 12) weight += r & ROLE.boss ? 8 : r & ROLE.alpha ? 4 : r & ROLE.elite ? 3 : 1;
-  }
-  return nearest === Infinity && boss === Infinity ? NO_THREAT : { nearest, weight, boss };
-}
-
 export interface ChaseSubject {
   dt: number;
-  /** interpolated feet position of the active Pokémon */
+  /** interpolated feet position of the active Pokémon (where the renderer draws it this frame) */
   x: number; y: number; z: number;
-  /** drawn idle-frame size of the active Pokémon (m) */
-  height: number; width?: number;
   lookPitch: number;
-  shake?: [number, number, number];
+  /** the body was on its support at both ends of the span drawn, the previous tick and the latest (default:
+   *  ctx.player.pgrounded && grounded); replays of a recorded path pass the recorded flags, since ctx.player is not where
+   *  they draw it */
+  grounded?: boolean;
+  /** the active Pokémon's sprite outline as drawn (render/framing.ts outlineOf: the renderer from its loaded art, the
+   *  Node diagnostics from scripts/lib/silhouette.ts). Absent = the fallback for its size class (classOutline) */
+  outline?: Outline;
 }
 
-/** The subject size the rig frames (m): the idle reference frame (assets/art.ts `clips.idle.frames[0][0]`, in texels)
- *  times the species' visible-size multiplier (rules/sizing.ts `speciesSizing(...).scale`, the one the sprite is drawn
- *  at). The renderer and the Node diagnostics (scripts/lib/chasesize.ts) both build it here. No frame: 1.1 m. */
-export function chaseSubjectSize(f: { w: number; h: number } | undefined, scale: number): { height: number; width: number | undefined } {
-  return f ? { height: (f.h / TEXELS_PER_METRE) * scale, width: (f.w / TEXELS_PER_METRE) * scale } : { height: 1.1, width: undefined };
+/** The size class of the active Pokémon (rules/sizing.ts bodyOf): only the fallback outline reads it, for a subject whose
+ *  art is not measured */
+export function chaseSubject(ctx: SimContext): { visual: number; height: number } {
+  const b = bodyOf(ctx.player.species, ctx.rules.size);
+  return { visual: b.visualM, height: b.height };
 }
 
-/** the rig's input for this frame: the subject plus the world probes (terrain, decks, solid props, threat) */
+/** the rig's input for this frame: the subject, its outline and the world probes (terrain, decks, bare walls).
+ *  Nothing about enemies, combat or the Pokémon's traversal mode reaches the camera */
 export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
-  const W = ctx.world, wall = W.map.wall, tops = W.wallTop, py = s.y;
+  const W = ctx.world, wall = W.map.wall, tops = W.wallTop, over = W.over, py = s.y, sub = chaseSubject(ctx);
   return {
-    dt: s.dt, x: s.x, y: s.y, z: s.z, height: s.height, width: s.width, flying: traversalOf(ctx.player.species, ctx.rules).air,
-    threat: threatOf(ctx, s.x, s.z), lookYaw: 0, lookPitch: s.lookPitch,
+    dt: s.dt, x: s.x, y: s.y, z: s.z, ...sub, outline: s.outline ?? classOutline(sub.visual), grounded: s.grounded ?? (ctx.player.pgrounded && ctx.player.grounded), lookYaw: 0, lookPitch: s.lookPitch,
     // the floor at the Pokémon's own layer (a deck when it stands on one, the ground under it otherwise); beyond the
     // map edge a wall the lens never enters (a cave's border is raised rock, and nothing out there is meant to be seen
     // from)
@@ -56,18 +44,17 @@ export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
     // lens stays above the lip rather than dropping into the chasm
     ground: (x, z) => { const k = W.tile(x, z); return k < 0 ? EDGE_WALL : W.isVoid(k) && W.support(x, z, py + 1) === -Infinity ? py : W.height(x, z, py + 1); },
     ceiling: W.over ? (x, z) => W.ceilingAt(x, z, py) : undefined,
-    // props (trees, boulders, buildings: billboards that dissolve near the lens) only when CHASE_CONFIG.propsBlockLens.
-    // R1b wall tops (rules.world.wallTops): a wall prop is solid to its World.wallTop, the height bodies and shots read;
-    // a bare wall (rock, cave wall: Infinity there) keeps the lens margin of CHASE_CONFIG.lens.solidTop above its ground,
-    // a presentation clearance and not a second obstacle height (so the boom does not shorten looking over a rock rim)
-    solid: CHASE_CONFIG.propsBlockLens
-      ? (x, y, z) => {
-        const k = W.tile(x, z);
-        if (k < 0 || wall[k] !== 1) return false;
-        const top = tops ? tops[k] : Infinity;
-        return y < (top < Infinity ? top : W.height(x, z) + CHASE_CONFIG.lens.solidTop);
-      }
-      : undefined,
-    shake: s.shake,
+    // bare walls (rock masses, cave walls, sealed ground, the habitats' low ruin walls): solid at every height, as they
+    // are for bodies and shots. Wall props (trees, boulders, fences, buildings: a tile with a World.wallTop) never stop
+    // the lens: they dissolve around it (render/tilestage.ts; owner decision 2026-11-18, which replaces R1b Q10's "the
+    // lens reads wallTop"). With rules.world.wallTops off (the checksum sets older than R1b) no tile has a top, so every
+    // wall is bare
+    // (a wall with a deck over it ends at the slab's underside, as in sim/spatial.ts: on the deck the rock is below the feet)
+    solid: (x, y, z) => {
+      const k = W.tile(x, z);
+      if (k < 0 || wall[k] !== 1 || (tops && tops[k] !== Infinity)) return false;
+      const ov = over ? over[k] : 0;
+      return !(ov > 0) || y < ov - DECK_SLAB;
+    },
   };
 }

@@ -25,6 +25,23 @@ Looking up or down never changes altitude (invariant 4): `my` comes from buttons
 camera pitch, and nothing in `sim/locomotion.ts` takes the aim ray. `tests/jumpcontrol.test.ts` sweeps an aim ray
 through ±89° and checks every height, vertical speed and support flag against the same run without it.
 
+## Look
+
+Look input turns the third-person camera, which is the aim (`docs/THIRD_PERSON.md` "Camera"). It is applied at once,
+on the frame it arrives (`ChaseRig.look`), before the frame's view sample; it never reaches movement or altitude.
+
+- **Mouse** (pointer-locked): `LOOK.mouse` = 0.0022 rad per count for both yaw and pitch (`src/render/hostframe.ts`),
+  times Settings → Look speed, pitch flipped by Invert look. Until 2026-11-18 pitch was 0.0018 rad per count against
+  0.0022 for yaw, so a 45° mouse motion turned the view at 39° and a diagonal flick curved.
+- **Right stick**: a radial dead zone of 0.18, the magnitude past it rescaled to start from 0, then a response exponent
+  of 2 (`shapeStick`, `src/input/stick.ts`, constants `STICK`); full deflection turns `LOOK.stickYaw` 2.6 rad/s of yaw
+  and `LOOK.stickPitch` 1.5 rad/s of pitch. Before, each axis had its own 0.18 dead zone with no rescale: the slowest
+  turn the stick could make was 0.18 of full speed (27°/s of yaw), and a push just off an axis turned along the axis.
+  The movement stick keeps its per-axis dead zone (fixed views read the raw right stick for stick aim, unchanged).
+- Touch look (the right-hand touch area) is passed through as it was.
+
+Tests: `tests/lookinput.test.ts`; the host order (look → sample → ticks) is `tests/viewsample.test.ts`.
+
 ## Jump
 
 **Edges.** `Input` latches Jump's rising edge (`jumpLatch`) on the first keydown of a bound key (auto-repeat keydowns are
@@ -128,5 +145,6 @@ not).
 ## Not covered here (yet)
 
 - Take-off, ascend, descend and landing timing: they need the volume integrator (R6d, T33's other half, T34).
-- Hands-on: left-stick-click comfort and accidental clicks on real pads; the Bindings screen with a real keyboard, pad
+- Hands-on: the look stick's dead zone and curve on real pads (drift, feel at low deflection), and whether the 2.6 / 1.5
+  rad/s full-deflection rates suit the closer camera; left-stick-click comfort and accidental clicks on real pads; the Bindings screen with a real keyboard, pad
   and screen reader; touch Descend once it is visible.

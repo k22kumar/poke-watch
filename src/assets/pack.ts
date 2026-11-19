@@ -7,7 +7,7 @@ import { MOVES, type MoveData } from '../rules/moves';
 import { SPECIES_BY_ID, type SpeciesDef, type Stats } from '../rules/species';
 import { ANIM_STATES, DIRS, NATIVE_CLIP, canvasFrom, type CreatureArt, type FrameRect } from './art';
 import { resolveClips, type SourceAnim } from './clips';
-import { neutralExtent } from './measure';
+import { neutralExtent, silhouetteOf } from './measure';
 
 export const PACK_FORMAT = 'poke-watch-pack';
 export const PACK_VERSION = 1;
@@ -115,12 +115,17 @@ export async function buildArt(id: string, a: PackSpecies['art']): Promise<{ art
   for (const st of ANIM_STATES) if (report[st] !== undefined && report[st] !== NATIVE_CLIP[st]) notes.push(`${st}: substitute ${report[st]}`);
   // visible height from the front-facing idle frame
   const f = clips.idle.frames[0][0];
-  const g = atlas.getContext('2d')!.getImageData(f.x, f.y, f.w, f.h).data;
+  // the atlas is read back once: the idle frame's own pixels, and every frame's outline for the third-person framing
+  // (docs/THIRD_PERSON.md "Composition")
+  const px = atlas.getContext('2d')!.getImageData(0, 0, atlas.width, atlas.height), aw = px.width, ad = px.data;
+  const g = new Uint8ClampedArray(f.w * f.h * 4);
+  for (let y = 0; y < f.h; y++) g.set(ad.subarray(((f.y + y) * aw + f.x) * 4, ((f.y + y) * aw + f.x + f.w) * 4), y * f.w * 4);
   // visible height and width (opaque columns, for the Wide normalisation in rules/sizing.ts); assets/measure.ts is shared
   // with the Node camera diagnostics so both measure the same pixels the same way
   const { heightPx, widthPx } = neutralExtent(g, f);
+  const silhouette = silhouetteOf(clips, (x, y) => ad[(y * aw + x) * 4 + 3]);
   let portrait: HTMLCanvasElement;
   if (a.portrait) portrait = toCanvas(await loadImage(a.portrait));
   else { portrait = canvasFrom(f.w, f.h, g); notes.push('no portrait; using the idle frame'); }
-  return { art: { id, kind: 'pmd', atlas, clips, heightPx, widthPx, shadowSize: a.shadowSize ?? 1, portrait, credits: a.credits, license: a.license, sourceUrl: a.url }, report, notes };
+  return { art: { id, kind: 'pmd', atlas, clips, heightPx, widthPx, silhouette, shadowSize: a.shadowSize ?? 1, portrait, credits: a.credits, license: a.license, sourceUrl: a.url }, report, notes };
 }

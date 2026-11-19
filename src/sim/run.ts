@@ -155,12 +155,18 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
     case 'over':
     case 'victory':
       return ctx.events;
-    case 'dead':
+    case 'dead': {
       ctx.stateTimer -= dt;
       if (ctx.stateTimer <= 0) ctx.state = 'over';
       // world keeps moving (host applies slow motion), player input ignored
       ctx.input = NO_INPUT;
+      // the player system is skipped below, and it is what starts each tick's interpolation span (P.px/py/pz, read only by
+      // the renderer and the camera): without this, knockback or a crowd still moving the body left the span starting at
+      // the death position, and the drawn Pokémon (and the third-person camera on it) swung between the two every tick
+      const P = ctx.player;
+      P.px = P.x; P.py = P.y; P.pz = P.z; P.pgrounded = P.grounded;
       break;
+    }
   }
 
   // banked picks: an open offer takes card input while the world keeps running

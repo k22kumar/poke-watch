@@ -1086,7 +1086,8 @@ export class UI {
       h('h3', {}, 'Display'),
       h('div', { class: 'settings' },
         ...seg('Camera', cams, () => S.camera, (v) => { S.camera = v; }),
-        ...seg('Screen shake', [['Full', 1], ['Reduced', 0.35], ['Off', 0]], () => S.shake, (v) => { S.shake = v; }),
+        // (third person never shakes: its lens is where the crosshair ray starts, docs/THIRD_PERSON.md "Camera")
+        ...seg('Screen shake (fixed views)', [['Full', 1], ['Reduced', 0.35], ['Off', 0]], () => S.shake, (v) => { S.shake = v; }),
         ...toggle('Damage numbers', () => S.numbers, (v) => { S.numbers = v; })),
       h('div', { class: 'row-btns' },
         btn('Reset to defaults', () => { this.hooks.resetSettings(); this.hooks.sound('back'); this.refreshHint(); rebuild(); }, 'btn small'),

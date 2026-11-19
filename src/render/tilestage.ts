@@ -47,8 +47,9 @@ vec3 leanUp(vec3 d, vec3 fwd, float lim){
   if (ex == 0.0) return vec3(0.0, 1.0, 0.0);
   return vec3(fwd.x * sin(ex), cos(ex), fwd.z * sin(ex));
 }`;
-/** the seen elevation (rad) up to which the 1.6 stretch cap of the billboard shaders keeps texels square */
-export const LEAN_FROM = Math.acos(1 / 1.6);
+/** the seen elevation (rad) up to which the 1.6 stretch cap of the billboard shaders keeps texels square (render/framing.ts
+ *  holds the number: the third-person framing projects cards with the same maths) */
+export { LEAN_FROM } from './framing';
 /** no lean (the fixed views, CHASE_CONFIG.lean false) */
 export const NO_LEAN = { fwd: [0, 0, 1], from: 0 };
 const MESH_FS = `
@@ -82,7 +83,7 @@ void main(){
 }`;
 const BB_FS = `
 in vec2 vUV; flat in vec4 vRect; in float vS; in vec3 vW;
-uniform sampler2D uTex; uniform vec3 uTint; uniform vec3 uPlayer; uniform vec3 uCam; uniform vec3 uFrameCool; uniform vec3 uBehind; out vec4 o;
+uniform sampler2D uTex; uniform vec3 uTint; uniform vec3 uPlayer; uniform vec3 uCam; uniform vec3 uFrameCool; uniform vec3 uBehind; uniform float uNearLens; out vec4 o;
 ${FOG_GLSL}
 ${SPRITE_SAMPLE_GLSL}
 void main(){
@@ -92,8 +93,9 @@ void main(){
   vec3 ab = uPlayer + vec3(0.0, 0.7, 0.0) - uCam; vec3 ap = vW - uCam;
   float t = clamp(dot(ap, ab) / dot(ab, ab), 0.0, 1.0);
   if (t < 0.93 && distance(vW, uCam + ab * t) < 1.1 && dot(vW - uPlayer, uBehind) > 0.2) { vec2 q = mod(floor(gl_FragCoord.xy), 2.0); if (q.x == q.y) discard; }
-  // a low lens passes close to trunks and canopies: anything within a few metres of it dissolves (4x4 ordered dither)
-  float nl = smoothstep(4.0, 1.5, distance(vW.xz, uCam.xz));
+  // the lens passes through props (they never stop it): anything within uNearLens metres of it dissolves, fully from
+  // 3/8 of that in (4x4 ordered dither). Third person sets the reach to where the Pokémon stands; 4 m otherwise
+  float nl = smoothstep(uNearLens, uNearLens * 0.375, distance(vW.xz, uCam.xz));
   if (nl > 0.0) { vec2 g = mod(floor(gl_FragCoord.xy), 4.0); float bayer = (mod(g.x * 2.0 + g.y * 5.0, 8.0) + 0.5) / 8.0; if (bayer < nl) discard; }
   // frame: props deep in the forest are darker and cooler (vS < 1), so walls frame the clearing
   vec3 cool = mix(vec3(1.0), uFrameCool, clamp((1.0 - vS) * 3.0, 0.0, 1.0));
@@ -112,7 +114,11 @@ in vec2 vC; in float vA; out vec4 o;
 void main(){ float r = dot(vC, vC); if (r > 1.0) discard; o = vec4(0.10, 0.12, 0.18, vA * (r < 0.55 ? 1.0 : 0.65)); }`;
 
 /** distance fog and camera side for the third-person view; k = 0 is off (the fixed views) */
-export interface Fog { col: number[]; near: number; far: number; k: number; behind: number[] }
+export interface Fog {
+  col: number[]; near: number; far: number; k: number; behind: number[];
+  /** how far from the lens props dissolve (m; BB_FS uNearLens). Absent = 4 */
+  lens?: number;
+}
 export const NO_FOG: Fog = { col: [0, 0, 0], near: 1, far: 2, k: 0, behind: [0, 0, 1] };
 
 interface Mesh { vao: WebGLVertexArrayObject; n: number; tex: WebGLTexture; buf: WebGLBuffer; glow?: boolean }
@@ -624,6 +630,7 @@ export class TileStage {
     gl.uniform3fv(bp.loc('uFrameCool'), this.dir.frameCool);
     gl.uniform3fv(bp.loc('uPlayer'), player);
     gl.uniform3fv(bp.loc('uCam'), cam);
+    gl.uniform1f(bp.loc('uNearLens'), fog.lens ?? 4);
     // the side of the player the camera is on (props there may screen-door): classic looks north, so 'behind' is +z
     gl.uniform3fv(bp.loc('uBehind'), fog.behind);
     gl.uniform4f(bp.loc('uFog'), fog.col[0], fog.col[1], fog.col[2], fog.k);

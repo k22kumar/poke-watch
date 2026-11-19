@@ -41,7 +41,7 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 | Mute | M |
 | Change any key or button | Settings → Controls → Bindings (saved in the browser) |
 
-Runs default to generated regions (seeded, so the same seed produces the same map) and a third-person camera: the first region is built from **Viridian Forest** and the last from **Mt. Moon** by the Pokémon-location generator, the others by the classic generator (`docs/LOCATIONS.md`). Settings → World → Regions can switch to the handcrafted arenas or the classic generator everywhere; Settings can also choose the Classic, Overhead or Wide camera presets; reduced or no screen shake is also available (`docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`). A boss arrives at 5:00 in each region; defeat it and step into the portal.
+Runs default to generated regions (seeded, so the same seed produces the same map) and a third-person camera: the first region is built from **Viridian Forest** and the last from **Mt. Moon** by the Pokémon-location generator, the others by the classic generator (`docs/LOCATIONS.md`). Settings → World → Regions can switch to the handcrafted arenas or the classic generator everywhere; Settings can also choose the Classic, Overhead or Wide fixed camera presets, with reduced or no screen shake (the third-person camera never shakes: `docs/THIRD_PERSON.md`, `docs/WORLDGEN.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (basic attack targets the nearest enemy) or Auto (classic: every move fires on its own). Collect EXP gems, level up, pick cards, evolve. Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`). A boss arrives at 5:00 in each region; defeat it and step into the portal.
 
 ### Changing the roster
 
@@ -131,6 +131,9 @@ npm run check        # typecheck, tests, and production build
 npm test             # every tests/*.test.ts suite (headless, deterministic); one suite: npx tsx --test tests/<name>.test.ts
 npx tsx scripts/checksum.ts    # replay checksums (same seed + inputs => same hashes); "off" must equal v10, "build-off" must equal Phase 8a; "aim" adds a crosshair ray to the bot (spatial aim and beams), "aim-off" must equal "on", "aim-2b" must equal Phase 2B's "aim", "gen-headroom-off" must equal "gen" before headroom, "aim-pole-off" must equal "aim" before pole-safe aim maths, "aim-tops-off" must equal "aim" before wall tops
 npx tsx scripts/shotbench.ts --gate # player shots over a ~475-enemy crowd: planar vs 3D swept (docs/THIRD_PERSON_IMPLEMENTATION.md §13)
+npx tsx scripts/camframe.ts     # third-person composition: every sprite frame against the crosshair's keep-out and the HUD's move bar
+npx tsx scripts/camstats.ts --bench tuning   # third-person motion on real maps by movement mode (apparent size, lens steps); --bench holdout
+npx tsx scripts/camaim.ts --fight            # third-person aim: the sim's aim point against the crosshair in tight poses; blocked crosshair in bot fights
 npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim
 npx tsx scripts/h2.ts           # H2: damage gain from rotating Tag for cooldowns (ceiling 15%)
 npx tsx scripts/h6.ts           # H6: objectives engaged vs ignored, with the bot
@@ -165,7 +168,8 @@ src/
   assets/    creature asset layer: art.ts (CreatureArt, 8 states, fallback table), clips.ts,
              builtin.ts (loads art.json), pack.ts (pack format + atlas decode), cries.ts,
              registry.ts
-  render/    WebGL2: renderer.ts (fixed DS camera, creature billboards, VFX), tilestage.ts
+  render/    WebGL2: renderer.ts (third-person and fixed cameras, creature billboards, VFX), camera.ts (the third-person rig),
+             framing.ts (where the drawn sprite lands on screen: the keep-out around the crosshair, the framing law), tilestage.ts
              (ground/cliff/water meshes, prop billboards), tileart.ts (biome palettes, props),
              baker.ts, kit.ts, designs.ts, pixelart.ts, pixelfx.ts
   overworld/ Maplebrook (DS-style town + route); its painters are shared with the arenas
@@ -235,7 +239,8 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/ART_BIBLE.md`: camera, pixel density, sprite, animation, palette, layering and UI standards.
 - `docs/ART_DIRECTION.md`: the expedition art direction (floor/frame/actor/signal layers, per-biome values, decor, the crossroads camp), the before/after measurements and their limits.
 - `docs/POKEMON_FIRST.md`: how to research and adapt Pokémon identities across official appearances.
-- `docs/CAMERA.md`: the camera preset comparison and decision.
+- `docs/THIRD_PERSON.md`: the third-person camera as built (framing, follow, collision, aim, diagnostics, limits).
+- `docs/CAMERA.md`: the fixed camera presets' comparison.
 - `docs/THIRD_PERSON_IMPLEMENTATION.md`: the plan for the third-person hero shooter: what was verified, the decision register, the staged roadmap, shared contracts and the replay migration policy.
 - `docs/AUDIO.md`: cries (era audit), every move's sound, music states, mixing, verification.
 - `docs/ICONS.md`: which icons are Pokémon items and why, and which are original.

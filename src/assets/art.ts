@@ -37,6 +37,29 @@ export interface Clip {
   overlay: Overlay;
 }
 
+/** The opaque extent of one frame around its anchor (the feet), in texels: left and right of the anchor, above and below it */
+export interface FrameBounds { l: number; r: number; t: number; b: number }
+
+/** A sprite's measured outline (assets/measure.ts silhouetteOf), in texels at scale 1 around the anchor. What the
+ *  third-person camera composes the frame from (docs/THIRD_PERSON.md "Composition"): the art as drawn, not the size class */
+export interface Silhouette {
+  /** opaque bounds per clip, per direction row, per frame (null: an empty frame) */
+  frames: Record<AnimState, (FrameBounds | null)[][]>;
+  /** BODY_CLIPS, all eight rows: the outline the Pokémon ordinarily has; `bodyOver`: how far those clips' procedural
+   *  overlays move it (OVERLAY, metres, not scaled): sideways and up */
+  body: FrameBounds;
+  bodyOver: { x: number; y: number };
+  /** COMBAT_CLIPS, all eight rows: the frames' outermost (right, top) corners. No combat frame reaches both further right
+   *  and higher than every one of these. `ox` / `oy`: the clip's procedural offset (OVERLAY, metres, not scaled) */
+  combat: { r: number; t: number; ox: number; oy: number }[];
+}
+/** the clips that make the ordinary outline, and the ones the fixed combat allowance covers */
+export const BODY_CLIPS: AnimState[] = ['idle', 'walk'];
+export const COMBAT_CLIPS: AnimState[] = ['attack', 'shoot', 'charge', 'hurt'];
+/** how far the procedural overlays move a frame (m): a lunge along the facing and its lift (a share of it), a bob (one
+ *  texel). The renderer draws with these numbers and the silhouette measurement reserves room with them */
+export const OVERLAY = { lunge: 0.18, lungeLift: 0.2, bob: 1 / TEXELS_PER_METRE };
+
 export interface CreatureArt {
   id: string;
   kind: 'baked' | 'pmd';
@@ -46,6 +69,8 @@ export interface CreatureArt {
   heightPx: number;
   /** visible width of the same idle frame in texels (Wide normalisation, rules/sizing.ts); absent = not measured */
   widthPx?: number;
+  /** the measured outline of every frame (third-person framing); absent = not measured */
+  silhouette?: Silhouette;
   /** PMD shadow size class 0 small · 1 medium · 2 large */
   shadowSize: number;
   portrait: HTMLCanvasElement;
