@@ -429,6 +429,11 @@ Gates after these changes:
   - **HUD:** with Eternatus, the feet sit behind the action bar (bottom margin 53 px).
 
   [Re-run on the rig at `90fc1b7`: §F3 below supersedes these numbers.] The `size-frame-*` scenes in `tools/sizescenes.json` (run with `tools/sizecap.mjs` against the capture builds) **must be re-run after the camera rework**, because its outline-based arm and crosshair keep-out change every number here. The rework's outline data needs Wailord and Eternatus as well.
+- **F4: the hit radius beside wide sprites** (owner 2026-11-18, after the xlTall targeting rerun). xlTall fixed the height
+  share; the width share stays: Snorlax 21%, Wailord 13%, Eternatus 40% of the idle silhouette lies beside the hurt
+  cylinder within its height (radius = the class value). **Stays as it is for now.** Candidate fix: a hurt radius from
+  the sprite's measured width, separate from contact and crowd reach (footprint, `enemyRadius` for pushing and contact
+  damage). **When:** decided after S2.
 
 ---
 
@@ -805,8 +810,7 @@ Every set `main` prints is unchanged, and `axis`, `gen-axis`, `xl` are unchanged
 `tall` = `on`, `gen-tall` = `gen`, `giants` = `axis`, `gen-giants` = `gen-axis`. **No replay config exercises xlTall**:
 the bot's planar shots never reach an XL body above its class height, the authored arenas have no decks, and the `gen`
 runs never put a changed XL body against a deck it no longer fits. The flag's behaviour is covered by the unit and
-headroom tests, not by the replays. A replay that does cover it (for example an `aim`-style set with the giants flags,
-or a deck map in the replay configs) is a choice for the owner before the flag flips.
+headroom tests, not by the replays. [Owner chose a deck-map replay, no aimed set: "xlTall replay" below.]
 
 ### Gates (worktree, 2026-11-18)
 
@@ -859,4 +863,43 @@ Hurt window and the share of each giant's idle silhouette outside the cylinder. 
   every giant but Snorlax is refused, as before. The 0.892 ratio leaves the top ~11% of a giant's draw above its window
   by design (the class's own height-to-visual ratio).
 - Raw output: `.capture/out-tall/sizegiants.md` (not committed).
+
+### Owner decisions after the xlTall report (2026-11-18)
+
+- **Onix at 2.9 m decks: accepted.** With all three flags Onix (2.78 m sim height) still walks under a 2.9 m deck while
+  its sprite shows 0.21 m (7%) above the underside. Accepted as is.
+- **Width share:** logged as F4 (§S1.10): stays for now; candidate fix a hurt radius from the measured sprite width,
+  separate from contact and crowd reach, decided after S2.
+- **A replay that covers xlTall:** a deck map with 2.9 m gaps and Onix in the pool, default and giants variants; no
+  aimed set. Built below.
+
+### xlTall replay (`deck`, `deck-giants`, `deck-tall`)
+
+`scripts/checksum.ts` sets that replay their own config (`SET_CONFIGS`): Totodile, seed 5, classic, 240 s, generated
+regions with **Mt. Moon** in every region (`regionSeed` 1; its decks leave 2.9 m gaps), and a spawn override with Onix at
+weight 6 and as the elite.
+
+| set | flags | hash (end) | Onix ticks under a deck |
+|---|---|---|---:|
+| `deck` | defaults | `415b8ef9` | 207 |
+| `deck-giants` | axis + xlContinuous + xlTall | `8e461982` | 404 |
+| `deck-tall` | xlContinuous + xlTall | `5cba0b9b` | 0 |
+
+(Under-deck counts are from a probe of the same configuration, not printed by checksum.ts.)
+
+**What `deck-giants` does and does not cover.** Its hash differs from `deck`, but through the axis alone: on this
+configuration, and on Volcanic Ridge and with Onix as the partner, `giants` prints exactly what `axis + xlContinuous`
+prints (`xlContinuous` alone moves no sim value). With the axis on Onix is 2.48 m at the class height and 2.78 m with
+xlTall. The generators make deck gaps of 2.4 m or at least 2.9 m (`CLEARANCE`), so both heights fall in the same height
+class on every shipped map: refused at 2.4 m, admitted at 2.9 m and above. No other runtime XL body crosses a gap either
+(Feraligatr and Hariyama 2.25 → 2.29 m, under 2.4 m). The bot's planar shots never test a body's top. So **with all three
+flags on, xlTall changes no routing on any shipped map and no bot-replay state**; it changes the hit window above the
+class height (spatial shots, which only the aimed sets fire) and the partner muzzle of an XL partner. Its routing effect
+is real only where a giant is taller than 2.9 m: Wailord, Eternatus and future giants, or Onix without the axis.
+
+**So `deck-tall` was added** beside the two requested sets: without the axis Onix is 3.42 m, the 2.9 m decks keep it out
+(0 ticks under a deck, 207 at the default), and its hash differs from `deck`. It is the replay that exercises xlTall's
+routing. An aimed set would cover the hit window; not added (owner: no aimed set).
+
+Every existing set prints what it printed before (full `checksum.ts` run, 2026-11-18).
 

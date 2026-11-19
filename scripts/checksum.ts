@@ -22,7 +22,8 @@ function legacyHash(ctx: SimContext) {
   return h.h;
 }
 
-const CONFIGS: [string, number, string, number][] = [
+type Config = [string, number, string, number];
+const CONFIGS: Config[] = [
   ['cyndaquil', 2, 'classic', 420],
   ['totodile', 7, 'classic', 420],
   ['bulbasaur', 3, 'survival', 300],
@@ -63,6 +64,12 @@ const HEADROOM_OFF = { headroom: false };
 const TOPS_OFF = { wallTops: false };
 const CLASSIC = { spawning: { regions: CLASSIC_REGIONS }, size: HEADROOM_OFF, world: TOPS_OFF };
 const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
+const DECK_MAP = 'mt-moon';
+const DECK = {
+  worldgen: { mode: 'generated', regionSeed: 1, locations: { meadow: DECK_MAP, dusk: DECK_MAP, badlands: DECK_MAP, frost: DECK_MAP } },
+  spawning: { override: { include: [['onix', 6]], elites: ['onix'] } },
+};
+const DECK_CONFIGS: Config[] = [['totodile', 5, 'classic', 240]];
 const SETS: Record<string, object | undefined> = {
   off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
   'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
@@ -96,11 +103,21 @@ const SETS: Record<string, object | undefined> = {
   'gen-tall': { worldgen: { mode: 'generated' }, size: { xlContinuous: true, xlTall: true } },
   giants: { size: { axis: true, xlContinuous: true, xlTall: true } },
   'gen-giants': { worldgen: { mode: 'generated' }, size: { axis: true, xlContinuous: true, xlTall: true } },
+  // xlTall on a deck map (docs/size-extremes-plan.md, xlTall replay): Mt. Moon in every region (2.9 m gaps under its
+  // decks) with Onix in the pool and as the elite, its own config (DECK_CONFIGS). `deck` is the default game there,
+  // `deck-giants` all three size flags, `deck-tall` xlContinuous + xlTall: only there is Onix (3.42 m) taller than a
+  // 2.9 m gap, so only `deck-tall` exercises xlTall's routing. With the axis on Onix is 2.78 m and fits every gap the
+  // generators make, so `deck-giants` differs from `deck` through the axis alone (it equals axis + xlContinuous there)
+  deck: DECK,
+  'deck-giants': { ...DECK, size: { axis: true, xlContinuous: true, xlTall: true } },
+  'deck-tall': { ...DECK, size: { xlContinuous: true, xlTall: true } },
 };
+/** sets that replay their own configurations instead of CONFIGS */
+const SET_CONFIGS: Record<string, Config[]> = { deck: DECK_CONFIGS, 'deck-giants': DECK_CONFIGS, 'deck-tall': DECK_CONFIGS };
 const AIMED = new Set(['aim', 'aim-off', 'aim-2b', 'aim-pole-off', 'aim-tops-off']);
 
 for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
-  for (const [species, seed, mode, seconds] of CONFIGS) {
+  for (const [species, seed, mode, seconds] of SET_CONFIGS[caps] ?? CONFIGS) {
     const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: SETS[caps] as never });
     const marks: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
