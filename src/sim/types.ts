@@ -343,7 +343,6 @@ export type SimEvent =
   | { t: 'benchEvolve'; from: string; to: string }
   | { t: 'objective'; kind: ObjectiveKind; phase: 'offer' | 'active' | 'done' | 'failed' | 'expired'; x: number; z: number; reward?: string }
   | { t: 'block'; x: number; z: number; enemy: number }
-  | { t: 'hex'; x: number; z: number; r: number; element: Element; life: number }
   | { t: 'react'; kind: 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel'; x: number; z: number; r: number; deep: boolean; n: number };
 
 export interface System {
@@ -357,12 +356,6 @@ export interface HookRunner {
   onLevelUp: Hooks['onLevelUp'][];
   onStageStart: Hooks['onStageStart'][];
   onTick: Hooks['onTick'][];
-}
-
-/** what the enemy roles share this tick (the survivor director's other state was deleted at pivot step 9) */
-export interface Director {
-  /** Bulwarks alive this tick (enemy slots), for projectile blocking */
-  bulwarks: number[];
 }
 
 /** the objective kinds (Hunt and Transport were deleted at pivot step 9) */
@@ -407,7 +400,6 @@ export interface SimContext {
   events: SimEvent[];
   hooks: HookRunner;
   systems: System[];
-  director: Director;
   objective: Objective | null;
   weather: { element: Element | null; t: number };
   stats: { kills: number; damageDealt: number; damageTaken: number; maxHit: number };

@@ -133,13 +133,6 @@ function flyLinear(ctx: SimContext, i: number, dt: number) {
   const x0 = Pr.x[i], y0 = Pr.y[i], z0 = Pr.z[i];
   if (!(v > 0) || !(rem > 0)) { shotEnd(ctx, i, 'range', 0, x0, y0, z0); return; }
   const seg = Math.min(v * dt, rem), ux = vx / v, uy = vy / v, uz = vz / v;
-  // a Bulwark's shield stops shots coming at its front (the legacy rule, at the end of the tick's motion)
-  if (ctx.director.bulwarks.length) {
-    Pr.x[i] = x0 + ux * seg; Pr.z[i] = z0 + uz * seg;
-    const b = blockedByBulwark(ctx, i);
-    Pr.x[i] = x0; Pr.z[i] = z0;
-    if (b) { shotEnd(ctx, i, 'actor', SK.enemy, x0 + ux * seg, y0 + uy * seg, z0 + uz * seg); return; }
-  }
   LINQ.actorR = Pr.radius[i]; LINQ.actorH = Pr.radius[i]; LINQ.worldR = ctx.rules.aim.worldRadius; LINQ.flags = combatFlags(ctx);
   const n = sweep(ctx, x0, y0, z0, ux, uy, uz, seg, LINQ, LIN);
   const E = ctx.enemies;
@@ -263,8 +256,6 @@ export const projectileSystem = {
         Pr.y[i] = Math.max(ground + 0.7, prev - 7 * dt);
       } else Pr.y[i] = Math.max(ground + 0.7, P.y + 0.8);
 
-      // a Bulwark's shield stops shots coming at its front (lobs go over it, orbits are melee)
-      if (kind !== PK.orbit && ctx.director.bulwarks.length && blockedByBulwark(ctx, i)) { endShot(ctx, i); continue; }
 
       // collisions
       const n = ctx.grid.query(Pr.x[i], Pr.z[i], Pr.radius[i] + 2.5);
@@ -397,21 +388,3 @@ export const zoneSystem = {
   },
 };
 
-/** true when projectile i meets a raised Bulwark shield head-on (blueprint section 9: Protect) */
-export function blockedByBulwark(ctx: SimContext, i: number): boolean {
-  const Pr = ctx.projectiles, E = ctx.enemies, R = ctx.rules.roles;
-  for (const b of ctx.director.bulwarks) {
-    if (!E.alive[b]) continue;
-    const dx = Pr.x[i] - E.x[b], dz = Pr.z[i] - E.z[b];
-    const reach = R.bulwarkRadius * E.size[b];
-    const d2 = dx * dx + dz * dz;
-    if (d2 > reach * reach || d2 < 1e-6) continue;
-    const d = Math.sqrt(d2);
-    // in front of it, and flying toward it
-    if ((dx * dsin(E.facing[b]) + dz * dcos(E.facing[b])) / d < R.bulwarkArc) continue;
-    if (Pr.vx[i] * dx + Pr.vz[i] * dz >= 0) continue;
-    if (ctx.tick % 4 === 0) ctx.events.push({ t: 'block', x: E.x[b] + (dx / d) * 1.2, z: E.z[b] + (dz / d) * 1.2, enemy: b });
-    return true;
-  }
-  return false;
-}

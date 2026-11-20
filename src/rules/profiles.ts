@@ -28,7 +28,6 @@ export interface SpeciesOverride {
   /** a spawn tile must carry none of these habitat tags */
   avoids?: number;
   /** can heal allies in a composition even without the `healer` behaviour */
-  mender?: boolean;
   /** pin the size class instead of deriving it from the canonical extent (docs/SIZING.md) */
   sizeClass?: SizeClassId;
   /** traversal template ids (rules.locomotion.templates), replacing the derived list entirely ([] = none). At most one
@@ -48,7 +47,6 @@ export interface SpeciesProfile {
   prefers: number;
   requires: number;
   avoids: number;
-  mender: boolean;
   sizeClass?: SizeClassId;
 }
 
@@ -60,19 +58,19 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   rattata: { prefers: HAB.meadow | HAB.grass },
   ledyba: { prefers: HAB.forest | HAB.meadow },
   sandshrew: { prefers: HAB.dry | HAB.rock },
-  oddish: { prefers: HAB.grass | HAB.forest, mender: true },
+  oddish: { prefers: HAB.grass | HAB.forest },
   poliwag: { prefers: HAB.water },
   mareep: { prefers: HAB.meadow },
   heracross: { prefers: HAB.forest },
   geodude: { prefers: HAB.rock },
   houndour: { prefers: HAB.dry | HAB.rock },
   zubat: { prefers: HAB.forest | HAB.rock },
-  paras: { prefers: HAB.forest | HAB.water, mender: true },
+  paras: { prefers: HAB.forest | HAB.water },
   vulpix: { prefers: HAB.dry },
   slugma: { prefers: HAB.rock | HAB.dry },
   swinub: { prefers: HAB.water | HAB.rock },
   // Present heals in the main games
-  delibird: { prefers: HAB.meadow | HAB.rock, mender: true },
+  delibird: { prefers: HAB.meadow | HAB.rock },
   gastly: { prefers: HAB.forest | HAB.rock },
   // Joltik clings to plants and to cave walls (Pinwheel Forest, Chargestone Cave); Onix tunnels
   // through rock and dry ground (Rock Tunnel, Mt. Moon, the desert routes).
@@ -118,7 +116,6 @@ export function speciesProfile(sp: SpeciesDef | string): SpeciesProfile {
     prefers: o.prefers ?? 0,
     requires: o.requires ?? 0,
     avoids: o.avoids ?? 0,
-    mender: o.mender ?? false,
     sizeClass: o.sizeClass,
   };
   cache.set(id, p);

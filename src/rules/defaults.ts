@@ -380,13 +380,8 @@ export const defaultRules = {
   },
   // [B] enemy roles, objectives and the beat director (blueprint section 9, Phase 7)
   roles: {
-    bulwarkArc: 0.7071, // cos of the half-angle of the shield's front arc (90° total)
-    bulwarkRadius: 2.4, // m: shots in front of the Bulwark within this reach are blocked
-    bulwarkBreak: 4, // s the shield stays down after a Fighting hit or a push that moves it
-    hexRange: 9, // m: Hexers keep about this far away
-    hexCooldown: 4.5, hexWindup: 0.8, hexRadius: 2.5, // s, s, m: the puddle lands where you were heading
     raiderSpeed: 1.25, raiderHp: 0.8, // multipliers
-    menderHeal: 0.12, menderEvery: 3.2, menderRadius: 5,
+    menderHeal: 0.12, menderEvery: 3.2, menderRadius: 5, // the healer behaviour's heal (src/sim/enemies.ts)
   },
   objectives: {
     offerTime: 45, // s to engage before an objective lapses

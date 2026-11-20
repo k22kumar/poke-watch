@@ -56,10 +56,6 @@ test('a hard restriction blocks a tile; a preference never does', () => {
   }
 });
 
-test('menders come from profiles, not a hardcoded list', () => {
-  assert.deepEqual(SPECIES.filter((s) => speciesProfile(s).mender).map((s) => s.id).sort(), ['delibird', 'oddish', 'paras']);
-});
-
 test('an authored Tag Action wins; any other species gets a derived one from its own damaging moves', () => {
   for (const [id, line] of Object.entries(TAG_ACTIONS)) assert.equal(tagLineOf(id), line);
   for (const sp of SPECIES) {

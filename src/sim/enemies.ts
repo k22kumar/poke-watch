@@ -17,11 +17,8 @@ const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.inde
 import { PK, ROLE, ZK } from './pools';
 import { spawnBody, TEAM } from './bodies';
 import { startThrow, throwTick, THROWING } from './actions';
-import { applyAgent, agentOf, footing } from './cells';
-import { coatMember } from './coats';
-import { agentElement } from '../rules/compositions';
+import { footing } from './cells';
 import { traversalOf } from '../rules/profiles';
-import { agentIndex } from '../rules/reactions';
 import type { SimContext } from './types';
 import { shotWeight } from '../rules/capabilities';
 import { tickHeldEnemy } from './capabilities';
@@ -149,8 +146,6 @@ export const enemySystem = {
     const pr = partnerRadius(ctx.player.species, ctx.rules);
     const sized = ctx.rules.size.geometry, pf = partnerFootprint(ctx.player.species, ctx.rules);
     const RR = ctx.rules.roles, O = ctx.objective;
-    const bulwarks = ctx.director.bulwarks;
-    bulwarks.length = 0;
     W.updateFlow(P.x, P.z, P.y);
     const burning = W.burnCost > 1 && W.cells.burning > 0;
     for (let i = 0; i < E.hi; i++) {
@@ -181,8 +176,6 @@ export const enemySystem = {
       const dist = dhypot(dx, dz) || 0.001;
       const roles = E.roles[i];
       const sp = ctx.speciesIndex[E.species[i]];
-      if (E.guardDown[i] > 0) E.guardDown[i] -= dt;
-      if (roles & ROLE.shielder && E.guardDown[i] <= 0 && bulwarks.length < 16) bulwarks.push(i);
 
       // far behind -> relocate in front (keeps pressure; bosses excluded)
       // habitat maps: the Raid party of an active Hold walks team B's approaches from its staging (docs/HABITATS.md). B's
@@ -280,31 +273,8 @@ export const enemySystem = {
         }
         // around walls: slide along the blocked axis
         if (!flowed && ground && W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, E.y[i], 0.6)) { const t = ux; ux = -uz; uz = t; }
-      } else if (roles & ROLE.hexer) {
-        // a Hexer keeps its distance and lays a deep agent where you are heading (0.8 s warning)
-        const el = agentElement(sp) ?? 'tide';
-        if (E.state[i] === 3) {
-          speed = 0;
-          E.stateT[i] -= dt;
-          if (E.stateT[i] <= 0) {
-            E.state[i] = 0;
-            E.attackCd[i] = RR.hexCooldown * ctx.rng.ai.range(0.9, 1.1);
-            applyAgent(ctx, agentOf(el), E.tx[i], E.tz[i], RR.hexRadius * 0.8);
-            const grounded = P.y - W.height(P.x, P.z) < 0.4;
-            if (grounded && P.dashT <= 0 && P.faintT < 0 && dhypot(P.x - E.tx[i], P.z - E.tz[i]) < RR.hexRadius) coatMember(ctx, P.m, agentIndex(el), 2);
-          }
-        } else {
-          if (dist < RR.hexRange * 0.8) { ux = -ux; uz = -uz; }
-          else if (dist < RR.hexRange * 1.3) { const s = (i & 1) ? 1 : -1; const tx = -uz * s, tz = ux * s; ux = tx; uz = tz; speed *= 0.6; }
-          if (!frozen && E.blind[i] <= 0 && E.attackCd[i] <= 0 && dist < RR.hexRange * 1.8) {
-            const b = W.bound;
-            E.tx[i] = clamp(P.x + P.vx * 0.6, -b, b); E.tz[i] = clamp(P.z + P.vz * 0.6, -b, b);
-            E.state[i] = 3; E.stateT[i] = RR.hexWindup;
-            ctx.events.push({ t: 'hex', x: E.tx[i], z: E.tz[i], r: RR.hexRadius, element: el, life: RR.hexWindup });
-          }
-        }
       } else if (roles & ROLE.healer) {
-        // a Mender heals everything near it and keeps away from you
+        // the healer behaviour heals everything near it and keeps away from you
         if (E.attackCd[i] <= 0) {
           E.attackCd[i] = RR.menderEvery;
           const n = ctx.grid.query(E.x[i], E.z[i], RR.menderRadius);

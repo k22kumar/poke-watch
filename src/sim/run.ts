@@ -82,7 +82,7 @@ export function createRun(opts: RunOptions): SimContext {
     zones: new ZonePool(400),
     bodies: new BodyPool(rules.bodies.cap),
     events: [], hooks, systems,
-    director: { bulwarks: [] }, objective: null,
+    objective: null,
     weather: { element: null, t: 0 },
     stats: { kills: 0, damageDealt: 0, damageTaken: 0, maxHit: 0 },
     input: NO_INPUT,
@@ -127,7 +127,6 @@ export function startStage(ctx: SimContext, stage: number) {
   ctx.spawnTable = def;
   const biome = BIOMES[def.biome];
   enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
-  ctx.director = { bulwarks: [] };
   ctx.stageTime = 0;
   ctx.objective = null;
   for (const m of ctx.player.squad) m.sturdyUsed = false;

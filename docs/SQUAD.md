@@ -64,8 +64,8 @@ verdict; H1, H3 and H4 need human players (blueprint section 16).
 
 ## Not built yet
 
-- Phase 7 (enemy roles, objectives, the beat director, weather) is built: see `docs/ENCOUNTERS.md`. With objectives on,
-  recruits come from the Hunt objective; elite-kill recruits remain only for `objectives.enabled: false`.
+- Phase 7's encounter layer (the beat director, compositions and the Bulwark, Hexer and Mender roles) and recruiting were
+  deleted at hero-shooter pivot step 9; the Hold stays (`src/sim/modes/hold.ts`).
 - Level-up cards still target the field Pokémon only; the three-card offer (member, technique, wildcard) is Phase 8.
 - Tag assist (the glyph on the reserve that answers the nearest threat) and the Auto-mode automatic Tag.
 - Multiplayer and PvP (phases 9–10).

@@ -138,7 +138,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     for (let e = 0; e < E.hi; e++) {
       if (!E.alive[e]) continue;
       const key = e + ':' + E.gen[e], roles = E.roles[e];
-      const skip = E.hover[e] > 0 || roles & (ROLE.boss | ROLE.ranged | ROLE.hexer | ROLE.healer) || E.heldT[e] > 0 || E.fallV[e] > 0 || E.hzKind[e]
+      const skip = E.hover[e] > 0 || roles & (ROLE.boss | ROLE.ranged | ROLE.healer) || E.heldT[e] > 0 || E.fallV[e] > 0 || E.hzKind[e]
         || E.sleep[e] > 0 || E.stun[e] > 0 || E.root[e] > 0 || Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 4;
       if (skip) { eAnchor.delete(key); continue; }
       const wide = E.foot[e] > 0 && navWide(E.foot[e], ctx.rules);

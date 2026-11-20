@@ -6,7 +6,7 @@ collision for bodies and shots, and shooter movement. It records what the code d
 on 2026-11-16), the decisions taken, the staged roadmap, the contracts the stages share, and the replay policy.
 
 `docs/THIRD_PERSON.md` (camera rig), `docs/SIZING.md` (bodies, footprints), `docs/SYSTEMIC.md` (capabilities,
-interception), `docs/BUILDS.md`, `docs/SQUAD.md` and `docs/HAZARDS.md` stay canonical for what is already built. When a
+interception), `docs/SQUAD.md` and `docs/HAZARDS.md` stay canonical for what is already built. When a
 stage lands, it updates the subsystem doc it changes and the status table here. This file does not restate those docs.
 
 Phase 0 changed no gameplay code. Everything under "Verified current architecture" was traced in code and, where marked

@@ -1,7 +1,7 @@
 # Tactical Hold evaluation: Shrine Gorge and Cinder Crater
 
 Scope: `river-gorge` and `volcanic-ridge` with the real Hold objective, the real Raid party, the squad and the director's ordinary
-horde (docs/HABITATS.md, docs/ENCOUNTERS.md, docs/SQUAD.md). Seeds: Gorge 3, 7 and 25 (25 is the one flagged for 15.6 % approach-time
+horde (docs/HABITATS.md, docs/SQUAD.md; the encounter doc and the director were deleted at hero-shooter pivot step 9). Seeds: Gorge 3, 7 and 25 (25 is the one flagged for 15.6 % approach-time
 skew); Crater 3 (a retry: loads 548672811) and 7. Everything below was measured on 2026-11-13 in the headless sim with the scripts
 listed at the end; **no human played this session**, so what only a person can judge is a replayable checklist (section 7).
 
@@ -10,7 +10,7 @@ bot's buttons (the moves fire on cooldown at the nearest enemy, Tag and cards as
 the pad during the Hold. It is a committed, competent player, not a good one. Squads: *solo* = a level 8 partner (what a first Hold
 meets, because habitat maps never offer a Hunt and so no recruits), *squad* = Bulbasaur + Mareep + Geodude at level 10 after a
 100 s warm-up against the live director (the level the bot has at the first offer, ~2:00). *calm* = the director's horde is off
-(the Raid party only; a few elites and swarms still spawn); *horde* = everything live. The Raid party is 4 Raiders + a Bulwark.
+(the Raid party only; a few elites and swarms still spawn); *horde* = everything live. The Raid party was 4 Raiders + a Bulwark (since pivot step 9: + a plain tank, species frozen in `src/sim/modes/hold.ts RAID_PARTY`).
 Control maps for "map or ordinary enemy pressure": Viridian Forest and the classic generator on the same stage, same squad, same
 warm-up, same Hold (`scripts/habtac.ts viridian-forest|classic`).
 

@@ -146,11 +146,6 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   ctx.stats.damageDealt += amount;
   if (amount > ctx.stats.maxHit) ctx.stats.maxHit = amount;
 
-  // a Bulwark's shield breaks for 4 s under a Fighting blow, a hold, or a shove strong enough to move it
-  if (E.roles[e] & ROLE.shielder && E.guardDown[e] <= 0 && ((spec.element === 'brawl' && spec.cls === 'physical') || spec.hold || spec.knock >= 8)) {
-    E.guardDown[e] = ctx.rules.roles.bulwarkBreak;
-    ctx.events.push({ t: 'ability', name: 'Guard broken', x: E.x[e], z: E.z[e], enemy: e });
-  }
   // knockback (bosses mostly ignore it) or a Hold that reels it in: the shared creature force rule
   creatureForce(ctx, e, spec);
   // status roll

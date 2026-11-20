@@ -463,7 +463,6 @@ export class Renderer {
           if (e.kind === 'shatter' || e.kind === 'freeze') for (let k = 0; k < 8; k++) this.px.spawn('snow', e.x + rnd(-0.5, 0.5), ctx.world.height(e.x, e.z) + 0.6, e.z + rnd(-0.5, 0.5), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), 0.5, 1);
           break;
         }
-        case 'hex': this.rings.push({ x: e.x, z: e.z, r: e.r, c: ELC[e.element], life: e.life, max: e.life, kind: 2, grow: false }); break;
         case 'block': this.rings.push({ x: e.x, z: e.z, r: 0.9, c: [0.85, 0.92, 1], life: 0.2, max: 0.2, kind: 1, grow: true }); break;
         case 'telegraph': this.rings.push({ x: e.x, z: e.z, r: e.r, c: e.hostile ? [1, 0.2, 0.2] : [1, 0.85, 0.3], life: e.life, max: e.life, kind: 2, grow: false }); break;
         case 'line': {
@@ -1064,14 +1063,10 @@ export class Renderer {
         const pulse = 0.55 + 0.45 * Math.sin(this.time * 5);
         put(D, O.x, O.z, R.hold.radius, [1, 0.84, 0.3], O.phase === 'offer' ? 0.5 + 0.4 * pulse : 0.9, 2, 0.12, O.charge);
       } }
-    // roles: a raised Bulwark shield, a Hexer's element, a Raider's orange tag
-    { const E = ctx.enemies, RR = ctx.rules.roles;
-      for (const b of ctx.director.bulwarks) if (E.alive[b]) put(D, E.x[b], E.z[b], RR.bulwarkRadius * E.size[b], [0.8, 0.9, 1], 0.55, 1, 0.07);
-      for (let i = 0; i < E.hi; i++) {
-        if (!E.alive[i] || !(E.roles[i] & (ROLE.hexer | ROLE.raider))) continue;
-        const sp = ctx.speciesIndex[E.species[i]];
-        put(D, E.x[i], E.z[i], E.radius[i] * 1.5, E.roles[i] & ROLE.hexer ? ELC[sp.elements.find((el) => el === 'blaze' || el === 'tide' || el === 'frost' || el === 'volt') ?? sp.elements[0]] : [1, 0.6, 0.15], 0.85, 1, 0.14);
-      } }
+    // a Raider's orange tag
+    { const E = ctx.enemies;
+      for (let i = 0; i < E.hi; i++) if (E.alive[i] && E.roles[i] & ROLE.raider) put(D, E.x[i], E.z[i], E.radius[i] * 1.5, [1, 0.6, 0.15], 0.85, 1, 0.14);
+    }
     const pArt = this.sheets.get(ctx.player.species.id)?.art;
     put(D, px, pz, [0.42, 0.55, 0.8][pArt?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz, ref));
     { const m = ctx.player.m; if (m && m.coat) put(T, px, pz, 0.8, COAT_RING[m.coat], 0.9, 1, 0.16, 0, 0, W.height(px, pz, ref)); }

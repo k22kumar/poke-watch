@@ -20,9 +20,9 @@ class FreeList {
   }
 }
 
-/** role bits. Phase 7 roles (blueprint section 9): shielder = Bulwark (blocks shots in its front arc), healer =
- *  Mender, hexer lays deep agents on you and the ground, raider goes for the objective, hunt marks the Hunt target */
-export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, shielder: 64, hexer: 128, raider: 256, swarm: 512, stampede: 1024, target: 4096 } as const; // 2048 was the Hunt target (deleted)
+/** role bits: healer = the healer behaviour (heals what is near it), raider goes for the objective, target = a training
+ *  target. 64 and 128 were the Bulwark and the Hexer, 2048 the Hunt target (deleted at pivot step 9, Q20) */
+export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, raider: 256, swarm: 512, stampede: 1024, target: 4096 } as const; // 2048 was the Hunt target (deleted)
 
 export class EnemyPool {
   readonly cap: number;
@@ -61,8 +61,6 @@ export class EnemyPool {
   frozen: Float32Array; blind: Float32Array;
   /** crowd-control meter (s of stun / freeze / root, decaying) and immunity left */
   ccAcc: Float32Array; ccImmune: Float32Array;
-  /** Bulwark shield down (s left; a Fighting hit or a push breaks it) */
-  guardDown: Float32Array;
   /** Phase 8b Lasso: s left suspended in front of the holder, the hold's Power and the button that keeps it */
   heldT: Float32Array; heldP: Uint8Array; heldBtn: Uint8Array;
   /** liquid exposure (sim/hazards.ts): liquid kind (0 none, 1 water, 2 lava), s exposed, damage carried below a whole
@@ -89,7 +87,6 @@ export class EnemyPool {
     this.ability = new Uint8Array(cap); this.abilityFlag = new Uint8Array(cap);
     this.coat = new Uint8Array(cap); this.coatDeep = new Uint8Array(cap); this.coatT = F(); this.coatIcd = F();
     this.frozen = F(); this.blind = F(); this.ccAcc = F(); this.ccImmune = F();
-    this.guardDown = F();
     this.heldT = F(); this.heldP = new Uint8Array(cap); this.heldBtn = new Uint8Array(cap);
     this.hzKind = new Uint8Array(cap); this.hzT = F(); this.hzAcc = F(); this.hzCue = F(); this.hzCueT = F(); this.hzX = F(); this.hzZ = F(); this.fallV = F();
   }
@@ -108,7 +105,6 @@ export class EnemyPool {
     this.ability[i] = 0; this.abilityFlag[i] = 0;
     this.coat[i] = 0; this.coatDeep[i] = 0; this.coatT[i] = 0; this.coatIcd[i] = 0;
     this.frozen[i] = 0; this.blind[i] = 0; this.ccAcc[i] = 0; this.ccImmune[i] = 0;
-    this.guardDown[i] = 0;
     this.heldT[i] = 0; this.heldP[i] = 0; this.heldBtn[i] = 0;
     this.hzKind[i] = 0; this.hzT[i] = 0; this.hzAcc[i] = 0; this.hzCue[i] = 0; this.hzCueT[i] = 0; this.fallV[i] = 0;
     return i;

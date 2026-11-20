@@ -83,13 +83,13 @@
   },
   "gorge-hold": {
    "checkpoints": [
-    "10ef353f",
-    "3195459c",
-    "87fee935",
-    "97be0443",
-    "2c4babd5"
+    "e862cd46",
+    "5affd9c7",
+    "e826397e",
+    "c4d2b2e1",
+    "f8ded7f6"
    ],
-   "end": "616fa44c"
+   "end": "9aca717d"
   },
   "range-swap": {
    "checkpoints": [

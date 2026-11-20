@@ -94,7 +94,7 @@ The Pokémon-first content process is in [`docs/POKEMON_FIRST.md`](docs/POKEMON_
 
 ## Builds (deleted)
 
-The survivor run's build layer (card offers, transforms, techniques, mastery, vitamins) was deleted at hero-shooter pivot step 9; `docs/BUILDS.md` lists what stayed. The full layer is on the `survivor-final` tag.
+The survivor run's build layer (card offers, transforms, techniques, mastery, vitamins) was deleted at hero-shooter pivot step 9; what stayed is the capability layer (`docs/SYSTEMIC.md`). The full layer and its doc (`docs/BUILDS.md`) are on the `survivor-final` tag.
 
 ## Water, lava and open edges
 
@@ -105,11 +105,9 @@ The survivor run's build layer (card offers, transforms, techniques, mastery, vi
 - **Creatures** stop at a lip by themselves but can be knocked over it. In a liquid they head for the shore, on the same clock. Required routes and the Raiders' paths never use liquids or chasms.
 - `rules.hazards.enabled: false` restores the earlier rules (`npx tsx scripts/checksum.ts hazards-off`). `npx tsx scripts/hazplay.ts` replays every case through the sim.
 
-## Roles and the Hold (phase 7)
+## Raiders and the Hold
 
-`docs/ENCOUNTERS.md` has the rules, the numbers and what was measured.
-
-- **Enemy roles.** Bulwarks (shielded tanks) block shots aimed at their front; flank them, lob over them, or break the guard with a Fighting move, a hold or a big shove. Menders heal everything near them. Hexers keep their distance and drop a deep Wet, Heat, Cold or Charge puddle where you are heading after a 0.8 s warning. Raiders ignore you and go for the objective.
+- **Enemy roles.** Raiders ignore you and go for the point; the healer behaviour heals what is near it. The Bulwark, Hexer and Mender roles and the compositions were deleted at hero-shooter pivot step 9 (Q20).
 - **Hold.** The Hold mode opens the point at the start of a habitat map: stand on it for 30 s while the Raid party comes from team B's staging (`src/sim/modes/hold.ts`). The survivor director's beats, waves and objective schedule were deleted at hero-shooter pivot step 9.
 
 ## Build
@@ -175,7 +173,7 @@ scripts/     build, dev server, headless sim, fetch-sources.sh, build-content.mj
 content/     roster.json (who plays which role), report.json (provenance), preview/
 tests/       sim, world, pack (importer on the fixture mirror), audio, identity
 docs/        ART_BIBLE.md, PIPELINE.md, ASSETS.md, ANALYSIS.md, FIDELITY.md, MAPLEBROOK.md,
-             SQUAD.md, ENCOUNTERS.md, SYSTEMIC.md
+             SQUAD.md, SYSTEMIC.md
 ```
 
 The rules that keep it modular:
