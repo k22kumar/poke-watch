@@ -16,6 +16,7 @@ const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
 const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.indexOf('effect_spore') + 1;
 import { PK, ROLE, ZK } from './pools';
 import { spawnBody, TEAM } from './bodies';
+import { startThrow, throwTick, THROWING } from './actions';
 import { applyAgent, agentOf, footing } from './cells';
 import { coatMember } from './coats';
 import { agentElement } from '../rules/compositions';
@@ -161,15 +162,6 @@ export function shootHostile(ctx: SimContext, x: number, z: number, dx: number, 
   Pr.element[i] = ELEMENTS.indexOf(element);
   // Phase 8a: a shot is a light body (Weight 0; heavy shots 1) and remembers who fired it (death recap)
   Pr.weight[i] = shotWeight(false, radius, ctx.rules.caps.heavyShotRadius); Pr.src[i] = srcSp;
-}
-
-/** start (or queue) a boulder throw at the player: `left` throws remain, the first after `delay` s */
-function aimBoulder(ctx: SimContext, i: number, left: number, delay = ctx.rules.bosses.boulderWindup) {
-  const E = ctx.enemies, P = ctx.player;
-  const dx = P.x - E.x[i], dz = P.z - E.z[i], L = dhypot(dx, dz) || 1;
-  E.state[i] = 7; E.stateT[i] = delay; E.tx[i] = dx / L; E.tz[i] = dz / L; E.sx[i] = left;
-  E.facing[i] = datan2(dx, dz);
-  ctx.events.push({ t: 'line', x1: E.x[i], z1: E.z[i], x2: E.x[i] + (dx / L) * 26, z2: E.z[i] + (dz / L) * 26, width: 2.2, life: delay });
 }
 
 const NAV: [number, number] = [0, 0];
@@ -393,6 +385,8 @@ export const enemySystem = {
         speed *= E.hzKind[i] === 2 ? ctx.rules.hazards.lava.speed : ctx.rules.hazards.water.speed;
       }
       if (E.fallV[i] > 0) speed = 0;
+      // any enemy started on a throw (src/sim/actions.ts) stands and winds up; a boss's is ticked in bossThink
+      if (!(roles & ROLE.boss) && E.state[i] === THROWING) { E.stateT[i] -= dt; speed = 0; throwTick(ctx, i, 0); }
       if (frozen || (roles & ROLE.boss && E.state[i] === 99)) speed = 0;
       if (!(roles & ROLE.boss)) {
         const [fs, grip] = E.hover[i] > 0 ? [1, 1] : footing(ctx, E.x[i], E.z[i], sp.elements, true);
@@ -575,7 +569,7 @@ function bossThink(ctx: SimContext, i: number, sp: SpeciesDef, dist: number, ux:
           break;
         case 'boulder': {
           // Rock Throw: a 0.6 s wind-up with the path drawn on the ground, then a Heavy boulder rolls at you
-          aimBoulder(ctx, i, phase >= 1 ? 2 : 1);
+          startThrow(ctx, i, phase >= 1 ? 2 : 1);
           break;
         }
         case 'summon': {
@@ -589,17 +583,9 @@ function bossThink(ctx: SimContext, i: number, sp: SpeciesDef, dist: number, ux:
         }
       }
     }
-  } else if (st === 7) { // boulder wind-up
+  } else if (st === THROWING) { // Rock Throw's wind-up (src/sim/actions.ts)
     speed = 0;
-    if (E.stateT[i] <= 0) {
-      const R = ctx.rules.bosses, dx = E.tx[i], dz = E.tz[i];
-      const off = E.radius[i] + 1.3;
-      const sx0 = E.x[i] + dx * off, sz0 = E.z[i] + dz * off;
-      const [bx, bz] = ctx.world.walkable(sx0, sz0) ? [sx0, sz0] : [E.x[i], E.z[i]];
-      spawnBody(ctx, 'boulder', bx, bz, dx * R.boulderSpeed, dz * R.boulderSpeed, TEAM.enemy, E.dmg[i] * R.boulderDmg * 10 / R.boulderSpeed);
-      ctx.events.push({ t: 'throw', x: bx, z: bz, tx: bx + dx * 20, tz: bz + dz * 20, element: 'stone' });
-      if (E.sx[i] > 1) aimBoulder(ctx, i, E.sx[i] - 1, 1.5); else E.state[i] = 1;
-    }
+    throwTick(ctx, i, 1);
   } else if (st === 3) { // windup
     speed = 0;
     if (E.stateT[i] <= 0) { E.state[i] = 2; E.stateT[i] = 1.0; }

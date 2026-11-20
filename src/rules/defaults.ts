@@ -652,10 +652,16 @@ export const defaultRules = {
       secondWind: { tagCooldown: 5 },
     },
   },
+  /** enemy actions any behaviour can use (src/sim/actions.ts) */
+  actions: {
+    /** a thrown heavy body (Rock Throw): wind-up (s, its path drawn this long and wide, m), the roll's speed (m/s), its
+     *  damage × the thrower's contact damage at full speed, the gap before a queued second throw (s), how far ahead of
+     *  the thrower's radius it starts (m), and the body template */
+    throw: { windup: 0.6, speed: 11, dmg: 1.5, again: 1.5, offset: 1.3, lineLength: 26, lineWidth: 2.2, template: 'boulder' },
+  },
   bosses: {
     // extra attacks layered on a boss's roster kit: Rock-type bosses roll boulders at you
     extraAttacks: { sudowoodo: ['boulder'], magcargo: ['boulder'] } as Record<string, string[]>,
-    boulderWindup: 0.6, boulderSpeed: 11, boulderDmg: 1.5, // x the boss's contact damage
   },
   feel: {
     hitstopKillBig: 0.06, hitstopBossHit: 0.0, hitstopBossKill: 0.5, hitstopPlayerHurt: 0.08, // [C] range 0.06..0.5
