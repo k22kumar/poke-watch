@@ -18,7 +18,6 @@ Headless-Chromium scripts used to check the build. Each takes the path to `dist/
 | `traycheck.mjs <html>` | The banked-pick tray clears on quit, restart and run end, and takes no picks while paused |
 | `film.mjs <html> <outdir>` | Frame sequences for footage (combat, moving cast, boss, evolution); assemble with ffmpeg |
 | `navcheck.mjs <html>` | Keyboard and virtual-gamepad navigation through every screen (28 steps) |
-| `audiocheck.mjs <html> <phase> <outdir>` | Records the mixer output: `cries`, `cryfix`, `moves`, `music`, `loop`, `play` |
-| `slotcheck.mjs <html>` | Licensed-recording slot looping, with a generated test tone |
+| `audiocheck.mjs <html> <outdir> <phase>` | Records the mixer output: `cries`, `cryfix`, `music`, `play` (no synthesised effects: every music state is the adaptive score) |
 | `musiccheck.mjs <html>` | Actual adaptive stem decoding, loop configuration, melody continuity through intensity changes, mixer, defeat and restart |
 | `perf.mjs <html>` | Frame, render and sim-step timings in a dense boss fight |

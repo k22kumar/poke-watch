@@ -22,9 +22,7 @@ Apart from the Pokémon content above and the font, no image, model, sound or mu
 | Ground, cliffs, ledges, stairs, water, bridge textures | `src/overworld/terrain.ts`, palettes in `src/render/tileart.ts` | Painted in code from original palettes; no game graphics copied | Original work |
 | Arena props (conifers, round trees, elder oak, bushes, rocks, boulders, stumps, logs, berry trees, signs, lanterns, pillars, standing stone, shrine, crystals, vents, mushrooms, flowers, tall grass, reeds, lily pads) | `src/overworld/sprites.ts`, `src/render/pixelart.ts`, `src/render/tileart.ts` | Painted in code | Original work |
 | Combat effects (26 element sprites), rings, beams | `src/render/pixelart.ts`, `src/render/renderer.ts` | Painted in code | Original work |
-| Fallback cries (used only if a sample fails to decode) | `src/assets/cries.ts` | Synthesised per species from its id, size and element | Original work |
-| Move sounds (all 187 moves), UI sounds | `src/audio/sfx.ts`, `src/audio/audio.ts` | Web Audio synthesis; per-move mapping in `docs/AUDIO.md` | Original work |
-| Music: 8 looping tracks, 4 stingers | `src/audio/music.ts` | Original compositions played by an in-game sequencer. Slots for licensed recordings in `content/music/manifest.json` (empty) | Original work |
+| Sound effects and fallback cries | none | Removed in the hero-shooter pivot (Q51): combat and UI are silent until recorded sounds are added, and a species without a cry recording is silent | — |
 | Survival icons (charms, EXP shard, lure, move-shape glyphs, category icons, Fairy badge) | `src/ui/pixicons.ts`, `src/render/pixelart.ts` | Painted in code | Original work |
 | UI (boxes, info box, area sign, cards, menus) | `src/ui/*` | Original CSS drawing on handheld adventure conventions | Original work |
 | Font: Pixelify Sans | `content/fonts/PixelifySans.woff` (Latin subset), embedded in the build | Works offline | SIL Open Font License 1.1 (`content/fonts/OFL.txt`) |

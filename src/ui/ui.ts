@@ -1241,7 +1241,7 @@ export class UI {
         h('p', {}, h('b', {}, 'Game: '), 'code, arenas, environment art and effects are original; gameplay formulas are modelled on PokéBonk (no PokéBonk code or assets are used).'),
         h('table', {}, h('tr', {}, h('th', {}, 'Pokémon'), h('th', {}, 'Sprites'), h('th', {}, 'Cry'), h('th', {}, 'Animation notes')),
           ...rows.map((r) => h('tr', {}, h('td', {}, r.name), h('td', {}, r.art.source, r.art.credits.length ? h('div', {}, 'by ' + r.art.credits.join(', ')) : null),
-            h('td', {}, r.cry.kind === 'sample' ? `${r.cry.era ?? ''} ${r.cry.source.split('/').pop()}`.trim() : 'synthesised'),
+            h('td', {}, r.cry.kind === 'sample' ? `${r.cry.era ?? ''} ${r.cry.source.split('/').pop()}`.trim() : 'none'),
             h('td', { class: r.status === 'ok' ? '' : 'warn' }, r.notes.join('; ') || 'all native')))),
       ),
       btn('Close', () => { this.show('screen-credits', false); this.show(back); this.focusDefault(back); }, 'btn primary'),

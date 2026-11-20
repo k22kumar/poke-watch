@@ -175,7 +175,7 @@ src/
   overworld/ Maplebrook (DS-style town + route); its painters are shared with the arenas
   ui/        DOM overlay in a DS-era style (title, partner select, battle info box, cards,
              credits, pause, tuning)
-  audio/     mixer and music director (audio.ts), original score + sequencer (music.ts), per-move SFX (sfx.ts)
+  audio/     mixer and music director (audio.ts), adaptive score player (adaptive.ts); no synthesised sounds
   input/     keyboard / gamepad action map
 scripts/     build, dev server, headless sim, fetch-sources.sh, build-content.mjs,
              import-pack.mjs (+ lib/png.mjs), fixture mirror
@@ -242,7 +242,7 @@ The survivor arenas reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/THIRD_PERSON.md`: the third-person camera as built (framing, follow, collision, aim, diagnostics, limits).
 - `docs/CAMERA.md`: the fixed camera presets' comparison.
 - `docs/THIRD_PERSON_IMPLEMENTATION.md`: the plan for the third-person hero shooter: what was verified, the decision register, the staged roadmap, shared contracts and the replay migration policy.
-- `docs/AUDIO.md`: cries (era audit), every move's sound, music states, mixing, verification.
+- `docs/AUDIO.md`: cries (era audit), the adaptive score and music states, mixing, verification.
 - `docs/ICONS.md`: which icons are Pokémon items and why, and which are original.
 - `docs/SPECIES.md`: abilities, curated learnsets, unmodelled move mechanics and cross-game canon.
 - `docs/PIPELINE.md`: how PokéAPI, SpriteCollab and cries become the built-in roster.

@@ -99,7 +99,7 @@ node scripts/build-content.mjs --catalogue-only --catalogue-out DIR   # isolated
 
 `loadBuiltinArt` (src/assets/builtin.ts) decodes each atlas, builds clips with `resolveClips` (the fallback table fills any missing state and records which fallback was used), measures visible height, registers art, cry and provenance, and uploads a texture. A Pokémon with only a walk cycle still plays every state (bob, lunge, flash, sink overlays). The registry marks each state as native or substitute (`NATIVE_CLIP`). A cry that fails to decode as OGG tries the MP3, then falls back to a synthesised call; requests made while it decodes are queued.
 
-`npm run content` also embeds the UI icons (`content/icons.json` → `src/content/icons.json`) and any licensed music listed in `content/music/manifest.json` (→ `src/content/music.json`).
+`npm run content` also embeds the UI icons (`content/icons.json` → `src/content/icons.json`). The music is the adaptive score in `content/music/adaptive/`, bundled directly; the old licensed-music slots were removed (`docs/hero-shooter-pivot.md` Q51).
 
 ## Testing the pipeline offline
 

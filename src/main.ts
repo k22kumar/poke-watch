@@ -39,8 +39,6 @@ import { UI } from './ui/ui';
 import { CHASE_CONFIG, RETICLE_Y, cameraPreset } from './render/camera';
 import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
-import { MOVE_SFX } from './audio/sfx';
-import { TRACKS } from './audio/music';
 import type { ArtBundle } from './assets/builtin';
 import ART from './content/art.json';
 
@@ -567,7 +565,7 @@ async function boot() {
     debug: (what = 'caps') => { debugCaps = what === 'caps' ? !debugCaps : false; return debugCaps; },
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
-    cries, MOVE_SFX, TRACKS, advance, damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
+    cries, advance, damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
     objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species

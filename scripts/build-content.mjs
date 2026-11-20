@@ -211,23 +211,6 @@ fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ genera
 if (skipped.length) console.log(`\n${skipped.length} roster species skipped (no usable art; a later fetch picks them up):\n  ` + skipped.map((k) => `${k.id}: ${k.reason}`).join('\n  '));
 // canonical catalogue (built above): its provenance is appended to the report the role lane just wrote
 reportCatalogue(catalogue);
-// music slots: licensed recordings listed in content/music/manifest.json (none ship by default)
-{
-  const man = path.join(ROOT, 'content/music/manifest.json');
-  const out = {};
-  if (fs.existsSync(man)) {
-    const M = JSON.parse(fs.readFileSync(man, 'utf8')).slots ?? {};
-    for (const [state, sl] of Object.entries(M)) {
-      const f = path.join(ROOT, 'content/music', sl.file);
-      if (!fs.existsSync(f)) { console.log(`  music slot ${state}: ${sl.file} not found, skipped`); continue; }
-      const ext = path.extname(f).slice(1).toLowerCase();
-      const mime = ext === 'mp3' ? 'audio/mpeg' : ext === 'wav' ? 'audio/wav' : 'audio/ogg';
-      out[state] = { src: `data:${mime};base64,${fs.readFileSync(f).toString('base64')}`, loopStart: sl.loopStart ?? 0, loopEnd: sl.loopEnd ?? 0, gain: sl.gain, title: sl.title, source: sl.source, license: sl.license };
-    }
-  }
-  fs.writeFileSync(path.join(ROOT, 'src/content/music.json'), JSON.stringify(out));
-  console.log(`music slots: ${Object.keys(out).length} recording(s) embedded; other states use the original tracks`);
-}
 // UI icons (PokeAPI/sprites checkout: types + items listed in content/icons.json)
 {
   const spec = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/icons.json'), 'utf8'));
