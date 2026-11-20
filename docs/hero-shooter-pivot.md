@@ -644,5 +644,5 @@ Found at step 11, not fixed (not covered by Q1–Q51):
 - **Hold from the title on default settings is an empty map.** The Hold mode opens a Hold only on a habitat map; with Settings → World on Pokémon locations and no Map set, it loads Viridian Forest with no objective and no enemies. Options: give `HOLD` a default habitat map (as the range gets its arena), or hide it until a habitat Map is chosen.
 - **A bare `?go=1` opens the range arena** (the range is `MODES[0]`), so the remaining scene files whose queries name no map now capture the arena, and many still carry dead parameters (`calm`, `level`, `autopick`). `tools/perf.mjs` and `audiocheck.mjs`'s `play` phase still ask for the survivor's boss fight and measure nothing useful until a crowd exists in the browser.
 - **An empty bordered pill** shows at the top right of the title and hero-pick screens.
-- **The audio module keeps dead survivor hooks** (`onBossSpawn`, `levelUp`, the `boss` music state), and `SimEvent` still lists survivor events (`levelUp`, `learn`, `stageStart`, `recruit`, `benchEvolve`, `chest`) that nothing emits.
+- **The audio module keeps dead survivor hooks** (`onBossSpawn`, `levelUp`, the `boss` music state), and `SimEvent` still lists `levelUp` and `benchEvolve`, which nothing emits (`learn`, `stageStart`, `recruit` and `chest` still have one emitter each, to review with them).
 
