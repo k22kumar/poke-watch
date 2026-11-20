@@ -114,7 +114,7 @@ const WET_TIME = 30, BURN_TIME = 4, FROZEN_TIME = 12, ASH_TIME = 45, RUBBLE_TIME
 function react(ctx: SimContext, k: number, agent: Agent) {
   const C = ctx.world.cells;
   // W4: a material prop on the tile takes the agent by the same table (rules/surfaces.ts)
-  if (ctx.rules.surfaces.enabled) propAgent(ctx, k, agent);
+  propAgent(ctx, k, agent);
   if (ctx.world.map.wall[k]) return;
   const s = C.state[k], water = C.isWater(k), grass = C.isGrass(k);
   const wetTime = ctx.world.biome.id === 'badlands' ? 8 : WET_TIME;
@@ -296,7 +296,7 @@ export const cellSystem = {
     if (C.navDirty) { C.navDirty = false; ctx.world.refreshNav(); }
     if (C.melted.length) settleMelted(ctx);
     // W4: burning props tick, spread and burn out; the watchdog checks reachability
-    if (ctx.rules.surfaces.enabled) propPass(ctx, pdt);
+    propPass(ctx, pdt);
     // Phase 8a: fire changes the flow field (burning tiles cost rules.caps.burnNavCost), so enemies route around it
     if (ctx.world.burnCost > 1 && (nBurn !== C.burning || sig !== C.burnSig)) {
       C.burning = nBurn; C.burnSig = sig;

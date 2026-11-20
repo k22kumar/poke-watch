@@ -8,7 +8,7 @@
 //   tile        the half-open box [i, i + 1) × [j, j + 1) in grid coordinates (World.tile's rule): a point belongs to
 //               exactly one tile
 //   wall        a wall tile (not a chasm) is a column from -∞ to +∞, or up to a deck's underside when one is over it;
-//               with QF.tops (R1b wall tops, rules.world.wallTops) a wall-prop tile ends at its World.wallTop (the prop's
+//               with QF.tops (R1b wall tops) a wall-prop tile ends at its World.wallTop (the prop's
 //               measured height above its footing, world/tiles.ts wallTopsOf), so a line above a fence, a boulder or a
 //               canopy passes; a bare wall (rock mass, cave wall) stays infinite either way
 //   terrain     every other tile is solid below World.height(x, z) with no reference (ground, low props, ice, a stairs
@@ -211,7 +211,7 @@ class Geo {
   /** 1 = the tile is covered by foliage (a prop whose material does not block shots; the last prop placed on a tile
    *  owns it, as sim/props.ts PropField.at): static per map, the wall and platform arrays say whether it still stands */
   readonly soft: Uint8Array;
-  /** R1b: the World's wallTop array (written in place by World.setBlock), or an all-Infinity one with the flag off */
+  /** R1b: the World's wallTop array (written in place by World.setBlock), or an all-Infinity one with no world */
   readonly top: Float64Array;
   readonly cells: CellField | undefined;
   constructor(M: ArenaMap, W?: World) {

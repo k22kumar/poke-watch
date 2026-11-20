@@ -47,8 +47,7 @@ export function chaseFrameFor(ctx: SimContext, s: ChaseSubject): ChaseFrame {
     // bare walls (rock masses, cave walls, sealed ground, the habitats' low ruin walls): solid at every height, as they
     // are for bodies and shots. Wall props (trees, boulders, fences, buildings: a tile with a World.wallTop) never stop
     // the lens: they dissolve around it (render/tilestage.ts; owner decision 2026-11-18, which replaces R1b Q10's "the
-    // lens reads wallTop"). With rules.world.wallTops off (the checksum sets older than R1b) no tile has a top, so every
-    // wall is bare
+    // lens reads wallTop")
     // (a wall with a deck over it ends at the slab's underside, as in sim/spatial.ts: on the deck the rock is below the feet)
     solid: (x, y, z) => {
       const k = W.tile(x, z);

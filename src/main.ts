@@ -232,8 +232,8 @@ function sampleInput(c: SimContext, view: ViewSample | null): InputFrame {
   // the aiming device rides along (Phase 3, rules.aim.assist): the cursor aims directly (no magnetism), the stick or
   // touch with visible, sight-checked assistance. Chase overrides it below from the camera's own device
   if (aim && c.rules.combat.mode !== 'auto') { inp.aimX = aim[0]; inp.aimZ = aim[1]; inp.aimDev = input.aimSource === 'stick' ? 'stick' : 'mouse'; }
-  // third person: the crosshair ray itself (InputFrame.aim). The sim traces it for the direct shots under
-  // rules.aim.spatial (sim/aim.ts); every other move keeps reading aimX/aimZ
+  // third person: the crosshair ray itself (InputFrame.aim). The sim traces it for the direct shots
+  // (sim/aim.ts); every other move keeps reading aimX/aimZ
   if (renderer.chase && view && c.rules.combat.mode !== 'auto') { inp.aim = aimRayOf(view); inp.aimDev = input.pad() || input.aimSource === 'stick' ? 'stick' : 'mouse'; }
   renderer.aim.on = !!aim && c.rules.combat.mode !== 'auto' && c.state === 'play';
   if (aim) { renderer.aim.x = aim[0]; renderer.aim.z = aim[1]; }

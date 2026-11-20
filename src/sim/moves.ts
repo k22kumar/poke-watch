@@ -154,7 +154,7 @@ function aoe(ctx: SimContext, x: number, z: number, r: number, spec: MoveSpec, d
   // Phase 8a: enemy shots in the area are pushed away (deflected) or caught, by the same rule as bodies
   shotsInCircle(ctx, spec, x, z, r, outward ? x : P.x, outward ? z : P.z);
   // W4: trees, bushes and rocks in the area: a Push of their Weight breaks them, weaker pushes chip them
-  if (ctx.rules.surfaces.enabled) { const pp = pushPower(spec); if (pp) forceOnPropsIn(ctx, x, z, r, pp, dmg, spec.element); }
+  { const pp = pushPower(spec); if (pp) forceOnPropsIn(ctx, x, z, r, pp, dmg, spec.element); }
   return n;
 }
 
@@ -834,18 +834,16 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   const t = AIM.t;
   if (t < 0 && !AIM.manual) return false;
   if (A3.on) {
-    // Phase 2B: from the muzzle toward the crosshair point, in 3D. R2 (rules.aim.poleSafe): a fan turns in the plane
+    // Phase 2B: from the muzzle toward the crosshair point, in 3D. R2 pole-safe aim: a fan turns in the plane
     // perpendicular to the launch direction u, about u's local up: u cos + r sin, r = the horizontal right of u's heading
-    // (launchHeading), so each shot is `off` from u at any pitch. Level, this is the Phase 2B fan. Pre-R2: turned about
-    // the vertical with u's pitch kept, which shrank the spread toward the poles (20.6° level, 2.5° at 80°, audit F7)
-    const sp = s.spread ?? spread, pole = ctx.rules.aim.poleSafe;
+    // (launchHeading), so each shot is `off` from u at any pitch. Level, this is the Phase 2B fan
+    const sp = s.spread ?? spread;
     let rx = 0, rz = 0;
-    if (pole && s.count > 1) { launchHeading(ctx, A3.ux, A3.uz); rx = HEAD.z; rz = -HEAD.x; }
+    if (s.count > 1) { launchHeading(ctx, A3.ux, A3.uz); rx = HEAD.z; rz = -HEAD.x; }
     for (let k = 0; k < s.count; k++) {
       const off = (k - (s.count - 1) / 2) * sp;
       if (off === 0) spawnShot3D(ctx, s, A3.ux, A3.uy, A3.uz, slot);
-      else if (pole) { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + rx * n, A3.uy * c, A3.uz * c + rz * n, slot); }
-      else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + A3.uz * n, A3.uy, A3.uz * c - A3.ux * n, slot); }
+      else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + rx * n, A3.uy * c, A3.uz * c + rz * n, slot); }
     }
     p.facing = datan2(AIM.ux, AIM.uz);
     ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx: A3.tx, tz: A3.tz, key: s.key,
@@ -987,7 +985,7 @@ export const movesSystem = {
  *  the HUD (ctx.aim): what the crosshair rests on, the muzzle, and whether cover stands between. Presentation only */
 function presentAim(ctx: SimContext) {
   const p = ctx.player;
-  if (!ctx.rules.aim.spatial || !ctx.input.aim || ctx.state !== 'play') return;
+  if (!ctx.input.aim || ctx.state !== 'play') return;
   for (let i = 0; i < p.moves.length; i++) {
     const s = slotSpec(ctx, i);
     if (!ctx.rules.aim.archetypes.includes(s.archetype)) continue;

@@ -56,9 +56,9 @@ export interface CapEvent {
   slot?: number;
 }
 
-/** the master switch and one feature flag */
+/** one capability feature flag */
 export function capsOn(ctx: SimContext, f: 'interception' | 'suspendHold' | 'bodyCollisions'): boolean {
-  return ctx.rules.caps.enabled && ctx.rules.caps[f];
+  return ctx.rules.caps[f];
 }
 
 // ------------------------------------------------------------------ cast context
@@ -169,7 +169,6 @@ export function createBody(ctx: SimContext, template: string, x: number, z: numb
   const B = ctx.bodies;
   const b = spawnBody(ctx, template, x, z, 0, 0, TEAM.neutral);
   if (b < 0) return -1;
-  if (!ctx.rules.caps.enabled) return b;
   B.made[b] = 1;
   let n = 0, oldest = -1, age = -1;
   for (let i = 0; i < B.hi; i++) {

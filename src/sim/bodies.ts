@@ -303,8 +303,8 @@ export function moveOnBody(ctx: SimContext, b: number, s: MoveSpec, dmg: number,
 export function forceOnBody(ctx: SimContext, b: number, push: number, hold: number, dirx: number, dirz: number, slot: number) {
   const B = ctx.bodies, P = ctx.player;
   if (hold > 0) {
-    if (ctx.rules.caps.enabled && ctx.rules.caps.suspendHold) { holdBody(ctx, b, hold, P.x - B.x[b], P.z - B.z[b], TEAM.player, holdButton(ctx, slot)); return; }
-    // v10: a hold pulls it toward you when it is light enough
+    if (ctx.rules.caps.suspendHold) { holdBody(ctx, b, hold, P.x - B.x[b], P.z - B.z[b], TEAM.player, holdButton(ctx, slot)); return; }
+    // caps.suspendHold off (the v10 rule): a hold pulls it toward you when it is light enough
     const W = bodyWeight(ctx, b);
     if (hold >= W) { const dx = P.x - B.x[b], dz = P.z - B.z[b], L = dhypot(dx, dz) || 1; B.vx[b] = (dx / L) * 7; B.vz[b] = (dz / L) * 7; changeOwner(ctx, b, TEAM.player); ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: true, combined: false }); }
     else ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: false, combined: false });
@@ -344,7 +344,7 @@ export const bodySystem = {
   name: 'bodies',
   update(ctx: SimContext, dt: number) {
     const B = ctx.bodies, W = ctx.world, E = ctx.enemies, P = ctx.player;
-    const collide = ctx.rules.caps.enabled && ctx.rules.caps.bodyCollisions;
+    const collide = ctx.rules.caps.bodyCollisions;
     for (let b = 0; b < B.hi; b++) {
       if (!B.alive[b]) continue;
       const T = tpl(ctx, b);
@@ -367,7 +367,7 @@ export const bodySystem = {
         const blockX = W.blocks(nx + ax, B.z[b], feet, 0.6), blockZ = W.blocks(B.x[b], nz + az, feet, 0.6);
         if (blockX || blockZ) {
           // W4: a body running into a tree, bush or rock strikes it as a force of its own Weight
-          if (ctx.rules.surfaces.enabled && sp >= IMPACT_SPEED) {
+          if (sp >= IMPACT_SPEED) {
             const k = W.tile(blockX ? nx + ax : B.x[b], blockX ? B.z[b] : nz + az);
             if (k >= 0) forceOnProp(ctx, k, sp >= 8 ? T.weight : T.weight - 1, (10 * T.weight * sp) / 10, T.type);
           }
@@ -425,7 +425,7 @@ export const bodySystem = {
         }
       }
       const held = B.carrier[b] !== -1;
-      // resting contact is physical: with size geometry on it is the partner's movement footprint that touches the body
+      // resting contact is physical: it is the partner's movement footprint that touches the body
       // (docs/SIZING.md "Footprint"), not its hurtbox, which only decides what hits it
       const pf = partnerFootprint(ctx.player.species, ctx.rules), rs = pf > 0 ? R + pf : rp;
       if (!held && sp < IMPACT_SPEED && dp2 < rs * rs && dp2 > 1e-6 && P.y - B.y[b] < R * 1.2) {
@@ -476,10 +476,10 @@ export function seedBodies(ctx: SimContext) {
     const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(7, 42);
     const x = Math.floor(sx + dsin(a) * r) + 0.5, z = Math.floor(sz + dcos(a) * r) + 0.5;
     if (!W.walkable(x, z) || !W.walkable(x + 1, z) || !W.walkable(x - 1, z) || !W.walkable(x, z + 1) || !W.walkable(x, z - 1)) continue;
-    // size geometry on: only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre
-    // beside it keeps rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to
-    // every partner until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
-    if (ctx.rules.size.geometry) {
+    // only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre beside it keeps
+    // rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to every partner
+    // until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
+    {
       let open = true;
       for (let dz = -3; dz <= 3 && open; dz++) for (let dx = -3; dx <= 3 && open; dx++) open = W.walkable(x + dx, z + dz);
       if (!open) continue;

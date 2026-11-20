@@ -6,8 +6,8 @@
 //                    aim point T (with nothing there, T is the ray's end: firing into empty space)
 //   2. muzzle        M = the partner's feet + up × its class height, + fwd × its footprint along the ray's heading
 //                    (rules.aim.muzzle, overridden per archetype or move key by rules.aim.muzzleBy). A wall between the
-//                    body's axis and M (a corner inside the body's own reach) puts M back on the axis. R2 (pole safety,
-//                    rules.aim.poleSafe): past rules.aim.muzzleFadeDeg of ray pitch the forward offset shrinks with the
+//                    body's axis and M (a corner inside the body's own reach) puts M back on the axis. R2 (pole safety):
+//                    past rules.aim.muzzleFadeDeg of ray pitch the forward offset shrinks with the
 //                    ray's horizontal fraction, to 0 straight up or down, so M is continuous across the pole
 //   3. launch        u = (T − M) / |T − M|; an aim point within rules.aim.convergeMin of M, or behind it, fires along the
 //                    crosshair ray instead
@@ -18,7 +18,7 @@
 // Beams (Phase 2C, §14) resolve the same way: the same camera trace, muzzle and launch direction, with the beam's length
 // (range × area) as the reach and its own world radius (rules.aim.beamWorldRadius); moves.ts beam3D casts it.
 // Every trace here and in the shots and beams uses one cover policy (combatFlags): foliage is open unless
-// rules.aim.foliageCover, and wall props end at their measured tops with rules.world.wallTops (R1b; sim/spatial.ts header).
+// rules.aim.foliageCover, and wall props end at their measured tops (R1b; sim/spatial.ts header).
 //
 // Nothing here bends the aim toward an enemy (no magnetism) or leads a moving one: the shot goes where the crosshair is.
 // The bot and the fixed views send no ray and stay on moves.ts's planar path (magnetism, lead), as every checksum set
@@ -37,11 +37,11 @@ const CAMQ = spatialQuery({ mask: MASK.camera & ~SK.bounds, block: SK.enemy | SK
 const MUZQ = spatialQuery({ mask: MASK.shot, block: SK.enemy | SK.body, pierce: Infinity, selfKind: SK.player, selfId: 0 });
 
 /** the query flags of every player attack trace (camera, muzzle, shot flight, beam, device assist, the aimbot): foliage
- *  is open air unless the rules make it cover (rules.aim.foliageCover, the Phase 2B behaviour); with R1b wall tops
- *  (rules.world.wallTops) a wall prop is solid only up to its measured top, so a shot that clears a fence, a boulder or a
- *  canopy passes over it (sim/spatial.ts QF.tops) */
+ *  is open air unless the rules make it cover (rules.aim.foliageCover, the Phase 2B behaviour), and a wall prop is solid
+ *  only up to its measured top (R1b wall tops), so a shot that clears a fence, a boulder or a canopy passes over it
+ *  (sim/spatial.ts QF.tops) */
 export function combatFlags(ctx: SimContext): number {
-  return (ctx.rules.aim.foliageCover ? 0 : QF.foliage) | (ctx.rules.world.wallTops ? QF.tops : 0);
+  return (ctx.rules.aim.foliageCover ? 0 : QF.foliage) | QF.tops;
 }
 
 /** a beam's length from its muzzle: the move's range × the partner's area multiplier (the planar beam's length) */
@@ -49,10 +49,10 @@ export function beamLength(ctx: SimContext, s: MoveSpec): number {
   return s.range * ctx.player.derived.area;
 }
 
-/** true when this cast takes the spatial path: the flag, a crosshair ray, a player-aimed cast and a migrated archetype */
+/** true when this cast takes the spatial path: a crosshair ray, a player-aimed cast and a migrated archetype */
 export function spatialFor(ctx: SimContext, s: MoveSpec, manual: boolean, basic: boolean): boolean {
   const R = ctx.rules.aim, mode = ctx.rules.combat.mode;
-  if (!R.spatial || !ctx.input.aim || !manual || mode === 'auto' || (basic && mode === 'assist')) return false;
+  if (!ctx.input.aim || !manual || mode === 'auto' || (basic && mode === 'assist')) return false;
   return R.archetypes.includes(s.archetype);
 }
 
@@ -83,14 +83,14 @@ function muzzleFadeHl(ctx: SimContext): number {
 
 /** The horizontal heading (unit x, z, written to HEAD) that the planar side of a spatial cast uses (facing, knockback,
  *  the beam's ground paint) for launch direction (ux, uz): its own heading; a launch straight up or down (no horizontal
- *  part) takes the crosshair ray's heading (R2, rules.aim.poleSafe), and only a ray that is itself vertical, which the
- *  pitch clamp never sends, the partner's facing. Pre-R2 (poleSafe off): its own heading, else the facing */
+ *  part) takes the crosshair ray's heading (R2 pole-safe aim), and only a ray that is itself vertical, which the
+ *  pitch clamp never sends, the partner's facing */
 export const HEAD = { x: 0, z: 1 };
 export function launchHeading(ctx: SimContext, ux: number, uz: number): void {
   const hl = dhypot(ux, uz);
   if (hl > 1e-6) { HEAD.x = ux / hl; HEAD.z = uz / hl; return; }
   const ray = ctx.input.aim;
-  if (ctx.rules.aim.poleSafe && ray) {
+  if (ray) {
     const rl = dhypot(ray.dx, ray.dz);
     if (rl > 1e-6) { HEAD.x = ray.dx / rl; HEAD.z = ray.dz / rl; return; }
   }
@@ -115,14 +115,11 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   dx /= L; dy /= L; dz /= L;
 
   // 2. the muzzle, on the ray's heading. R2: the full offset up to the fade pitch (hl ≥ h0, the pre-R2 expression), then
-  // (dx, dz) / h0: linear in the horizontal fraction hl, 0 at the pole, no division by a vanishing hl and no facing.
-  // Pre-R2 (poleSafe off): a ray straight up or down took the partner's facing (a jump of up to 2 × fwd at the pole)
+  // (dx, dz) / h0: linear in the horizontal fraction hl, 0 at the pole, no division by a vanishing hl and no facing
   const sp = P.species, m = muzzleOf(ctx, s);
   const up = partnerHeight(sp, ctx.rules) * m.up, fwd = (partnerFootprint(sp, ctx.rules) || partnerRadius(sp, ctx.rules)) * m.fwd;
   const hl = dhypot(dx, dz);
-  let hx: number, hz: number;
-  if (!R.poleSafe) { hx = hl > 1e-6 ? dx / hl : dsin(P.facing); hz = hl > 1e-6 ? dz / hl : dcos(P.facing); }
-  else { const h0 = muzzleFadeHl(ctx); if (hl >= h0) { hx = dx / hl; hz = dz / hl; } else { hx = dx / h0; hz = dz / h0; } }
+  const h0 = muzzleFadeHl(ctx), hx = hl >= h0 ? dx / hl : dx / h0, hz = hl >= h0 ? dz / hl : dz / h0;
   const cx = P.x, cy = P.y + up, cz = P.z;
   let mx = cx + hx * fwd, my = cy, mz = cz + hz * fwd;
   const cf = combatFlags(ctx);

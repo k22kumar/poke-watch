@@ -32,12 +32,6 @@ export const defaultRules = {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
     gridCell: 3, // [C] spatial grid cell (m)
     chests: 6, // [B] drawn from each arena's designed chest spots
-    /** [C] R1b wall tops (docs/SIZING.md "Wall tops"): a wall prop (tree, fence, boulder, building) is solid only up to
-     *  its measured height (PROP_RULES top, World.wallTop) for every reader that opts in: the player's spatial attack
-     *  traces (QF.tops through combatFlags), the chase lens, and a body given the crossing permission (no driver gives it
-     *  before R6d). Bare walls, enemy sight and fire, planar shots and the map validators keep walls infinite. false =
-     *  every wall infinite for everyone (the checksum sets older than R1b, `aim-tops-off`) */
-    wallTops: true,
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
@@ -53,27 +47,18 @@ export const defaultRules = {
   // input carries the chase camera's crosshair ray (InputFrame.aim), the cast is player-aimed (combat.mode 'aimed', or
   // 'assist' for slots 1-3) and its archetype is listed: the sim traces the ray, launches from the body's muzzle toward
   // the point it meets, and the shot flies its own straight 3D line on swept, ordered contacts. No magnetism and no
-  // lead on that path. The bot and the fixed views send no ray, so every replay checksum set is unchanged.
+  // lead on that path. The bot and the fixed views send no ray.
   aim: {
-    /** [C] false = every cast takes the planar path (aimX/aimZ, magnetism, lead, shots at the shooter's height) */
-    spatial: true,
     /** [C] the archetypes on the spatial path: the direct linear shots (others keep their own targeting until their stage) */
     archetypes: ['bolt', 'orb', 'beam'] as string[],
     /** [C] m the crosshair ray is traced past the partner's plane: how far the aim can see. It never extends a shot */
     sightRange: 80,
     /** [C] m: an aim point closer to the muzzle than this, or behind it, fires along the crosshair ray instead (point blank) */
     convergeMin: 0.5,
-    /** [B] the muzzle: `up` × the partner's class height above its feet, `fwd` × its footprint (hurt radius with size
-     *  geometry off) ahead along the aim's heading. Size classes scale it (Tiny 0.36 m up, Extra Large 1.44 m) */
+    /** [B] the muzzle: `up` × the partner's class height above its feet, `fwd` × its footprint ahead along the aim's heading. Size classes scale it (Tiny 0.36 m up, Extra Large 1.44 m) */
     muzzle: { up: 0.6, fwd: 0.9 },
     /** [B] per-archetype or per-move-key overrides of the muzzle (a move key wins over its archetype) */
     muzzleBy: {} as Record<string, { up?: number; fwd?: number }>,
-    /** [C] R2 pole-safe aim maths (docs/THIRD_PERSON_IMPLEMENTATION.md §18): the muzzle's forward offset follows the
-     *  crosshair ray's horizontal fraction continuously to 0 at the pole (no jump to the partner's facing); a multi-shot
-     *  fan turns in the plane perpendicular to its launch direction (its spread no longer shrinks with pitch); a launch
-     *  straight up or down takes the crosshair ray's heading, not the facing. false = the pre-R2 maths exactly (the
-     *  `aim-pole-off` checksum set) */
-    poleSafe: true,
     /** [C] R2, degrees from the horizon: up to this ray pitch the muzzle's forward offset is the full `fwd` (bit-identical
      *  to pre-R2, and the whole of today's 60° up / 50° down envelope); past it the offset shrinks linearly with the ray's
      *  horizontal fraction, to 0 at ±90°. In [0, 90) */
@@ -184,7 +169,7 @@ export const defaultRules = {
     contactCooldown: 0.5, // [B]
     despawnDistance: 46, // [B] respawn closer if left behind
     holdRelocate: 6, // [B] s a wide body may hold with no wide route to the player before it is moved like a far one (sim/enemies.ts)
-    navHold: 0.4, // [B] s a ground walker keeps to the flow field after its way ahead was last blocked (size geometry on; sim/enemies.ts)
+    navHold: 0.4, // [B] s a ground walker keeps to the flow field after its way ahead was last blocked (sim/enemies.ts)
     spawnRadius: [21, 27], // [B] just outside the fixed view (±15 m wide, ±11 m deep)
     roles: {
       elite: { hp: 4.5, dmg: 1.5, size: 2 }, // [C] hp; size [B] whole-number scales only, so texels stay square (1.5x doubled every other texel and shimmered)
@@ -236,41 +221,25 @@ export const defaultRules = {
     tilt: 0.08, // [B] ± share of the class values, by where the extent sits inside the class (log scale)
     extentRange: [0.1, 6] as [number, number], // [B] bottom of Tiny and top of Extra Large for the tilt (m)
     wideRatio: 1.5, // [B] an idle frame at least this much wider than tall is normalised on width / wideRatio
-    geometry: true, // false = pre-size-class sim bodies (radius from sprite height, one shared partner radius): replay checksums unchanged
     playerRadius: [0.48, 0.72] as [number, number], // [B] partner hurtbox clamp around the old shared 0.55 m (0.42 floor: +17 % bot survival, 0.48: +10 %)
     heavyRadius: 0.5, // [B] a footprint (`body`) at or above this routes on the wide (2 × 2 block) navigation field (sim/world.ts)
     // [B] role-scaled footprints (elite ×2, alpha ×3, bosses) stop here: pursuers must fit the two-tile routes the
     // location and habitat gates guarantee to every essential space (a body ≥ 1 m needs three tiles; docs/SIZING.md)
     bodyCap: 0.95,
     wideSeed: 4, // [B] tiles (ordinary-field steps) around the player that seed the wide field when the player stands where a wide body does not fit
-    /** [C] R1 headroom (docs/SIZING.md "Headroom"): a body's sim height (class height × tilt × role size) meets deck
-     *  slabs. A jump stops with the head at the underside, a body taller than the gap under a deck cannot walk in
-     *  (World.moveBody), and wide routing leaves such gaps out for that body. false = heads pass through slabs, as before
-     *  (the older checksum layers set it) */
-    headroom: true,
-    /** [C] Measurement axis (docs/SIZING.md "Measurement axis"): a species whose official shape lists its body length
-     *  (src/rules/shapes.ts: `squiggle`, `fish`, or an approved SPECIES_AXIS row such as Eternatus) takes `lengthRise` ×
-     *  that length as its extent, unless an approved
-     *  NEUTRAL_CORE_EXTENT_M entry gives one. On by default since the size-extremes flip (owner 2026-11-18); false = every
-     *  listed figure is read as height, as before (`giants-off` and every older checksum layer set it) */
-    axis: true,
+    // Measurement axis (docs/SIZING.md "Measurement axis"): a species whose official shape lists its body length
+    // (src/rules/shapes.ts: `squiggle`, `fish`, or an approved SPECIES_AXIS row such as Eternatus) takes `lengthRise` ×
+    // that length as its extent, unless an approved NEUTRAL_CORE_EXTENT_M entry gives one
     lengthRise: 0.5, // [B] share of a listed body length that stands up as the extent (serpents, fish); owner 2026-11-18
-    /** [C] Continuous Extra Large (docs/SIZING.md "Giants"): an XL species' drawn core grows with its extent,
-     *  min(xlVisualCap, xlFloor × (S / Large's cut) ^ xlExponent), so giants stay visibly bigger than a 2.1 m XL.
-     *  Drawn size only: XL radius, height and footprint keep the class values and tilt, and no sim system reads the
-     *  drawn size (unless xlTall is on too). On by default since the size-extremes flip; false = the fixed XL target ± tilt,
-     *  as before */
-    xlContinuous: true,
+    // Continuous Extra Large (docs/SIZING.md "Giants"): an XL species' drawn core grows with its extent,
+    // min(xlVisualCap, xlFloor × (S / Large's cut) ^ xlExponent), so giants stay visibly bigger than a 2.1 m XL, and its
+    // sim height follows its drawn size, visualM × (class height ÷ class visual), so the hit window, headroom (deck slabs,
+    // the wide fields' height classes, spawn fit) and the spatial muzzle cover a giant as drawn. Radius and footprint keep
+    // the class values. Authored bodies keep their own height
     xlVisualCap: 4.0, // [B] m: provisional visual cap on the largest giants, to be tested (handoff decision 3)
     xlFloor: 2.69 * 0.92, // [B] m: today's lowest XL draw (class visual × (1 − tilt)), the draw at Large's cut
     xlExponent: 0.3, // [B] growth with extent, a fixed constant (owner 2026-11-18): never fitted to the largest species, so a new
     // generation's giant cannot move every other XL draw. Reaches the cap at about 10.2 m of extent
-    /** [C] Tall giants (docs/SIZING.md "Giants", owner 2026-11-18, size-extremes-plan §S3.10 A): with xlContinuous on too, an
-     *  Extra Large body's sim height follows its drawn size, visualM × (class height ÷ class visual), so the hit window,
-     *  headroom (deck slabs, the wide fields' height classes, spawn fit) and the spatial muzzle cover a giant as drawn.
-     *  Radius and footprint keep the class values. Authored bosses keep their encounter body. On by default since the
-     *  size-extremes flip; false, or xlContinuous off = the class height × tilt, as before (bit for bit) */
-    xlTall: true,
   },
   damage: {
     playerMult: 2.0, // [B] global player damage scale (original player damage formula is unknown)
@@ -477,7 +446,6 @@ export const defaultRules = {
     templates: TRAVERSAL_TEMPLATES,
   },
   surfaces: {
-    enabled: true,
     /** materials on the handcrafted arenas too (off: they apply to generated regions only, so the default game is
      *  unchanged until materials are tuned with people; bot runs on the authored Meadow die earlier with them on) */
     inAuthored: false,
@@ -494,9 +462,7 @@ export const defaultRules = {
     cap: 64,
   },
   // [B] Phase 8a: one capability resolver for creatures, bodies and projectiles (blueprint sections 7, 10, 12).
-  // `enabled: false` (or each feature flag off) gives the v10 rules exactly: replay checksums are unchanged.
   caps: {
-    enabled: true,
     /** projectiles are light bodies: a Push deflects a shot, a Hold catches it, opposing shots cancel by Weight,
      *  and Guard deflects only shots no heavier than the guarding Pokémon */
     interception: true,

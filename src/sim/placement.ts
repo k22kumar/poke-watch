@@ -18,14 +18,14 @@ export function standAt(ctx: SimContext, id: string, x: number, z: number): [num
   return W.nearestWalkable(x, z);
 }
 
-/** may `id` appear at (x, z) at this role size (elite ×2, alpha ×3)? Its habitat restrictions, and (size geometry on)
+/** may `id` appear at (x, z) at this role size (elite ×2, alpha ×3)? Its habitat restrictions, and
  *  room for a ground footprint that routes on the wide field: not in a one-tile pocket, not at an entrance only small
  *  bodies fit. A body taller than a deck's gap is judged on its own height's field. */
 export function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize = 1): boolean {
   const [sx, sz] = standAt(ctx, id, x, z), W = ctx.world;
   if (!habitatAllows(id, W.habitatAt(sx, sz))) return false;
   const sp = SPECIES_BY_ID[id];
-  const foot = ctx.rules.size.geometry && sp && traversalOf(sp, ctx.rules).groundNav ? footprintOf(sp, roleSize, ctx.rules) : 0;
+  const foot = sp && traversalOf(sp, ctx.rules).groundNav ? footprintOf(sp, roleSize, ctx.rules) : 0;
   if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R, undefined, enemyHeight(sp, roleSize, ctx.rules))) return false;
   return true;
 }

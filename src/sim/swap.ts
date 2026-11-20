@@ -84,9 +84,8 @@ export function castTagAction(ctx: SimContext) {
   const def = tagDefOf(m)!;
   if (def.create === 'rock') {
     const [x, z] = ctx.world.walkable(ax, az) ? [ax, az] : ctx.world.nearestWalkable(ax, az);
-    // Create goes through the resolver (Phase 8a: capped per player, logged); v10 spawned the rock directly
-    if (ctx.rules.caps.enabled) resolve(ctx, { verb: 'create', power: 0, type: spec.element, owner: TEAM.player, x, z, dx: 0, dz: 0, source: { kind: 'tag', id: TAG_SLOT, name: spec.name }, target: { kind: 'tile', id: -1 }, template: def.create });
-    else spawnBody(ctx, 'rock', x, z, 0, 0, TEAM.neutral);
+    // Create goes through the resolver (Phase 8a: capped per player, logged)
+    resolve(ctx, { verb: 'create', power: 0, type: spec.element, owner: TEAM.player, x, z, dx: 0, dz: 0, source: { kind: 'tag', id: TAG_SLOT, name: spec.name }, target: { kind: 'tile', id: -1 }, template: def.create });
   }
   ctx.events.push({ t: 'tagAction', species: m.species.id, key: spec.key, element: spec.element, x: ax, z: az });
 }

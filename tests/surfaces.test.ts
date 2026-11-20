@@ -138,18 +138,6 @@ test('bridges are terrain, not props: heat on a bridge does nothing', () => {
   assert.equal(ctx.world.propField!.at[k], -1);
 });
 
-test('flags off: no overlay, the shared map itself, and trees do not burn', () => {
-  const ctx = calm({ surfaces: { enabled: false } });
-  assert.equal(ctx.world.propField, null);
-  assert.equal(ctx.world.map, getArena('meadow'));
-  const M = ctx.world.map;
-  const i = M.props.findIndex((p) => p.kind === 'tree' && p.x > 20 && p.y > 20);
-  const [x, z] = centre(ctx, M.props[i].y * M.w + M.props[i].x);
-  applyAgent(ctx, 'heat', x, z, 0.4);
-  secs(ctx, 8);
-  assert.equal(M.wall[M.props[i].y * M.w + M.props[i].x], 1);
-});
-
 test('the overlay is deterministic and part of the state hash', () => {
   const run = () => {
     const ctx = calm();

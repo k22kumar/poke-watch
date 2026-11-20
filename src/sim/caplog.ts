@@ -70,9 +70,8 @@ export class CapLog {
 const SRC = { kind: '' as LogKind, name: '' };
 export function setSrc(kind: LogKind, name: string) { SRC.kind = kind; SRC.name = name; }
 
-/** A new record for the current source, or null when the capability layer is off (v10 behaviour). */
-export function rec(ctx: SimContext, verb: LogVerb, out: LogOut, player = false): CapRecord | null {
-  if (!ctx.rules.caps.enabled) return null;
+/** A new record for the current source. */
+export function rec(ctx: SimContext, verb: LogVerb, out: LogOut, player = false): CapRecord {
   const r = ctx.caplog.next(ctx.time, ctx.tick, player);
   r.verb = verb; r.out = out; r.src = SRC.kind; r.srcName = SRC.name;
   r.guardW = guardWeight(ctx);

@@ -21,7 +21,6 @@ import { blockMask, blockNeighbours, blockNodes, DIAG_R } from '../src/world/nav
 import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { RANGE } from '../src/mods';
 import { assertRunning, endedNote, runEnded } from './lib/ended';
@@ -41,7 +40,7 @@ export function freshRun(kind: 'location' | 'habitat', id: string, seed: number,
   const wg = kind === 'location'
     ? { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } }
     : { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } };
-  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...sizeOverride() } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm } as never });
   const E = ctx.enemies;
   for (let e = 0; e < E.hi; e++) if (E.alive[e]) E.kill(e);
   return ctx;
@@ -53,8 +52,7 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
   P.x = P.px = x; P.z = P.pz = z; P.y = P.py = deck ? W.height(x, z, 1e9) : W.height(x, z); P.vx = P.vz = P.vy = P.kx = P.kz = 0; P.grounded = true;
 }
 
-/** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height (rules.size.headroom)
- *  its head clears deck slabs too */
+/** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height its head clears deck slabs too */
 const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
@@ -248,7 +246,6 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
 }
 
 if (process.argv[1]?.endsWith('navwalk.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 5), first = Number(process.argv[4] ?? 1);
   const ids: ['location' | 'habitat', string][] = [];
   if (which === 'all' || which === 'location') for (const id of Object.keys(LOCATIONS)) ids.push(['location', id]);

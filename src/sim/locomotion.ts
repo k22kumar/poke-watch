@@ -109,9 +109,9 @@ export interface LocoTick {
   airPress: AirPress;
   /** m: the step this tick's planar move walks up (stepHeight, or climbing out of a liquid) */
   stepUp: number;
-  /** m: footprint radius against walls (0 = the centre-point look-ahead rule, size geometry off) */
+  /** m: footprint radius against walls (World.moveBody) */
   foot: number;
-  /** m: body height against deck slabs, undefined = heads pass through slabs (headroom off) */
+  /** m: body height against deck slabs, undefined on a map with no decks */
   tall: number | undefined;
   /** navigation lattice for the rock recovery (wide footprints route on navblocks) */
   wide: boolean;
@@ -126,8 +126,6 @@ export interface LocoTick {
 /** what the step did, for the caller's events */
 export interface LocoResult { jumped: boolean }
 
-/** m: centre-point look-ahead of the legacy planar move (size geometry off) */
-const AHEAD = 0.35;
 /** m: a grounded body going down a slope sticks to it within this drop */
 const STICK = 0.35;
 /** m: a fall or drop deeper than this clears the footprint on landing */
@@ -217,29 +215,10 @@ export function clearLanding(W: World, x: number, z: number, ground: number, ste
 function movePlanar(W: World, b: LocoBody, t: LocoTick, dt: number) {
   const stepX = (b.vx + b.kx) * dt, stepZ = (b.vz + b.kz) * dt;
   const feet = b.y, stepUp = t.stepUp, tall = t.tall;
-  let nx = b.x + stepX, nz = b.z + stepZ;
-  if (t.foot > 0) {
-    // size geometry on: the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides
-    // round corners, never cuts one, and a Large or Extra Large body does not fit a one-tile gap
-    W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
-    nx = MOVE[0]; nz = MOVE[1];
-  } else {
-    const over = t.over;
-    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall, over);
-    const ax = Math.sign(stepX) * AHEAD, az = Math.sign(stepZ) * AHEAD;
-    if (blocked(nx + ax, nz + az)) {
-      if (!blocked(nx + ax, b.z)) nz = b.z;
-      else if (!blocked(b.x, nz + az)) nx = b.x;
-      else { nx = b.x; nz = b.z; }
-    }
-    // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
-    // cutting); beside a chasm that would drop the body into it, so test where the step actually lands too
-    if (W.los && blocked(nx, nz)) {
-      if (!blocked(nx, b.z)) nz = b.z;
-      else if (!blocked(b.x, nz)) nx = b.x;
-      else { nx = b.x; nz = b.z; }
-    }
-  }
+  // the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides round corners, never
+  // cuts one, and a Large or Extra Large body does not fit a one-tile gap
+  W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
+  const nx = MOVE[0], nz = MOVE[1];
   const bd = W.bound;
   b.x = clamp(nx, -bd, bd);
   b.z = clamp(nz, -bd, bd);

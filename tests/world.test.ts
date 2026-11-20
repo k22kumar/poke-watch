@@ -37,7 +37,6 @@ test('arenas are handcrafted: identical on every load, with designed landmarks',
   assert.equal(new World(rules, BIOMES.meadow, 3).map, a, 'by default the authored arena is used as is');
   assert.equal(a.props, b.props);
   assert.deepEqual(a.wall, b.wall);
-  assert.equal(new World({ ...rules, surfaces: { ...rules.surfaces, enabled: false } }, BIOMES.meadow, 7).map, a, 'materials off: the cached map itself');
   const names = a.landmarks.map((l) => l.name);
   for (const n of ['Old Shrine Ruins', 'Mirror Pond', 'Elder Oak', 'Petal Terrace', 'Battle Glade']) assert.ok(names.includes(n), n);
   assert.ok(a.props.some((p) => p.kind === 'elder'), 'elder oak placed');

@@ -25,7 +25,7 @@ export interface PropRule {
   w: number; h: number;
   /** wall = never passable; platform height (m) = can be jumped onto; 0 = walkable */
   wall?: boolean; platform?: number;
-  /** wall props (R1b, rules.world.wallTops; docs/SIZING.md "Wall tops"): the physical height (m) of the prop above its
+  /** wall props (R1b; docs/SIZING.md "Wall tops"): the physical height (m) of the prop above its
    *  footing, the one height every reader that opts in shares (World.wallTop). It is the tallest drawn variant over every
    *  biome palette, unstretched (the sprite's opaque rows ÷ 16 px per m, the shader's alpha cut), rounded up to 0.05 m;
    *  tests/walltops.test.ts measures the painters and fails when art and table drift apart. Billboard stretch and lean at

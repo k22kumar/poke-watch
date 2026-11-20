@@ -51,7 +51,7 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (beh === 'swarm') speed *= 1.12;
   if (beh === 'ranged') speed *= 0.85;
   if (roles & ROLE.boss) speed *= 0.8;
-  // a ground body with a footprint (size geometry on) is put down where it fits: a tile centre, or a wide block's centre
+  // a ground body with a footprint is put down where it fits: a tile centre, or a wide block's centre
   const foot = tv.groundNav ? footprintOf(sp, size, ctx.rules) : 0;
   if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
   else if (tv.groundNav && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
@@ -144,7 +144,7 @@ export const enemySystem = {
     const steer = Math.min(1, R.steerRate * dt);
     const kdecay = dexp(-R.knockDecay * dt);
     const pr = partnerRadius(ctx.player.species, ctx.rules);
-    const sized = ctx.rules.size.geometry, pf = partnerFootprint(ctx.player.species, ctx.rules);
+    const pf = partnerFootprint(ctx.player.species, ctx.rules);
     const RR = ctx.rules.roles, O = ctx.objective;
     W.updateFlow(P.x, P.z, P.y);
     const burning = W.burnCost > 1 && W.cells.burning > 0;
@@ -218,10 +218,10 @@ export const enemySystem = {
         // beside the player: point probes cannot tell whether the lane its whole width needs is clear (a drop off a bridge
         // it would not fit below reads as open), so straight steering and the field fought, tick by tick. With no wide
         // route it holds where it is: it never follows the ordinary field into a gap it does not fit
-        const f = E.foot[i], wide = sized && navWide(f, ctx.rules);
-        const p1 = sized ? Math.max(1.1, f + 0.75) : 1.1, p2 = sized ? Math.max(2.4, f + 2.05) : 2.4;
+        const f = E.foot[i], wide = navWide(f, ctx.rules);
+        const p1 = Math.max(1.1, f + 0.75), p2 = Math.max(2.4, f + 2.05);
         let ahead = wide || layerGap || W.blocks(E.x[i] + ux * p1, E.z[i] + uz * p1, feet, 0.6) || W.blocks(E.x[i] + ux * p2, E.z[i] + uz * p2, feet, 0.6);
-        // size geometry on: once the way ahead is blocked the walker keeps to the field for rules.enemy.navHold seconds. The
+        // once the way ahead is blocked the walker keeps to the field for rules.enemy.navHold seconds. The
         // two probes are points, so with one sitting on a tile edge the test flips every tick, and the walker alternated
         // between straight at the player (into the wall) and the field (away from it) and stood still for good (viridian
         // seed 1, beside a terrace: docs/SIZING.md "Navigation classes")
@@ -229,12 +229,12 @@ export const enemySystem = {
         // terrace reached by a ramp behind the walker is straight ahead across open ground that ends at the terrace face,
         // and the walker went back and forth between that dead end and the ramp (viridian seed 1)
         // (checked every fourth tick per walker; the hold below carries a disagreement between checks)
-        if (sized && !ahead && ((ctx.tick + i) & 3) === 0 && W.flowDir(E.x[i], E.z[i], NAV, feet) && NAV[0] * ux + NAV[1] * uz < 0) ahead = true;
+        if (!ahead && ((ctx.tick + i) & 3) === 0 && W.flowDir(E.x[i], E.z[i], NAV, feet) && NAV[0] * ux + NAV[1] * uz < 0) ahead = true;
         // and it does not walk off a ledge toward a player who is not below it: the walker that had climbed a ramp to the
         // player's terrace walked straight off the terrace's edge, landed at the ramp's foot and climbed it again, round and
         // round (tropical-lagoon seed 3, a Sandshrew, 1.2 m drop). With the player below, the drop is the short way down
-        if (sized && !ahead && P.y > feet - 0.6 && W.height(E.x[i] + ux * p1, E.z[i] + uz * p1, feet) < feet - 0.6) ahead = true;
-        if (sized) { if (ahead) E.navT[i] = R.navHold; else if (E.navT[i] > 0) { E.navT[i] -= dt; ahead = true; } }
+        if (!ahead && P.y > feet - 0.6 && W.height(E.x[i] + ux * p1, E.z[i] + uz * p1, feet) < feet - 0.6) ahead = true;
+        if (ahead) E.navT[i] = R.navHold; else if (E.navT[i] > 0) { E.navT[i] -= dt; ahead = true; }
         const fireAhead = !ahead && burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4));
         if (ahead || fireAhead) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
@@ -258,7 +258,7 @@ export const enemySystem = {
         // field already steers around walls, so the look-ahead slide below (which turns at every hairpin) is skipped
         let flowed = false;
         const gf = E.foot[i];
-        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && sized && navWide(gf, ctx.rules)) {
+        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && navWide(gf, ctx.rules)) {
           // a wide Raider walks the wide block field to the point; with no wide route it holds (docs/SIZING.md)
           const r = W.wideGoalDir(E.x[i], E.z[i], NAV, E.y[i], gf < DIAG_R, E.tall[i]);
           if (r === 1) { ux = NAV[0]; uz = NAV[1]; flowed = true; } else if (r < 0) { speed = 0; flowed = true; }
@@ -351,7 +351,7 @@ export const enemySystem = {
         // (knockback past rules.hazards.forcedKnock carries it over the lip)
         const forced = W.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
         const up = W.hazards && W.liquidAt(ox, oz, feet, ctx.rules.hazards.contact) ? Math.max(0.6, ctx.rules.hazards.climbOut) : 0.6; // climbing out of a liquid
-        // headroom: its height meets deck slabs (World ignores it with rules.size.headroom off, as before)
+        // headroom: its height meets deck slabs
         const tall = E.tall[i];
         const stop = W.hazards
           ? (x: number, z: number) => W.collides(x, z, feet, up, tall) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))

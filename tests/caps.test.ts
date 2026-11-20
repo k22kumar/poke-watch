@@ -442,16 +442,6 @@ test('death recap: shots name their shooter, contact names the species and the p
   assert.ok(recs(ctx).every((r) => debugLine(r, ctx.time).length > 0));
 });
 
-test('the log is passive: with the capability layer off nothing is recorded and no recap is written', () => {
-  const ctx = calm('totodile', { caps: { enabled: false } });
-  const P = ctx.player;
-  P.hp = 3;
-  spawnBody(ctx, 'boulder', P.x + 5, P.z, -11, 0, TEAM.enemy, 40);
-  for (let t = 0; t < 120 && ctx.state === 'play'; t++) step(ctx, NONE);
-  assert.equal(ctx.caplog.n, 0);
-  assert.equal(ctx.recap, null);
-});
-
 // ------------------------------------------------------------------ determinism and regression
 /** scripted inputs that exercise aim, Move A/B holds, Guard taps and dashes */
 function scripted(ctx: SimContext, t: number): InputFrame {

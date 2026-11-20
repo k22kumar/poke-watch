@@ -37,7 +37,7 @@ export class EnemyPool {
   kx: Float32Array; kz: Float32Array;
   hp: Float32Array; maxHp: Float32Array;
   speed: Float32Array; dmg: Float32Array; radius: Float32Array; size: Float32Array;
-  /** vertical hit extent (rules/sizing.ts enemyHeight: class height × role size; the role size itself when size geometry is off) */
+  /** vertical hit extent (rules/sizing.ts enemyHeight: class height × role size) */
   tall: Float32Array;
   /** movement footprint (rules/sizing.ts footprintOf: the circle walls stop, World.moveBody; 0 = point collision) */
   foot: Float32Array;

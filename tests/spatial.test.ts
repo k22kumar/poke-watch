@@ -247,25 +247,23 @@ test('initial overlap: a start inside a solid is a t = 0 contact; skipInitialWor
 
 // ------------------------------------------------------------------------------------------------ actors
 
-test('giants (size-extremes default flip): a ray at 0.85 of Onix\'s drawn height hits with the size flags on and misses with them off; a 0.3 m bolt at 95 % of it hits', () => {
-  // with axis + xlContinuous + xlTall (the defaults) an Extra Large body's hit window is 0.892 x its drawn height, so a
-  // shot at the upper body of the sprite lands; with the flags off the window stops at the class height. One aim height
-  // for both runs, from the flags-on body
-  const ON = defaultRules.size, OFF = { size: { axis: false, xlContinuous: false, xlTall: false } };
-  const on = bodyOf(SPECIES_BY_ID.onix, ON), off = bodyOf(SPECIES_BY_ID.onix, { ...ON, ...OFF.size });
+test('giants: a ray at 0.85 of Onix\'s drawn height hits, above the class height; a 0.3 m bolt at 95 % of it hits', () => {
+  // an Extra Large body's hit window is 0.892 x its drawn height, so a shot at the upper body of the sprite lands; the
+  // class height (where the window stopped before the size-extremes flip) is below the aim height
+  const on = bodyOf(SPECIES_BY_ID.onix), classH = defaultRules.size.classes[4].height;
   const h = 0.85 * on.visualM;
-  assert.ok(off.height < h && h < on.height, `windows ${off.height.toFixed(2)} / ${on.height.toFixed(2)} m bracket ${h.toFixed(2)} m`);
+  assert.ok(classH < h && h < on.height, `class height ${classH} / window ${on.height.toFixed(2)} m bracket ${h.toFixed(2)} m`);
   const shot = (over: object | undefined, y: number, r: number) => {
     const { ctx, W } = scene(over), z = C(W, 50);
     const e = put(ctx, 'onix', C(W, 60), 0, z), out = new Contacts();
     sweep(ctx, C(W, 50), y, z, 1, 0, 0, 20, spatialQuery({ mask: SK.enemy, block: 0, actorR: r, actorH: r }), out);
     return { hit: [...out.id.subarray(0, out.n)].includes(e), tall: ctx.enemies.tall[e] };
   };
-  const rayOn = shot(undefined, h, 0), rayOff = shot(OFF, h, 0);
-  assert.ok(Math.abs(rayOn.tall - on.height) < 1e-5 && Math.abs(rayOff.tall - off.height) < 1e-5, 'E.tall carries each body');
-  assert.ok(rayOn.hit, 'flags on: the ray hits');
-  assert.ok(!rayOff.hit, 'flags off: the ray passes over the window');
-  assert.ok(shot(undefined, 0.95 * on.visualM, 0.3).hit, 'flags on: a 0.3 m bolt at 95 % of the drawn height hits');
+  const rayOn = shot(undefined, h, 0);
+  assert.ok(Math.abs(rayOn.tall - on.height) < 1e-5, 'E.tall carries the body');
+  assert.ok(rayOn.hit, 'the ray hits');
+  assert.ok(!shot(undefined, on.height + 0.05, 0).hit, 'a ray just over the window passes');
+  assert.ok(shot(undefined, 0.95 * on.visualM, 0.3).hit, 'a 0.3 m bolt at 95 % of the drawn height hits');
 });
 
 test('actors: size-class cylinders; actor radius and half-height inflate the volume exactly', () => {

@@ -25,7 +25,6 @@ import { stateHash } from '../src/sim/checksum';
 import { safeIn } from '../src/sim/hazards';
 import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 import { crowd } from './lib/crowd';
 
 export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
@@ -106,7 +105,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
 }
 
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
-  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...sizeOverride(), ...extra } as never });
+  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra } as never });
   const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;
@@ -166,7 +165,6 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
 }
 
 if (process.argv[1]?.endsWith('stuckwatch.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), secs = Number(process.argv[4] ?? 120), first = Number(process.argv[5] ?? 1);
   const extra = process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {};
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];

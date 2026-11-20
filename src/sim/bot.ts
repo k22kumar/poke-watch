@@ -10,7 +10,7 @@ import { nearestEnemy, slotSpec } from './moves';
 import { shoreFor } from './hazards';
 import { partnerFootprint } from '../rules/sizing';
 
-const TURNS = [0.5, -0.5, 1.0, -1.0, 1.6, -1.6, 2.3, -2.3], TURNS_BACK = [...TURNS, Math.PI];
+const TURNS = [0.5, -0.5, 1.0, -1.0, 1.6, -1.6, 2.3, -2.3, Math.PI];
 
 /** an enemy within the basic attack's reach (the reach the automatic basic attack used to wait for) */
 function basicInReach(ctx: SimContext): boolean {
@@ -103,18 +103,15 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
   const centre = W.hazards
     ? (dx: number, dz: number) => !W.blocks(P.x + dx * 0.6, P.z + dz * 0.6, P.y, st) && !W.blocks(P.x + dx, P.z + dz, P.y, st) && !W.blocks(P.x + dx * 1.4, P.z + dz * 1.4, P.y, st)
     : (dx: number, dz: number) => !W.blocks(P.x + dx * 1.4, P.z + dz * 1.4, P.y, st);
-  // size geometry on: the partner's footprint must fit the way ahead too (its edges, not only its centre line), so the
-  // bot does not steer a Large or Extra Large partner into a gap it cannot pass (docs/SIZING.md "Footprint")
+  // the partner's footprint must fit the way ahead too (its edges, not only its centre line), so the bot does not steer a
+  // Large or Extra Large partner into a gap it cannot pass (docs/SIZING.md "Footprint")
   const pf = partnerFootprint(P.species, ctx.rules);
-  const clear = pf > 0
-    ? (dx: number, dz: number) => centre(dx, dz) && !W.blocks(P.x + dx - dz * pf, P.z + dz + dx * pf, P.y, st) && !W.blocks(P.x + dx + dz * pf, P.z + dz - dx * pf, P.y, st)
-      && !W.blocks(P.x + dx * 1.4 - dz * pf, P.z + dz * 1.4 + dx * pf, P.y, st) && !W.blocks(P.x + dx * 1.4 + dz * pf, P.z + dz * 1.4 - dx * pf, P.y, st)
-    : centre;
+  const clear = (dx: number, dz: number) => centre(dx, dz) && !W.blocks(P.x + dx - dz * pf, P.z + dz + dx * pf, P.y, st) && !W.blocks(P.x + dx + dz * pf, P.z + dz - dx * pf, P.y, st)
+    && !W.blocks(P.x + dx * 1.4 - dz * pf, P.z + dz * 1.4 + dx * pf, P.y, st) && !W.blocks(P.x + dx * 1.4 + dz * pf, P.z + dz * 1.4 - dx * pf, P.y, st);
   if (shore) { const sx = shore[0] - P.x, sz = shore[1] - P.z, sl = dhypot(sx, sz) || 1; mx = sx / sl; mz = sz / sl; }
   else if (!clear(mx, mz)) {
-    // size geometry on: straight back too, last (a dead-end alcove whose only way out is behind; replay layers with size
-    // geometry off keep the older list)
-    for (const turn of pf > 0 ? TURNS_BACK : TURNS) {
+    // straight back too, last (a dead-end alcove whose only way out is behind)
+    for (const turn of TURNS) {
       const c = dcos(turn), s = dsin(turn);
       const tx = mx * c - mz * s, tz = mx * s + mz * c;
       if (clear(tx, tz)) { mx = tx; mz = tz; break; }

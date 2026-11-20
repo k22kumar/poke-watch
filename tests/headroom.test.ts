@@ -1,7 +1,6 @@
 // R1 headroom (docs/SIZING.md "Headroom", ledger Stage 6C): a body's sim height (class height × tilt × role size, from
 // src/rules/sizing.ts) meets deck slabs. A rising head stops at the underside, a body taller than the gap under a deck
-// does not walk or jump in under it (World.moveBody), and wide routing leaves such gaps out for that body only. With
-// rules.size.headroom off every height argument is ignored (the older checksum layers).
+// does not walk or jump in under it (World.moveBody), and wide routing leaves such gaps out for that body only.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultRules, type Rules } from '../src/rules/defaults';
@@ -27,9 +26,7 @@ function deckWorld(rules: Rules = defaultRules, top = 3) {
   /** west edge of the deck and the centre row, world coordinates */
   return { W, edge: i0 - W.half, z: j0 + 3 - W.half, under: top - DECK_SLAB };
 }
-const off = { ...defaultRules, size: { ...defaultRules.size, headroom: false } } as Rules;
-
-test('headroom: the slab test reads the body height; on the deck or with the flag off nothing changes', () => {
+test('headroom: the slab test reads the body height; on the deck nothing changes', () => {
   const { W, edge, z, under } = deckWorld();
   const x = edge + 2.5;
   assert.equal(under, 2.4);
@@ -44,9 +41,6 @@ test('headroom: the slab test reads the body height; on the deck or with the fla
   // beside the deck: the footprint reaches under it, the centre does not
   assert.equal(W.headroomAt(edge - 0.5, z, 0, 0.88), under, 'an Extra Large footprint 0.5 m from the edge is under the slab');
   assert.equal(W.headroomAt(edge - 0.5, z, 0, 0.3), Infinity, 'a Tiny one is not');
-  const O = deckWorld(off).W;
-  assert.equal(O.collides(x, z, 0, 0.6, under + 1), false, 'headroom off: the height is ignored');
-  assert.equal(O.headroomAt(x, z, 0), Infinity);
 });
 
 test('headroom: World.moveBody stops a body taller than the gap at the deck edge and lets a shorter one walk under', () => {
@@ -58,11 +52,6 @@ test('headroom: World.moveBody stops a body taller than the gap at the deck edge
     if (under) assert.ok(x > edge + 2, `${tall} m walks in under the deck (x ${(x - edge).toFixed(2)} past the edge)`);
     else assert.ok(x + r <= edge + 1e-3, `${tall} m stops with its footprint at the edge (${(x + r - edge).toFixed(3)} m)`);
   }
-  // with the flag off the tall body walks in, as before
-  const O = deckWorld(off);
-  let x = O.edge - 3;
-  for (let s = 0; s < 40; s++) { O.W.moveBody(x, O.z, 0.2, 0, 0, 0.6, r, out, undefined, 2.59); x = out[0]; }
-  assert.ok(x > O.edge + 2, 'headroom off: heads pass through slabs');
 });
 
 /** a run on the authored meadow as `species` with no enemies, on a private deck world */
@@ -75,18 +64,14 @@ function scene(species: string, rules?: object, top = 3): { ctx: SimContext; W: 
 }
 
 test('headroom: a jump under a deck stops the head at the underside (P4: Feraligatr, head +1.60 m before)', () => {
-  for (const [rules, capped] of [[undefined, true], [{ size: { headroom: false } }, false]] as const) {
-    const { ctx, W, edge, z, under } = scene('feraligatr', rules);
-    const P = ctx.player, tall = partnerHeight(P.species, ctx.rules);
-    P.x = P.px = edge + 3; P.z = P.pz = z; P.y = P.py = 0; P.vy = 0; P.grounded = true;
-    let head = -Infinity;
-    for (let t = 0; t < 90; t++) { step(ctx, { ...NO_INPUT, jump: t === 0 }); head = Math.max(head, P.y + tall); }
-    if (capped) {
-      assert.ok(head <= under + HEAD_EPS, `head ${head.toFixed(3)} ≤ underside ${under}`);
-      assert.ok(head > under - 0.01, 'and the jump does reach it');
-      assert.ok(P.grounded && Math.abs(P.y) < 1e-6, 'lands back on the ground');
-    } else assert.ok(head > under + 1.5, `flag off reproduces the defect (head ${(head - under).toFixed(2)} m into the slab)`);
-  }
+  const { ctx, edge, z, under } = scene('feraligatr');
+  const P = ctx.player, tall = partnerHeight(P.species, ctx.rules);
+  P.x = P.px = edge + 3; P.z = P.pz = z; P.y = P.py = 0; P.vy = 0; P.grounded = true;
+  let head = -Infinity;
+  for (let t = 0; t < 90; t++) { step(ctx, { ...NO_INPUT, jump: t === 0 }); head = Math.max(head, P.y + tall); }
+  assert.ok(head <= under + HEAD_EPS, `head ${head.toFixed(3)} ≤ underside ${under}`);
+  assert.ok(head > under - 0.01, 'and the jump does reach it');
+  assert.ok(P.grounded && Math.abs(P.y) < 1e-6, 'lands back on the ground');
 });
 
 test('headroom: walking at a 2.4 m deck, Onix (2.59 m) stops at the edge while Feraligatr (2.25 m) walks under; neither ends a tick in the slab', () => {
@@ -159,17 +144,12 @@ test('headroom: every narrow body the sim can field fits under the lowest deck g
   assert.ok(bodyOf(SPECIES_BY_ID.onix, R.size).height > 2.4 && bodyOf(SPECIES_BY_ID.feraligatr, R.size).height < 2.4);
 });
 
-// xlTall (docs/SIZING.md "Giants", size-extremes-plan xlTall): with xlContinuous on too, an Extra Large body's height is
-// its drawn size × (class height ÷ class visual), and headroom reads it like any other height
-// (all three flags are the defaults since the size-extremes flip; each set below pins every flag explicitly)
-const OFF = { size: { axis: false, xlContinuous: false, xlTall: false } };
-const TALL = { size: { axis: false, xlContinuous: true, xlTall: true } };
-const GIANTS = { size: { axis: true, xlContinuous: true, xlTall: true } };
-const FLAG_SETS: [string, object | undefined][] = [['defaults', undefined], ['off', OFF], ['axis', { size: { axis: true, xlContinuous: false, xlTall: false } }], ['xl', { size: { axis: false, xlContinuous: true, xlTall: false } }], ['tall', TALL], ['giants', GIANTS]];
+// tall giants (docs/SIZING.md "Giants"): an Extra Large body's height is its drawn size × (class height ÷ class visual),
+// and headroom reads it like any other height
 
-test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and stops at the edge once it is as tall as drawn', () => {
-  const at = (sp: string, rules?: object) => {
-    const { ctx, W, edge, z } = scene(sp, rules, 3.3);
+test('headroom (tall giants): at a 2.7 m gap Onix, as tall as drawn, stops at the edge and Feraligatr walks under', () => {
+  const at = (sp: string) => {
+    const { ctx, W, edge, z } = scene(sp, undefined, 3.3);
     const P = ctx.player, tall = partnerHeight(P.species, ctx.rules), foot = partnerFootprint(P.species, ctx.rules);
     P.x = P.px = edge - 3; P.z = P.pz = z; P.y = P.py = 0; P.grounded = true;
     for (let t = 0; t < 120; t++) {
@@ -178,23 +158,20 @@ test('headroom (xlTall): at a 2.7 m gap Onix walks under at the class height and
     }
     return { tall, inside: P.x > edge + 1.5, outside: P.x < edge };
   };
-  const base = at('onix', OFF), giants = at('onix', GIANTS), tall = at('onix', TALL), gator = at('feraligatr', GIANTS);
-  assert.ok(base.tall < 2.7 && base.inside, `Onix at ${base.tall.toFixed(2)} m walks under`);
-  assert.ok(giants.tall > 2.7 && giants.outside, `Onix at ${giants.tall.toFixed(2)} m (all three flags) stops`);
-  assert.ok(tall.tall > giants.tall && tall.outside, `Onix at ${tall.tall.toFixed(2)} m (no axis) stops`);
+  const giants = at('onix'), gator = at('feraligatr');
+  assert.ok(giants.tall > 2.7 && giants.outside, `Onix at ${giants.tall.toFixed(2)} m stops`);
   assert.ok(gator.tall < 2.7 && gator.inside, `Feraligatr at ${gator.tall.toFixed(2)} m walks under`);
   // a wild Onix carries the same height in its hit window (E.tall) and its spawn fit
-  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: GIANTS as never });
+  const ctx = createRun({ seed: 1, species: 'totodile' });
   const e = spawnEnemy(ctx, 'onix', ctx.player.x + 6, ctx.player.z);
   assert.equal(ctx.enemies.tall[e], Math.fround(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules)), 'E.tall (float32)');
   assert.equal(enemyHeight(SPECIES_BY_ID.onix, 1, ctx.rules), giants.tall);
-  assert.equal(at('onix').tall, giants.tall, 'the defaults are all three flags');
 });
 
-test('headroom: no narrow body is taller than the lowest deck gap under any size flag set (S1, xlTall)', () => {
+test('headroom: no narrow body is taller than the lowest deck gap (S1, tall giants)', () => {
   const gap = CLEARANCE - DECK_SLAB;
-  for (const [name, over] of FLAG_SETS) {
-    const R = createRun({ seed: 1, species: 'totodile', ruleOverrides: over as never }).rules, roles = R.enemy.roles;
+  {
+    const R = defaultRules, roles = R.enemy.roles;
     const bad: string[] = [];
     for (const sp of SPECIES) {
       if (sp.flying) continue;
@@ -205,6 +182,6 @@ test('headroom: no narrow body is taller than the lowest deck gap under any size
       const pf = partnerFootprint(sp, R);
       if (!navWide(pf, R) && partnerHeight(sp, R) > gap) bad.push(`${sp.id} as partner: ${partnerHeight(sp, R).toFixed(2)} m`);
     }
-    assert.deepEqual(bad, [], name);
+    assert.deepEqual(bad, []);
   }
 });

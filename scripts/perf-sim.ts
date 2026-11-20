@@ -1,4 +1,4 @@
-// Headless sim cost per tick at a given crowd size: `npx tsx scripts/perf-sim.ts [target=500] [--repeat N] [--gate] [--caps-off] [--aim]`.
+// Headless sim cost per tick at a given crowd size: `npx tsx scripts/perf-sim.ts [target=500] [--repeat N] [--gate] [--aim]`.
 // `--aim` adds a chase-camera crosshair ray to the bot's input (scripts/lib/aimbot.ts), so the direct shots fly the
 // spatial path (sim/aim.ts, 3D swept shots): the integrated cost of Phase 2B under a full crowd.
 // The crowd is scripts/lib/crowd.ts (chase walkers kept at the target on the spawn ring; Q21 as amended 2026-11-20:
@@ -12,20 +12,18 @@
 import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { withAim } from './lib/aimbot';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { assertRunning } from './lib/ended';
 import { crowd } from './lib/crowd';
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
 const repeat = Math.max(1, Number(process.argv[process.argv.indexOf('--repeat') + 1]) || 1);
-const capsOff = process.argv.includes('--caps-off');
 const aimed = process.argv.includes('--aim');
 const raw: number[] = [], best: number[] = [];
 let coated = 0, coatSamples = 0;
 for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 3]] as [string, number][]) {
   let mins: Float64Array | null = null, mask: Uint8Array | null = null;
   for (let r = 0; r < (process.argv.includes('--repeat') ? repeat : 1); r++) {
-    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: { ...(capsOff ? { caps: { enabled: false } } : {}), ...sizeOverride() } as never });
+    const ctx = createRun({ seed, species, mods: [crowd(target)] });
     const times: number[] = [], inBand: number[] = [];
     // keep the bot alive so the crowd can build
     while (ctx.time < 240) {
@@ -50,8 +48,7 @@ for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 
 }
 const pct = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return (p: number) => s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
 const line = (a: number[]) => { const q = pct(a); return `p50 ${q(0.5).toFixed(3)} ms  p95 ${q(0.95).toFixed(3)} ms  p99 ${q(0.99).toFixed(3)} ms  max ${q(1).toFixed(3)} ms`; };
-console.log(sizeLabel);
-console.log(`ticks sampled at ~${target} enemies: ${raw.length}${capsOff ? ' (capability layer off)' : ''}${aimed ? ' (spatial aim: crosshair ray on every input)' : ''}`);
+console.log(`ticks sampled at ~${target} enemies: ${raw.length}${aimed ? ' (spatial aim: crosshair ray on every input)' : ''}`);
 console.log(line(raw));
 const gateOn = repeat > 1 ? best : raw;
 if (repeat > 1) console.log(`min of ${repeat}: ${line(best)}`);

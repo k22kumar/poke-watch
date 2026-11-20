@@ -1,9 +1,10 @@
 // S3 giant checks in numbers (docs/size-extremes-plan.md §S3): headroom, targeting and terrain clipping, on the real sim
-// and World code, with rules.size.axis and xlContinuous on and off. Read-only: nothing here changes a rule or a file
+// and World code, under the default size rules (the measurement axis, continuous XL and tall giants, hard-wired since
+// pivot step 10; the off / on / tall comparison is on survivor-final). Read-only: nothing here changes a rule or a file
 // outside --out.
 //
 //   npx tsx scripts/sizegiants.ts --pack .capture/giants/giants.bonkpack.json \
-//     --measure-on .capture/out/size-giants-on.json --measure-off .capture/out/size-giants-off.json --out .capture/out
+//     --measure .capture/out/size-giants-on.json --out .capture/out
 //
 // --pack adds capture-only species (Wailord, Eternatus) to this process's SPECIES; they never reach content.
 // --measure-* are tools/sizecap.mjs results of the size-giants scenes: the drawn sizes the browser measured from the
@@ -62,18 +63,10 @@ const measure = (f?: string) => {
   const r = JSON.parse(fs.readFileSync(f, 'utf8')).results as any[];
   return r.find((x) => x && !Array.isArray(x) && x.snorlax) as Record<string, any>;
 };
-// `tall` = `on` + rules.size.xlTall (the sim height follows the drawn size): it draws exactly as `on` (the renderer reads
-// no sim height), so it shares the `on` measurements
-const MON = measure(arg('--measure-on'));
-const M = { on: MON, off: measure(arg('--measure-off')), tall: MON };
-type V = 'off' | 'on' | 'tall';
-// every flag explicit: since the size-extremes default flip all three are on by default (`tall` = the defaults)
-const RULES: Record<V, Rules> = {
-  on: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true, xlTall: false } } as Rules,
-  tall: { ...defaultRules, size: { ...defaultRules.size, axis: true, xlContinuous: true, xlTall: true } } as Rules,
-  off: { ...defaultRules, size: { ...defaultRules.size, axis: false, xlContinuous: false, xlTall: false } } as Rules,
-};
-const VS = ['off', 'on', 'tall'] as const;
+const M = { on: measure(arg('--measure') ?? arg('--measure-on')) };
+type V = 'on';
+const RULES: Record<V, Rules> = { on: defaultRules };
+const VS = ['on'] as const;
 const f2 = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : String(n));
 const pct = (n: number) => `${(n * 100).toFixed(0)}%`;
 const out: string[] = [];
@@ -117,7 +110,8 @@ for (const id of GIANTS) for (const v of VS) {
 // ------------------------------------------------------------------ targeting
 /** a run on a private flat world with one frozen giant at the centre (as tests/spatial.test.ts `put`) */
 function targetScene(id: string, rules: Rules) {
-  const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { size: { axis: rules.size.axis, xlContinuous: rules.size.xlContinuous, xlTall: rules.size.xlTall } } });
+  void rules;
+  const ctx = createRun({ seed: 1, species: 'cyndaquil' });
   const W = new World(ctx.rules, BIOMES.meadow, 5), n = W.w * W.h, Mp = W.map;
   const map = { ...Mp, terrain: new Uint8Array(n), elev: new Float32Array(n), stairs: new Uint8Array(n), wall: new Uint8Array(n), platform: new Float32Array(n), over: new Float32Array(n), wlevel: undefined };
   Object.assign(W, { map, over: map.over, voids: new Uint8Array(n) });
@@ -129,11 +123,11 @@ function targetScene(id: string, rules: Rules) {
   return { ctx, e };
 }
 out.push('\n### Targeting (shots at the drawn sprite)\n');
-out.push('A horizontal shot from 10 m in front, through the drawn point, against the sim cylinder (`spatial.sweep`, enemies only). "ray" is a crosshair trace (radius 0); "bolt" a 0.3 m shot. `tall` = `on` + xlTall. Silhouette shares are of the idle frame\'s opaque texels, against the cylinder\'s side view: **height** = above the hurt window; **width** = inside the window\'s height but further than the radius from the centre line; **outside** = their sum.\n');
+out.push('A horizontal shot from 10 m in front, through the drawn point, against the sim cylinder (`spatial.sweep`, enemies only). "ray" is a crosshair trace (radius 0); "bolt" a 0.3 m shot. Silhouette shares are of the idle frame\'s opaque texels, against the cylinder\'s side view: **height** = above the hurt window; **width** = inside the window\'s height but further than the radius from the centre line; **outside** = their sum.\n');
 out.push('| | flags | hurt window | feet 0.15 m | middle | top (95% drawn) | wing (middle, 75% of half-width) | height (above window) | width (beside, within window) | outside |');
 out.push('|---|---|---|---|---|---|---|---:|---:|---:|');
 const contacts = new Contacts();
-const targets: Record<V, Record<string, any[]>> = { on: {}, off: {}, tall: {} };
+const targets: Record<V, Record<string, any[]>> = { on: {} };
 const silhouette: any[] = [];
 for (const id of GIANTS) for (const v of VS) {
   const m = M[v][id]; if (!m) continue;
@@ -165,7 +159,8 @@ for (const v of VS) fs.writeFileSync(path.join(OUT, `targets-${v}.json`), JSON.s
 function maps(rules: Rules): { name: string; W: World }[] {
   const res: { name: string; W: World }[] = [];
   for (const mode of ['authored', 'generated'] as const) {
-    const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { worldgen: { mode }, size: { axis: rules.size.axis, xlContinuous: rules.size.xlContinuous } } as never });
+    void rules;
+    const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { worldgen: { mode } } as never });
     for (let s = 0; s < 4; s++) { if (s > 0) startStage(ctx, s); res.push({ name: `${mode === 'authored' ? 'arena' : 'gen'}:${ctx.world.map.id}`, W: ctx.world }); }
   }
   return res;
@@ -206,7 +201,7 @@ out.push('Positions where the body stands clear (a 0.5 m grid: tile centres, edg
 out.push('| | flags | card | card width | in a wall | mean inside | past the edge | cliff (> 0.5 m) | max rise |');
 out.push('|---|---|---|---:|---:|---:|---:|---:|---:|');
 const clipRows: any[] = [];
-for (const v of ['off', 'on'] as const) {
+for (const v of VS) {
   const ms = maps(RULES[v]);
   for (const id of [REF, ...GIANTS]) {
     const sp = SPECIES_BY_ID[id], b = bodyOf(sp, RULES[v].size), h = enemyHeight(sp, 1, RULES[v]), m = M[v][id]; if (!m) continue;
@@ -217,7 +212,7 @@ for (const v of ['off', 'on'] as const) {
       out.push(`| ${sp.name} | ${v} | ${card} | ${f2(L + R)} | ${pct(tot.wall / tot.n)} | ${f2(tot.wall ? tot.wallLen / tot.wall : 0)} m | ${pct(tot.edge / tot.n)} | ${pct(tot.rise / tot.n)} | ${f2(tot.riseMax)} m |`);
     }
   }
-  if (v === 'off') out.push(`| | | maps: ${ms.map((m) => m.name).join(', ')} | | | | | | |`);
+  out.push(`| | | maps: ${ms.map((m) => m.name).join(', ')} | | | | | | |`);
 }
 
 // ------------------------------------------------------------------ camera framing (read-only: the rig at 90fc1b7)
@@ -227,7 +222,7 @@ out.push(`The rig frames the sprite's measured outline at its drawn scale (rende
 out.push('| | flags | outline top / drop / right (m) | drawn height | back | shoulder | shoulder capped | pivot | pivot / drawn height |');
 out.push('|---|---|---|---:|---:|---:|---|---:|---:|');
 const framing: any[] = [];
-for (const id of GIANTS) for (const v of ['off', 'on'] as const) {
+for (const id of GIANTS) for (const v of VS) {
   const m = M[v][id]; if (!m?.outline) continue;
   const o = m.outline, arm = chaseArm({ outline: o, height: m.height }), drawn = o.top + (o.drop ?? 0);
   const piv = chasePivotH(o.top, arm.back, arm.shoulder, elev0);

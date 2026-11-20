@@ -16,7 +16,7 @@ export type { SizeClassId, SizeClass, NeutralExtent, ExtentSource, SpeciesExtent
 //   height     vertical hit window in the sim
 //   body       movement footprint: the circle walls, faces and deck slabs stop (World.moveBody) and the navigation
 //              class it routes on. Per class with no tilt (passability is a property of the class); role sizes scale
-//              it up to rules.size.bodyCap. 0 with rules.size.geometry off (the old point collision).
+//              it up to rules.size.bodyCap.
 //
 // All three body values come from the same class row times one bounded tilt factor, so a Pokémon that is drawn
 // bigger is also hit, pushed and routed as bigger. Earlier this file ran a continuous curve (1.25·S^0.45 clamped
@@ -24,9 +24,9 @@ export type { SizeClassId, SizeClass, NeutralExtent, ExtentSource, SpeciesExtent
 // classes were ~25 % apart. Fixed class targets ×1.4 apart, with a ±8 % tilt, keep classes distinct and never
 // overlapping while an evolution inside one class still grows a little.
 //
-// Two flags, both off by default (docs/SIZING.md "Measurement axis", "Giants"): rules.size.axis reads a listed body
-// length (serpent and fish shapes, src/rules/shapes.ts) as lengthRise × itself; rules.size.xlContinuous lets the
-// Extra Large drawn core grow with the extent (xlVisual) while its sim body keeps the class row.
+// Giants (docs/SIZING.md "Measurement axis", "Giants"): a listed body length (serpent and fish shapes,
+// src/rules/shapes.ts) counts as lengthRise × itself, and an Extra Large body's drawn core grows with its extent
+// (xlVisual), its sim height with it; its radius and footprint keep the class row.
 //
 // Bosses keep their authored encounter scale (`SpeciesDef.scale`, drawn 2–3× by the renderer) and their sim body
 // stays the drawn one (radius from that drawn height), so the class rules never compound with it.
@@ -100,11 +100,10 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
     extentM: ext.m,
     extentSource: at >= 0 ? 'override' : ext.source,
     factor,
-    visualM: authored ? sp.height : C.id === 'xl' && size.xlContinuous ? xlVisual(ext.m, size) : C.visual * factor,
+    visualM: authored ? sp.height : C.id === 'xl' ? xlVisual(ext.m, size) : C.visual * factor,
     radius: authored ? legacyRadius(sp) : C.radius * factor,
-    // xlTall (with xlContinuous): an XL body is as tall as it is drawn, at the class's height-to-visual ratio. Otherwise
-    // the class height × tilt, unchanged (xlTall alone moves nothing)
-    height: authored ? sp.height : C.id === 'xl' && size.xlContinuous && size.xlTall ? xlVisual(ext.m, size) * (C.height / C.visual) : C.height * factor,
+    // an XL body is as tall as it is drawn, at the class's height-to-visual ratio; the others the class height × tilt
+    height: authored ? sp.height : C.id === 'xl' ? xlVisual(ext.m, size) * (C.height / C.visual) : C.height * factor,
     // an authored boss keeps its encounter-scale hurtbox; its footprint is capped like every role-scaled body
     body: authored ? Math.min(size.bodyCap, legacyRadius(sp)) : C.body,
     authored,
@@ -114,7 +113,7 @@ export function bodyOf(sp: SpeciesDef, size: SizeRules = defaultRules.size): Spe
 }
 
 /**
- * The drawn core of an Extra Large species with rules.size.xlContinuous on: min(xlVisualCap, xlFloor × (S / L) ^
+ * The drawn core of an Extra Large species: min(xlVisualCap, xlFloor × (S / L) ^
  * xlExponent), L the Large class's upper cut. It starts at today's lowest XL draw at the cut (an extent pinned into XL
  * from below draws the floor) and rises with the extent, so a 14.5 m Wailord stays visibly bigger than a 2.1 m Snorlax.
  */
@@ -123,41 +122,40 @@ export function xlVisual(extentM: number, size: SizeRules = defaultRules.size): 
   return Math.min(size.xlVisualCap, size.xlFloor * Math.max(1, extentM / cut) ** size.xlExponent);
 }
 
-/** A partner's collision and hurt radius: its class radius inside rules.size.playerRadius (or the shared legacy one). */
+/** A partner's collision and hurt radius: its class radius inside rules.size.playerRadius. */
 export function partnerRadius(sp: SpeciesDef, rules: Rules = defaultRules): number {
-  if (!rules.size.geometry) return rules.player.radius;
   const [lo, hi] = rules.size.playerRadius;
   return Math.min(hi, Math.max(lo, bodyOf(sp, rules.size).radius));
 }
 
-/** A partner's vertical hurt extent: its class height (1.2 m, the old fixed window, when size geometry is off). */
+/** A partner's vertical hurt extent: its class height. */
 export function partnerHeight(sp: SpeciesDef, rules: Rules = defaultRules): number {
-  return rules.size.geometry ? bodyOf(sp, rules.size).height : 1.2;
+  return bodyOf(sp, rules.size).height;
 }
 
 /** An enemy's collision radius at a role size multiplier (elite ×2, alpha ×3). */
 export function enemyRadius(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
-  return (rules.size.geometry ? bodyOf(sp, rules.size).radius : legacyRadius(sp)) * roleSize;
+  return bodyOf(sp, rules.size).radius * roleSize;
 }
 
 /** A partner's movement footprint: its class `body`, uncapped (an Extra Large partner is physically bigger than a Large
- *  one), or 0 (point collision) when size geometry is off. */
+ *  one). */
 export function partnerFootprint(sp: SpeciesDef, rules: Rules = defaultRules): number {
-  return rules.size.geometry ? bodyOf(sp, rules.size).body : 0;
+  return bodyOf(sp, rules.size).body;
 }
 
-/** An enemy's movement footprint at a role size: class `body` × role size up to rules.size.bodyCap (0 when size
- *  geometry is off). Bosses use role size 1 on their authored body. */
+/** An enemy's movement footprint at a role size: class `body` × role size up to rules.size.bodyCap. An authored body
+ *  uses role size 1. */
 export function footprintOf(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
-  return rules.size.geometry ? Math.min(rules.size.bodyCap, bodyOf(sp, rules.size).body * roleSize) : 0;
+  return Math.min(rules.size.bodyCap, bodyOf(sp, rules.size).body * roleSize);
 }
 
 /** Does a footprint route on the wide (2 × 2 block) navigation field? (rules.size.heavyRadius; docs/SIZING.md) */
 export const navWide = (foot: number, rules: Rules = defaultRules) => foot >= rules.size.heavyRadius;
 
-/** An enemy's vertical hit extent at a role size (the legacy rules used the role size itself as the height). */
+/** An enemy's vertical hit extent at a role size. */
 export function enemyHeight(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
-  return rules.size.geometry ? bodyOf(sp, rules.size).height * roleSize : roleSize;
+  return bodyOf(sp, rules.size).height * roleSize;
 }
 
 export interface SpeciesSizing extends SpeciesBody {

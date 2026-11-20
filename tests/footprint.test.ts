@@ -45,17 +45,13 @@ test('classes: a one-tile passage fits Tiny, Small and Medium bodies, not Large 
   assert.equal(footprintOf(SPECIES_BY_ID.heracross, 2), S.bodyCap);
   assert.equal(footprintOf(SPECIES_BY_ID.onix, 1), 0.88);
   assert.equal(partnerFootprint(SPECIES_BY_ID.feraligatr), 0.88, 'an Extra Large partner is not capped');
-  // the footprint is configured on its own: Medium's body is under its hurtbox, and geometry off is the point model
-  const off = { ...defaultRules, size: { ...S, geometry: false } };
-  assert.equal(footprintOf(SPECIES_BY_ID.onix, 1, off), 0);
-  assert.equal(partnerFootprint(SPECIES_BY_ID.feraligatr, off), 0);
 });
 
-// The point-collision half (size.geometry off, where the trainer slipped through) went with the hero speed band: its
-// slip depended on the old 8 m/s run-up, and the off-path itself is retired (docs/hero-shooter-pivot.md Q18).
+// The point-collision half (size.geometry off, where the trainer slipped through) went with the hero speed band and the
+// flag itself (docs/hero-shooter-pivot.md Q18).
 test('a diagonal pinhole (two walls touching at a corner) stops the trainer', () => {
-  for (const geometry of [true]) {
-    const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { size: { geometry } } as never });
+  {
+    const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile' });
     const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 10);
     const i = I + 5, j = J + 5;
     // row j walled left of column i, row j + 1 walled from column i: the two sides touch only at the corner (i, j + 1)
@@ -72,7 +68,7 @@ test('a diagonal pinhole (two walls touching at a corner) stops the trainer', ()
         crossed = P.z > corner[1] + 0.3 && P.x < corner[0];
       }
     });
-    assert.equal(crossed, !geometry, geometry ? 'the footprint cannot pass a zero-width gap' : 'the old point collision did');
+    assert.equal(crossed, false, 'the footprint cannot pass a zero-width gap');
   }
 });
 

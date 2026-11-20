@@ -36,7 +36,7 @@ export interface InputFrame {
    *  The fire buffer (rules.combat.fireBuffer, sim/moves.ts) reads only this field */
   press?: number;
   /** the third-person crosshair ray (the camera's lens and the unit direction through the crosshair, each through
-   *  Math.fround: render/hostframe.ts aimRayOf), or absent (fixed views, the bot). Under rules.aim.spatial the sim traces
+   *  Math.fround: render/hostframe.ts aimRayOf), or absent (fixed views, the bot). The sim traces
    *  it itself (sim/aim.ts) for the archetypes in rules.aim.archetypes (direct shots, beams); aimX/aimZ stay the planar
    *  point every other move reads */
   aim?: AimRay;

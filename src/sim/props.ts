@@ -66,7 +66,7 @@ export class PropField {
   }
 }
 
-const on = (ctx: SimContext) => ctx.rules.surfaces.enabled && !!ctx.world.propField;
+const on = (ctx: SimContext) => !!ctx.world.propField;
 
 function footprint(ctx: SimContext, i: number, f: (k: number) => void) {
   const p = ctx.world.map.props[i], W = ctx.world.w;

@@ -56,7 +56,7 @@ export function faint(ctx: SimContext): boolean {
   }
   if (next < 0) {
     // the death recap: which rules decided the last few seconds (blueprint section 10)
-    if (ctx.rules.caps.enabled) ctx.recap = buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds);
+    ctx.recap = buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds);
     ctx.events.push({ t: 'faint', species: m.species.id, out: true });
     ctx.state = 'dead';
     ctx.stateTimer = ctx.rules.sim.deathSlowmoSeconds;

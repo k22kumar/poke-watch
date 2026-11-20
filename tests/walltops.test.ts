@@ -40,8 +40,6 @@ class ImageDataShim {
 
 type V3 = [number, number, number];
 const EPS = 0.01;
-const TOPS_OFF: DeepPartial<Rules> = { world: { wallTops: false } };
-const OFF_RULES = { ...defaultRules, world: { ...defaultRules.world, wallTops: false } } as Rules;
 /** every wall prop kind: the kinds R1b gives a top */
 const WALL_KINDS = (Object.keys(PROP_RULES) as ArenaPropKind[]).filter((k) => PROP_RULES[k].wall);
 
@@ -70,7 +68,7 @@ function raise(W: World, i0: number, j0: number, w: number, h: number, e: number
  *  any query reads them */
 function retop(W: World) {
   for (let k = 0; k < W.w * W.h; k++) W.setBlock(k, W.map.wall[k], W.map.platform[k]);
-  if (W.wallTop) W.wallTop.set(wallTopsOf(W.map));
+  W.wallTop.set(wallTopsOf(W.map));
 }
 
 function speciesOf(cls: string): string {
@@ -133,7 +131,6 @@ test('wall tops: wallTopsOf puts a prop\'s top on its footing, keeps a cliff til
   assert.equal(T[K(W, 61, 40)], 4, 'the cliff tile: its ground (4 m), not the lower prop top');
   assert.equal(T[K(W, 70, 70)], Infinity, 'a bare wall: infinite');
   assert.equal(T[K(W, 10, 10)], Infinity, 'open ground: infinite (never read off a wall)');
-  assert.equal(flatWorld(OFF_RULES).wallTop, null, 'flag off: no wall tops at all');
 });
 
 // ------------------------------------------------------------------------------------------------ one height, every reader (G4)
@@ -196,19 +193,6 @@ test('wall tops (G4): a level line at each size class\'s muzzle height clears ex
   assert.deepEqual(fires('thicket'), ['xl']);
   assert.deepEqual(fires('crystal'), ['xl']);
   assert.deepEqual(fires('boulder'), [], 'no class fires level over a boulder (Extra Large 1.44 < 1.60)');
-});
-
-test('wall tops: with the flag off every reader keeps every wall infinite (the older layers)', () => {
-  const { W, sites, lens } = gallery(TOPS_OFF);
-  assert.equal(W.wallTop, null);
-  for (const { kind, i, j, base } of sites) {
-    const R = PROP_RULES[kind], x = C(W, i), z = C(W, j + R.h - 1), y = base + R.top! + 0.5;
-    assert.equal(W.collides(x, z, y, 0, undefined, true), true, `${kind}: body, even with the permission`);
-    assert.equal(segmentClear(W, x - 2, y, z, x + 2 + R.w, y, z, MASK.los, QF.tops), false, `${kind}: shot, even with QF.tops`);
-    // (no tile has a top with the flag off, so the lens cannot tell a prop from rock: every wall stops it, at any height)
-    assert.equal(lens(x, base + 2.39, z), true, `${kind}: the lens is stopped by every wall`);
-    assert.equal(lens(x, base + 50, z), true);
-  }
 });
 
 // ------------------------------------------------------------------------------------------------ bodies (G5 – G8)
@@ -436,7 +420,6 @@ test('wall tops (G11): a shot clears low cover only where its own line clears th
     { what: 'Small, up at a flier 4 m over the far side of a boulder', species: speciesOf('small'), cover: 'boulder', hover: 4, clears: true },
     { what: 'Medium, at a flier 1.5 m up behind a 2.75 m tree (through the trunk)', species: speciesOf('medium'), cover: 'tree', hover: 1.5, clears: false },
     { what: 'Medium, at a flier 6 m up behind a 2.75 m tree (over the canopy)', species: speciesOf('medium'), cover: 'tree', hover: 6, clears: true },
-    { what: 'flag off: Extra Large, level, at the fence', species: speciesOf('xl'), cover: 'fence', hover: 0, rules: TOPS_OFF, clears: false },
   ];
   for (const c of cases) {
     const { ctx, W, coverZ, top } = range({ species: c.species, move: 'ember', cover: c.cover, rules: c.rules });
@@ -447,15 +430,14 @@ test('wall tops (G11): a shot clears low cover only where its own line clears th
     assert.ok(cast && cast.o, `${c.what}: a spatial cast`);
     const y = lineAt(cast!, coverZ), hits = ev.filter((v) => v.t === 'hit' && v.enemy === e).length;
     const muzzle = cast!.o!.o[1];
-    if (c.rules === undefined) assert.equal(y > top, c.clears, `${c.what}: the line is at ${y.toFixed(2)} m at the cover's face (top ${top} m, muzzle ${muzzle.toFixed(2)} m)`);
+    assert.equal(y > top, c.clears, `${c.what}: the line is at ${y.toFixed(2)} m at the cover's face (top ${top} m, muzzle ${muzzle.toFixed(2)} m)`);
     assert.equal(hits > 0, c.clears, `${c.what}: ${hits} hits (line ${y.toFixed(2)} m vs top ${top} m)`);
     if (!c.clears) {
       const end = ev.find((v): v is EndEv => v.t === 'shotEnd');
       assert.ok(end && end.why === 'world', `${c.what}: the shot ends on the cover`);
       assert.ok(Math.abs(end!.z - coverZ) < 0.6, `${c.what}: at the cover's face (z ${(end!.z - coverZ).toFixed(2)})`);
-      // with tops the cover stopped it below its top; with the flag off the infinite wall stopped it above the top
-      if (c.rules === undefined) assert.ok(end!.y < top + 1e-6, `${c.what}: below the top (y ${end!.y.toFixed(2)})`);
-      else assert.ok(end!.y > top, `${c.what}: the infinite wall stopped a shot ${(end!.y - top).toFixed(2)} m over the top`);
+      // the cover stopped it below its top
+      assert.ok(end!.y < top + 1e-6, `${c.what}: below the top (y ${end!.y.toFixed(2)})`);
     }
     void W;
   }
@@ -477,10 +459,9 @@ test('wall tops (G11): a beam passes over a fence it clears and stops on the fir
   }
 });
 
-test('wall tops: combatFlags opts every player attack trace in with the flag, and out without it', () => {
-  const on = createRun({ seed: 1, species: 'cyndaquil' }), off = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: TOPS_OFF });
+test('wall tops: combatFlags opts every player attack trace in', () => {
+  const on = createRun({ seed: 1, species: 'cyndaquil' });
   assert.equal(combatFlags(on) & QF.tops, QF.tops);
-  assert.equal(combatFlags(off) & QF.tops, 0);
   assert.equal(combatFlags(on) & QF.foliage, QF.foliage, 'the foliage policy is unchanged');
   void SK; void partnerHeight;
 });

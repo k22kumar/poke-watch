@@ -24,7 +24,7 @@ function effectOnBody(ctx: SimContext, b: number, slot: number, dmg: number, ele
   const s = sourceSpec(ctx, slot);
   if (s) moveOnBody(ctx, b, s, dmg, dx, dz, slot);
   else {
-    if ((push || hold) && ctx.rules.caps.enabled && ctx.bodies.alive[b] && ctx.bodies.hitCd[b] <= ctx.time) {
+    if ((push || hold) && ctx.bodies.alive[b] && ctx.bodies.hitCd[b] <= ctx.time) {
       ctx.bodies.hitCd[b] = ctx.time + 0.2;
       setSrc(slot === TAG_SLOT ? 'tag' : 'shot', slot === TAG_SLOT ? 'Tag Action' : 'deflected shot');
       forceOnBody(ctx, b, push, hold, dx, dz, slot);
@@ -38,10 +38,10 @@ import { aimDir } from './moves';
 function deflectShot(ctx: SimContext, i: number) {
   const Pr = ctx.projectiles, P = ctx.player;
   const [ux, uz] = aimDir(ctx, Pr.x[i] - P.x, Pr.z[i] - P.z, -Pr.vx[i], -Pr.vz[i]);
-  if (ctx.rules.caps.enabled) {
+  {
     setSrc('player', P.species.name);
     const r = rec(ctx, 'deflect', 'ok');
-    if (r) { r.power = guardWeight(ctx); r.weight = Pr.weight[i]; r.tgt = 'shot'; r.tgtName = Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : 'shot'; r.x = Pr.x[i]; r.z = Pr.z[i]; }
+    r.power = guardWeight(ctx); r.weight = Pr.weight[i]; r.tgt = 'shot'; r.tgtName = Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : 'shot'; r.x = Pr.x[i]; r.z = Pr.z[i];
   }
   launchShot(ctx, i, ux, uz);
   P.guardHit = true;

@@ -80,7 +80,7 @@ test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode 
   // the factory caches by (biome, seed, version): a second World on the same seed shares the base arrays
   assert.equal(regionMap(GEN, 'meadow', 5, SPECIES).terrain, g1.map.terrain);
   // only listed biomes are generated
-  const bad = new World({ ...rules, worldgen: GEN, surfaces: { ...rules.surfaces, enabled: false } }, BIOMES.badlands, 5);
+  const bad = new World({ ...rules, worldgen: GEN }, BIOMES.badlands, 5);
   assert.equal(bad.map, getArena('badlands'));
 });
 

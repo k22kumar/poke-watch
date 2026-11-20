@@ -14,7 +14,7 @@ import { clamp } from '../core/util';
 import type { Objective, ObjectiveKind, SimContext } from './types';
 import { holdOfferTime, holdPoint, holdTick, spawnRaidParty } from './modes/hold';
 
-/** an open walkable point (r..R m from the player) with room around it; with size geometry on, one the partner's own
+/** an open walkable point (r..R m from the player) with room around it, one the partner's own
  *  navigation class reaches (a Large or Extra Large partner never gets an objective behind a one-tile neck) */
 function site(ctx: SimContext, rMin: number, rMax: number, fromX = ctx.player.x, fromZ = ctx.player.z): [number, number] {
   const W = ctx.world, b = W.bound - 4, pf = partnerFootprint(ctx.player.species, ctx.rules), wide = pf > 0 && navWide(pf, ctx.rules);

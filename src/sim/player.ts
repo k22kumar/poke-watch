@@ -93,9 +93,9 @@ export const playerSystem = {
     it.mx = mx; it.mz = mz; it.jump = inp.jump; it.jumpPressed = inp.jumpPressed; it.my = inp.my;
     // climbing out of a liquid
     t.stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight;
-    // headroom (rules.size.headroom, docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller
-    // than the gap under a deck does not walk (or jump) in under it. Undefined = heads pass through slabs, as before
-    t.tall = W.headroom && W.over ? partnerHeight(P.species, ctx.rules) : undefined;
+    // headroom (docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller than the gap under a
+    // deck does not walk (or jump) in under it. Undefined on a map with no decks
+    t.tall = W.over ? partnerHeight(P.species, ctx.rules) : undefined;
     t.foot = partnerFootprint(P.species, ctx.rules);
     t.wide = navWide(t.foot, ctx.rules);
     t.canJump = canJump;

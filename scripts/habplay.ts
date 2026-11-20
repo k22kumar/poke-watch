@@ -17,7 +17,6 @@ import { ROLE } from '../src/sim/pools';
 import { shoreFor, ventPhase } from '../src/sim/hazards';
 import { partnerFootprint } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { RANGE } from '../src/mods';
 import { runEnded } from './lib/ended';
@@ -140,7 +139,7 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
   const routes = opts.route === 'direct' ? ['direct'] : opts.route === 'flank' ? ['flank'] : ['direct', 'flank'];
   let first: number[] | null = null;
   for (const which of routes) {
-    const ctx = createRun({ mode: opts.enemies ? undefined : RANGE, seed: 1, species: 'totodile', mods: opts.enemies ? [crowd(80)] : [], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, ...sizeOverride(), ...(opts.rules ?? {}) } as never });
+    const ctx = createRun({ mode: opts.enemies ? undefined : RANGE, seed: 1, species: 'totodile', mods: opts.enemies ? [crowd(80)] : [], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, ...(opts.rules ?? {}) } as never });
     const W = ctx.world, H = W.hab!, n = W.w * W.h, m = W.map;
     const res: PlayResult = { recipe, seed, route: which, reach: null, held: false, holdT: null, back: null, stalls: 0, hp: 0, note: '', raidAt: null, dmg: 0, hazardHits: 0, ventSeconds: 0, trainerHits: 0, raiderHits: 0 };
     ctx.hooks.onTick.push((c) => { for (const e of c.events) {
@@ -190,7 +189,6 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
 }
 
 if (process.argv[1]?.endsWith('habplay.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), first = Number(process.argv[4] ?? 1);
   const enemies = process.argv.includes('--enemies'), raid = process.argv.includes('--raid');
   const ri = process.argv.indexOf('--route'), route = (ri > 0 ? process.argv[ri + 1] : 'both') as 'direct' | 'flank' | 'both';
