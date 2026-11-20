@@ -570,7 +570,9 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 | 3 Frozen habitat profiles | `914b86b` | done |
 | 4 Salvage | `9b08b67` | done |
 | 5 Test lines | `f0b0c9b` | done |
-| 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed in the step-6 commit | done, two open findings below |
+| 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed `d3d65b9` | done, two open findings below |
+| 7 Match foundation | `3321d90` | done (docs/RANGE.md) |
+| 8 Baseline | `9b313b5` (infrastructure) | stopped: `PROTOTYPE` draft and `tests/fixtures/replays.json` await the owner (Q35) |
 
 Open findings (owner to decide; neither limit nor harness changed):
 
