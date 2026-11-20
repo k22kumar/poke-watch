@@ -91,6 +91,15 @@ export const HERO_KITS: Record<string, Partial<HeroKit>> = {
   tauros: { e: 'wrap' },
 };
 
+/** Kits the rule gets wrong, logged for the kit-tuning pass and not fixed yet: the fix is a HERO_KITS entry. Each note
+ *  names the rule's pick (heroKit with fillE) and why it is wrong. tests/heroes.test.ts keeps the log honest: every id
+ *  is a PROTOTYPE hero with no HERO_KITS entry yet. */
+export const KIT_TUNING: Record<string, string> = {
+  bagon: 'primary Ember (Fire, special 40), Q Rage, E Bite: a Fire primary on a Dragon (its first level-up move), while Shelgon opens on Bite',
+  graveler: 'primary Bide (Normal, power 0), Q Defense Curl, E Rock Polish: a power-0 primary, and Q and E are both status',
+  golem: 'primary Bide (Normal, power 0), Q Defense Curl, E Heavy Slam (power 0, weight-based in canon): two power-0 damage slots',
+};
+
 /** a species' level-up moves in canonical order (its official level-up list, earliest level first, status moves
  *  included), else its game learnset */
 export function canonicalLearnset(sp: SpeciesDef): string[] {

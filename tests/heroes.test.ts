@@ -1,7 +1,7 @@
 // Heroes (src/rules/heroes.ts, docs/hero-shooter-pivot.md §10): the prototype's exclusions and the test lines.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FEATURED, NEEDS_ABILITY_RULE, NEEDS_ABILITY_RULE_REASON, PROTOTYPE } from '../src/rules/heroes';
+import { FEATURED, HERO_KITS, KIT_TUNING, NEEDS_ABILITY_RULE, NEEDS_ABILITY_RULE_REASON, PROTOTYPE, heroKit } from '../src/rules/heroes';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { SPECIES_OVERRIDES, isRecruitable } from '../src/rules/profiles';
 import { controlReadiness } from '../src/sim/playability';
@@ -52,4 +52,13 @@ test('a branching species is left unlinked by the content build (how a Breakthro
   // a single-next-form wild species is linked, with no evolveLevel (only a Breakthrough evolves it)
   assert.equal(SPECIES_BY_ID.onix.evolvesTo, 'steelix');
   assert.equal(SPECIES_BY_ID.onix.evolveLevel, undefined);
+});
+
+test('the kit-tuning log names prototype heroes still on the rule, with the primary it records', () => {
+  for (const [id, note] of Object.entries(KIT_TUNING)) {
+    assert.ok(PROTOTYPE.includes(id), `${id} is a PROTOTYPE hero`);
+    assert.equal(HERO_KITS[id], undefined, `${id} has a HERO_KITS fix: drop it from KIT_TUNING`);
+    const k = heroKit(SPECIES_BY_ID[id], { fillE: true });
+    assert.ok(note.toLowerCase().startsWith('primary ' + k.primary!.replace(/_/g, ' ')), `${id}: the note records primary ${k.primary}`);
+  }
 });
