@@ -21,9 +21,7 @@ import { ROLE } from './pools';
 import type { Beat, SimContext } from './types';
 import { dcos, dsin } from '../core/detmath';
 import { habitatSpawnFactor, traversalOf } from '../rules/profiles';
-import { canSpawnOn } from '../rules/spawning';
-import { enemyHeight, footprintOf, navWide } from '../rules/sizing';
-import { DIAG_R } from '../world/navblocks';
+import { allowedAt } from './placement';
 
 export function freshBeat(): Beat {
   return { phase: 'build', t: 0, dur: 40, intensity: 0, hot: 0, dmgRecent: 0, dmgSeen: 0, peaks: 0, objectives: 0 };
@@ -144,27 +142,6 @@ function weatherTick(ctx: SimContext) {
     else if (el === 'blaze' && C.isGrass(t) && ctx.rng.world.next() < 0.35) applyAgent(ctx, 'heat', x, z, 0.6);
     else if (el === 'frost' && (C.isWater(t) || C.state[t] === CS.wet)) applyAgent(ctx, 'cold', x, z, 0.8);
   }
-}
-
-/** the habitat under the tile a species would actually stand on at (x, z): spawnEnemy snaps a ground spawn off a wall
- *  or out of water to the nearest walkable tile, so compatibility is judged there (flyers hover where they appear) */
-function standAt(ctx: SimContext, id: string, x: number, z: number): [number, number] {
-  const W = ctx.world;
-  const sp = SPECIES_BY_ID[id];
-  if ((sp && !traversalOf(sp, ctx.rules).groundNav) || W.walkable(x, z)) return [x, z];
-  return W.nearestWalkable(x, z);
-}
-/** compatibility at (x, z): the species' habitat restrictions, and (size geometry on) room for a ground body whose
- *  footprint at this role size (elite ×2, alpha ×3) routes on the wide field — it may not appear in a one-tile pocket or
- *  at an entrance only small bodies fit (docs/SIZING.md "Navigation classes") */
-function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize = 1): boolean {
-  const [sx, sz] = standAt(ctx, id, x, z), W = ctx.world;
-  if (!canSpawnOn(id, W.habitatAt(sx, sz))) return false;
-  const sp = SPECIES_BY_ID[id];
-  const foot = ctx.rules.size.geometry && sp && traversalOf(sp, ctx.rules).groundNav ? footprintOf(sp, roleSize, ctx.rules) : 0;
-  // headroom: a body taller than a deck's gap does not route under it, so it is judged on its own height's field
-  if (foot > 0 && navWide(foot, ctx.rules) && !W.wideReached(sx, sz, foot < DIAG_R, undefined, enemyHeight(sp, roleSize, ctx.rules))) return false;
-  return true;
 }
 
 /**

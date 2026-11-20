@@ -23,7 +23,8 @@ import { spawnBody, tpl } from './bodies';
 import { compositionsFor, forcePeak, spawnComposition } from './director';
 import { ringPoint, spawnEnemy } from './enemies';
 import { ROLE } from './pools';
-import { lineage, openOffer, recomputeMember } from './progression';
+import { openOffer, recomputeMember } from './progression';
+import { lineage } from '../rules/heroes';
 import { queueVariant } from './squad';
 import type { Objective, ObjectiveKind, SimContext } from './types';
 

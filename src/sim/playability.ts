@@ -15,7 +15,7 @@ import { SPECIES, type SpeciesDef } from '../rules/species';
 import { bodyOf } from '../rules/sizing';
 import { tagLineOf } from '../rules/tags';
 import { ARCHETYPES, compileMove } from './moves';
-import { lineage, openingMove } from './progression';
+import { lineage, openingMove } from '../rules/heroes';
 
 export type ControlTier = 'ready' | 'partial' | 'unavailable';
 

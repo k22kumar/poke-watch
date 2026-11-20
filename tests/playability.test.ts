@@ -7,7 +7,7 @@ import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { spawnEnemy } from '../src/sim/enemies';
 import { controlReadiness, controlRoster, selectableSpecies, type ReadinessCheck } from '../src/sim/playability';
-import { firstAttacks, openingMove } from '../src/sim/progression';
+import { firstAttacks, openingMove } from '../src/rules/heroes';
 import { SPECIES, SPECIES_BY_ID, starterEligibleSpecies } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { defaultRules } from '../src/rules/defaults';

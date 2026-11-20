@@ -22,7 +22,8 @@ import { TECHNIQUES, TECHNIQUE_BY_ID, TECH_BIT, TRANSFORMS_OF, TRANSFORM_BY_ID, 
 import type { Rules } from '../rules/defaults';
 import { compileMove } from './moves';
 import { healPlayer } from './combat';
-import { learnsetOf, lineage, recomputeMember } from './progression';
+import { recomputeMember } from './progression';
+import { learnsetOf, lineage } from '../rules/heroes';
 import { queueVariant } from './squad';
 import { logTech } from './techniques';
 import type { Card, Member, MoveSlot, MoveSpec, SimContext } from './types';

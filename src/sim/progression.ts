@@ -6,6 +6,7 @@ import { ELEMENT_DEFS } from '../rules/elements';
 import { MOVE_BY_KEY, MOVES } from '../rules/moves';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { defaultRules, type Rules } from '../rules/defaults';
+import { learnsetOf, lineage } from '../rules/heroes';
 import { healPlayer } from './combat';
 import { compileMove } from './moves';
 import { addMember, queueVariant, recruitCards, variantCards, variantDue } from './squad';
@@ -45,42 +46,6 @@ export function recomputeMember(ctx: SimContext, P: Member) {
   const oldMax = P.maxHp;
   P.maxHp = d.maxHp;
   P.hp = oldMax > 0 ? Math.min(P.maxHp, P.hp + Math.max(0, P.maxHp - oldMax)) : P.maxHp * ratio;
-}
-
-/** a species' level-up moves: the curated partner set, else its cross-game level-up moves */
-export function learnsetOf(sp: SpeciesDef): [number, string][] {
-  if (sp.learnset?.length) return sp.learnset;
-  return (sp.canon?.levelUp ?? []).filter(([, k]) => MOVE_BY_KEY[k]);
-}
-
-/** All forms in this line (base first) so evolved creatures keep earlier learnsets. */
-export function lineage(sp: SpeciesDef): SpeciesDef[] {
-  const out = [sp];
-  let cur = sp;
-  for (;;) {
-    const pre = SPECIES.find((s) => s.evolvesTo === cur.id);
-    if (!pre) break;
-    out.unshift(pre);
-    cur = pre;
-  }
-  return out;
-}
-
-/** The first attacks of a Pokémon arriving at `level`: its earliest non-status level-up moves (the first becomes the
- *  basic attack), else any non-status move it learns. Recruits join with these (sim/squad.ts addMember). */
-export function firstAttacks(sp: SpeciesDef, level: number, count = 2): string[] {
-  const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
-  const out = [...new Set(keys)].slice(0, count);
-  if (!out.length) { const any = learnsetOf(sp).find(([, k]) => MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status'); if (any) out.push(any[1]); }
-  // a species that learns no damaging move (Cosmog) still has something to open with: the basic attack
-  if (!out.length && MOVE_BY_KEY[defaultRules.moves.fallbackAttack]) out.push(defaultRules.moves.fallbackAttack);
-  return out;
-}
-
-/** The move a run opens with: the species' curated starter, else its line's (an evolved partner picked directly),
- *  else its first attack, so any species can lead a run (docs/PLAYABILITY.md). */
-export function openingMove(sp: SpeciesDef): string | undefined {
-  return sp.starter ?? lineage(sp)[0].starter ?? firstAttacks(sp, 1, 1)[0];
 }
 
 function moveSlots(ctx: SimContext) {

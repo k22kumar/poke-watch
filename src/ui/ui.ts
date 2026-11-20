@@ -24,7 +24,7 @@ import type { Mode } from '../mods/types';
 import { ROLE } from '../sim/pools';
 import { compileMove, levelled, slotSpec } from '../sim/moves';
 import { pinchActive } from '../sim/combat';
-import { lineage } from '../sim/progression';
+import { lineage } from '../rules/heroes';
 import type { Card, SimContext } from '../sim/types';
 import { COAT_NAMES } from '../rules/reactions';
 import { tagLineOf } from '../rules/tags';
