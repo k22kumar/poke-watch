@@ -105,13 +105,12 @@ The survivor run's build layer (card offers, transforms, techniques, mastery, vi
 - **Creatures** stop at a lip by themselves but can be knocked over it. In a liquid they head for the shore, on the same clock. Required routes and the Raiders' paths never use liquids or chasms.
 - `rules.hazards.enabled: false` restores the earlier rules (`npx tsx scripts/checksum.ts hazards-off`). `npx tsx scripts/hazplay.ts` replays every case through the sim.
 
-## Roles, objectives and the beat director (phase 7)
+## Roles and the Hold (phase 7)
 
 `docs/ENCOUNTERS.md` has the rules, the numbers and what was measured.
 
 - **Enemy roles.** Bulwarks (shielded tanks) block shots aimed at their front; flank them, lob over them, or break the guard with a Fighting move, a hold or a big shove. Menders heal everything near them. Hexers keep their distance and drop a deep Wet, Heat, Cold or Charge puddle where you are heading after a 0.8 s warning. Raiders ignore you and go for the objective.
-- **Objectives**, two per region, each optional and timed: **Hold** the pad for 30 s (an item ball), **Hunt** the marked Pokémon before it reaches its Mender (it offers to join you), **Transport** the Egg to the goal by carrying it (walk into it; Guard, Dash or Tag drops it) or pushing it (an evolution, or a full heal). The objective panel sits under the timer; an arrow points to it when it is off screen.
-- **Beats.** Each region runs Build, Peak and Relax beats on top of the old difficulty curve. A Peak brings an objective, a composition (Wall and guns, Pack with a medic, Soak and strike, Hex ambush) or Rain or harsh Sun.
+- **Hold.** The Hold mode opens the point at the start of a habitat map: stand on it for 30 s while the Raid party comes from team B's staging (`src/sim/modes/hold.ts`). The survivor director's beats, waves and objective schedule were deleted at hero-shooter pivot step 9.
 
 ## Build
 

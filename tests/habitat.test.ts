@@ -9,7 +9,7 @@ import { defaultRules } from '../src/rules/defaults';
 import { createRun, step } from '../src/sim/run';
 import { applyAgent } from '../src/sim/cells';
 import { ventPhase } from '../src/sim/hazards';
-import { objectiveDue, startObjective } from '../src/sim/objectives';
+import { startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { generateHabitat, HabitatError, HABITATS, HAB_VERSION, profilesFor, findHabitat, CONTROL_POINT } from '../src/world/habitat';
 import { measuredProfileInputs, VALIDATED_PROFILES } from '../src/world/habitat/mode';
@@ -161,11 +161,7 @@ test('sim seam: the map loads through the normal entry point; the objective is a
   const H = ctx.world.hab!;
   assert.ok(H && ctx.world.los, 'habitat maps use the location rules (line of sight, drop navigation)');
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
-  // the schedule's first objective in region 1 is a Hold anyway; the second (a Hunt elsewhere) is a Hold here too
-  ctx.stageTime = ctx.rules.objectives.secondAfter + 1; ctx.beat.objectives = 1;
-  const due = objectiveDue(ctx);
-  assert.equal(due, 'hold', 'every objective on a habitat map is the shared control point');
-  assert.ok(startObjective(ctx, due!), 'an objective opened');
+  assert.ok(startObjective(ctx, 'hold'), 'an objective opened');
   assert.equal(ctx.objective!.kind, 'hold');
   assert.ok(Math.abs(ctx.objective!.x - (H.contest.x - ctx.world.half)) < 0.01 && Math.abs(ctx.objective!.z - (H.contest.y - ctx.world.half)) < 0.01, 'on the generated contest floor');
   // Raiders have a flow field to the point from team B's staging

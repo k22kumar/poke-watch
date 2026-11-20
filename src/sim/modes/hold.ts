@@ -7,7 +7,10 @@
 // src/sim/objectives.ts still schedules and finishes objectives (Hunt and Transport are survivor-only and go with the
 // loop); it calls these for everything Hold-specific. The HOLD Mode (src/mods) opens one at the start of a habitat map.
 import { clamp } from '../../core/util';
-import { compositionsFor, spawnComposition } from '../director';
+import { dcos, dhypot, dsin } from '../../core/detmath';
+import { COMPOSITIONS, resolve, type CompositionDef } from '../../rules/compositions';
+import { ringPoint, spawnEnemy } from '../enemies';
+import { allowedAt } from '../placement';
 import { ROLE } from '../pools';
 import type { Objective, SimContext } from '../types';
 
@@ -20,6 +23,46 @@ export function holdPoint(ctx: SimContext, site: () => [number, number]): [numbe
 /** how long the point is offered before it lapses: habitat maps add 30 s (the walk from staging A) */
 export function holdOfferTime(ctx: SimContext): number {
   return ctx.world.hab ? ctx.rules.objectives.offerTime + 30 : ctx.rules.objectives.offerTime;
+}
+
+// The composition spawner, moved here from the survivor director (deleted at pivot step 9); the Raid party is its only
+// user. It goes with the compositions (src/rules/compositions.ts), next in step 9.
+/** spawn one composition at a point on the spawn ring; returns the enemy slots */
+export function spawnComposition(ctx: SimContext, def: CompositionDef, near?: [number, number]): number[] {
+  const table = ctx.spawnTable;
+  const jobs = resolve(def, table);
+  if (!jobs) return [];
+  const [rMin, rMax] = ctx.rules.enemy.spawnRadius;
+  const [cx, cz] = near ?? ringPoint(ctx, rMin, rMax);
+  const P = ctx.player, R = ctx.rules.roles;
+  // toward the player: the wall stands in front, the guns behind it
+  const dx = P.x - cx, dz = P.z - cz, L = dhypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+  const out: number[] = [];
+  def.members.forEach((m, k) => {
+    const can = jobs[k];
+    for (let c = 0; c < m.count; c++) {
+      const sp = ctx.rng.spawn.pick(can);
+      const front = m.roles & ROLE.shielder ? 2.2 : m.job === 'ranged' || m.job === 'mender' || m.job === 'hexer' ? -1.6 : 0;
+      const a = ctx.rng.spawn.range(0, Math.PI * 2), r = ctx.rng.spawn.range(0, 1.8);
+      const b = ctx.world.bound;
+      const x = clamp(cx + ux * front + dsin(a) * r, -b, b), z = clamp(cz + uz * front + dcos(a) * r, -b, b);
+      // the first region's Bulwark is a plain tank with a shield; from the second region on it is an elite
+      const roles = ctx.stage === 0 ? m.roles & ~ROLE.elite : m.roles;
+      // compatibility: a member that may not stand here is left out (the group still comes)
+      if (!allowedAt(ctx, sp.id, x, z, roles & ROLE.elite ? ctx.rules.enemy.roles.elite.size : 1)) { ctx.events.push({ t: 'spawnSkipped', species: sp.id, reason: 'restricted habitat', x, z }); continue; }
+      const i = spawnEnemy(ctx, sp.id, x, z, roles);
+      if (i < 0) continue;
+      if (m.roles & ROLE.raider) { ctx.enemies.speed[i] *= R.raiderSpeed; ctx.enemies.hp[i] *= R.raiderHp; ctx.enemies.maxHp[i] *= R.raiderHp; }
+      out.push(i);
+    }
+  });
+  return out;
+}
+
+/** compositions this region can field, for a peak or for an objective */
+export function compositionsFor(ctx: SimContext, when: 'peak' | 'objective'): CompositionDef[] {
+  const table = ctx.spawnTable;
+  return COMPOSITIONS.filter((c) => c.when === when && resolve(c, table));
 }
 
 /** the Raid party: a composition that comes for the point, from team B's staging on habitat maps */

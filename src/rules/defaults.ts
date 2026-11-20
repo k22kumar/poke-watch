@@ -173,8 +173,6 @@ export const defaultRules = {
   },
   enemy: {
     cap: 2200, // [C] pool capacity
-    liveCap: 900, // [C] quality presets 500 / 900 / 1400
-    governor: { window: 2, dropTo: 0.82, raiseBy: 50, targetFps: 50 }, // [C]
     /** [D] health = heroHealth(HP) (the canon curve, rules/stats.ts) × this behaviour's multiplier × role (Q20); no difficulty term (the survivor modes that set one go, Q48). All 1
      *  until the kit-tuning pass: the survivor formula had no behaviour term either */
     behaviourHp: { chase: 1, charger: 1, ranged: 1, tank: 1, healer: 1, swarm: 1 } as Record<string, number>,
@@ -291,13 +289,6 @@ export const defaultRules = {
      *  size-extremes flip; false, or xlContinuous off = the class height × tilt, as before (bit for bit) */
     xlTall: true,
   },
-  director: {
-    spawnBase: 1.0, spawnPerMin: 0.9, spawnPerStage: 0.6, // [B] spawns per second
-    capBase: 120, capPerMin: 130, // [B] live-enemy cap ramps up over the stage (min with enemy.liveCap)
-    eliteEvery: 40, // [B] s
-    swarmEvery: 55, swarmSize: [14, 26], // [B] ring swarms
-    alphaAt: 210, // [B] s into stage
-  },
   damage: {
     playerMult: 2.0, // [B] global player damage scale (original player damage formula is unknown)
     stab: 1.25, // [C]
@@ -351,7 +342,6 @@ export const defaultRules = {
   } as Record<string, ArchetypeTemplate>,
   stage: {
     count: 4, // [I] stages per region
-    finalSwarmAt: 480, // [B] s (if the boss is still alive the swarm begins)
   },
   // Aimed combat (blueprint section 4). Every slot casts while its button is held (hold repeats on cooldown):
   // slot 0, the basic attack, is primary fire; slots 1-3 are Move A, Move B and the Signature. Dash and Guard share
@@ -399,18 +389,8 @@ export const defaultRules = {
     menderHeal: 0.12, menderEvery: 3.2, menderRadius: 5,
   },
   objectives: {
-    enabled: true, // false = v8 pacing: no objectives, the alpha at 3:30
     offerTime: 45, // s to engage before an objective lapses
-    firstAfter: 90, secondAfter: 200, // s into the stage before the first and second objective can open
     hold: { radius: 5, time: 30, drain: 0.015, limit: 60 }, // drain: charge lost per Raider on the pad per s (4 out-drain you)
-  },
-  beats: {
-    enabled: true,
-    build: [35, 45], peak: [20, 30], relax: [10, 15], // s ranges
-    rate: { build: [0.75, 1.15], peak: 1.3, relax: 0.3 }, // spawn-rate multipliers (build ramps)
-    hotIntensity: 0.85, hotTime: 5, // a peak ends early once intensity has stayed this high this long
-    weatherChance: 0.3, weatherTime: 30, // share of non-objective peaks that bring Rain or Sun, and how long
-    compositionsAfter: 75, // s into a stage before a Peak may send a composition (early Peaks are just busier)
   },
   // [B] squad and Tag (blueprint section 6): three Pokémon, one on the field. Tag (Q / Y) swaps the field
   // Pokémon and the incoming one fires its Tag Action. Benched Pokémon rest: cooldowns keep ticking, grey

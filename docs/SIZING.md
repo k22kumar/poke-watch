@@ -87,7 +87,7 @@ Heights with all three flags on (`axis`, `xlContinuous`, `xlTall`, the defaults)
 | Spatial beam contact (Phase 2C) | enemy cylinder `E.y .. E.y + E.tall` × `E.radius` (class × role) met by the beam's half-width, up and sideways | `src/sim/moves.ts` (`beam3D`) through `src/sim/spatial.ts` `sweep` |
 | Wall and terrain collision | footprint (`footprintOf`, `partnerFootprint`) | `World.moveBody`, read by `player.ts`, `enemies.ts`, `bodies.ts` (resting-body contact) |
 | Headroom under decks (R1) | sim height: partner `partnerHeight`, enemy `E.tall` (class height × tilt × role size) | `World.collides` / `moveBody` / `fits` / `nearestFit`, `World.headroomAt` (jump clamp in `player.ts`), wide fields per height class (`World.wideDir`, `wideGoalDir`, `wideReached`), `director.ts` spawn gate |
-| Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
+| Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/placement.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
 | Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
 | Third-person camera framing (2026-11-18) | `visualM` sets the boom (one law, `CHASE_CONFIG.frame`) and so the shoulder offset; class height × 0.8 sets the pivot | `src/render/chaseinput.ts` (`chaseSubject`), `src/render/camera.ts` (`chaseBoom`, `chasePivot`); `docs/THIRD_PERSON.md` "Size" |
@@ -178,7 +178,7 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
 - **Routing.** The wide fields come in height classes. Each wide block knows its lowest gap under a deck; the distinct
   gaps of the map are the class steps, and a body's class is how many of them it is taller than. The fields for class
   *c* leave out the blocks whose gap is one of the *c* lowest. So a body routes under a deck it fits and round one it does
-  not, and the director's spawn gate (`allowedAt`) and placement (`nearestFit`) judge reach the same way. Maps without
+  not, and the spawn gate (`allowedAt`, `src/sim/placement.ts`) and placement (`nearestFit`) judge reach the same way. Maps without
   decks, and bodies that fit every gap, have one class (0), which is the field from before.
 - **The ordinary field has no height classes.** That is sound while no narrow body (footprint under `heavyRadius`) is
   taller than the lowest gap the generators allow. `tests/headroom.test.ts` asserts it for every species and role size.

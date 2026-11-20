@@ -4,9 +4,9 @@
 // (baseline walking, no jump), triggers the Hold objective on the generated point, holds it to completion, then
 // retreats to its staging. With --route both (default) it does this once along each of the side's two approaches
 // (the second run is forced to keep away from the first route). Prints arrival times, Hold result and any stall.
-// Default: geometry only (the director spawns nothing and the Hold's raid party is removed). --raid: the raid party
+// Default: geometry only (no crowd, and the Hold's raid party is removed). --raid: the raid party
 // leaves team B's staging and walks to the point (the trainer cannot be hurt; pass = a Raider reached the point, so
-// team B's approaches work in the sim). --enemies: everything live; the trainer only moves and holds (it does not fight).
+// team B's approaches work in the sim). --enemies: a chasing crowd of 80 (scripts/lib/crowd.ts) and the raid party; the trainer only moves and holds (it does not fight).
 import { createRun, step } from '../src/sim/run';
 import { startObjective } from '../src/sim/objectives';
 import { HABITATS } from '../src/world/habitat';
@@ -21,6 +21,7 @@ import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { RANGE } from '../src/mods';
 import { runEnded } from './lib/ended';
+import { crowd } from './lib/crowd';
 export interface PlayResult { recipe: string; seed: number; route: string; reach: number | null; held: boolean; holdT: number | null; back: number | null; stalls: number; hp: number; note: string; raidAt: number | null;
   /** damage the trainer took from everything (a stampede can arrive) and environment hits (vent ticks, cold dunks, burning or charged tiles) on anyone: none on required travel */
   dmg: number; hazardHits: number; ventSeconds: number;
@@ -139,7 +140,7 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
   const routes = opts.route === 'direct' ? ['direct'] : opts.route === 'flank' ? ['flank'] : ['direct', 'flank'];
   let first: number[] | null = null;
   for (const which of routes) {
-    const ctx = createRun({ mode: opts.enemies ? undefined : RANGE, seed: 1, species: 'totodile', ruleOverrides: { objectives: { firstAfter: 1e9, secondAfter: 1e9 }, worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, ...sizeOverride(), ...(opts.rules ?? {}) } as never });
+    const ctx = createRun({ mode: opts.enemies ? undefined : RANGE, seed: 1, species: 'totodile', mods: opts.enemies ? [crowd(80)] : [], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, ...sizeOverride(), ...(opts.rules ?? {}) } as never });
     const W = ctx.world, H = W.hab!, n = W.w * W.h, m = W.map;
     const res: PlayResult = { recipe, seed, route: which, reach: null, held: false, holdT: null, back: null, stalls: 0, hp: 0, note: '', raidAt: null, dmg: 0, hazardHits: 0, ventSeconds: 0, trainerHits: 0, raiderHits: 0 };
     ctx.hooks.onTick.push((c) => { for (const e of c.events) {

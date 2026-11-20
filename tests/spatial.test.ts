@@ -21,6 +21,7 @@ import { freshAimState, NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import { runEnded as ended } from '../scripts/lib/ended';
+import { crowd } from '../scripts/lib/crowd';
 import {
   CF, Contacts, MASK, QF, RayHit, SK, SK_ACTOR, SK_WORLD, overlapCylinder, overlapSector, raycastWorld, segmentClear,
   mapExposureClear, solidAt, spatialQuery, sweep, sweepTo,
@@ -622,7 +623,7 @@ test('exact against dense sampling, and World.sight compared, on 10 000 segments
 // ------------------------------------------------------------------------------------------------ tick state and broad phase
 
 test('live crowd: the grid broad phase never misses what a brute-force pass finds; enemies stay inside gridSlack', () => {
-  const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 12, spawnPerMin: 6, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
+  const ctx = createRun({ seed: 2, species: 'cyndaquil', mods: [crowd(330)] });
   // a buffer past any ray's crowd: a full one would cut the sweep short of the brute-force list
   const E = ctx.enemies, rng = new Rng(11), out = new Contacts(512), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
   let maxMove = 0, compared = 0, contacts = 0, peak = 0;
@@ -659,38 +660,9 @@ test('live crowd: the grid broad phase never misses what a brute-force pass find
   assert.ok(maxMove < ctx.rules.spatial.gridSlack, `per-tick movement ${maxMove} within gridSlack`);
 });
 
-test('live strays (Phase 2B): an enemy relocated or added after the grid rebuild is still met where it is', () => {
-  // the probe after each step: the grid is this tick's rebuild (before enemySystem moved anyone) and the positions are
-  // this tick's, which is what every query inside the tick sees. Each live enemy out of its spawn guard is probed with a
-  // short vertical sweep through its centre; a widened grid.query around it shows what a plain grid reader would get
-  const ctx = createRun({ seed: 5, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 14, spawnPerMin: 8, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
-  const E = ctx.enemies, out = new Contacts(256), q = spatialQuery({ mask: SK.enemy, pierce: Infinity });
-  let probes = 0, gridMiss = 0, ticksWithStrays = 0, far = 0;
-  while (ctx.time < 60 && !ended(ctx)) {
-    ctx.player.hp = ctx.player.maxHp;
-    step(ctx, botInput(ctx));
-    let strays = 0;
-    for (let e = 0; e < E.hi; e++) {
-      if (!E.alive[e] || E.spawnT[e] < ctx.rules.spatial.spawnGuard) continue;
-      const x = E.x[e], z = E.z[e], y = E.y[e] + E.tall[e] / 2;
-      sweep(ctx, x, y + 1, z, 0, -1, 0, 2, q, out);
-      assert.ok([...out.id.subarray(0, out.n)].includes(e), `tick ${ctx.tick}: enemy ${e} at (${x.toFixed(1)}, ${z.toFixed(1)}) not met`);
-      probes++;
-      const n = ctx.grid.query(x, z, E.radius[e] + ctx.rules.spatial.gridSlack);
-      let inGrid = false;
-      for (let k = 0; k < n && !inGrid; k++) inGrid = ctx.grid.result[k] === e;
-      if (!inGrid) { gridMiss++; strays++; if (Math.hypot(x - ctx.player.x, z - ctx.player.z) > 20) far++; }
-    }
-    if (strays) ticksWithStrays++;
-  }
-  console.log(`strays: ${probes} probes, all met; a plain grid.query missed ${gridMiss} (on ${ticksWithStrays} ticks, ${far} of them relocated onto the ring ahead of the trainer)`);
-  assert.ok(probes > 50000);
-  assert.ok(gridMiss > 0, 'the run relocates enemies (otherwise this test proves nothing)');
-});
-
 test('determinism: repeated replays, another grid cell size and an in-use grid.result give identical contacts', () => {
   const build = () => {
-    const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'mt-moon' } }, director: { spawnBase: 12, spawnPerMin: 6, capBase: 200, capPerMin: 0 }, enemy: { liveCap: 200 } } as never });
+    const ctx = createRun({ seed: 3, species: 'totodile', mods: [crowd(200)], ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'mt-moon' } } } as never });
     while (ctx.time < 40 && !ended(ctx)) { ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
     return ctx;
   };

@@ -58,7 +58,6 @@ interface Scene { ctx: SimContext; W: World; P: V3 }
 /** the partner at the centre of tile (50, 50) facing +z, its only move an Ice Beam (range 15, half-width 0.9, pierce all) */
 function scene(opts: { species?: string; rules?: DeepPartial<Rules>; move?: string; edit?: (W: World) => void } = {}): Scene {
   const ctx = createRun({ seed: 1, species: opts.species ?? 'cyndaquil', ruleOverrides: opts.rules });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld();
   opts.edit?.(W);
   ctx.world = W;

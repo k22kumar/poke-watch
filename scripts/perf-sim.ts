@@ -1,8 +1,9 @@
 // Headless sim cost per tick at a given crowd size: `npx tsx scripts/perf-sim.ts [target=500] [--repeat N] [--gate] [--caps-off] [--aim]`.
 // `--aim` adds a chase-camera crosshair ray to the bot's input (scripts/lib/aimbot.ts), so the direct shots fly the
 // spatial path (sim/aim.ts, 3D swept shots): the integrated cost of Phase 2B under a full crowd.
-// Spawns are boosted and the player is made unkillable so the crowd builds, then tick times are
-// sampled while the live count sits within ±10% of the target.
+// The crowd is scripts/lib/crowd.ts (chase walkers kept at the target on the spawn ring; Q21 as amended 2026-11-20:
+// not training targets, which skip the flow-field chase the co-op wave will pay for). The player is made unkillable,
+// then tick times are sampled while the live count sits within ±10% of the target.
 //
 // `--repeat N` replays every run N times and keeps, for each tick, the fastest of the N timings. The runs are
 // deterministic, so tick i does the same work each time: the minimum strips scheduler and GC noise, which on a
@@ -14,6 +15,7 @@ import { withAim } from './lib/aimbot';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { assertRunning } from './lib/ended';
+import { crowd } from './lib/crowd';
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
 const repeat = Math.max(1, Number(process.argv[process.argv.indexOf('--repeat') + 1]) || 1);
 const capsOff = process.argv.includes('--caps-off');
@@ -23,7 +25,7 @@ let coated = 0, coatSamples = 0;
 for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 3]] as [string, number][]) {
   let mins: Float64Array | null = null, mask: Uint8Array | null = null;
   for (let r = 0; r < (process.argv.includes('--repeat') ? repeat : 1); r++) {
-    const ctx = createRun({ seed, species, ruleOverrides: { director: { spawnBase: 12, spawnPerMin: 6, capBase: target * 1.1, capPerMin: 0 }, enemy: { liveCap: Math.round(target * 1.1) }, ...(capsOff ? { caps: { enabled: false } } : {}), ...sizeOverride() } as never });
+    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: { ...(capsOff ? { caps: { enabled: false } } : {}), ...sizeOverride() } as never });
     const times: number[] = [], inBand: number[] = [];
     // keep the bot alive so the crowd can build
     while (ctx.time < 240) {

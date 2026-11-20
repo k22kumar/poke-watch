@@ -23,8 +23,6 @@ import { defaultRules } from './rules/defaults';
 import { runSizeRules } from './rules/sizing';
 import { addMember } from './sim/squad';
 import { startObjective } from './sim/objectives';
-import { spawnComposition } from './sim/director';
-import { COMPOSITIONS } from './rules/compositions';
 import { createRun, startStage, step } from './sim/run';
 import { artMetrics } from './render/metrics';
 import { LOCATIONS } from './world/locations';
@@ -61,7 +59,7 @@ let paused = false;
 let acc = 0;
 let hitstop = 0;
 let lastFrame = performance.now();
-let fps = 60, fpsAcc = 0, fpsN = 0, govT = 0, govGood = 0;
+let fps = 60, fpsAcc = 0, fpsN = 0;
 let god = false;
 const perf = { sim: 0, render: 0 };
 const autoplay = params.has('autoplay');
@@ -275,7 +273,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
-      case 'finalSwarm': ui.banner('FINAL SWARM', 'They keep getting tougher…', 2.5); break;
       case 'swarm': ui.banner('Stampede!', '', 1.2); break;
       case 'chest': audio.chest(); break;
       case 'dash': audio.dash(); break;
@@ -312,7 +309,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         else if (e.phase === 'flood') { ui.banner('High water', 'The lower hall is flooded · the gallery and the tunnel stay dry', 2); audio.impact('tide', true, 1); }
         else ui.banner('Low water', 'The lower hall is dry again: the short way to the point', 1.8);
         break;
-      case 'weatherEvent': ui.banner(e.kind === 'rain' ? 'It started to rain!' : 'The sunlight turned harsh!', e.kind === 'rain' ? 'Water soaks the ground · Fire weakens' : 'Fire is stronger · the grass may catch', 2.2); break;
       case 'block': audio.guard(); break;
       case 'hazard':
         if (e.who === 'player') {
@@ -429,16 +425,6 @@ function frame(now: number) {
   }, acc, c.dt, Math.max(5, Math.ceil(speed * 5)), simulate);
   if (fr.aborted) return;
   acc = fr.acc;
-  if (simulate) {
-    // performance governor [C]: every 2 s, adapt the live enemy cap to frame rate
-    govT += real;
-    const G = c.rules.enemy.governor;
-    if (govT > G.window && !autoplay) {
-      govT = 0;
-      if (fps < G.targetFps && c.enemies.count > 200) { c.director.liveCap = Math.max(200, Math.floor(c.enemies.count * G.dropTo)); govGood = 0; }
-      else if (++govGood >= 3) c.director.liveCap = Math.min(c.rules.enemy.liveCap, c.director.liveCap + G.raiseBy);
-    }
-  }
   if (c.player.breakT <= 0) ui.show('overlay-evolve', false);
   const tSim1 = performance.now();
   const alpha = Math.max(0, Math.min(1, acc / c.dt));
@@ -558,8 +544,7 @@ async function boot() {
       const L = loadInfo(H);
       return { map: ctx!.world.map.id, recipe: L.source, kind: L.kind, requestedSeed: L.requested, loadedSeed: L.loaded, version: L.version, attempts: L.attempts, checksum: mapSum.toString(16), replay: L.replay, layoutOnly: L.layout, fallback: H.fallback, gates: H.gates.map((x) => `${x.ok ? 'ok ' : 'FAIL'} ${x.id}: ${x.value}`), metrics: H.metrics, repairs: H.repairs, rejections: H.rejections, optional: H.optional, approaches: H.approaches };
     },
-    metrics: () => (ctx ? artMetrics(renderer, ctx) : null),
-    composition: (id: string) => { const d = COMPOSITIONS.find((c) => c.id === id); return ctx && d ? spawnComposition(ctx, d) : []; } };
+    metrics: () => (ctx ? artMetrics(renderer, ctx) : null) };
   await renderer.loadArt(ART as unknown as ArtBundle, (f) => ui.loading(f * 0.6));
   console.info(`[boot] Pokémon loaded at ${Math.round(performance.now())} ms`);
   // paint the first region now; the others are painted in the background (see below)
@@ -576,7 +561,6 @@ async function boot() {
     if (params.has('stage') && ctx) { startStage(ctx, Number(params.get('stage'))); renderer.setStage(ctx); audio.setBiome(ctx.world.biome); }
     if (params.has('stageTime') && ctx) { const t = Number(params.get('stageTime')); (ctx as SimContext).stageTime = t; (ctx as SimContext).time = t; }
     if (params.has('tp') && ctx) { const [tx, ty] = params.get('tp')!.split(',').map(Number); const c = ctx as SimContext; const h = c.world.half; c.player.x = c.player.px = tx - h + 0.5; c.player.z = c.player.pz = ty - h + 0.5; c.player.y = c.player.py = c.world.height(c.player.x, c.player.z); renderer.setStage(c); }
-    if (params.has('calm') && ctx) (ctx as SimContext).rules.director.spawnBase = -99;
     // squad=mareep,geodude: recruits join at once, at squad level (testing)
     if (params.has('squad') && ctx) { for (const id of params.get('squad')!.split(',')) addMember(ctx, id); }
   } else { ui.title(); audio.titleMusic(); }

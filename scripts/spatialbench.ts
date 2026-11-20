@@ -18,6 +18,7 @@ import { Contacts, MASK, RayHit, SK, overlapCylinder, overlapSector, raycastWorl
 import type { SimContext } from '../src/sim/types';
 
 import { assertRunning } from './lib/ended';
+import { crowd as chasers } from './lib/crowd';
 setFlagsFromString('--expose_gc');
 /** a full collection before each measured loop, so one that runs inside it is the loop's own */
 const fullGc = runInNewContext('gc') as () => void;
@@ -26,9 +27,9 @@ const obs = new PerformanceObserver((list) => { gcs += list.getEntries().length;
 obs.observe({ entryTypes: ['gc'] });
 
 function crowd(world: 'mt-moon' | 'meadow', target: number): SimContext {
-  const overrides: Record<string, unknown> = { director: { spawnBase: 12, spawnPerMin: 6, capBase: target * 1.1, capPerMin: 0 }, enemy: { liveCap: Math.round(target * 1.1) } };
+  const overrides: Record<string, unknown> = {};
   if (world === 'mt-moon') overrides.worldgen = { mode: 'generated', locations: { meadow: 'mt-moon' } };
-  const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: overrides as never });
+  const ctx = createRun({ seed: 2, species: 'cyndaquil', mods: [chasers(target)], ruleOverrides: overrides as never });
   while (ctx.enemies.count < target * 0.95 && ctx.time < 400) { assertRunning(ctx, 'spatialbench'); ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
   return ctx;
 }

@@ -567,7 +567,7 @@ export class UI {
     H.hpText.textContent = `${Math.ceil(P.hp)}/${Math.round(P.maxHp)}`;
     H.timer.textContent = fmtTime(ctx.stageTime);
     const biome = BIOMES[STAGES[ctx.stage % STAGES.length].biome];
-    H.stage.textContent = ctx.director.finalSwarm ? 'Final swarm' : ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
+    H.stage.textContent = ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
     H.kills.textContent = `${ctx.stats.kills.toLocaleString()} KOs`;
     H.live.textContent = `${ctx.enemies.count} wild`;
 
@@ -970,8 +970,7 @@ export class UI {
     el.append(h('div', { style: 'font-weight:700;font-size:15px' }, 'Tuning (live rules)'), h('div', { class: 'sub2' }, 'Edits apply to this run immediately. Defaults live in src/rules/defaults.ts.'));
     const groups: [string, [string, number, number, number][]][] = [
       ['Player', [['hero.topSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
-      ['Enemies', [['enemy.liveCap', 50, 2200, 10], ['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5], ['mode.difficulty', 0.2, 4, 0.05]]],
-      ['Director', [['director.spawnBase', 0, 10, 0.1], ['director.spawnPerMin', 0, 6, 0.1], ['director.eliteEvery', 5, 120, 1], ['stage.bossAt', 10, 900, 5]]],
+      ['Enemies', [['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5], ['mode.difficulty', 0.2, 4, 0.05]]],
       ['Progression', [['xp.base', 1, 40, 0.5], ['xp.linear', 0, 15, 0.1], ['xp.exponent', 1, 2.6, 0.02], ['damage.critChance', 0, 1, 0.01], ['damage.stab', 1, 3, 0.05]]],
       ['Feel', [['sim.hitstopScale', 0, 1, 0.01], ['feel.hitstopPlayerHurt', 0, 0.5, 0.01], ['camera.lead', 0, 4, 0.1]]],
     ];
@@ -982,7 +981,7 @@ export class UI {
       for (const [path, min, max, step] of rows) {
         const val = h('span', {}, String(get(path)));
         const inp = h('input', { type: 'range', min, max, step, value: get(path), 'aria-label': path }) as HTMLInputElement;
-        inp.oninput = () => { set(path, Number(inp.value)); val.textContent = inp.value; if (path === 'enemy.liveCap' && T.ctx) T.ctx.director.liveCap = Number(inp.value); };
+        inp.oninput = () => { set(path, Number(inp.value)); val.textContent = inp.value; };
         el.append(h('div', { class: 'row' }, h('span', {}, path.split('.')[1]), inp, val));
       }
     }

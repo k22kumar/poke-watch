@@ -1,5 +1,6 @@
 // Movement deadlock watch over live runs (docs/SIZING.md "Checking it"): the autoplay bot (src/sim/bot.ts, the playable
-// AI) on every habitat recipe and location, everything live (spawns, swarms, elites, objectives, Hold Raid parties).
+// AI) on every habitat recipe and location, against a chasing crowd of 120 (scripts/lib/crowd.ts; the survivor director
+// was deleted at pivot step 9).
 //   npx tsx scripts/stuckwatch.ts [recipe|location|all] [seeds] [seconds] [firstSeed]
 // A stuck episode is 5 s with less than 0.5 m of net movement while the actor is trying to move:
 //   player  the bot asks to move (|input| > 0.5); `pinned` when it also walked under 2 m in those 5 s (against geometry
@@ -25,6 +26,7 @@ import { safeIn } from '../src/sim/hazards';
 import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
+import { crowd } from './lib/crowd';
 
 export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
 
@@ -104,7 +106,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
 }
 
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
-  const ctx: SimContext = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...sizeOverride(), ...extra } as never });
+  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...sizeOverride(), ...extra } as never });
   const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;

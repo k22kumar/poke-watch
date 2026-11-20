@@ -19,15 +19,16 @@ import { Rng } from '../src/core/rng';
 import type { SimContext } from '../src/sim/types';
 
 import { assertRunning } from './lib/ended';
+import { crowd as chasers } from './lib/crowd';
 setFlagsFromString('--expose_gc');
 const fullGc = runInNewContext('gc') as () => void;
 let gcs = 0;
 new PerformanceObserver((list) => { gcs += list.getEntries().length; }).observe({ entryTypes: ['gc'] });
 
 function crowd(world: 'mt-moon' | 'meadow', target: number): SimContext {
-  const overrides: Record<string, unknown> = { director: { spawnBase: 12, spawnPerMin: 6, capBase: target * 1.1, capPerMin: 0 }, enemy: { liveCap: Math.round(target * 1.1) } };
+  const overrides: Record<string, unknown> = {};
   if (world === 'mt-moon') overrides.worldgen = { mode: 'generated', locations: { meadow: 'mt-moon' } };
-  const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: overrides as never });
+  const ctx = createRun({ seed: 2, species: 'cyndaquil', mods: [chasers(target)], ruleOverrides: overrides as never });
   while (ctx.enemies.count < target * 0.95 && ctx.time < 400) { assertRunning(ctx, 'shotbench'); ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
   const E = ctx.enemies;
   for (let i = 0; i < E.hi; i++) if (E.alive[i]) { E.maxHp[i] = 1e12; E.hp[i] = 1e12; }

@@ -58,7 +58,6 @@ interface Scene { ctx: SimContext; W: World; P: V3 }
 /** a run on a private flat world, the partner at the centre of tile (50, 50) facing +z, its only move an Ember (a bolt) */
 function scene(opts: { species?: string; los?: boolean; rules?: DeepPartial<Rules>; move?: string } = {}): Scene {
   const ctx = createRun({ seed: 1, species: opts.species ?? 'cyndaquil', ruleOverrides: opts.rules });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld(opts.los ?? true);
   ctx.world = W;
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear(); ctx.zones.clear();

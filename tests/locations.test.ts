@@ -192,36 +192,6 @@ test('line of sight: walls and cliff lips stop enemy shots on location maps; aut
   assert.ok(found, 'a tree between two open tiles exists');
 });
 
-test('every location plays two minutes with the bot: enemies spawn from anchors, never stand in walls, reach the fight', () => {
-  for (const id of IDS) {
-    // basicNeedsTarget keeps the bot on the route this check was tuned on (it measures the map, not combat; the
-    // bot's path follows when its basic attack fires). Note: viridian-forest seed 8 leaves ~6% of enemies with no path.
-    // The seed was 6 until Joltik and Onix joined the roster: the spawn stream moved, and on seed 6 the bot now walks
-    // off a Chargestone Cave edge at 1:55 (a bot-pathing limit on chasm maps, not a map defect — the fall recap is the
-    // hazard rule working). Seed 3 passes every assertion below on all three locations.
-    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: id } }, hero: { health: 4000 }, combat: { basicNeedsTarget: true } } as never });
-    assert.equal(ctx.world.map.gen!.loc!.id, id);
-    let checked = 0, near = 0, stuck = 0;
-    while (ctx.time < 120 && ctx.state !== 'over') {
-      step(ctx, botInput(ctx));
-      if (ctx.tick % 60) continue;
-      const E = ctx.enemies, W = ctx.world, P = ctx.player;
-      for (let i = 0; i < E.hi; i++) {
-        if (!E.alive[i] || E.hover[i] !== 0) continue;
-        checked++;
-        assert.ok(!W.wallAt(E.x[i], E.z[i]), `${id}: enemy in a wall`);
-        if (Math.hypot(E.x[i] - P.x, E.z[i] - P.z) < 8) near++;
-        if (W.flowDist(E.x[i], E.z[i]) === Infinity) stuck++;
-      }
-    }
-    assert.notEqual(ctx.state, 'over', id);
-    // no KO floor since enemies took canon-curve health (pivot step 9): the bot's ~4x slower kills say nothing about the map
-    assert.ok(checked > 200, `${id}: spawning (${checked} enemy samples, ${ctx.stats.kills} KOs)`);
-    assert.ok(near > 20, `${id}: ground enemies reach the player`);
-    assert.ok(stuck / checked < 0.05, `${id}: enemies with no path ${stuck}/${checked}`);
-  }
-});
-
 // ---------------------------------------------------------------------------------------------------------------
 // Overhead decks (locgen/decks.ts; ArenaMap.over): shelves, underpasses and hollows — a second walkable layer
 // ---------------------------------------------------------------------------------------------------------------

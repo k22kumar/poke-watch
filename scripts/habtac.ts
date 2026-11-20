@@ -1,5 +1,5 @@
 // Tactical Hold evaluation on habitat maps, through the real sim: the real Hold objective, the real Raid party (spawned
-// at team B's staging when the Hold activates), the squad, and the director's ordinary horde. The trainer is driven by
+// at team B's staging when the Hold activates), the squad, and a chasing crowd of 120 (scripts/lib/crowd.ts; the survivor director's horde until pivot step 9). The trainer is driven by
 // a scripted controller (route following + the balance bot's move buttons, Tag and cards), so the numbers are
 // reproducible but they are NOT a human's: read them as "what a competent committed player would meet".
 //
@@ -25,6 +25,7 @@ import { pathBetween } from '../src/world/locgen/nav';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 import { RANGE, swap } from '../src/mods';
+import { crowd } from './lib/crowd';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const flag = (k: string) => process.argv.includes(k);
 
@@ -165,7 +166,7 @@ export function playHold(o: TacOpts): TacResult {
   const stage = o.stage ?? (isHab ? biomeStage(HABITATS[map].biomeFit[0]) : map === 'viridian-forest' ? biomeStage('meadow') : map === 'mt-moon' ? biomeStage('dusk') : 0);
   const horde = o.horde ?? true;
   const locations: Record<string, string> = map === 'classic' ? { meadow: '', dusk: '', badlands: '', frost: '' } : { meadow: map, dusk: map, badlands: map, frost: map };
-  const ctx = createRun({ mode: horde ? undefined : RANGE, mods: [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { objectives: { firstAfter: 1e9, secondAfter: 1e9 }, worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
+  const ctx = createRun({ mode: horde ? undefined : RANGE, mods: horde ? [swap, crowd(120)] : [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
   if (stage) startStage(ctx, stage);
   for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addMember(ctx, id);
   ctx.player.hp = ctx.player.maxHp;
@@ -190,7 +191,7 @@ export function playHold(o: TacOpts): TacResult {
   const dead = () => ctx.state === 'dead' || ctx.state === 'over';
   const tick = (inp: InputFrame) => { step(ctx, inp); };
 
-  // 1. warm-up: the squad holds its start, fighting what the director sends (the horde is part of the situation)
+  // 1. warm-up: the squad holds its start, fighting the crowd (the horde is part of the situation)
   const sx = P.x, sz = P.z, warm = o.warm ?? 100;
   while (ctx.time < warm && !dead()) tick(leash(ctx, sx, sz, 5));
   if (dead()) { res.hold = 'wiped'; res.note = 'wiped in warm-up'; return res; }

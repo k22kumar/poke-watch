@@ -12,6 +12,7 @@ import { generateRegion, GEN_VERSION } from '../src/world/gen';
 import { mapChecksum, regionMap } from '../src/world/maps';
 import { getArena } from '../src/world/arenas';
 import { T, PROP_RULES } from '../src/world/tiles';
+import { crowd } from '../scripts/lib/crowd';
 
 const SPECIES = ['rattata', 'ledyba', 'sandshrew', 'oddish', 'poliwag', 'mareep', 'heracross', 'geodude'];
 const GEN = { ...defaultRules.worldgen, mode: 'generated' as const, biomes: ['meadow'] };
@@ -86,7 +87,7 @@ test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode 
 test('a generated region plays two minutes for each archetype: no errors, enemies never inside walls or water', () => {
   const seen = new Set<string>();
   for (const seed of [1, 3, 9, 4, 2, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, hero: { health: 4000 } } as never });
+    const ctx = createRun({ seed, species: 'squirtle', mods: [crowd(60)], ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, hero: { health: 4000 } } as never });
     const arch = ctx.world.map.gen!.archetype;
     if (seen.has(arch)) continue;
     seen.add(arch);

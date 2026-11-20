@@ -253,7 +253,6 @@ test('wall tops (G5): a jumping player, a gliding one off a ledge and one on a t
   ];
   for (const c of cases) {
     const ctx = createRun({ seed: 1, species: c.species });
-    ctx.rules.director.spawnBase = -99;
     const { W, fenceZ, treeZ } = lane(true, ctx.rules);
     const zWall = c.target === 'fence' ? fenceZ : treeZ;
     const row = zWall + W.half;
@@ -386,7 +385,6 @@ type BeamEv = Extract<SimEvent, { t: 'beam' }>;
 /** a run on the lane world as `species` at x of the tree column, `dz` m south of the fence (or of the boulder), one move */
 function range(opts: { species: string; move: string; cover: 'fence' | 'boulder' | 'tree'; rules?: DeepPartial<Rules> }) {
   const ctx = createRun({ seed: 1, species: opts.species, ruleOverrides: { feel: { windup: { beam: 0 } }, ...(opts.rules ?? {}) } as never });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld(ctx.rules);
   const i = 50, j = 50;
   if (opts.cover === 'fence') for (let a = 40; a <= 60; a++) place(W, 'fence', a, j);

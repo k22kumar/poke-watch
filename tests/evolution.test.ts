@@ -49,7 +49,7 @@ test('the range Mode: holding Touch for holdTime is a free Breakthrough; a tap i
   assert.ok(a.player.breakT > 0, 'held long enough: a Breakthrough');
   steps(a, Math.round(a.rules.evolution.breakSeconds / a.dt) + 2);
   assert.equal(a.player.species.id, 'metapod');
-  const b = createRun({ seed: 1, species: 'caterpie', ruleOverrides: { director: { spawnBase: -99 } } as never });
+  const b = createRun({ seed: 1, species: 'caterpie' });
   hold(b, 1);
   assert.equal(b.player.breakT, 0, 'outside the range Mode Touch does not evolve (Candy prices come with growth)');
   // a non-evolver: a no-op until the burst dial is played

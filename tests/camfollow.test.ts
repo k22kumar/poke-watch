@@ -23,6 +23,7 @@ import { CHASE_CONFIG, ChaseRig, chaseArm, type ViewSample } from '../src/render
 const chaseBoom = (visual: number) => chaseArm({ height: visual, visual }).back;
 
 import { chaseFrameFor } from '../src/render/chaseinput';
+import { addCrowd } from '../scripts/lib/crowd';
 
 /** an authored world whose map is replaced by a private flat plain at height 0 (arrays copied: the base map is shared) */
 function flatWorld() {
@@ -35,7 +36,6 @@ function flatWorld() {
 }
 function scene(species: string) {
   const ctx = createRun({ seed: 1, species });
-  ctx.rules.director.spawnBase = -99;
   ctx.world = flatWorld();
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear(); ctx.zones.clear();
   const P = ctx.player;
@@ -173,7 +173,7 @@ test('other Pokémon never move the camera: a crowd and a boss arriving around a
 test('a fight on open ground never changes the framing: 20 s of bot combat moves the Pokémon, never the lens against it, the boom or the FOV', () => {
   for (const sp of ['cyndaquil', 'feraligatr']) {
     const ctx = scene(sp);
-    ctx.rules.director.spawnBase = 1.5; // the director spawns a stage-1 wave around the bot
+    addCrowd(ctx, 30); // a chasing crowd around the bot (scripts/lib/crowd.ts)
     const fr = drive(ctx, 60, 20, () => botInput(ctx));
     assert.ok(ctx.enemies.count > 5, `${sp}: enemies came (${ctx.enemies.count})`);
     // the lens offset against the Pokémon: only the stair smoothing of a landing may move it (the bot never jumps here)

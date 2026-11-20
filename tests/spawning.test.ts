@@ -142,60 +142,6 @@ test('all-wild makes every wild species eligible, so a new Pokémon needs no map
   }
 });
 
-test('a Water type is eligible on a dry map; only an explicit restriction keeps a species off a tile', () => {
-  // Poliwag prefers water but is eligible anywhere its pool lists it
-  assert.ok(ids(resolveSpawnTable(3)).includes('poliwag'));
-  const calm = (over: SpawnPoolDef) => createRun({ seed: 11, species: 'charmander', ruleOverrides: { spawning: { override: over }, director: { spawnBase: 30, spawnPerMin: 0, eliteEvery: 9999, swarmEvery: 9999 }, objectives: { enabled: false }, beats: { enabled: false } } as never });
-  const count = (ctx: ReturnType<typeof createRun>, secs: number) => {
-    const seen = new Map<string, number>();
-    let skipped = 0;
-    for (let i = 0; i < secs * 60; i++) for (const e of step(ctx, NONE)) {
-      if (e.t === 'spawnSkipped') skipped++;
-    }
-    for (let i = 0; i < ctx.enemies.hi; i++) if (ctx.enemies.alive[i]) { const id = ctx.speciesIndex[ctx.enemies.species[i]].id; seen.set(id, (seen.get(id) ?? 0) + 1); }
-    return { seen, skipped };
-  };
-  const a = count(calm({ only: ['poliwag'] }), 6);
-  assert.ok((a.seen.get('poliwag') ?? 0) > 0, 'Poliwag spawns on the authored meadow, which has no water preference');
-  assert.equal(a.skipped, 0);
-});
-
-test('a restricted species is never placed on a tile it may not use: the spawn is skipped and reported', () => {
-  // a synthetic species whose profile is resolved for the first time here, so its restriction is the one cached
-  const fake = { ...SPECIES_BY_ID.rattata, id: '__fussy', name: 'Fussy' } as SpeciesDef;
-  SPECIES.push(fake); SPECIES_BY_ID.__fussy = fake;
-  SPECIES_OVERRIDES.__fussy = { avoids: HAB.meadow | HAB.grass | HAB.water | HAB.rock | HAB.dry | HAB.forest };
-  try {
-    const ctx = createRun({ seed: 5, species: 'charmander', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, spawning: { override: { only: ['__fussy'] } }, director: { spawnBase: 30, spawnPerMin: 0, eliteEvery: 9999, swarmEvery: 9999 }, enemy: { speedBase: 0, speedPerSpe: 0 }, objectives: { enabled: false }, beats: { enabled: false } } as never });
-    let skipped = 0, placed = 0;
-    const seen = new Set<number>(), E = ctx.enemies;
-    for (let i = 0; i < 5 * 60; i++) {
-      for (const e of step(ctx, NONE)) if (e.t === 'spawnSkipped') skipped++;
-      // judge each body where it appeared (separation pushes bodies about afterwards)
-      for (let e = 0; e < E.hi; e++) if (E.alive[e] && !seen.has(e * 65536 + E.gen[e])) {
-        seen.add(e * 65536 + E.gen[e]);
-        placed++;
-        assert.equal(ctx.world.habitatAt(E.x[e], E.z[e]) & SPECIES_OVERRIDES.__fussy.avoids!, 0, 'placed on an avoided tile');
-      }
-    }
-    assert.ok(skipped > 0, 'the director reported the skipped spawns');
-    void placed; // an untagged tile (habitat 0) satisfies `avoids`, so a placement there is legitimate
-  } finally {
-    SPECIES.pop(); delete SPECIES_BY_ID.__fussy; delete SPECIES_OVERRIDES.__fussy;
-  }
-});
-
-test('seeded selection is deterministic for the same pool', () => {
-  const run = () => {
-    const ctx = createRun({ seed: 9, species: 'squirtle', ruleOverrides: { spawning: { override: { preset: 'all-wild' } }, objectives: { enabled: false } } as never });
-    const out: string[] = [];
-    for (let i = 0; i < 20 * 60; i++) step(ctx, NONE);
-    for (let i = 0; i < ctx.enemies.hi; i++) if (ctx.enemies.alive[i]) out.push(ctx.speciesIndex[ctx.enemies.species[i]].id + '@' + ctx.enemies.x[i].toFixed(3));
-    return out.join(',');
-  };
-  assert.equal(run(), run());
-});
-
 test('a map pool layers over the region pool at stage start', async () => {
   const { LOCATIONS } = await import('../src/world/locations');
   const L = LOCATIONS['viridian-forest'];

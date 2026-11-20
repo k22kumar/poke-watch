@@ -26,7 +26,6 @@ const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 function mapRun(seed: number, stage: number, species: string) {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  ctx.rules.director.spawnBase = -99; // nothing spawns: no magnetism in the way
   for (let i = 0; i < ctx.enemies.hi; i++) ctx.enemies.alive[i] = 0;
   ctx.enemies.count = 0;
   return ctx;

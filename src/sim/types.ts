@@ -308,7 +308,6 @@ export type SimEvent =
   | { t: 'learn'; key: string }
   | { t: 'stageStart'; stage: number; biome: string }
   | { t: 'spawnSkipped'; species: string; reason: string; x: number; z: number }
-  | { t: 'finalSwarm' }
   | { t: 'swarm' }
   | { t: 'chest'; x: number; z: number }
   | { t: 'jump' }
@@ -343,8 +342,6 @@ export type SimEvent =
   | { t: 'recruit'; species: string }
   | { t: 'benchEvolve'; from: string; to: string }
   | { t: 'objective'; kind: ObjectiveKind; phase: 'offer' | 'active' | 'done' | 'failed' | 'expired'; x: number; z: number; reward?: string }
-  | { t: 'beat'; phase: 'build' | 'peak' | 'relax'; event: string }
-  | { t: 'weatherEvent'; kind: 'rain' | 'sun' | 'frost' }
   | { t: 'block'; x: number; z: number; enemy: number }
   | { t: 'hex'; x: number; z: number; r: number; element: Element; life: number }
   | { t: 'react'; kind: 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel'; x: number; z: number; r: number; deep: boolean; n: number };
@@ -362,30 +359,10 @@ export interface HookRunner {
   onTick: Hooks['onTick'][];
 }
 
+/** what the enemy roles share this tick (the survivor director's other state was deleted at pivot step 9) */
 export interface Director {
-  spawnAcc: number;
-  nextElite: number;
-  nextSwarm: number;
-  alphaSpawned: boolean;
-  finalSwarm: boolean;
-  liveCap: number;
   /** Bulwarks alive this tick (enemy slots), for projectile blocking */
   bulwarks: number[];
-}
-
-/** the beat director's state (blueprint section 9): pacing on top of the v8 difficulty curves */
-export interface Beat {
-  phase: 'build' | 'peak' | 'relax';
-  /** s spent in this phase, and how long it lasts */
-  t: number; dur: number;
-  /** 0-1: recent damage, nearby enemies and missing health, smoothed */
-  intensity: number;
-  /** s intensity has stayed above the cut-off during this peak */
-  hot: number;
-  /** recent damage taken (exponential average, ~10 s) and the stat it was last read from */
-  dmgRecent: number; dmgSeen: number;
-  /** peaks so far this stage; objectives started this stage */
-  peaks: number; objectives: number;
 }
 
 /** the objective kinds (Hunt and Transport were deleted at pivot step 9) */
@@ -431,7 +408,6 @@ export interface SimContext {
   hooks: HookRunner;
   systems: System[];
   director: Director;
-  beat: Beat;
   objective: Objective | null;
   weather: { element: Element | null; t: number };
   stats: { kills: number; damageDealt: number; damageTaken: number; maxHit: number };

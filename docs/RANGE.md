@@ -6,7 +6,7 @@ The match foundation the hero shooter's replay baseline is built on (`docs/hero-
 
 | Mode | Systems | Rules |
 |---|---|---|
-| `range` (`RANGE`) | no survivor loop (`noSurvivorLoop`: director, progression), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
+| `range` (`RANGE`) | no survivor loop (`noSurvivorLoop`: progression; the director was deleted at pivot step 9), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
 | `range-swap` (`RANGE_SWAP`) | the range plus the opt-in `swap` Mod | `hero.loadout` 3 |
 | `hold` (`HOLD`) | no survivor loop, solo, `holdMod` (opens a Hold on the first tick of a habitat map) | — |
 

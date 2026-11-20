@@ -13,7 +13,7 @@ import { tagLineOf } from '../src/rules/tags';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 function calm(species = 'totodile'): SimContext {
-  const ctx = createRun({ seed: 5, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ seed: 5, species, ruleOverrides: { bodies: { looseRocks: 0 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NO_INPUT);
   return ctx;
 }

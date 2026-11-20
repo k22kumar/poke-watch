@@ -16,7 +16,6 @@ const spec = (element: any, extra = {}) => ({ element, cls: 'special' as const, 
 
 test('moves wind up, face the target, release when the wind-up ends, and keep their cadence', () => {
   const ctx = createRun({ seed: 2, species: 'charmander' });
-  ctx.rules.director.spawnBase = -99;
   const e = spawnEnemy(ctx, 'geodude', ctx.player.x + 4, ctx.player.z, 0);
   ctx.enemies.hp[e] = ctx.enemies.maxHp[e] = 1e9;
   const ev: { t: number; e: SimEvent }[] = [];
@@ -36,7 +35,6 @@ test('moves wind up, face the target, release when the wind-up ends, and keep th
 
 test('abilities: Flash Fire and Levitate ignore their type, Water Absorb heals, Sturdy survives once', () => {
   const ctx = createRun({ seed: 3, species: 'charmander' });
-  ctx.rules.director.spawnBase = -99;
   const mk = (id: string) => { const i = spawnEnemy(ctx, id, ctx.player.x + 3, ctx.player.z, 0); ctx.enemies.spawnT[i] = 1; return i; };
   const vul = mk('vulpix'), gas = mk('gastly'), pol = mk('poliwag'), geo = mk('geodude');
   const E = ctx.enemies;
@@ -56,7 +54,6 @@ test('abilities: Flash Fire and Levitate ignore their type, Water Absorb heals, 
 
 test('Blaze boosts fire moves only at one third HP or less', () => {
   const ctx = createRun({ seed: 4, species: 'charmander' });
-  ctx.rules.director.spawnBase = -99;
   ctx.player.derived.crit = 0;
   const e = spawnEnemy(ctx, 'rattata', ctx.player.x + 3, ctx.player.z, 0);
   ctx.enemies.spawnT[e] = 1; ctx.enemies.hp[e] = ctx.enemies.maxHp[e] = 1e9;

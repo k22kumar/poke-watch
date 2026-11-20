@@ -187,7 +187,6 @@ const elevOf = (r: ChaseRig) => { const up = r.eye[1] - r.py - r.pivotH; return 
 function mapRun(seed: number, stage: number, species: string, calm: boolean) {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  if (calm) ctx.rules.director.spawnBase = -99;
   return ctx;
 }
 /** the renderer's loop, headless: the sim at 60 Hz from an accumulator, the rig once per drawn frame on the player

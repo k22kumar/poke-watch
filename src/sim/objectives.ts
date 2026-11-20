@@ -1,29 +1,18 @@
 // Objectives (blueprint section 9, Phase 7): the Hold. Hunt and Transport were deleted at hero-shooter pivot step 9
 // (docs/hero-shooter-pivot.md §8); carrying a body is the general src/sim/carry.ts.
 //
-// The survivor director offers up to two Holds a stage, at the first beat-director Peak after 1:30 and after 3:20.
-// None is required, each must be engaged within 45 s or it lapses; ignoring or losing one brings a
-// Peak forward rather than ending the run. A habitat map's Hold sits on its contest floor; the Hold mode opens one at
-// the start (src/sim/modes/hold.ts holds the point, the charge, the Raiders' drain and the Raid party).
+// An objective runs only when something opens one (the survivor director's schedule was deleted at pivot step 9): the
+// Hold mode opens one at the start of a habitat map, and the habitat Hold gates open their own. It must be engaged
+// within rules.objectives.offerTime or it lapses. A habitat map's Hold sits on its contest floor (src/sim/modes/hold.ts
+// holds the point, the charge, the Raiders' drain and the Raid party).
 //   Hold       stand within 5 m of the pylon for 30 s; Raiders on the pad drain it
 
 import { navWide, partnerFootprint, partnerHeight } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
 import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
-import { forcePeak } from './director';
 import type { Objective, ObjectiveKind, SimContext } from './types';
 import { holdOfferTime, holdPoint, holdTick, spawnRaidParty } from './modes/hold';
-
-/** the objective the next Peak should open, if one is due */
-export function objectiveDue(ctx: SimContext): ObjectiveKind | null {
-  const O = ctx.rules.objectives, B = ctx.beat;
-  if (!O.enabled) return null;
-  if (ctx.objective && (ctx.objective.phase === 'offer' || ctx.objective.phase === 'active')) return null;
-  const n = B.objectives;
-  if (n >= 2 || ctx.stageTime < (n === 0 ? O.firstAfter : O.secondAfter)) return null;
-  return 'hold';
-}
 
 /** an open walkable point (r..R m from the player) with room around it; with size geometry on, one the partner's own
  *  navigation class reaches (a Large or Extra Large partner never gets an objective behind a one-tile neck) */
@@ -48,7 +37,6 @@ export function startObjective(ctx: SimContext, kind: ObjectiveKind): boolean {
   const [x, z] = holdPoint(ctx, () => site(ctx, 12, 20));
   const obj = blank(kind, x, z, holdOfferTime(ctx));
   ctx.objective = obj;
-  ctx.beat.objectives++;
   ctx.events.push({ t: 'objective', kind, phase: 'offer', x: obj.x, z: obj.z });
   return true;
 }
@@ -64,7 +52,6 @@ function finish(ctx: SimContext, O: Objective, ok: boolean) {
   O.phase = ok ? 'done' : 'failed';
   O.t = 3;
   ctx.events.push({ t: 'objective', kind: O.kind, phase: ok ? 'done' : 'failed', x: O.x, z: O.z, reward: '' });
-  if (!ok) forcePeak(ctx);
 }
 
 export const objectiveSystem = {

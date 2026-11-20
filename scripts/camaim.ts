@@ -34,7 +34,6 @@ export const AIM_SPECIES = ['cyndaquil', 'quilava', 'charizard', 'feraligatr', '
 function run(species: string, stage: number, seed = 1): SimContext {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  ctx.rules.director.spawnBase = -99;
   return ctx;
 }
 

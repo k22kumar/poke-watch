@@ -13,7 +13,6 @@ import { mapSpawnPool, type WorldgenRules } from '../world/maps';
 import type { Mod, Mode } from '../mods/types';
 import { projectileSystem, zoneSystem } from './effects';
 import { enemySystem } from './enemies';
-import { directorSystem, freshBeat } from './director';
 import { weatherSystem } from './weather';
 import { objectiveSystem } from './objectives';
 import { movesSystem } from './moves';
@@ -53,7 +52,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];
@@ -83,8 +82,7 @@ export function createRun(opts: RunOptions): SimContext {
     zones: new ZonePool(400),
     bodies: new BodyPool(rules.bodies.cap),
     events: [], hooks, systems,
-    director: freshDirector(rules),
-    beat: freshBeat(), objective: null,
+    director: { bulwarks: [] }, objective: null,
     weather: { element: null, t: 0 },
     stats: { kills: 0, damageDealt: 0, damageTaken: 0, maxHit: 0 },
     input: NO_INPUT,
@@ -105,13 +103,6 @@ export function createRun(opts: RunOptions): SimContext {
   startStage(ctx, 0);
   if (opts.targets) startTargets(ctx, opts.targets);
   return ctx;
-}
-
-function freshDirector(rules: Rules) {
-  return {
-    spawnAcc: 0, nextElite: rules.director.eliteEvery, nextSwarm: rules.director.swarmEvery,
-    alphaSpawned: false, finalSwarm: false, liveCap: rules.enemy.liveCap, bulwarks: [] as number[],
-  };
 }
 
 /** The match start on a map, for any mode (docs/hero-shooter-pivot.md §8a 4): the World, every pool cleared, the player at
@@ -136,11 +127,8 @@ export function startStage(ctx: SimContext, stage: number) {
   ctx.spawnTable = def;
   const biome = BIOMES[def.biome];
   enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
-  const liveCap = ctx.director.liveCap;
-  ctx.director = freshDirector(ctx.rules);
-  ctx.director.liveCap = liveCap;
+  ctx.director = { bulwarks: [] };
   ctx.stageTime = 0;
-  { const seen = ctx.stats.damageTaken; ctx.beat = freshBeat(); ctx.beat.dmgSeen = seen; }
   ctx.objective = null;
   for (const m of ctx.player.squad) m.sturdyUsed = false;
   ctx.events.push({ t: 'stageStart', stage, biome: biome.id });

@@ -15,6 +15,7 @@ import { heroHealth } from '../src/rules/stats';
 import type { SimContext } from '../src/sim/types';
 
 import { runEnded as ended } from '../scripts/lib/ended';
+import { crowd } from '../scripts/lib/crowd';
 function hashRun(ctx: SimContext) {
   const h = new Hasher();
   const P = ctx.player;
@@ -75,11 +76,11 @@ test('every species learnset references real moves', () => {
 });
 
 test('same seed + same inputs = identical run (determinism)', () => {
-  const a = run(42, 'totodile', 90);
-  const b = run(42, 'totodile', 90);
+  const a = run(42, 'totodile', 90, { mods: [crowd(60)] });
+  const b = run(42, 'totodile', 90, { mods: [crowd(60)] });
   assert.equal(hashRun(a), hashRun(b));
   assert.equal(a.stats.kills, b.stats.kills);
-  const c = run(43, 'totodile', 90);
+  const c = run(43, 'totodile', 90, { mods: [crowd(60)] });
   assert.notEqual(hashRun(a), hashRun(c));
 });
 
@@ -94,6 +95,7 @@ test('mods and modes plug in without engine changes', () => {
 });
 
 test('enemy pool never exceeds capacity under heavy spawning', () => {
-  const ctx = run(7, 'bulbasaur', 120, { ruleOverrides: { director: { spawnBase: 40 } } });
+  const ctx = run(7, 'bulbasaur', 120, { mods: [crowd(defaultRules.enemy.cap + 500, { perTick: 40 })] });
+  assert.ok(ctx.enemies.count > defaultRules.enemy.cap * 0.9, `the crowd filled the pool (${ctx.enemies.count})`);
   assert.ok(ctx.enemies.count <= defaultRules.enemy.cap);
 });
