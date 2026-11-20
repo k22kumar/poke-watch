@@ -79,8 +79,10 @@ test('the roster: hand roles always win; every entry without a behaviour takes t
   const rule = SPECIES.filter((s) => s.roleFrom === 'rule');
   const count: Record<string, number> = {};
   for (const s of rule) count[s.behaviour!] = (count[s.behaviour!] ?? 0) + 1;
-  assert.deepEqual(count, { charger: 40, ranged: 51, chase: 33, tank: 32, healer: 6, swarm: 2 }); // + Tauros (charger), Mewtwo (ranged)
-  assert.equal(rule.filter((s) => s.flying).length, 39);
+  // + Tauros (charger), Mewtwo (ranged); the heroes wave: Graveler and Golem (tank), Bagon and Shelgon (chase), Salamence
+  // (charger, flying)
+  assert.deepEqual(count, { charger: 41, ranged: 51, chase: 35, tank: 34, healer: 6, swarm: 2 });
+  assert.equal(rule.filter((s) => s.flying).length, 40);
   assert.equal(SPECIES_BY_ID.dodrio.flying, undefined, 'Dodrio runs');
 });
 

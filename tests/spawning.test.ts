@@ -129,8 +129,8 @@ test('all-wild makes every wild species eligible, so a new Pokémon needs no map
   // the catalogue wave off (older replay layers) leaves every pool, even one naming its species
   const off = merge({ spawning: { waves: { catalogue: false } } });
   const offIds = ids(spawnTableFor(off, 2, { preset: 'all-wild', include: ['lugia'] }));
-  assert.ok(offIds.length && offIds.every((id) => !SPECIES_BY_ID[id].wave), 'no wave species with the wave off');
-  assert.deepEqual([...spawnableSpecies([], off).spawns].filter((id) => SPECIES_BY_ID[id].wave), [], 'nor in the habitat profiles');
+  assert.ok(offIds.length && offIds.every((id) => SPECIES_BY_ID[id].wave !== 'catalogue'), 'no catalogue-wave species with the wave off');
+  assert.deepEqual([...spawnableSpecies([], off).spawns].filter((id) => SPECIES_BY_ID[id].wave === 'catalogue'), [], 'nor in the habitat profiles');
   // a species added to the roster (simulated) appears in all-wild with no other change
   const fake = { ...SPECIES_BY_ID.rattata, id: '__newmon', name: 'Newmon' } as SpeciesDef;
   SPECIES.push(fake); SPECIES_BY_ID.__newmon = fake;
