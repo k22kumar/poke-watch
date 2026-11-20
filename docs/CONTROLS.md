@@ -75,7 +75,7 @@ frame saw it. A press shorter than one frame still falls between two polls; noth
   give it at most one meaning; `takeoff` only on a fly or levitate row (both reserved until R6d / R6e). No shipped
   template sets one, so today an airborne press means nothing and waits for the landing.
 
-**Legacy rule.** An `InputFrame` without `jumpPressed` (the bot, the checksum sets, older replays, tests that send
+**Legacy rule.** An `InputFrame` without `jumpPressed` (the bot, older replays, tests that send
 `jump: true`) keeps the pre-R6c rule bit for bit: held Jump jumps whenever the body is supported, so holding repeats a
 jump on every landing (8 jumps in 300 ticks), and a tap shorter than a sample is lost. `Player.ctl` stays zero, so the
 state hash is unchanged.

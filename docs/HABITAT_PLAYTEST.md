@@ -1,5 +1,15 @@
 # Tactical Hold evaluation: Shrine Gorge and Cinder Crater
 
+> **Status on `hero-core` (pivot step 10, 2026-11-20).** This is the record of a 2026-11-13 evaluation on the survivor
+> build: squads, levels, cards, the director's horde and the Bulwark shaped every number below, and none of them run any
+> more. What still holds: the map findings (routes, sightlines, cover, the approach skew), the Raid fix (the Hold pins its
+> active Raiders against `rules.enemy.despawnDistance`, `src/sim/enemies.ts`), the seeds in section 8 and the human
+> checklist in section 7. What does not: the verdict's balance read, solo and squad levels, the `calm` / `horde` split.
+> The current Hold read is the fighting probe in docs/hero-shooter-pivot.md §11 (a single hero against `RAID_PARTY`:
+> Holds taken 25 / 33 of 36 for Tauros / Charmander, Hold easy for a ranged hero since the Bulwark went). `habtac` now
+> fields its horde from `scripts/lib/crowd.ts` and its squad through the `swap` Mod; its `--level` option is parsed but read
+> by nothing since levels went, a leftover to retire with the next Hold tuning pass.
+
 Scope: `river-gorge` and `volcanic-ridge` with the real Hold objective, the real Raid party, the squad and the director's ordinary
 horde (docs/HABITATS.md, docs/SQUAD.md; the encounter doc and the director were deleted at hero-shooter pivot step 9). Seeds: Gorge 3, 7 and 25 (25 is the one flagged for 15.6 % approach-time
 skew); Crater 3 (a retry: loads 548672811) and 7. Everything below was measured on 2026-11-13 in the headless sim with the scripts

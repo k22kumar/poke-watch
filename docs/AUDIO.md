@@ -80,10 +80,9 @@ Cries play at their recorded pitch except on a KO:
 
 | Moment | Pitch | Why |
 |---|---|---|
-| Boss arrival | 1.0 (was lowered before) | Lowering made the cries muddy at 10.5 kHz and less recognisable; size comes from the drawn scale and the alarm under it |
-| Your Pokémon fainting, a boss fainting | 0.85 | A short, audible "falling" version, used only on a KO |
+| Your Pokémon fainting | 0.85 | A short, audible "falling" version, used only on a KO |
 
-Cries mark moments: choosing a partner, the start of a run, level-ups (at most one every 2 s), evolution (the old form, then the new), a boss arriving and a boss or your Pokémon fainting. Wild Pokémon don't cry in combat; at swarm density that would bury every other sound.
+Cries mark moments: choosing a hero, the start of a match, a Breakthrough (the old form, then the new) and your Pokémon fainting. The survivor build's level-up and boss cries went with those systems at pivot step 9. Wild Pokémon don't cry in combat; at swarm density that would bury every other sound.
 
 ### Playback fixes (`src/assets/cries.ts`)
 

@@ -1,5 +1,9 @@
 # Fidelity assessment and test results
 
+> **Historical.** Written for the survivor build (a PokéBonk-style run), before the hero-shooter pivot
+> (docs/hero-shooter-pivot.md). Kept as the record of what was compared and measured then; none of it describes the
+> game on `hero-core`. The code it describes is on the `survivor-final` tag.
+
 ## Side-by-side with PokéBonk
 
 | Area | PokéBonk | Poke-Watch | Match |

@@ -6,11 +6,12 @@ A practical guide to the common changes. Each section names the real file, shows
 
 | What | File | Rebuild content? |
 |---|---|---|
-| Which Pokémon exist, and their role (partner, wild behaviour, boss kit) | `content/roster.json` | yes (`npm run content`) |
+| Which Pokémon exist, and their role (partner line, wild behaviour) | `content/roster.json` | yes (`npm run content`) |
 | Per-species facts: habitat preferences, restrictions, size-class pin | `src/rules/profiles.ts` (`SPECIES_OVERRIDES`) | no |
 | Tag Action (optional; one is derived from the Pokémon's own moves) | `src/rules/tags.ts` (`TAG_ACTIONS`) | no |
 | Size-class numbers, partner radius clamp, wide-body threshold | `src/rules/defaults.ts` (`size`) | no |
 | Training targets | `src/rules/targets.ts` (`RANGE_TARGETS`, `HABITAT_TARGETS`) | no |
+| Hero kits and the prototype list | `src/rules/heroes.ts` (`HERO_KITS`, `PROTOTYPE`, `FEATURED`; docs/HEROES.md) | no |
 | The Hold's Raid party | `RAID_PARTY` in `src/sim/modes/hold.ts` | no |
 
 When two settings disagree, the later one wins:
@@ -35,12 +36,12 @@ Implemented. Example: Wooper as a Meadow wild Pokémon.
 4. Optional:
    - a habitat preference in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`): `wooper: { prefers: HAB.water }`;
    - an authored Tag Action in `src/rules/tags.ts`, if the derived one (its earliest damaging move of its own type, then its strongest by Lv 30) doesn't suit;
-   - `recruitable: false` with a `recruitableReason` in `SPECIES_OVERRIDES`, to keep it wild only (no Hunt objective offers it).
+   - `recruitable: false` with a `recruitableReason` in `SPECIES_OVERRIDES`, to keep it out of `PROTOTYPE` (the dev roster still lists it).
 5. Update the roster pins in `tests/catalogue.test.ts`: species count, sorted id list, move count. They are pinned on purpose, so an accidental roster change fails loudly.
 
 No map, spawning, combat or render code changes. The size class comes from its canonical height (0.4 m: Small). The sim body, drawn size, habitat navigation profile and Tag Action all follow from that.
 
-It also becomes playable on its own: `npx tsx --test tests/playability.test.ts` grades it, and `?dev=1` lists it in the partner screen's All Pokémon view and the tuning panel's Play as list (docs/PLAYABILITY.md). If the test reports it as anything but ready, the reason names what is missing.
+It also becomes playable on its own: `npx tsx --test tests/playability.test.ts` grades it, and `?dev=1` lists it in the hero pick's All Pokémon view and the tuning panel's Play as list (docs/PLAYABILITY.md). If the test reports it as anything but ready, the reason names what is missing.
 
 ## 2. Change a Pokémon's size class
 
@@ -64,10 +65,10 @@ Implemented. Edit `size.classes` in `src/rules/defaults.ts`:
 - `below` is the class's upper cut in canonical metres.
 - `visual` is the drawn core.
 - `radius` and `height` are the hurtbox: what hits it.
-- `body` is the movement footprint: the circle walls stop, and the navigation class (under `size.heavyRadius`, 0.5 m, a body fits one-tile passages; from it up, it routes on two-tile blocks). It has no tilt. Keep it under 1 m. Role sizes scale it up to `size.bodyCap` (0.95 m), and raising that needs a three-tile gate on the maps first (docs/SIZING.md "Footprint").
+- `body` is the movement footprint: the circle walls stop, and the navigation class (under `size.heavyRadius`, 0.5 m, a body fits one-tile passages; from it up, it routes on two-tile blocks). It has no tilt. Keep it under 1 m. `size.bodyCap` (0.95 m) caps a footprint scaled by a body size, and raising it needs a three-tile gate on the maps first (docs/SIZING.md "Footprint").
 - `tilt` (±8 %) is how far apart Pokémon in one class may drift.
 
-`tests/sizing.test.ts` fails if neighbouring classes end up less than 1.3× apart or overlap. A sim number change moves replay hashes. Record them again with `npx tsx scripts/checksum.ts`, after checking the run still plays well.
+`tests/sizing.test.ts` fails if neighbouring classes end up less than 1.3× apart or overlap. A sim number change moves replay hashes (`tests/replays.test.ts`). Record them again with `npx tsx scripts/checksum.ts all --update` after checking the run still plays well, and say why in the commit.
 
 To change only how big things look and leave the sim alone, change `visual` only.
 
@@ -90,17 +91,17 @@ Implemented, at two levels:
 - **A Pokémon location** (generated from a definition). Copy `src/world/locations/viridianForest.ts`, change its identity, landforms, `habitat` tags and props, and register it in `src/world/locations/index.ts`. docs/LOCATIONS.md covers the parameters.
 - **A habitat recipe** (Hold maps). Add a `HabitatRecipe` to `src/world/habitat/recipes.ts` and follow docs/HABITATS.md. Run its gates, `scripts/habstate.ts` and `scripts/habaudit.ts`, as CLAUDE.md lists.
 
-Then choose it for a biome with `rules.worldgen.locations` (`src/rules/defaults.ts`), or try it with `?loc=<id>`. A new map needs no Pokémon edits: it fields the region's pool unless you give it `spawns` (section 7).
+Then choose it for a biome with `rules.worldgen.locations` (`src/rules/defaults.ts`), or try it with `?loc=<id>`. A new map needs no Pokémon edits: training targets anchor on its roles (section 7).
 
 ## 6. Modify an existing map
 
-Implemented. Edit its definition file (`src/world/locations/<name>.ts`, `src/world/habitat/recipes.ts`, or `src/world/arenas.ts` for the handcrafted arenas). A change that alters an accepted habitat layout needs a `HAB_VERSION` bump (CLAUDE.md). A location change that alters accepted layouts should bump `LOC_VERSION` (`src/world/locgen/index.ts`). The `wide` gate requires a two-tile route from the hub to the boss hall, every arena and three anchors (docs/LOCATIONS.md). Check a change with `npx tsx scripts/locstats.ts <id> 30 1` and `npx tsx scripts/navwalk.ts <id> 5`.
+Implemented. Edit its definition file (`src/world/locations/<name>.ts`, `src/world/habitat/recipes.ts`, or `src/world/arenas.ts` for the handcrafted arenas). A change that alters an accepted habitat layout needs a `HAB_VERSION` bump (CLAUDE.md). A location change that alters accepted layouts should bump `LOC_VERSION` (`src/world/locgen/index.ts`). The `wide` gate requires a two-tile route from the hub to the hall, every arena and three anchors (docs/LOCATIONS.md). Check a change with `npx tsx scripts/locstats.ts <id> 30 1` and `npx tsx scripts/navwalk.ts <id> 5`.
 
 ## 7. Change which Pokémon appear on a map
 
 Implemented, per source (docs/SPAWNING.md). Spawn pools, presets and `?pool=` were deleted at hero-shooter pivot step 9; they are on the `survivor-final` tag.
 - **Training targets:** edit or add a `TargetSet` in `src/rules/targets.ts`: each target is a species, a kind (`dummy`, `patrol`, `strafe`), an anchor (`spawn`, `contest`, `stageA`, `stageB`) with an offset, and a patrol's loop. Check with `npx tsx --test tests/range.test.ts`.
-- **The Hold's Raid party:** edit `RAID_PARTY` in `src/sim/modes/hold.ts`. It moves the `gorge-hold` replay: re-record it with `npx tsx scripts/checksum.ts scenarios --update` and say why in the commit.
+- **The Hold's Raid party:** edit `RAID_PARTY` in `src/sim/modes/hold.ts`. It moves the `gorge-hold` replay: re-record it with `npx tsx scripts/checksum.ts gorge-hold --update` and say why in the commit.
 
 ## 8. Adjust spawn weights and conditions
 
@@ -127,7 +128,7 @@ An override replaces defaults field by field: whatever it leaves out keeps its d
 ## 11. Prepare behaviour for future HTN AI
 
 Partly implemented: the inputs exist, the planner does not.
-- **Today's behaviour.** One of six presets per wild Pokémon (`behaviour` in `content/roster.json`), implemented as one priority chain in `src/sim/enemies.ts`. Bosses use attack kits (`bosses` in `content/roster.json`, `bossThink`).
+- **Today's behaviour.** One of six presets per wild Pokémon (`behaviour` in `content/roster.json`), implemented as one priority chain in `src/sim/enemies.ts`. Any behaviour can start the boulder throw (`src/sim/actions.ts`). The boss AI was deleted at pivot step 9; the four species keep their `bosses` lane in `content/roster.json` (it fixes their registry index and authored scale), and its attack kits are read by nothing.
 - **What an HTN domain would read, all already available:**
   - capabilities, preferences and restrictions: `traversalOf(species, rules)`, `speciesProfile(id)`, `canSwim(...)`;
   - body size: `bodyOf(sp)`, `enemyRadius(...)`;

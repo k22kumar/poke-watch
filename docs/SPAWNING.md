@@ -15,7 +15,9 @@ document are on the `survivor-final` tag.
 | Tests and gates | a chasing crowd kept at N | `scripts/lib/crowd.ts` (not a game system, used by no replay scenario; Q21 as amended) |
 
 Every one of them goes through `spawnEnemy` (`src/sim/enemies.ts`): health on the canon curve × the behaviour's
-multiplier × the role's (docs/RANGE.md), base speed from Speed, the size-class body (docs/SIZING.md). The co-op wave
+multiplier (docs/RANGE.md), base speed from Speed, the size-class body (docs/SIZING.md). The role bits a spawner may
+pass are `raider` and `target`; `ranged`, `healer` and `swarm` come from the species' behaviour and `flying` from its
+traversal. The elite, alpha, boss and stampede roles went at pivot step 10 (no spawner was left). The co-op wave
 (T1, after the merge) is the next source.
 
 ## Placement

@@ -52,7 +52,7 @@ About 530 sprites per arena.
 **Combat VFX and signals.**
 
 - Surface overlays (wet, burning, charged) take their four neighbours into account. Patches have rounded, stippled edges instead of hard squares, and wet is capped at 0.22 alpha.
-- Coat rings show only on elites, alphas and bosses (fodder keeps its tint).
+- Coat rings show only under your own Pokémon; creatures keep a tint (the elite, alpha and boss rings went with those roles).
 - The player gets a cyan ring (alpha 0.95) and a facing pip. The magnet radius ring drops to 0.1 alpha.
 - When the player is behind a tree, wall or crowd, an x-ray silhouette is drawn through it (a second draw with `depthFunc GREATER`). The sprite's dark outline is kept and the body is a cyan/white checker.
 

@@ -119,7 +119,7 @@ All gated on `map.gen.loc`; authored arenas and the classic generator replay bit
 | landmarks | every canonical landmark placed at least its minimum count |
 | pinch | ≤ 24 one-tile passages |
 
-Gated: `wide`. Footprints of 0.5 m and up (Large and Extra Large Pokémon, partners included, and elites) route on the wide block lattice (`src/world/navblocks.ts`, read by both the sim and `wideCore` in `locgen/nav.ts`; docs/SIZING.md "Navigation classes"). The gate uses the strictest wide body, an Extra Large partner at 0.88 m with no diagonal-only links. From the hub it must reach every mandatory space: the boss hall and every arena (the main-route spaces), plus at least three enemy anchors, so wide enemies always have a way in. `wideBoss` and `wideAnchors` are still reported.
+Gated: `wide`. Footprints of 0.5 m and up (Large and Extra Large Pokémon, partners included) route on the wide block lattice (`src/world/navblocks.ts`, read by both the sim and `wideCore` in `locgen/nav.ts`; docs/SIZING.md "Navigation classes"). The gate uses the strictest wide body, an Extra Large partner at 0.88 m with no diagonal-only links. From the hub it must reach every mandatory space: the boss hall and every arena (the main-route spaces), plus at least three enemy anchors, so wide enemies always have a way in. `wideBoss` and `wideAnchors` are still reported.
 
 ### Size-restricted spaces
 

@@ -32,8 +32,8 @@ a co-op handshake would compare).
 | Spatial grid sized for the larger map when generation is on | `sim/run.ts` |
 | Authored arenas are untouched and remain "authored mode" | `world/arenas.ts` |
 
-Exit gate: replay checksums identical in authored mode. `scripts/checksum.ts world-off` prints the pre-change `on`
-hashes exactly (all four configurations, every 60 s mark), and `off` / `build-off` are unchanged.
+Exit gate (survivor build): replay checksums identical in authored mode; the `world-off` set printed the pre-change `on`
+hashes exactly (all four configurations, every 60 s mark). Those sets retired at pivot step 10 (`survivor-final` has them).
 
 ## W1–W3: the pipeline
 
@@ -100,7 +100,7 @@ kind → material map. Tiles keep running in `sim/cells.ts`; props run in `sim/p
 | Cover cap | lost + burning cover may not exceed 40 % of the region's cover pieces; past it nothing more ignites or breaks |
 | Watchdog | every 2 s, reachable tiles from the spawn against the base map; under 90 % reverts the oldest stumps |
 | State hash | prop states are hashed when any prop has changed (an untouched overlay hashes as nothing) |
-| Flags | `surfaces.enabled: false` gives today's rules exactly; `surfaces.inAuthored` (default false) applies materials to the handcrafted arenas too. By default they apply to generated regions only, because on the authored Meadow bot runs die much earlier with them (Cyndaquil seed 2: level 9 instead of 24), a balance change that needs people, not a bot |
+| Flags | `surfaces.inAuthored` (default false) applies materials to the handcrafted arenas too. By default they apply to generated regions only, because on the authored Meadow bot runs die much earlier with them (Cyndaquil seed 2: level 9 instead of 24), a balance change that needs people, not a bot |
 
 The renderer draws burnt wood as a stump at the footprint's south-west tile, skips burnt leaf and broken props, and drops
 their shadows.

@@ -1,5 +1,9 @@
 # PokéBonk: what was verified
 
+> **Historical.** Written for the survivor build (a PokéBonk-style run), before the hero-shooter pivot
+> (docs/hero-shooter-pivot.md). Kept as the record of what was compared and measured then; none of it describes the
+> game on `hero-core`. The code it describes is on the `survivor-final` tag.
+
 Source: inspection of the live site (pokebonk.com, v0.7.8 beta, build `mvgfxz8a`) on 2026-10-20. That inspection covered the HTML, network requests, runtime globals, the minified bundles, the `data/*.json` files and the legal page. The full report is the "PokéBonk: Technical Investigation & Rebuild Plan" doc in the project.
 
 Tags: **[C]** confirmed in the shipped bundle · **[O]** observed in play or traffic · **[I]** inferred · **[U]** unknown.

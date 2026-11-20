@@ -41,7 +41,7 @@ Everything that stands up (trees, rocks, flowers, tall grass, creatures) is an u
 | Anchor | Every frame carries its own feet anchor. PMD: centroid of the frame's Shadow-sheet marker; fallback: lowest opaque row, horizontal centre | `importSprites`, `FrameRect.ax/ay` |
 | Outline | 1 px dark outline (#201c28 family). Baked designs get it from the baker; PMD art already has it | `baker.ts outline()` |
 | Light | From the upper left. The baker's light vector and PMD's shading agree | `baker.ts` |
-| Visible size | One multiplier per species from its size class (see below). Elites ×2, alphas ×3 (`rules.enemy.roles`); bosses drawn at a whole-number 2–3× so pixels stay square, and the species multiplier stays out of their way | `rules/sizing.ts`, `rules.enemy.roles`, `SpeciesDef.scale` |
+| Visible size | One multiplier per species from its size class (see below). Authored-scale species (the four former bosses) are drawn at a whole-number 2–3× so pixels stay square, and the species multiplier stays out of their way | `rules/sizing.ts`, `SpeciesDef.scale` |
 | Shadows | Flat two-tone blob, hard edge: 0.42 m / 0.55 m / 0.8 m radius for PMD shadow size 0/1/2 | `DECAL_FS` kind 0, `fillDecals` |
 
 ### Visible size (`src/rules/sizing.ts`, docs/SIZING.md)
@@ -54,7 +54,7 @@ A PMD sheet is drawn at roughly one sprite height whatever the Pokémon is. Used
 
 The multiplier is applied once, in `Renderer.drawSprites`'s `push`, so player, wild, fainting and silhouette draws all get it. The chase rig is framed against the scaled sprite height and width. A species with an authored `scale` (bosses) returns 1: the authored multiplier is applied by the draw call on top, and the two never compound.
 
-The same class row also sizes the sim body (collision, hurt radius and hit height), so what looks bigger is bigger. `rules.size.geometry: false` keeps the old sprite-height bodies. `pokewatch.renderer.sizes()` prints what the renderer submits, and `tools/sizescenes.json` captures it.
+The same class row also sizes the sim body (collision, hurt radius and hit height), so what looks bigger is bigger. `pokewatch.renderer.sizes()` prints what the renderer submits, and `tools/sizescenes.json` captures it.
 
 ### Animation states and timing
 
@@ -119,7 +119,7 @@ Effect sprites are 16 × 16 texels at 16 texels/m (`fxSprite`). Each element has
 
 Signals stay scarce:
 - Surface overlays (wet, burning, charged) are rounded per neighbour and stippled at the edge, never hard squares.
-- Coat rings appear only on elites, alphas and bosses.
+- Coat rings appear only under your own Pokémon; creatures show a coat as a tint.
 - The player always has a cyan ring and facing pip.
 
 ## 9. UI

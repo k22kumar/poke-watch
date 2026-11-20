@@ -30,7 +30,7 @@ physics does not.
 | `volume` | 3-axis thrust, drag, limits | **R6d** (not built) |
 
 All three run the same body step after their drive (`advanceBody`): knockback decay, the planar move (step rule,
-footprint through `World.moveBody`, the centre-point look-ahead with size geometry off), take-off, gravity and the lift
+footprint through `World.moveBody`), take-off, gravity and the lift
 row, headroom, the support (landing with the footprint clear, an airborne footprint cleared at its new feet, slope stick, leaving the support), and the rock recovery on
 location maps. A scripted tick keeps gravity and support under it: a dash off a ledge falls, a grounded dash can jump.
 
@@ -66,7 +66,7 @@ Derived from the world, never chosen. Nothing reads it yet (camera envelopes and
 `ACT.none | jump | airJump | takeoff`.
 
 - **Legacy intent** (no `jumpPressed`): `jump && grounded && canJump` → jump, exactly the pre-R6c condition; `ctl` is
-  not touched. Every driver that sends no edge (the bot, AI after R7, the checksum sets, older replays) keeps it.
+  not touched. Every driver that sends no edge (the bot, AI after R7, older replays) keeps it.
 - **Edge intent**: the §12.6 table (`docs/CONTROLS.md` "In the sim"): a press jumps from a support or inside the coyote
   window, waits in the buffer otherwise, and gives an airborne press the template's one `airPress` meaning
   (`doubleJump` once per airtime; `takeoff` returns `ACT.takeoff`, which nothing acts on before R6d's volume integrator;

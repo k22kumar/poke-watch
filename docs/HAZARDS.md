@@ -41,7 +41,7 @@ knockback can carry a creature over a lip that it would never walk over by choic
   already taken stays. Becoming safe also ends it, for example by tagging in a Water type while in the water.
 - **Damage path.** The field Pokémon is damaged through `onHpLoss` and knocked out through `faint`, the same squad
   lifecycle as a hit. Difficulty, Guard and dash i-frames do not apply. Creatures lose HP, and `killEnemy` handles
-  their knockout (XP, boss portal, objective bookkeeping).
+  their knockout (the kill event and objective bookkeeping).
 - **Getting out.** A body in a liquid can climb a bank up to `climbOut` = 0.8 m. A dry step is limited to 0.6 m, and
   some classic-region banks are 0.75 m above the water. A creature heads for the shore that `World.shore` picked when
   it entered.
@@ -115,7 +115,6 @@ its `lethal` time. The worst cases cost about 45 % of max HP in water and 43 % i
   lip. This is deliberate, but an Assist or Auto aim at an enemy across a chasm can be costly. The balance bot holds
   back such lunges itself.
 - **Creatures don't route through water.** No creature, Water types included, takes a swimming shortcut.
-  Bosses don't steer out of a liquid on their own.
 - **Contact is the body's centre only.** A Pokémon half over a lip stands until its centre crosses. There are no
   guardrails in the tile data, so bridge sides are open.
 - **The shore target can be stale within one world** (not fixed: no measured harm, and fixing it would change bot

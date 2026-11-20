@@ -112,9 +112,11 @@ with the overlay on.
 
 ## Flags
 
+`caps.enabled` (the master switch: off was the v10 rules exactly) was hard-wired on at pivot step 10 (Q18); the
+measurements below that compare against it are from the survivor build.
+
 | Flag | Default | Off means |
 | --- | --- | --- |
-| `caps.enabled` | true | the v10 rules exactly (no log, no recap) |
 | `caps.interception` | true | shots ignore each other and every force; Guard deflects any shot |
 | `caps.suspendHold` | true | Hold pulls (v10) |
 | `caps.bodyCollisions` | true | bodies pass through each other |
