@@ -28,5 +28,8 @@ export const BODY_TEMPLATES: Record<string, BodyTemplate> = {
   // the Transport objective's egg: Medium (Power 2 pushes it), unbreakable, carried by walking into it
   egg: { type: 'plain', weight: 2, radius: 0.6, integrity: 0, friction: 5, life: Infinity, sprite: 'bodyEgg', scale: 1.2 },
   rubble: { type: 'stone', weight: 1, radius: 0.4, integrity: 12, friction: 6, life: 5, sprite: 'rockChunk', scale: 1 },
+  // the training range's throwable (docs/RANGE.md): Light, so any hold move (Wrap, Psychic: Power 1+) picks it up and
+  // throws it, and unbreakable, so it stays to be thrown again. Last in the table: earlier kinds keep their index
+  cobble: { type: 'stone', weight: 1, radius: 0.45, integrity: 0, friction: 4, life: Infinity, sprite: 'rockChunk', scale: 1.4 },
 };
 export const BODY_KINDS = Object.keys(BODY_TEMPLATES);

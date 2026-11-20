@@ -90,6 +90,9 @@ export interface ArenaMap {
   /** habitat maps only (src/world/habitat): the fluid surface height per water tile (m), so a river can run on a
    *  plateau and fall into a pool, or a lava lake sit in a crater. Absent = every water surface at WATER_Y. */
   wlevel?: Float32Array;
+  /** authored arenas only: tiles where a throwable body (the `cobble` template, src/rules/materials.ts) lies at the start
+   *  (the training range, docs/RANGE.md) */
+  throwables?: [number, number][];
   /** procedural regions only (src/world/gen): how the map was made, its habitat and encounter spaces */
   gen?: import('./gen/context').GenMeta;
 }

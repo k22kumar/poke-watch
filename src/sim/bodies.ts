@@ -246,7 +246,8 @@ export function changeOwner(ctx: SimContext, b: number, team: number) {
     if (team === TEAM.player) B.dmg[b] = 10 * bodyWeight(ctx, b) * 1.5; // turned against its thrower
   }
   B.team[b] = team;
-  if (B.hp[b] <= 0) breakBody(ctx, b);
+  // an unbreakable body (integrity 0: the egg, the range's throwable) has hp 0 from the start and never wears
+  if (B.hp[b] <= 0 && tpl(ctx, b).integrity > 0) breakBody(ctx, b);
 }
 
 /** Integrity damage through the type chart; breaks it at zero. `byPlayer`: the trainer's hit (Quarry). */
@@ -509,6 +510,11 @@ export function seedBodies(ctx: SimContext) {
     const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
     if (!W.walkable(x, z)) continue;
     spawnBody(ctx, 'rock', x, z);
+  }
+  // authored arenas: the throwables (the training range)
+  for (const [tx, ty] of W.map.throwables ?? []) {
+    const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
+    if (W.walkable(x, z)) spawnBody(ctx, 'cobble', x, z);
   }
 }
 

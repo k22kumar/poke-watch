@@ -42,7 +42,8 @@ export function getArena(biome: string): ArenaMap {
 /** The training range (docs/hero-shooter-pivot.md Q16): one authored arena for the hero core, on the meadow's palette.
  *  An open firing ground north of the spawn where the range targets stand (src/rules/targets.ts RANGE_TARGETS), a 2 m
  *  terrace with stairs on the west (walk off its edge, climb back by the stairs), a 1.5 m block on the east that a jump
- *  reaches (the 1.84 m apex), rocks for cover, and a pond in the south-east to swim or wade. */
+ *  reaches (the 1.84 m apex), rocks for cover, a pond in the south-east to swim or wade, a tall-grass patch to burn and
+ *  three Light throwables. */
 function buildRange(): ArenaMap {
   const S = ARENA_SIZE, seed = 7;
   const b = new ArenaBuilder('range', 'Training Range', S, S);
@@ -57,6 +58,10 @@ function buildRange(): ArenaMap {
   b.elevRect(76, 40, 10, 8, 1.5);
   // cover near the targets
   for (const [x, y] of [[50, 52], [62, 50], [46, 60], [66, 60]] as [number, number][]) b.prop('rock', x, y, { allowPath: true });
+  // a tall-grass patch west of the spawn: Fire sets it alight (cells), the burning tiles hurt what stands in them
+  b.tall(42, 72, 4, 3, seed + 3);
+  // throwables beside the spawn: Light bodies any hold move picks up and throws at the targets
+  b.m.throwables = [[53, 62], [59, 62], [56, 60]];
   // the pond
   b.blob(82, 82, 8, 6, T.water, 1.2, seed);
   b.banks(T.sand, 1);

@@ -12,6 +12,8 @@ import { heroHealth } from '../src/rules/stats';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { killEnemy } from '../src/sim/combat';
 import { faint } from '../src/sim/squad';
+import { holdBody, pushBody, spawnBody, TEAM } from '../src/sim/bodies';
+import { BODY_KINDS } from '../src/rules/materials';
 
 const range = (species = 'charmander', targets: TargetSet = RANGE_TARGETS) =>
   createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { arena: 'range' } } as never, targets });
@@ -111,4 +113,23 @@ test('the Hold mode opens the point on a habitat map at the start; on the range 
   const flat = createRun({ mode: HOLD, seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { arena: 'range' } } as never });
   steps(flat, 2);
   assert.equal(flat.objective, null);
+});
+
+test('the range\'s Light throwables: a hold picks one up and a release throws it, and an unbreakable body survives changing hands', () => {
+  const ctx = range('tauros'), B = ctx.bodies, P = ctx.player, cob = BODY_KINDS.indexOf('cobble');
+  const mine: number[] = [];
+  for (let b = 0; b < B.hi; b++) if (B.alive[b] && B.kind[b] === cob) mine.push(b);
+  assert.equal(mine.length, ctx.world.map.throwables!.length, 'every throwable is down');
+  const b = mine[0];
+  P.x = P.px = B.x[b] + 1.2; P.z = P.pz = B.z[b]; P.y = P.py = ctx.world.height(P.x, P.z);
+  // Power 1 (Wrap) against Weight 1: held, kept by its button; changing hands from neutral used to break an integrity-0 body
+  assert.ok(holdBody(ctx, b, 1, P.x - B.x[b], P.z - B.z[b], TEAM.player, BTN.b), 'held');
+  assert.ok(B.alive[b] && B.holdT[b] > 0, 'alive and suspended');
+  steps(ctx, 20, { btn: BTN.b });
+  steps(ctx, 2);
+  assert.ok(B.alive[b] && B.holdT[b] === 0 && Math.hypot(B.vx[b], B.vz[b]) > 1, 'released along the aim: thrown');
+  // the Transport egg (integrity 0 too) pushed by Power 2: it rolls and stays whole
+  const egg = spawnBody(ctx, 'egg', P.x + 3, P.z);
+  assert.ok(pushBody(ctx, egg, 2, 1, 0, TEAM.player));
+  assert.ok(B.alive[egg], 'an unbreakable body never breaks for changing hands');
 });
