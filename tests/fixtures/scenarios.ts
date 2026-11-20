@@ -22,6 +22,7 @@ import { pathBetween } from '../../src/world/locgen/nav';
 import { clearance } from '../../src/world/habitat/validate';
 import { DECK_SLAB, T as Tile } from '../../src/world/tiles';
 import { PK, ROLE } from '../../src/sim/pools';
+import { CS } from '../../src/sim/cells';
 import { partnerFootprint, partnerHeight } from '../../src/rules/sizing';
 import { SPECIES_BY_ID } from '../../src/rules/species';
 import { BODY_KINDS } from '../../src/rules/materials';
@@ -49,7 +50,7 @@ export interface Scenario {
 export const COUNTERS = [
   'jumps', 'dashes', 'guards', 'parries', 'hits', 'kills', 'hurt', 'castPrimary', 'castQ', 'castE',
   'hitDummy', 'hitPatrol', 'hitStrafe', 'pitchUp', 'pitchDown', 'breakthroughs', 'respawns', 'tags', 'tagActions',
-  'holds', 'throws', 'underDeck', 'deckEdge', 'swimTicks', 'hazardEnter', 'hazardExit', 'floods', 'cells', 'coats', 'holdTicks', 'raiders',
+  'holds', 'throws', 'underDeck', 'deckEdge', 'swimTicks', 'hazardEnter', 'hazardExit', 'floods', 'cells', 'tileBurn', 'coats', 'holdTicks', 'raiders',
 ] as const;
 export type Counter = typeof COUNTERS[number];
 
@@ -192,9 +193,9 @@ const fire = (tick: number) => mix({ btn: BTN.basic, press: tick % 30 === 0 ? BT
 
 export const SCENARIOS: Scenario[] = [
   {
-    id: 'range-charmander', covers: 'movement, buffered and coyote jumps, dash, a timed guard against the strafer\'s shot (a parry), ±89° pitch, primary / Q / E, every target kind, Ember setting the tall grass alight (cells)',
+    id: 'range-charmander', covers: 'movement, buffered and coyote jumps, dash, a timed guard against the strafer\'s shot (a parry), ±89° pitch, primary / Q / E, every target kind, Ember setting the tall grass alight (cells) and a walk through the burning tiles (tileBurn; Charmander is Fire, so they do not hurt it)',
     mode: RANGE, species: 'charmander', worldgen: arena, targets: RANGE_TARGETS, seconds: 60,
-    needs: { jumps: 3, dashes: 1, guards: 1, parries: 1, pitchUp: 60, pitchDown: 60, castPrimary: 1, castQ: 1, castE: 1, hitDummy: 1, hitPatrol: 1, hitStrafe: 1, cells: 1 },
+    needs: { jumps: 3, dashes: 1, guards: 1, parries: 1, pitchUp: 60, pitchDown: 60, castPrimary: 1, castQ: 1, castE: 1, hitDummy: 1, hitPatrol: 1, hitStrafe: 1, cells: 1, tileBurn: 30 },
     input: (ctx, t) => {
       const T = ctx.targets!, E = ctx.enemies, g = T.slot[3];
       if (t < 4 * S) return mix(go(Math.PI), fire(t)); // north into the target field, firing
@@ -208,11 +209,15 @@ export const SCENARIOS: Scenario[] = [
       }
       if (t < 32 * S) return { ...fire(t), aim: pitchRay(ctx, 89) }; // straight up
       if (t < 36 * S) return { ...fire(t), aim: pitchRay(ctx, -89) }; // straight down
-      if (t < 42 * S) { // the tall-grass patch west of the spawn: stand off its east edge and Ember it alight
+      if (t < 40 * S) { // the tall-grass patch west of the spawn: stand off its east edge and Ember it alight
         const W = ctx.world, gx = 42 - W.half, gz = 72 - W.half;
         return mix(toward(ctx, gx + 7, gz), fire(t), aimAt(ctx, gx, W.height(gx, gz) + 0.2, gz));
       }
-      if (t < 50 * S) return mix(toward(ctx, ctx.world.spawn[0] - 6, ctx.world.spawn[1] - 12), fire(t)); // chase the patrol
+      if (t < 44 * S) { // then walk west through the burning tiles, still firing at the grass ahead
+        const W = ctx.world, gx = 42 - W.half, gz = 72 - W.half;
+        return mix(toward(ctx, gx - 6, gz), fire(t), aimAt(ctx, gx - 3, W.height(gx - 3, gz) + 0.2, gz));
+      }
+      if (t < 51 * S) return mix(toward(ctx, ctx.world.spawn[0] - 6, ctx.world.spawn[1] - 12), fire(t)); // chase the patrol
       return mix(go((t / S) * 0.6), fire(t)); // circle and fire
     },
   },
@@ -377,6 +382,7 @@ function count(ctx: SimContext, inp: InputFrame, cov: Coverage, held: Float64Arr
     }
   }
   if (P.hzSafe) cov.swimTicks++;
+  { const C = W.cells, pk = C.tile(P.x, P.z); if (pk >= 0 && C.state[pk] === CS.burning && P.y - W.height(P.x, P.z) < 0.3) cov.tileBurn++; } // grounded on a burning tile
   if (P.m.coat) cov.coats++;
   else for (let e = 0; e < ctx.enemies.hi; e++) if (ctx.enemies.alive[e] && ctx.enemies.coat[e]) { cov.coats++; break; }
   if (ctx.objective && ctx.objective.kind === 'hold' && ctx.objective.phase === 'active') cov.holdTicks++;
