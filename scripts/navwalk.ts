@@ -23,6 +23,7 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
+import { RANGE } from '../src/mods';
 /** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m), an Extra Large (0.88 m) and
  *  a Large elite (×2, capped at 0.95 m) */
 const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0], ['elite', 'heracross', ROLE.elite]];
@@ -32,14 +33,14 @@ export interface WalkResult { map: string; seed: number; target: string; walker:
 
 // no spawns, no objectives, and no far-enemy relocation (rules.enemy.despawnDistance would teleport a walker that starts
 // more than 46 m from the player to a ring around it, skipping the very route under test; a holding wide body likewise)
-const calm = { director: { spawnBase: -99, swarmEvery: 1e9, eliteEvery: 1e9 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, enemy: { despawnDistance: 1e9, holdRelocate: 1e9 }, ...(process.env.NAVWALK_RULES ? JSON.parse(process.env.NAVWALK_RULES) : {}) };
+const calm = { enemy: { despawnDistance: 1e9, holdRelocate: 1e9 }, ...(process.env.NAVWALK_RULES ? JSON.parse(process.env.NAVWALK_RULES) : {}) };
 const at = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 
 export function freshRun(kind: 'location' | 'habitat', id: string, seed: number, species = 'totodile'): SimContext {
   const wg = kind === 'location'
     ? { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } }
     : { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } };
-  const ctx = createRun({ seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...sizeOverride() } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...sizeOverride() } as never });
   const E = ctx.enemies;
   for (let e = 0; e < E.hi; e++) if (E.alive[e]) E.kill(e);
   return ctx;

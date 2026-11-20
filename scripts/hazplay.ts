@@ -13,11 +13,12 @@ import { addMember } from '../src/sim/squad';
 import { compileMove } from '../src/sim/moves';
 import { DECK_REACH } from '../src/sim/world';
 
+import { RANGE } from '../src/mods';
 export interface Case { id: string; map: string; seed: number; tile: string; ok: boolean; detail: string }
 
 /** a calm run on one map for every stage (no spawns, no objectives); `hz` changes the sim cadence */
 export function mkRun(map: string, seed: number, species: string, extra: Record<string, unknown> = {}): SimContext {
-  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99, eliteEvery: 1e9, swarmEvery: 1e9 }, ...extra } as never });
+  return createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra } as never });
 }
 const centre = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 const tileName = (ctx: SimContext, k: number) => `${k % ctx.world.w},${(k / ctx.world.w) | 0}`;

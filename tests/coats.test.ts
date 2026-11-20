@@ -11,9 +11,10 @@ import type { DamageSpec } from '../src/sim/combat';
 import type { InputFrame, SimContext } from '../src/sim/types';
 import type { Element } from '../src/rules/elements';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 function calm(): SimContext {
-  const ctx = createRun({ seed: 2, species: 'totodile', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 2, species: 'totodile', ruleOverrides: { bodies: { looseRocks: 0 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NONE);
   return ctx;
 }

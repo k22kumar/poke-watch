@@ -45,6 +45,28 @@ export const volatile: Mod = {
 
 export const ALL_MODS: Mod[] = [vampiric, noHealCards, volatile];
 
+/** The survivor loop's systems: the director (waves, elites, swarms, beats, weather, the boss and the final swarm), XP
+ *  pickups, and progression (levels, cards, chests, evolution by level). Objectives stay: only the director opens one on
+ *  its own, so with it gone an objective runs only when something starts it (the habitat Hold gates do). */
+export const SURVIVOR_SYSTEMS: ReadonlySet<string> = new Set(['director', 'pickups', 'progression']);
+
+/** No survivor loop (docs/hero-shooter-pivot.md §8 step 1, Q15): the foundation systems only. Tests and gates that
+ *  exercise movement, combat, worldgen or hazards run under it instead of silencing the director with rule hacks. */
+export const noSurvivorLoop: Mod = {
+  id: 'no-survivor-loop',
+  name: 'No survivor loop',
+  systems: (list) => list.filter((s) => !SURVIVOR_SYSTEMS.has(s.name)),
+};
+
+/** The training range: the foundation with no survivor loop. Targets, respawns and the hero kit arrive in later steps
+ *  of the pivot (docs/hero-shooter-pivot.md §8). */
+export const RANGE: Mode = {
+  id: 'range', name: 'Training range',
+  description: 'No waves, no levels: move, aim and fight on any map.',
+  rules: { mode: { id: 'range', endless: false, difficulty: 1 } },
+  mods: [noSurvivorLoop],
+};
+
 // ---------------------------------------------------------------- modes
 export const MODES: Mode[] = [
   {
@@ -67,6 +89,7 @@ export const MODES: Mode[] = [
     description: 'Bosses arrive at 1:30. Fast levels, short stages.',
     rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, xp: { base: 4, linear: 3 }, director: { alphaAt: 60, eliteEvery: 20 } },
   },
+  RANGE,
 ];
 
 /** What validateSpawnOverride reports for a mode's own rules.spawning.override and each of its mods' (bosses named in

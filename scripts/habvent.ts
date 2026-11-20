@@ -8,13 +8,14 @@
 import { createRun, step } from '../src/sim/run';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const SEEDS = (process.argv[2] && !process.argv[2].startsWith('-') ? process.argv[2] : '1,2,3,5,7,9').split(',').map(Number);
 const SPEEDS = arg('speeds', '5.4,7.2').split(',').map(Number);
 const REACT = arg('react', '0.35,0.5,0.8').split(',').map(Number);
 
 function mk(seed: number): SimContext {
-  return createRun({ seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge', dusk: 'volcanic-ridge', badlands: 'volcanic-ridge', frost: 'volcanic-ridge' } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99, eliteEvery: 1e9, swarmEvery: 1e9 } } as never });
+  return createRun({ mode: RANGE, seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge', dusk: 'volcanic-ridge', badlands: 'volcanic-ridge', frost: 'volcanic-ridge' } } } as never });
 }
 
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];

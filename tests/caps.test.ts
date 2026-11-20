@@ -22,11 +22,12 @@ import { BODY_TEMPLATES } from '../src/rules/materials';
 import { defaultRules } from '../src/rules/defaults';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
-const QUIET = { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 }, beats: { enabled: false }, objectives: { enabled: false } };
+const QUIET = { bodies: { looseRocks: 0 } };
 
 function calm(species = 'totodile', extra: object = {}): SimContext {
-  const ctx = createRun({ seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
+  const ctx = createRun({ mode: RANGE, seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
   for (let i = 0; i < 20; i++) step(ctx, NONE);
   return ctx;
 }

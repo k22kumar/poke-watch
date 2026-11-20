@@ -11,10 +11,11 @@ import { T, type ArenaPropKind } from '../src/world/tiles';
 import { getArena } from '../src/world/arenas';
 import type { InputFrame, SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
-const QUIET = { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 }, beats: { enabled: false }, objectives: { enabled: false } };
+const QUIET = { bodies: { looseRocks: 0 } };
 function calm(extra: object = {}): SimContext {
-  const ctx = createRun({ seed: 2, species: 'totodile', ruleOverrides: { ...QUIET, surfaces: { inAuthored: true, ...((extra as { surfaces?: object }).surfaces ?? {}) }, ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'surfaces')) } as never });
+  const ctx = createRun({ mode: RANGE, seed: 2, species: 'totodile', ruleOverrides: { ...QUIET, surfaces: { inAuthored: true, ...((extra as { surfaces?: object }).surfaces ?? {}) }, ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'surfaces')) } as never });
   for (let i = 0; i < 6; i++) step(ctx, NONE);
   return ctx;
 }

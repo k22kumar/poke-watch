@@ -25,6 +25,7 @@ import { clearance } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const flag = (k: string) => process.argv.includes(k);
 
@@ -165,7 +166,7 @@ export function playHold(o: TacOpts): TacResult {
   const stage = o.stage ?? (isHab ? biomeStage(HABITATS[map].biomeFit[0]) : map === 'viridian-forest' ? biomeStage('meadow') : map === 'mt-moon' ? biomeStage('dusk') : 0);
   const horde = o.horde ?? true;
   const locations: Record<string, string> = map === 'classic' ? { meadow: '', dusk: '', badlands: '', frost: '' } : { meadow: map, dusk: map, badlands: map, frost: map };
-  const ctx = createRun({ seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, ...(horde ? {} : { director: { spawnBase: -99 } }), ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
+  const ctx = createRun({ mode: horde ? undefined : RANGE, seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { objectives: { firstAfter: 1e9, secondAfter: 1e9 }, worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
   if (stage) startStage(ctx, stage);
   const level = o.level ?? 10;
   for (let i = 1; i < level; i++) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01);

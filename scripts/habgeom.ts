@@ -10,6 +10,7 @@ import { clearance } from '../src/world/habitat/validate';
 import { pathBetween, sightTiles, playerReach } from '../src/world/locgen/nav';
 import type { SimContext } from '../src/sim/types';
 
+import { RANGE as RANGE_MODE } from '../src/mods';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const RANGE = Number(arg('range', '14')), THR = Number(arg('thr', '0.5'));
 const EYE = 0.9; // m above the feet for the shooter and the target's centre of mass 0.5
@@ -32,7 +33,7 @@ function plen(ctx: SimContext, p: Path) { let L = 0; for (let i = 1; i < p.lengt
 function tail(ctx: SimContext, p: Path, len: number): Path { let acc = 0; const out: Path = [p[p.length - 1]]; for (let i = p.length - 2; i >= 0 && acc < len; i--) { const a = nodeXZ(ctx, p[i]), b = nodeXZ(ctx, p[i + 1]); acc += Math.hypot(a[0] - b[0], a[1] - b[1]); out.push(p[i]); } return out.reverse(); }
 
 export function analyse(recipe: string, seed: number): Geo & { ctx: SimContext } {
-  const ctx = createRun({ seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, director: { spawnBase: -99 } } as never });
+  const ctx = createRun({ mode: RANGE_MODE, seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } } } as never });
   // the map's own biome stage does not matter for the geometry; stage 0 is enough
   const W = ctx.world, H = W.hab!, m = W.map, n = W.w * W.h, N = m.over ? 2 * n : n;
   const cl = clearance(m);

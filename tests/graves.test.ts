@@ -21,6 +21,7 @@ import { loadInfo, worldgenFromQuery } from '../src/world/replay';
 import { GRAVE_TOP, PROP_RULES, graveClassOf, T, type ArenaMap } from '../src/world/tiles';
 import { playHabitat } from '../scripts/habplay';
 
+import { RANGE } from '../src/mods';
 const ID = 'forest-cemetery', P = profilesFor();
 const gen = (seed: number, variant = '') => generateHabitat({ recipe: ID, seed, variant });
 const SEEDS = [3, 5, 7, 11];
@@ -106,7 +107,7 @@ test('marker height against both muzzle extremes: kerb under every muzzle, heads
   // and the sim agrees on a built map: a ray at the tall muzzle clears a headstone that stops the small one
   let found = 0;
   for (const seed of [3, 5, 7]) {
-    const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: ID } }, director: { spawnBase: -99 } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: ID } } } as never });
     const W = ctx.world, M = W.map;
     for (const p of M.props) {
       if (p.kind !== 'grave' || graveClassOf(p.top!) !== 'stone' || p.w !== 1) continue;
@@ -209,7 +210,7 @@ test('every environment state: markers are terrain-grade (the stripped state kee
 
 test('the prop kind: per-instance height and lean, a kerb walks, a headstone and a stele block; lean is in the checksum', () => {
   assert.equal(PROP_RULES.grave.platform, GRAVE_TOP.stone);
-  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 5, locations: { meadow: ID } }, director: { spawnBase: -99 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 5, locations: { meadow: ID } } } as never });
   const W = ctx.world, M = W.map, seen = { kerb: 0, stone: 0, stele: 0 };
   for (const p of M.props) {
     if (p.kind !== 'grave') continue;

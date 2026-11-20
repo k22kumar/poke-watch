@@ -14,6 +14,7 @@ import { walkLocation } from '../scripts/navwalk';
 import { playHabitat } from '../scripts/habplay';
 import { escapeOf, TRAP_ROOM } from '../scripts/stuckwatch';
 
+import { RANGE } from '../src/mods';
 // Movement footprints (docs/SIZING.md "Footprint", "Navigation classes"): every body collides with walls as a circle of
 // its class `body` (World.moveBody), wide bodies route on 2 × 2 blocks (world/navblocks.ts), and navigation and collision
 // agree on what fits. One test per defect this pass confirmed.
@@ -51,7 +52,7 @@ test('classes: a one-tile passage fits Tiny, Small and Medium bodies, not Large 
 
 test('a diagonal pinhole (two walls touching at a corner) stops the trainer; with point collision it slipped through', () => {
   for (const geometry of [true, false]) {
-    const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { director: { spawnBase: -99 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, size: { geometry } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { size: { geometry } } as never });
     const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 10);
     const i = I + 5, j = J + 5;
     // row j walled left of column i, row j + 1 walled from column i: the two sides touch only at the corner (i, j + 1)
@@ -74,7 +75,7 @@ test('a diagonal pinhole (two walls touching at a corner) stops the trainer; wit
 
 test('a Large partner does not fit a one-tile gap that a Small one walks through, and never ends a tick in the wall', () => {
   for (const [species, fits] of [['totodile', true], ['meganium', false]] as const) {
-    const ctx = createRun({ seed: 1, species, ruleOverrides: { director: { spawnBase: -99 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: {} as never });
     const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 12), foot = partnerFootprint(P.species, ctx.rules);
     const gap = I + 6, row = J + 6, walls: [number, number][] = [];
     for (let c = I; c < I + 12; c++) if (c !== gap) walls.push([c, row]);
@@ -94,7 +95,7 @@ test('a Large partner does not fit a one-tile gap that a Small one walks through
 });
 
 test('a dash into a wall never tunnels or overlaps it (moveBody substeps)', () => {
-  const ctx = createRun({ seed: 1, species: 'feraligatr', ruleOverrides: { director: { spawnBase: -99 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'feraligatr', ruleOverrides: {} as never });
   const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 10), foot = partnerFootprint(P.species, ctx.rules);
   const row = J + 6, walls: [number, number][] = [];
   for (let c = I; c < I + 10; c++) walls.push([c, row]);
@@ -170,7 +171,7 @@ test('the tidal-cave retreat no longer pins on a loose rock (habplay drove the t
 
 test('stuckwatch tells a trapped partner from a bot that missed a narrow way out (escapeOf)', () => {
   for (const species of ['totodile', 'feraligatr']) {
-    const ctx = createRun({ seed: 1, species, ruleOverrides: { director: { spawnBase: -99 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: {} as never });
     const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 14), ci = I + 7, cj = J + 7;
     const put = () => { P.x = P.px = ci - W.half + 0.5; P.z = P.pz = cj - W.half + 0.5; P.y = W.height(P.x, P.z); };
     put();

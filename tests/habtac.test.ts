@@ -11,7 +11,8 @@ import { spawnEnemy } from '../src/sim/enemies';
 import { ROLE } from '../src/sim/pools';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
 
-const mk = (map: string, seed: number): SimContext => createRun({ seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99, eliteEvery: 1e9, swarmEvery: 1e9 } } as never });
+import { RANGE } from '../src/mods';
+const mk = (map: string, seed: number): SimContext => createRun({ mode: RANGE, seed: 1, species: 'bulbasaur', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } } } as never });
 
 /** stand the trainer on the pad's far side from team B's staging (the worst case for the despawn distance) and open the Hold */
 function openHold(ctx: SimContext) {
@@ -49,7 +50,7 @@ for (const [map, seed] of [['volcanic-ridge', 7], ['volcanic-ridge', 3], ['river
 }
 
 test('a Raider far from the trainer on a classic map is still relocated (the pin is for habitat Holds only)', () => {
-  const ctx = createRun({ seed: 1, species: 'bulbasaur', ruleOverrides: { director: { spawnBase: -99 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'bulbasaur', ruleOverrides: {} as never });
   const E = ctx.enemies, P = ctx.player;
   const i = spawnEnemy(ctx, 'rattata', Math.max(-ctx.world.bound, Math.min(ctx.world.bound, P.x + 56)), P.z, ROLE.raider);
   assert.ok(i >= 0);

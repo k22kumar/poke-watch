@@ -8,9 +8,10 @@ import { createRun, step } from '../src/sim/run';
 import { T } from '../src/world/tiles';
 import type { InputFrame, SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 function calm(): SimContext {
-  const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 2, species: 'cyndaquil', ruleOverrides: { bodies: { looseRocks: 0 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NONE);
   return ctx;
 }

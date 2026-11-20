@@ -20,6 +20,7 @@ import { loadSettings, SETTINGS_DEFAULT } from '../src/ui/settings';
 import { T, type ArenaMap } from '../src/world/tiles';
 import { playHabitat } from '../scripts/habplay';
 
+import { RANGE } from '../src/mods';
 const IDS = Object.keys(HABITATS);
 const gen = (id: string, seed: number, variant = '') => generateHabitat({ recipe: id, seed, variant });
 
@@ -171,7 +172,7 @@ test('sim seam: the map loads through the normal entry point; the objective is a
 test('sim seam: vents erupt on a fixed cycle and hurt what stands in them; lava never freezes', () => {
   let seed = 1, m;
   for (; seed < 20; seed++) { m = gen('volcanic-ridge', seed); if (m.gen!.hab!.hazard.length) break; }
-  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge' } }, director: { spawnBase: -99 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge' } } } as never });
   const W = ctx.world, H = W.hab!, P = ctx.player, k = H.hazard[0];
   P.x = (k % W.w) - W.half + 0.5; P.z = ((k / W.w) | 0) - W.half + 0.5; P.y = W.height(P.x, P.z);
   const hp0 = P.hp;

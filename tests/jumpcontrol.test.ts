@@ -14,6 +14,7 @@ import { createRun, step } from '../src/sim/run';
 import { stateHash } from '../src/sim/checksum';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { deepMerge, type DeepPartial } from '../src/core/util';
+import { RANGE } from '../src/mods';
 import {
   ACT, LOCO, jumpControl, selectIntegrator, stepBallistic, stepScripted, stepSupported,
   type LocoBody, type LocoIntent, type LocoResult, type LocoTick,
@@ -45,7 +46,7 @@ function stepAny(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, out: LocoRe
 
 /** a calm run (no spawns) on its start position, settled */
 function calm(species = 'cyndaquil', rules: DeepPartial<Rules> = {}): SimContext {
-  const ctx = createRun({ seed: 1, species, ruleOverrides: deepMerge({ director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 } }, rules as never) as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: deepMerge({  }, rules as never) as never });
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
   return ctx;
 }
