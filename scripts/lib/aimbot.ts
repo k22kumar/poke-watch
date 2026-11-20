@@ -13,6 +13,18 @@ import type { InputFrame, SimContext } from '../../src/sim/types';
  *  cover), else level along the partner's facing. Deterministic: it reads sim state only, with detmath and
  *  sqrt (no engine-dependent Math.sin / Math.hypot), so the `aim` hashes do not depend on the machine */
 export function withAim(ctx: SimContext, inp: InputFrame): InputFrame {
+  const P = ctx.player;
+  const [tx, ty, tz] = crosshairTarget(ctx);
+  let fx = tx - P.x, fz = tz - P.z;
+  const fl = Math.sqrt(fx * fx + fz * fz) || 1; fx /= fl; fz /= fl;
+  const ex = P.x - fx * 4.5 + fz * 1.25, ey = P.y + 1.7, ez = P.z - fz * 4.5 - fx * 1.25;
+  const dx = tx - ex, dy = ty - ey, dz = tz - ez, L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1, f = Math.fround;
+  return { ...inp, aim: { ox: f(ex), oy: f(ey), oz: f(ez), dx: f(dx / L), dy: f(dy / L), dz: f(dz / L) }, aimDev: 'mouse' };
+}
+
+/** the point withAim's crosshair looks at: the centre of the nearest live enemy within 30 m the partner can see, else
+ *  20 m along its facing at eye height */
+export function crosshairTarget(ctx: SimContext): [number, number, number] {
   const P = ctx.player, E = ctx.enemies;
   let best = -1, bd = 900;
   const cf = combatFlags(ctx);
@@ -24,9 +36,5 @@ export function withAim(ctx: SimContext, inp: InputFrame): InputFrame {
   }
   const tx = best >= 0 ? E.x[best] : P.x + dsin(P.facing) * 20, tz = best >= 0 ? E.z[best] : P.z + dcos(P.facing) * 20;
   const ty = best >= 0 ? E.y[best] + E.tall[best] / 2 : P.y + 1.7;
-  let fx = tx - P.x, fz = tz - P.z;
-  const fl = Math.sqrt(fx * fx + fz * fz) || 1; fx /= fl; fz /= fl;
-  const ex = P.x - fx * 4.5 + fz * 1.25, ey = P.y + 1.7, ez = P.z - fz * 4.5 - fx * 1.25;
-  const dx = tx - ex, dy = ty - ey, dz = tz - ez, L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1, f = Math.fround;
-  return { ...inp, aim: { ox: f(ex), oy: f(ey), oz: f(ez), dx: f(dx / L), dy: f(dy / L), dz: f(dz / L) }, aimDev: 'mouse' };
+  return [tx, ty, tz];
 }

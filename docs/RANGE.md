@@ -14,7 +14,9 @@ The survivor modes (Classic, Survival, Glass Cannon, Boss Rush) still run with t
 
 ## The range arena (`src/world/arenas.ts buildRange`)
 
-Map id `range`, the meadow's palette. An open firing field north of the spawn where the range targets stand, a 2 m terrace with a stair flight on the west (walk off its edge, climb back by the stairs), a 1.5 m block on the east that a jump reaches (the 1.84 m apex), four rocks for cover, and a pond in the south-east.
+Map id `range`, the meadow's palette. An open firing field north of the spawn where the range targets stand, a 2 m terrace with a stair flight on the west (walk off its edge, climb back by the stairs), a 1.5 m block on the east that a jump reaches (the 1.84 m apex), four rocks for cover, a pond in the south-east, a tall-grass patch west of the spawn (Fire sets it alight), and three Light throwables beside the spawn.
+
+- **Throwables** (`ArenaMap.throwables`, seeded by `src/sim/bodies.ts seedBodies`): the `cobble` body template, Weight 1 and unbreakable (integrity 0), so any hold move (Wrap, Vine Whip: Power 1; Psychic) picks one up and its release throws it along the aim. It stays to be thrown again. The scattered loose rocks (Weight 2) still need Power 2.
 
 ## Targets (`src/rules/targets.ts`, `src/sim/targets.ts`)
 
@@ -49,3 +51,7 @@ A per-player state, never a world freeze: for `rules.evolution.breakSeconds` (2 
 ## Hold (`src/sim/modes/hold.ts`)
 
 The control point as its own module: the point (the habitat contest floor, else a site near the player), the offer time, charging, the Raiders' drain and the Raid party from team B's staging. `src/sim/objectives.ts` still schedules and finishes objectives and calls these; `src/sim/enemies.ts` pins Raiders of an active habitat Hold (CLAUDE.md "Hold Raid party"). The item-ball reward is the survivor loop's: it is paid only where the progression system runs.
+
+## The replay baseline
+
+`tests/fixtures/scenarios.ts`: ten scripted input tracks (no bot) on the range, Mt. Moon, Shoal Grotto, Cinder Crater and Shrine Gorge, hashed every 10 s against `tests/fixtures/replays.json` (`npx tsx scripts/checksum.ts scenarios [--update]`). Each scenario names the coverage it must reach (`needs`: holds, throws, parries, Breakthroughs, ticks under a deck, Tag Actions…; `never`: Wailord's ticks under a 2.9 m deck), counted from events and state every tick; `tests/replays.test.ts` asserts them before the hashes. The harness aims as the browser does: the crosshair ray and the ground aim point under it.

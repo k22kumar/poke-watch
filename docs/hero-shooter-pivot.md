@@ -572,9 +572,19 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 | 5 Test lines | `f0b0c9b` | done |
 | 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed `d3d65b9` | done, two open findings below |
 | 7 Match foundation | `3321d90` | done (docs/RANGE.md) |
-| 8 Baseline | `9b313b5` (infrastructure) | stopped: `PROTOTYPE` draft and `tests/fixtures/replays.json` await the owner (Q35) |
+| 8 Baseline | `9b313b5` (infrastructure), content `48268cb`, list and baseline (this commit) | done: `PROTOTYPE` approved with a Rock and a Dragon family; `tests/fixtures/replays.json` committed |
 
-Open findings (owner to decide; neither limit nor harness changed):
+Step 8 closing work (owner, after the Q35 stop):
 
-- **habtide seed 7 `live.warning-escape`.** Not a hazard bug. The harness driver counts arrival within 1.2 m of its dry goal and then lets go; at 7.2 m/s the body coasted onto dry ground, at the band's 5.76 m/s it stops on a tidal tile (33.52, −17.07) and takes two water hits when the flood comes in. The escape itself takes 1.73 s of the 8 s warning.
-- **viewsample "camera collision and species sizes", lens p99 1.40 m.** Not a lens regression. At 6 m/s the scripted walk puts Feraligatr against rock at (−35.2, 11.1) during a strafe with look input; for 7 consecutive frames the arm comes in at once as rock enters it (P1, by design), 0.5–3.5 m a frame. At 8 m/s the same course meets it for 3 frames, under the 1 % the p99 < 0.4 m line assumes.
+- **Evolution links for every species** (`48268cb`). The content build stripped `evolvesTo` from the enemy lane, so only the seven partner lines could Breakthrough. Now every species whose single next form was imported links to it (84 new links, no `evolveLevel`, so the survivor level trigger never fires on them and every checksum set is unchanged). Branching species stay unlinked: Snorunt, Sneasel, Tyrogue, Nincada, Cosmoem, Applin. Graded after the rebuild: 240 ready, 4 partial (the four boss-scale bodies, as before).
+- **Rock and Dragon families.** The Geodude line (Geodude, Graveler, Golem) and the Bagon line (Bagon, Shelgon, Salamence) fit the frozen profile at every form; the five later forms joined the roster as the `heroes` wave, imported last so every registry index holds. The Dratini (Dragonite eye 1.58 m) and Dreepy (Dragapult 1.78 m) lines do not fit; nor do Gible, Axew, Jangmo-o, Deino or Trapinch (their last forms). Goomy fits by 4 mm (Goodra eye 1.416 m). `PROTOTYPE`: 58 forms, 22 families.
+- **Scenario coverage.** Each scenario names the counters it must reach (`Scenario.needs`, `never`); tests/replays.test.ts asserts them before the hashes. The harness now sends the ground aim point beside the crosshair ray, as the browser does (`src/main.ts sampleInput`); without it every non-ray move, the holds among them, fired along the facing, which is why no hold landed. The range arena gained three Light throwables (`cobble`, Weight 1, unbreakable) and a tall-grass patch. Fixed on the way: an integrity-0 body (the throwable, the Transport egg) broke the first time it changed hands (`changeOwner`), hash-neutral on every set.
+- **habtide**: the warning-escape driver arrives only standing on a dry tile (36/36). **viewsample**: the lens check counts snap episodes (runs of frames with the lens moved ≥ 0.4 m), at most 1 % of frames as before: 4 episodes over 7 frames on the seed 3 cave course, 4 over 4 on the forest course, limit 4.8.
+
+Open design question:
+
+- **How a Breakthrough chooses a branch.** Snorunt (Glalie or Froslass), Tyrogue (three), Nincada (Ninjask, and Shedinja on the side), Applin (three), Cosmoem (Solgaleo or Lunala) and Sneasel (by region) have more than one next form, so the content build leaves them unlinked and no branching line is a hero. A choice at the Breakthrough, a rule by stat or form, or one authored branch per line are the options.
+
+Follow-up:
+
+- **54 `ready` species exceed the frozen habitat profiles** (footprint 0.88 m, eye 1.42 m: Onix, Lugia, Wailord…). Making any of them a hero means re-measuring the habitat profiles, which moves accepted layouts: a planned `HAB_VERSION` bump with `docs/habaudit/baseline.json` regenerated, not a side effect of a roster change.

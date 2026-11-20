@@ -53,6 +53,33 @@ export function openingMove(sp: SpeciesDef): string | undefined {
  *  baseline and tests. Calibrated first with scripted duels. */
 export const FEATURED: readonly string[] = ['caterpie', 'metapod', 'butterfree', 'charmander', 'charmeleon', 'charizard', 'tauros', 'mewtwo'];
 
+/** The prototype's hero pick (docs/hero-shooter-pivot.md Q35, approved with the Rock and Dragon lines added): 58 forms
+ *  in 22 families, FEATURED first. The rule: a whole canonical line in the roster, every form ready and recruitable
+ *  and inside the frozen habitat trainer profile (footprint ≤ 0.88 m, eye ≤ 1.42 m), spread across elements, size
+ *  and traversal (swim, fly, hover), no branching line (a Breakthrough needs one next form; how it would choose a
+ *  branch is open, §11). Every line is linked by evolvesTo (scripts/build-content.mjs links every species to its single
+ *  next form), so each can Breakthrough; tests/heroes.test.ts checks the lines are whole. */
+export const PROTOTYPE: readonly string[] = [
+  ...FEATURED,
+  // the partner lines (evolvesTo wired)
+  'bulbasaur', 'ivysaur', 'venusaur', 'squirtle', 'wartortle', 'blastoise', 'chikorita', 'bayleef', 'meganium',
+  'cyndaquil', 'quilava', 'typhlosion', 'totodile', 'croconaw', 'feraligatr',
+  // wild lines: Electric, Flying, hover, Ice, Fairy / swim, Ghost / Fire, Fighting, Dark, Steel, Ground, Fairy, Rock, Dragon
+  'pichu', 'pikachu', 'raichu',
+  'rookidee', 'corvisquire', 'corviknight',
+  'tynamo', 'eelektrik', 'eelektross',
+  'bergmite', 'avalugg',
+  'azurill', 'marill', 'azumarill',
+  'litwick', 'lampent', 'chandelure',
+  'makuhita', 'hariyama',
+  'murkrow', 'honchkrow',
+  'magnemite', 'magneton', 'magnezone',
+  'diglett', 'dugtrio',
+  'togepi', 'togetic', 'togekiss',
+  'geodude', 'graveler', 'golem',
+  'bagon', 'shelgon', 'salamence',
+];
+
 /** A hero's kit (docs/STATS_GROWTH_TARGET.md "Kit and gating", docs/hero-shooter-pivot.md Q27): the primary (left
  *  click, fixed by species), Ability 1 (Q) and Ability 2 (E). The Ultimate (R) is unbound until it exists. */
 export interface HeroKit { primary?: string; q?: string; e?: string }

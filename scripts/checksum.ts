@@ -36,7 +36,8 @@ const CONFIGS: Config[] = [
 const which = process.argv[2] ?? 'all';
 
 // the hero-shooter baseline (tests/fixtures/scenarios.ts, docs/hero-shooter-pivot.md Q41–Q44): `scenarios` prints
-// every scenario's checkpoints and end hash; `scenarios --update` rewrites tests/fixtures/replays.json. The survivor
+// every scenario's checkpoints, end hash and coverage counters; `scenarios --update` rewrites the hashes in
+// tests/fixtures/replays.json (the coverage is asserted against each scenario's needs, not stored). The survivor
 // sets below retire with the old layers (pivot step 10).
 if (which === 'scenarios') {
   const { SCENARIOS, runScenario } = await import('../tests/fixtures/scenarios');
@@ -44,8 +45,9 @@ if (which === 'scenarios') {
   const out: Record<string, unknown> = {};
   for (const s of SCENARIOS) {
     const r = runScenario(s);
-    out[s.id] = r;
-    console.log(`${s.id.padEnd(18)} ${r.checkpoints.join(' ')} end=${r.end}`);
+    out[s.id] = { checkpoints: r.checkpoints, end: r.end };
+    const cov = Object.entries(r.coverage ?? {}).filter(([, v]) => v).map(([k, v]) => `${k}=${v}`).join(' ');
+    console.log(`${s.id.padEnd(18)} ${r.checkpoints.join(' ')} end=${r.end}\n${''.padEnd(18)} ${cov}`);
   }
   if (process.argv.includes('--update')) {
     fs.writeFileSync(new URL('../tests/fixtures/replays.json', import.meta.url), JSON.stringify({ comment: 'Hero-shooter replay baseline (tests/replays.test.ts). Rewritten by `npx tsx scripts/checksum.ts scenarios --update`; a commit that changes it says why.', scenarios: out }, null, 1) + '\n');

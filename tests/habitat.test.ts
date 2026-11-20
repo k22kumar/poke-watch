@@ -13,7 +13,7 @@ import { objectiveDue, startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { generateHabitat, HabitatError, HABITATS, HAB_VERSION, profilesFor, findHabitat, CONTROL_POINT } from '../src/world/habitat';
 import { measuredProfileInputs, VALIDATED_PROFILES } from '../src/world/habitat/mode';
-import { FEATURED } from '../src/rules/heroes';
+import { PROTOTYPE } from '../src/rules/heroes';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { partnerFootprint } from '../src/rules/sizing';
 import { clearance, validateHabitat, type Layout } from '../src/world/habitat/validate';
@@ -281,7 +281,7 @@ test('habitat body profiles are the frozen validated numbers, and the playable r
   });
   // every hero, not just the partners: the featured lines (and, once drafted, the prototype list) must fit the frozen
   // trainer, or the maps were never validated for them
-  for (const id of FEATURED) {
+  for (const id of PROTOTYPE) {
     const sp = SPECIES_BY_ID[id];
     assert.ok(partnerFootprint(sp, defaultRules) <= VALIDATED_PROFILES.trainerRadius + 1e-9, `${id}: footprint ${partnerFootprint(sp, defaultRules)} m`);
     assert.ok(sp.height * 0.8 <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `${id}: eye ${(sp.height * 0.8).toFixed(2)} m`);
