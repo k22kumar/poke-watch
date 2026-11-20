@@ -1,6 +1,6 @@
 # Hero-shooter pivot: inventory
 
-Status: **inventory only, 2026-11-19.** Nothing has been deleted or changed. The removal plan is still to be grilled.
+Status: **decided, 2026-11-19.** The removal plan was grilled; the decisions are in §10 and the order in §8. Work happens on the `hero-core` branch.
 
 - **Direction.** Develop the hero-shooter core (map traversal, movement, aiming, combat). Remove the survivor run and its upgrade loop.
 - **Last survivor state.** It is tagged `survivor-final` (annotated tag on `6e9b63e`, pushed to origin with `git push origin survivor-final`). Everything listed as "remove" stays recoverable from that tag.
@@ -399,37 +399,43 @@ Proposal: build the new baseline *before* removing anything, so removal steps ca
 
 ---
 
-## 8. Suggested removal order (for the grilling)
+## 8. Removal order (decided, §10)
 
-Each step ends with `npm run check`, the new replay test and the kept gates (`navwalk all 5`, `stuckwatch` once rewritten, `hazplay`, `habstate`, `habaudit` when worldgen is touched).
+All work is on the `hero-core` branch (Q4). `main` is merged into it at each step boundary, and any `main` change that moves layouts, hashes or gates is re-gated there (Q49). Each step ends with `npm run check` (apart from the known pointer-lock reds) and the kept gates (`navwalk all 5`, `hazplay`, `habstate`; `habaudit` when worldgen is touched). From step 8 on, the new replay test (`tests/replays.test.ts`) must also hold.
 
-1. **One "no survivor loop" switch**, replacing the `spawnBase: -99` / `firstAfter: 1e9` / `beats.enabled: false` hacks. It skips the director, objectives, progression, pickups and stage flow.
-   - Hash-neutral for today's sets: they don't use it.
-   - Rewrite the ~40 call sites to use it; check each one's hashes or asserts before and after.
-2. **Freeze `profilesFor`'s pool input** as constants (3.1). Layouts and `HAB_VERSION` stay unchanged: `habaudit` against `baseline.json`.
-3. **Move the salvage out**: placement (`allowedAt`/`nearestFit`), `firstAttacks`/`openingMove`, the bot's movement core.
-4. **T0 target sets and the new replay baseline** (§5, §7), committed as a test.
-5. **Fixed hero level** (2.3) and the inlined technique identity path (2.5). This is the combat path, so the new hashes must hold.
-6. **Delete the survivor systems** behind the switch, one per commit, new hashes held at each. First do the carry/throw extractions in §8a.
-   - cards and build
+Today's checksum sets keep printing their old hashes through steps 1–4. Steps 5 and 6 (importing the test lines, the stats step) move them on purpose; they are retired in step 10 and stay reproducible from `survivor-final` (Q5).
+
+1. **The `range` Mode** (Q15): a `Mode` in `src/mods/index.ts` that drops the director, objectives, progression, pickups and stage flow from the system list. The ~40 `spawnBase: -99` / `firstAfter: 1e9` / `beats.enabled: false` sites switch to it. Hash-neutral for today's sets.
+2. **Audio cut** (Q51), its own commit. No replay hash may move.
+3. **Freeze `profilesFor`'s pool input** as constants (§3.1). Layouts and `HAB_VERSION` unchanged: `habaudit` against `baseline.json`.
+4. **Salvage**: placement (`allowedAt`/`nearestFit`) into `sim/placement.ts`; `firstAttacks`/`openingMove` into `src/rules/heroes.ts`; the bot's movement core with its state in an instance (Q42).
+5. **Import the test lines** (Q33): Caterpie, Metapod, Butterfree, Tauros, Mewtwo through `content/roster.json`. Shedinja `recruitable: false`; `NEEDS_ABILITY_RULE` list and test (Q34). **Stop rule**: any of the five below `ready`.
+6. **Stats step** (Q12, Q25, Q26, Q27, Q29, Q36, Q37, Q40): `src/rules/stats.ts` canon curve, the physical/special split on both sides, the speed band, burn and deflect × `m`, flat coat strength and Tag Action level, `heroKit` and the fixed move level. **Stop rule**: a mandatory jump fails at the new speed (bring the choice; change neither the centre nor the jump).
+7. **Match foundation for the baseline**: the per-player Breakthrough in `sim/evolution.ts` (Q30) with the range Touch trigger and `?evolve=` (Q39, Q23); the loadout (`members[]` length from the mode) and swap as an opt-in system (Q10, Q11); Hold as `sim/modes/hold.ts` (Q14); the range arena, T0 target sets and range rules (Q16, Q17, Q20).
+8. **The new baseline** (Q41–Q43): `tests/fixtures/scenarios.ts`, `tests/fixtures/replays.json`, `tests/replays.test.ts`, `checksum.ts --update`. **Stop**: the drafted `PROTOTYPE` list goes to the owner before the baseline is committed (Q35).
+9. **Delete the survivor systems**, one per commit, the new hashes held at each (a move is a stop):
+   - the §8a extractions first (carry into `BodyPool.carrier`, `lassoHold` into `rules.caps`, `seedBodies` into the match start, the boulder throw as a bot action)
+   - cards and build, with the technique identity path inlined
    - XP and pickups
-   - the evolution level trigger (the transition stays, §2.4)
-   - objectives other than Hold
-   - recruiting
+   - the evolution level trigger
+   - Transport and Hunt
+   - recruiting and Tag variants
    - bosses
    - stages, portal and timer
-   - director
-   - compositions
-   - spawn pools: the region presets, waves and resolver in `src/rules/spawning.ts`, after step 2 froze the habitat profile input. This is **not** `src/sim/pools.ts`: those are the struct-of-arrays actor pools (`EnemyPool`, `ProjectilePool`, `ZonePool`, `BodyPool`) and they stay. Only `PickupPool` goes, with XP.
-7. **Retire the old checksum layers and their flags** (§7 step 5). Rewrite CLAUDE.md's Commands and Habitat sections, the README, and the docs listed above:
-   - `BUILDS.md` and `ENCOUNTERS.md` go
-   - `SPAWNING.md`, `SQUAD.md`, `HABITAT_PLAYTEST.md`, `PLAYABILITY.md`, `CUSTOMISING.md` and `SPECIES.md` are rewritten
-   - `ANALYSIS.md` and `FIDELITY.md` are marked historical
-8. **T1 enemy bots on the Hold point**, then plan T2.
+   - director and difficulty curves
+   - compositions and the mender/bulwark/hexer/hunt roles
+   - spawn pools (`src/rules/spawning.ts` presets, waves, resolver; not `src/sim/pools.ts`)
+   - survivor modes and mods (Q48)
+   - survival scripts, and the `perf-sim`/`stuckwatch` workloads moved to targets (Q21)
+   - survivor UI, title and HUD (Q46)
+10. **Retire the old checksum layers and the flags** (Q5, Q18, Q44), rewrite `checksum.ts`, and the docs, README and CLAUDE.md (Q22).
+11. **Merge bar** (Q4, Q45): `tests/browser/range.py`, the gates, my look at the frames. **Stop** before merging.
 
-## 8a. Carrying and throwing: the foundation step 6 must not cut
+After the merge: A1 (Q19), then the co-op wave (T1) and the 3v3 (T2) (Q38), growth and Candy (Q31), the dream shop (Q32).
 
-Carrying and throwing objects is a planned core mechanic. I checked every removal in §8 step 6 against the code it would touch.
+## 8a. Carrying and throwing: the foundation step 9 must not cut
+
+Carrying and throwing objects is a planned core mechanic. I checked every removal in §8 step 9 against the code it would touch.
 
 ### The foundation (keep)
 
@@ -448,7 +454,7 @@ Carrying and throwing objects is a planned core mechanic. I checked every remova
 | Logs and weights | `src/sim/caplog.ts` (hold/release records), `src/rules/species.ts` `weightClass`, `src/rules/sizing.ts` (`partnerRadius` sets the hold distance) | |
 | Rules | `rules.caps` (`holdTime`, `holdDistance`, `holdSpeed`, `combineWindow`, `combineCos`), `rules.bodies` | |
 
-### What step 6 would cut, and what to do first
+### What step 9 would cut, and what to do first
 
 1. **Transport is today's only carry mechanic.** The egg is a body (`objectives.ts:105`).
    - Carrying lives in:
@@ -463,12 +469,12 @@ Carrying and throwing objects is a planned core mechanic. I checked every remova
    - The Lodestone technique (+1 Hold Power, longer holds) and Quarry (extra rubble from broken bodies, `quarryRubble`, `bodies.ts:266-272`) are build data too.
    - Deleting "cards and build" removes the trigger and the constant.
    - **Before that step**: move `lassoHold` into `rules.caps` and keep the `lasso` spec flag and the `creatureForce` path. Whether a move grabs creatures without the transform is a grilling question.
-3. **Technique helpers sit inside the hold and throw code.** `bodies.ts` calls `holdSeconds`, `guardWeight`, `onGuardDeflect` and `logTech`, and reads `TB` bits. Step 5's identity inlining must keep exactly the no-technique values (`holdSeconds` = `rules.caps.holdTime`). The new replay baseline should include a hold-and-throw scenario so a slip shows as a hash move.
+3. **Technique helpers sit inside the hold and throw code.** `bodies.ts` calls `holdSeconds`, `guardWeight`, `onGuardDeflect` and `logTech`, and reads `TB` bits. The identity inlining in step 9 must keep exactly the no-technique values (`holdSeconds` = `rules.caps.holdTime`). The new replay baseline should include a hold-and-throw scenario so a slip shows as a hash move.
 4. **Body seeding runs inside `startStage`** (`run.ts:131`, `seedBodies`). Deleting "stages, portal and timer" must move seeding into the match start, or maps lose their boulders and rocks.
 5. **The only enemy that throws is a boss.** Boulder rolls come from `aimBoulder`/`bossThink` state 7 (`enemies.ts:164, 589-598`, `rules.bosses.boulder*`). They use the ordinary `spawnBody` with `TEAM.enemy`. Deleting bosses loses the one enemy-side thrower. The body path itself survives, so T1/T2 bots can throw with the same call. Keep the boulder windup and throw as a reusable bot action, not boss code.
 6. **No conflict** with XP and pickups, recruiting, director, compositions or spawn pools: none of them reads or writes bodies, props, materials or elements. The director's weather writes cell agents only through `cells.ts`, which stays.
 
-## 9. Questions for the grilling
+## 9. Questions for the grilling (answered in §10)
 
 - Hold and Transport: keep as match modes, or remove with the rest and rebuild later?
 - Squad and Tag: one hero with three forms, a three-hero team, or one Pokémon per player?
@@ -480,3 +486,77 @@ Carrying and throwing objects is a planned core mechanic. I checked every remova
 - Does the stopped spawn-pool grilling die with the pools? The roster import and its role rule stay either way.
 - Maplebrook overworld: keep, or out of scope for the pivot?
 - The browser build size blocker (25.7 MB, stage A1): still a priority once only a few heroes and targets load per match?
+
+## 10. Decisions (grilling, 2026-11-19)
+
+The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROWTH_TARGET.md` (owner-confirmed) overrides the rest-gated evolution in `docs/CONTROL_SCHEME_TARGET.md`.
+
+### Shape and process
+
+- **Q1 Match shape.** Offline, human against bots: T0 targets, then T2 hero bots (players in `ctx.players[]` driven by `InputFrame`s). Netcode out of scope, but per-player systems are built so a remote player could slot in later.
+- **Q2 Hero unit.** One Pokémon per player. Built modular, so a future mode or mechanic with swapping is easy to add, change and maintain.
+- **Q3 Baseline first.** The new replay baseline exists before anything is deleted, and each deletion holds it.
+- **Q4 Branch.** All pivot work on `hero-core`. The live site stays on `survivor-final`. Merge when title → hero pick → training range works end to end and the kept gates pass: `npm run check` (apart from the known pointer-lock reds), `navwalk all 5`, `hazplay`, `habstate` and the new replay test.
+- **Q5 Old checksum layers.** All 19 flag-off sets retire in one commit once the director is gone; `survivor-final` reproduces them. The deck coverage moves into T0 scenarios first.
+- **Q49 `main` during the pivot.** `main` is merged into `hero-core` at each step boundary, and a `main` change that moves layouts, hashes or gates is re-gated there. Survivor-only work stops.
+- **Q50 Record.** This section, then `hero-core`, then go.
+
+### What goes and what stays
+
+- **Q6 Bosses.** Deleted now. The boulder windup and throw stays as a reusable bot action.
+- **Q7 Chests.** Placement stays in the generators (layouts, `HAB_VERSION` and `LOC_VERSION` unchanged); the sim and renderer ignore them. Stripping placement waits for a planned version bump.
+- **Q8 Maplebrook.** Untouched.
+- **Q9 Spawn-pool grilling.** Dead. The S2 roster import and its role rule stay.
+- **Q14 Hold and Transport.** Hold moves into its own mode module (`sim/modes/hold.ts`) with the Raid party and its `despawnDistance` pin; the habitat Hold gates keep running, and Hold is the T2 objective later. Transport and Hunt are deleted after the §8a carry extraction.
+- **Q18 Flags.** `hazards.enabled`, `aim.foliageCover` and `aim.deviceAssist` stay as tunables. Hard-wired on, with the off-paths deleted: `caps.enabled`, `surfaces.enabled`, `size.geometry`, `size.headroom`, `size.axis`, `size.xlContinuous`, `size.xlTall`, `world.wallTops`, `aim.spatial`, `aim.poleSafe`. `build.enabled`, `spawning.waves`, `CLASSIC_REGIONS` and the `*-classic` presets go with their systems.
+- **Q20 Enemy actors.** Keep `spawnEnemy`, the behaviours (chase, charger, ranged, tank, healer, swarm) and the Raider role. Delete `compositions.ts` and the mender, bulwark, hexer and hunt roles. Targets take health from the hero canon curve, with a per-behaviour multiplier in rules.
+- **Q21 Scripts.** Delete `headless`, `h2`, `h6`, `h8b`, `worldsurvival`, `locsurvival`. `perf-sim` and `stuckwatch` move to N T0 targets plus the bot, re-baselining `perf-sim --gate` once. Camera and aim benches get a T0 target set where they need enemies.
+- **Q22 Docs.** Delete `BUILDS.md` and `ENCOUNTERS.md`. Mark `ANALYSIS.md` and `FIDELITY.md` historical. Rewrite `SPAWNING.md` (as target sets and placement), `SQUAD.md`, `PLAYABILITY.md`, `CUSTOMISING.md`, `SPECIES.md`, `HABITAT_PLAYTEST.md`, CLAUDE.md and the README in the step that removes their system.
+- **Q31 XP.** Gems, magnet, `dropXp`, `xpNext`, `PickupPool` and the XP bar are deleted. The exp → Candy bar is built fresh after the merge (`sim/growth.ts`, event-fed). `stats.kills` stays; assists come with growth.
+- **Q32 Cards.** Cards and build are deleted wholesale. The dream shop is built fresh after the merge.
+- **Q47 Music climax.** Unreachable in range; it gets a match-intensity input in T2.
+- **Q48 Modes and mods.** All survivor modes and mods go, as do the `onLevelUp`/`filterCards` hooks. Shipped modes: `range` and `hold`, with swap a system a mode can register. The `Mode`/`Mod` mechanism stays.
+- **Q51 Audio** (owner addition).
+  - **Keep, unchanged:** the adaptive score: `content/music/adaptive/` (melody, pulse/drive/impact stems, victory/defeat/accent cues, manifest), `src/audio/adaptive.ts`, `adaptive-score.ts` and the score director's intensity states. Range targets still drive the combat and surge states. Cries (real recordings) stay. The mixer buses and volume settings stay.
+  - **Delete:** the generated chip-tune music (`src/audio/music.ts` tracks and `TrackPlayer`, the `content/music/manifest.json` slot mechanism, `src/content/music.json`); every synthesized sound effect (`src/audio/sfx.ts`, including move, hit and UI sounds); the synthesized fallback call for species without a cry.
+  - Every music state plays the adaptive score, and nothing plays before it loads. Combat and UI are silent until recorded sounds are added.
+  - `docs/AUDIO.md` and the audio tests are updated. Its own commit on `hero-core` at the next step boundary; it must not move a replay hash.
+
+### Squad, heroes and kits
+
+- **Q10 Squad shape.** `Player.members[]` and `Member` stay; the mode's loadout sets the length (default 1). Swap is an opt-in system a `Mode` registers; with one member it never runs.
+- **Q11 Tag.** Tag Actions, grey health and the swap cooldown live in the opt-in swap module, off by default, kept alive by one replay scenario. Tag variants are deleted. The `tagAction` readiness check counts only in modes that register swap.
+- **Q13 Hero pool** (amended). Hero pick shows the prototype list from `STATS_GROWTH_TARGET.md` (about 50 forms), with the four test lines (Caterpie, Charmander, Tauros, Mewtwo) featured; the baseline and tests use them. The dev roster still picks any ready species. All species playable stays the long-term goal; loading size is A1's job.
+- **Q27 Kit** (changed). Primary = `openingMove(sp)`; Q = the first learnset move in canonical order (status moves allowed); E empty. Range mode fills E with the next learnset move for testing. An override table holds featured kits. Ultimate unbound.
+- **Q28 Boss species.** Sudowoodo, Magcargo, Articuno and Houndoom stay as ordinary species. Hero pick shows `ready` only; `partial` stays in the dev roster. Their warn checks are fixed if they still grade partial.
+- **Q33 Test lines.** Caterpie, Metapod, Butterfree, Tauros and Mewtwo come in through `content/roster.json`, after `profilesFor` is frozen and before the stats step. Stop rule: any of the five below `ready`.
+- **Q34 Exclusions.** Shedinja gets `recruitable: false` with "needs its Ability rule". Slaking, Regigigas and Wishiwashi (not game species) go in `NEEDS_ABILITY_RULE` in `src/rules/heroes.ts`; a test asserts each is absent from `SPECIES` or flagged. `validateProfiles` stays strict.
+- **Q35 Prototype list.** Drafted by rule (whole lines in the roster; spread across size classes, elements and traversal; the four lines featured; no `recruitable: false`), stored as `PROTOTYPE` and `FEATURED` in `heroes.ts`. The owner approves it before the baseline is committed.
+- **Q46 Title and HUD.** The survivor UI goes. Hero pick (`openSelect`) shows `PROTOTYPE`, `FEATURED` first. HUD: health, primary/Q/E slots, an empty Ultimate slot. Tagline "A Pokémon hero shooter fan game"; the title stays.
+
+### Stats
+
+- **Q12 / Q25 Canon curve.** Level-50 Canon Curve, k = 0.6, no Upkeep: `m = ((base + 20) / 100) ^ k`, health = `250 × ((HP + 75) / 155) ^ k`. Base 80 is ×1.0 and 250 health. Atk, SpA and Def (and SpD for special damage) are on the curve. "No Upkeep" means no BST-keyed cost multiplier on strong Pokémon; levels add nothing (they pay Candy later). Mastery is deleted; move slots sit at a fixed `rules.hero.moveLevel`. Per-hero stat overrides can come later as data.
+- **Q36 Speed.** Top speed is a logistic band in Spe, tunable as `rules.hero.topSpeed` (centre, 6.0 m/s) and `rules.hero.speedBand` (width, 5.6–6.4). Buff, swim, paralysis, carry and stance multiply on top. Targets and enemies keep their own formula until the co-op wave step, where enemies move onto the same band so heroes can disengage. Acceleration and Burst refill come with the Burst system. **Stop rule**: if a mandatory jump stops reaching, bring the owner the choice between raising the centre and re-tuning the jump; change neither.
+- **Q37 Physical/special split.** Lands in the stats step. Heroes take damage × `1/m(Def)` (physical) or `1/m(SpD)` (special). Enemy and target attacks take the channel of their higher attack stat; the `E.dmg` magnitude stays. Targets divide incoming damage by their own `m(Def|SpD)`.
+- **Q26 / Q40 Level terms.** Burn from a move and deflect damage scale with the attacker's `m` for the move's channel (the deflector is the attacker, on the deflected projectile's channel). Tile burn, coat strength and the Tag Action level are flat tunables at the old level-10 values (tile burn 14, coat 30).
+- **Q29 Order.** The curve, the flat terms, `heroKit` and the speed band land as one step after salvage and before the baseline. `src/rules/stats.ts` is pure, with tests pinning base 80 → ×1.0 and 250 health.
+
+### Evolution
+
+- **Q23 Transition.** `sim/evolution.ts` is kept alive by a unit test (swap, heal, size, the Breakthrough state, growing in a corridor and under a deck), the dev trigger and a replay scenario.
+- **Q30 Breakthrough.** Per-player state `breakT` (about 2 s): rooted and invulnerable, status cleared, full heal, then the species swap. The world keeps running; the overlay and alternating sprite are not modal. Entry: `startEvolution(ctx, player, memberIndex)`.
+- **Q39 Range trigger.** In `range`, holding F for `rules.evolution.holdTime` (0.4 s) is a free Breakthrough for an evolver; a non-evolver is a no-op until the burst dial is played. A new held Touch bit in `InputFrame`. Plus `?evolve=`.
+
+### Range, targets and the baseline
+
+- **Q15 Switch.** The `range` Mode replaces the hack sites.
+- **Q16 Range map.** One authored arena in `world/arenas.ts`; T0 target sets also anchor on habitat maps (`ModeGraph` roles) and on locations through a dev `?map=`. The biome comes from the map. Shipped layouts stay identical, so a match calls `new World(...)` with the seed each map was accepted at.
+- **Q17 Range rules.** No fail state, no end. A fainted hero respawns at the spawn after a fixed delay. Targets respawn on fixed tick counts with no RNG. Strafe targets shoot back at reduced damage.
+- **Q19 A1.** Not a merge blocker; the first item after the merge.
+- **Q38 Scope.** T1 becomes the co-op wave and T2 the 3v3 on one habitat Hold map, both after the merge.
+- **Q41 Scenarios.** Ten 60 s scenarios, aim ray on: Charmander range (movement, jumps, dash, guard, ±89°, primary/Q/E, all target kinds); Caterpie range (Breakthrough ×2, status Q); Tauros range (physical, hold and throw, override kit if needed); Mewtwo range (special, Def/SpD, deflect, 2 m body); Onix on Mt. Moon; Wailord on Mt. Moon seed 3; Totodile on Shoal Grotto seed 1; Charmander on a crater habitat (tile burn, coats, cells); a Gorge Hold with the Raid party; a three-member loadout in swap mode. `deck-tall` is dropped with `size.axis` hard-wired.
+- **Q42 Format.** `tests/fixtures/scenarios.ts`: map, hero or loadout, mode, target set and a scripted input track (tick → `InputFrame` keyframes). The aimbot adds the aim ray only. The wandering bot, with its state in an instance, drives `perf-sim` and `stuckwatch` only.
+- **Q43 Hash.** `stateHash` plus `vy`, jump and coyote state, `breakT`, target and body state; checkpoints every 10 s and an end hash; in `tests/fixtures/replays.json`, asserted by `tests/replays.test.ts` in `npm test`. `checksum.ts --update` rewrites it, and the commit says why.
+- **Q44 `checksum.ts`.** Runs scenarios by name (`[scenario|all] [--update]`); the old set names and `legacyHash` go in the retire commit.
+- **Q45 Merge check.** `tests/browser/range.py` in capture mode: title, pick a featured hero, spawn, fire at a dummy and see its health drop, hold F with Caterpie to Breakthrough, with screenshots; plus a look at the frames. `play.py`, `menus.py` and the survivor scene JSONs are deleted. Run at merge time, not in `npm run check`.
