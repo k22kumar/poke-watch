@@ -1,7 +1,7 @@
 // A chase-camera crosshair for the headless bot (Phase 2B, docs/THIRD_PERSON_IMPLEMENTATION.md §13): the bot sends no
-// aim, so the replay sets and the performance gate would never reach the spatial aim. scripts/checksum.ts (`aim`,
-// `aim-off`) and scripts/perf-sim.ts (`--aim`) add this ray to the bot's own input. It is a measuring device, not the
-// bot's behaviour: roadmap Stage 7A gives the bot a real aim.
+// aim, so neither the replay scenarios' tracks nor the performance gate would reach the spatial aim on their own.
+// tests/fixtures/scenarios.ts and scripts/perf-sim.ts (`--aim`) add this ray to the input. It is a measuring device, not
+// the bot's behaviour: roadmap Stage 7A gives the bot a real aim.
 import { MASK, segmentClear } from '../../src/sim/spatial';
 import { combatFlags } from '../../src/sim/aim';
 import { dcos, dsin } from '../../src/core/detmath';

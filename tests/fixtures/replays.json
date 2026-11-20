@@ -1,5 +1,5 @@
 {
- "comment": "Hero-shooter replay baseline (tests/replays.test.ts). Rewritten by `npx tsx scripts/checksum.ts scenarios --update`; a commit that changes it says why.",
+ "comment": "Hero-shooter replay baseline (tests/replays.test.ts). Rewritten by `npx tsx scripts/checksum.ts [scenario|all] --update`; a commit that changes it says why.",
  "scenarios": {
   "range-charmander": {
    "checkpoints": [

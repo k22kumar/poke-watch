@@ -473,42 +473,6 @@ test('determinism: the same seed and inputs give the same state hash with every 
   }
 });
 
-test('regression: with the capability layer off, replay hashes equal the v10 build (commit cedd7e7)', { skip: 'old checksum layer: the stats step moved every replay hash; retired with the old layers in docs/hero-shooter-pivot.md §8 step 10 (survivor-final reproduces it)' }, async () => {
-  const { botInput } = await import('../src/sim/bot');
-  const { MODES } = await import('../src/mods');
-  const { StateHasher } = await import('../src/sim/checksum');
-  // The legacy hash from scripts/checksum.ts. These marks were recorded from this source with the
-  // capability and build layers off, after Joltik and Onix joined content/roster.json: a replay
-  // depends on the roster (the spawn tables and the species registry are module state, not run
-  // options), so the values recorded against the v10 source with the 38-species roster can no
-  // longer reproduce, and commit cedd7e7 is not in this repository's history to re-record from.
-  // What the test still proves is that the flags-off path is frozen: any later change to the sim
-  // that moves these marks has changed v10 behaviour. Re-pin only together with a roster change.
-  const legacy = (ctx: SimContext) => {
-    const h = new StateHasher(), P = ctx.player;
-    h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken);
-    h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.hp).num(P.maxHp);
-    for (const s of P.moves) h.num(s.cd).num(s.level);
-    const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i]) h.num(i).num(E.x[i]).num(E.z[i]).num(E.hp[i]);
-    const B = ctx.bodies; for (let i = 0; i < B.hi; i++) if (B.alive[i]) h.num(B.x[i]).num(B.z[i]);
-    return h.h.toString(16);
-  };
-  const V10: [string, number, string, number, string[]][] = [
-    ['cyndaquil', 2, 'classic', 150, ['da40abba', '527648f9', 'ded890d3', 'd90d2a3e', '10cf4c80']],
-    ['bulbasaur', 3, 'survival', 120, ['d2972424', 'faaf1cf0']],
-    ['charmander', 11, 'boss-rush', 120, ['77d4e243', 'abe356a0', '3332f7fa', 'bf643a3b']],
-    ['totodile', 7, 'classic', 120, ['aa01151d', 'fb355485', '4b89fa50']],
-  ];
-  for (const [species, seed, mode, seconds, want] of V10) {
-    // v10 had neither the capability layer nor the Phase 8b build layer (nor liquid exposure and falls), and its basic
-    // attack cast only at a target
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, combat: { basicNeedsTarget: true } } as never });
-    const got: string[] = [];
-    while (ctx.time < seconds && ctx.state !== 'over') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
-    assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);
-  }
-});
-
 test('regression: each feature flag alone off still runs a bot minute without errors', async () => {
   const { botInput } = await import('../src/sim/bot');
   for (const caps of [{ interception: false }, { suspendHold: false }, { bodyCollisions: false }, { burnNavCost: 1 }]) {

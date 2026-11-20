@@ -6,7 +6,7 @@
 // runScenario returns replayHash (src/sim/checksum.ts) every 10 s and at the end, and the coverage counters (what the
 // track actually reached: holds, throws, parries, ticks under a deck…). tests/replays.test.ts asserts the hashes against
 // tests/fixtures/replays.json and each scenario's `needs` (a counter at least that high) and `never` (a counter at 0);
-// `npx tsx scripts/checksum.ts scenarios --update` rewrites the fixture (a commit that changes it says why).
+// `npx tsx scripts/checksum.ts [scenario|all] --update` rewrites the fixture (a commit that changes it says why).
 //
 // Aim: like the browser (src/main.ts sampleInput), every tick sends the crosshair ray (InputFrame.aim, read by the
 // direct shots) and the ground aim point (aimX / aimZ, read by every other move, the holds among them).
