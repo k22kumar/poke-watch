@@ -1,0 +1,162 @@
+[
+  {
+    "name": "gorge3-chase",
+    "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&seed=1&hv=2",
+    "steps": [
+      {
+        "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half; c.player.y = c.world.height(c.player.x, c.player.z, 9); return 1; })()"
+      },
+      {
+        "advance": 1.2,
+        "frames": 72
+      },
+      {
+        "shot": "shrine"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  },
+  {
+    "name": "crater3-chase",
+    "query": "go=1&species=cyndaquil&loc=volcanic-ridge&mapseed=3&calm=1&seed=1&hv=2",
+    "steps": [
+      {
+        "eval": "(() => { const c = pokewatch.ctx, H = c.world.hab; c.player.x = H.contest.x - c.world.half; c.player.z = H.contest.y - c.world.half; c.player.y = c.world.height(c.player.x, c.player.z, 9); return 1; })()"
+      },
+      {
+        "advance": 1.2,
+        "frames": 72
+      },
+      {
+        "shot": "altar"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  },
+  {
+    "name": "cam-G3-flank-deck-ahead",
+    "query": "go=1&species=totodile&loc=river-gorge&mapseed=3&calm=1&tp=70,84&seed=1&hv=2",
+    "steps": [
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "eval": "(()=>{pokewatch.renderer.rig.yaw=3.167;return 1})()"
+      },
+      {
+        "advance": 1.6,
+        "frames": 96
+      },
+      {
+        "shot": "view"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  },
+  {
+    "name": "cam-G7-flank-ramp-ahead",
+    "query": "go=1&species=totodile&loc=river-gorge&mapseed=7&calm=1&tp=46,95&seed=1&hv=2",
+    "steps": [
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "eval": "(()=>{pokewatch.renderer.rig.yaw=-4.318;return 1})()"
+      },
+      {
+        "advance": 1.6,
+        "frames": 96
+      },
+      {
+        "shot": "view"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  },
+  {
+    "name": "cam-C3-direct-tunnel-ahead",
+    "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=3&calm=1&tp=92,62&seed=1&hv=2",
+    "steps": [
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "eval": "(()=>{pokewatch.renderer.rig.yaw=5.18;return 1})()"
+      },
+      {
+        "advance": 1.6,
+        "frames": 96
+      },
+      {
+        "shot": "view"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  },
+  {
+    "name": "cam-C7-flank-ramp-ahead",
+    "query": "go=1&species=totodile&loc=volcanic-ridge&mapseed=7&calm=1&tp=48,78&seed=1&hv=2",
+    "steps": [
+      {
+        "advance": 0.6,
+        "frames": 36
+      },
+      {
+        "eval": "(()=>{pokewatch.renderer.rig.yaw=2.864;return 1})()"
+      },
+      {
+        "advance": 1.6,
+        "frames": 96
+      },
+      {
+        "shot": "view"
+      },
+      {
+        "metrics": true
+      },
+      {
+        "eval": "({seed:pokewatch.ctx.world.hab.attemptSeed,pos:[pokewatch.ctx.player.x,pokewatch.ctx.player.y,pokewatch.ctx.player.z],yaw:pokewatch.renderer.rig.yaw,tick:pokewatch.ctx.tick,chase:pokewatch.renderer.chase,phase:pokewatch.ctx.state})"
+      }
+    ],
+    "w": 960,
+    "h": 540
+  }
+]

@@ -138,6 +138,8 @@ lava; decisive sightline breaks are terrain (props can burn or break).
 
 ## Gates (all hard; on the final collision)
 
+Physical sight shares the combat raycast. Tactical exposure samples ground cover at half-metre intervals and tests the entire ray against overhead decks. The four reference replays, player-height frames and bridge regression are in the [sight baseline](habitat-sight/README.md).
+
 Navigation, clearance and sight are derived from the finished `ArenaMap` exactly as the sim reads it (`locgen/nav.ts`
 mirrors `sim/world.ts`). Approaches are **baseline walking**: steps ≤ 0.6 m, no jump, no drop, symmetric (so the
 route back is the same route). Clearance per node is the widest disc that fits at the tile centre or a corner within

@@ -19,6 +19,7 @@
 //               (PBL07); hazard tiles have an exit within reach of the warning (PBL04/05)
 //   joins       bridges, causeways and arches are supported at both ends and clear what passes under (spec R02)
 //   drainage    every fluid tile drains, through culverts and falls, to an outlet or a declared sink (spec R03)
+import { mapExposureClear, mapSegmentClear } from '../../sim/spatial';
 import { navOpen, navTop } from '../gen/util';
 import type { GateResult } from '../gen/context';
 import { enemyCore, pathBetween, playerReach } from '../locgen/nav';
@@ -177,19 +178,9 @@ export function clearance(m: ArenaMap, base?: Float32Array, changed?: Uint8Array
   return out;
 }
 
-/** 3D line of sight between two points at absolute heights (World.sight's rule: walls, terrain and deck slabs stop it) */
+/** 3D line of sight between two points at absolute heights in map coordinates, using the same continuous trace as combat */
 export function sightAbs(m: ArenaMap, ax: number, ay: number, ya: number, bx: number, by: number, yb: number): boolean {
-  const W = m.w, dx = bx - ax, dz = by - ay, L = Math.hypot(dx, dz), steps = Math.floor(L / 0.5);
-  for (let s = 1; s < steps; s++) {
-    const t = (s * 0.5) / L, x = Math.floor(ax + dx * t), z = Math.floor(ay + dz * t);
-    if (x < 0 || z < 0 || x >= W || z >= m.h) return false;
-    const k = z * W + x, y = ya + (yb - ya) * t;
-    if (m.over && m.over[k] > 0 && y >= m.over[k] - 0.9) { if (m.over[k] > y) return false; continue; }
-    if (m.over && m.over[k] > 0 && y > m.over[k] - 0.6) return false; // the slab's underside
-    if (m.wall[k]) return false;
-    if (navTop(m, k) > y) return false;
-  }
-  return true;
+  return mapSegmentClear(m, ax, ya, ay, bx, yb, by);
 }
 
 const tileOf = (m: ArenaMap, p: [number, number]) => Math.floor(p[1]) * m.w + Math.floor(p[0]);
@@ -288,7 +279,7 @@ function seesShare(m: ArenaMap, px: number, py: number, eye: number, seg: number
     const v = seg[i], k = v % n, tx = (k % m.w) + 0.5, ty = ((k / m.w) | 0) + 0.5;
     tried++;
     if ((tx - px) ** 2 + (ty - py) ** 2 > range * range) continue;
-    if (sightAbs(m, px, py, eye, tx, ty, level(m, v) + 0.9)) { seen++; vis?.push(v); }
+    if (mapExposureClear(m, px, eye, py, tx, level(m, v) + 0.9, ty)) { seen++; vis?.push(v); }
   }
   return tried ? seen / tried : 0;
 }
@@ -366,7 +357,7 @@ export function validateHabitat(m0: ArenaMap, L: Layout, profiles: BodyProfile[]
           const b = seesShare(m, px, py, h + eyeHi, s2, 24, vb);
           if (b < 0.5) continue;
           // R30: a dominant perch sees both approaches and the point at once
-          if (!sightAbs(m, px, py, h + eyeHi, L.contest.x, L.contest.y, L.contest.h + 0.9)) continue;
+          if (!mapExposureClear(m, px, h + eyeHi, py, L.contest.x, L.contest.h + 0.9, L.contest.y)) continue;
           const weak = a <= b ? va : vb;
           found.push({ tile: k, deck: v >= n, team, sees: [+a.toFixed(2), +b.toFixed(2)], target: weak[0] % n, targets: weak.map((t) => t % n) });
         }

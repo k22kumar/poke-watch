@@ -14,11 +14,15 @@ import { Rng } from '../src/core/rng';
 import { dcos, dsin } from '../src/core/detmath';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
 import { bodyOf } from '../src/rules/sizing';
+import { sightAbs } from '../src/world/habitat/validate';
+import { combatFlags, resolveSpatial } from '../src/sim/aim';
+import { compileMove } from '../src/sim/moves';
+import { freshAimState, NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import {
   CF, Contacts, MASK, QF, RayHit, SK, SK_ACTOR, SK_WORLD, overlapCylinder, overlapSector, raycastWorld, segmentClear,
-  solidAt, spatialQuery, sweep, sweepTo,
+  mapExposureClear, solidAt, spatialQuery, sweep, sweepTo,
 } from '../src/sim/spatial';
 
 // Phase 2A spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12). Synthetic scenes copy the
@@ -497,7 +501,7 @@ test('World.sight (I2): the 0.5 m sampled line should not see through a wall cor
   }
 });
 
-test('World.sight (I1): a line 0.3 m under a deck\'s drawn underside should be open', { todo: 'Stage 7A (World.sight treats the 0.9 m DECK_REACH band as slab; gate: this test active). Phase 2B shots use the 0.6 m DECK_SLAB' }, () => {
+test('World.sight passes 0.15 m below a deck underside, within the movement snap band', () => {
   const W = flatWorld(), i = 40, j = 70;
   for (let d = 0; d < 4; d++) W.over![K(W, i + d, j)] = 3;
   const y = 3 - DECK_SLAB - 0.15, z = C(W, j);
@@ -505,9 +509,74 @@ test('World.sight (I1): a line 0.3 m under a deck\'s drawn underside should be o
   assert.equal(W.sight(X(W, i) - 1, y, z, X(W, i) + 5, y, z), true);
 });
 
+// Points supplied to habitat queries are grid x, absolute height, grid z. Exercise the live
+// runtime trace separately in centred world coordinates, including the actual player cover flags.
+type Point = [number, number, number];
+function checkMapRay(W: World, a: Point, b: Point, clear: boolean, flags = 0) {
+  const [x, y, z] = a, [ex, ey, ez] = b;
+  assert.equal(segmentClear(W, x - W.half, y, z - W.half, ex - W.half, ey, ez - W.half, MASK.los, flags), clear, 'runtime');
+  assert.equal(sightAbs(W.map, x, z, y, ex, ez, ey), clear, 'habitat physical sight');
+  assert.equal(mapExposureClear(W.map, ...a, ...b), clear, 'tactical exposure');
+}
+
+test('Shrine Gorge 3: the ray beneath the bridge clears both sight queries', () => {
+  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: {
+    mode: 'generated', regionSeed: 3, locations: { meadow: 'river-gorge' },
+  } } });
+  const W = ctx.world;
+  assert.equal(W.hab!.attemptSeed, 3);
+  assert.equal(W.over![51 * W.w + 58], 3);
+  assert.equal(W.height(58.5 - W.half, 51.5 - W.half), -0.25);
+  for (const [y, open] of [[2.25, true], [2.4, true], [2.40001, false], [2.75, false], [3, true], [3.1, true]] as const) {
+    checkMapRay(W, [58.5, y, 51.5], [60.5, y, 51.5], open, combatFlags(ctx));
+  }
+});
+
+test('slab edge, corner and vertical crossings use the combat contact convention', () => {
+  const W = flatWorld();
+  W.over![K(W, 40, 40)] = 3;
+  checkMapRay(W, [40.5, 2, 40.5], [40.5, 2.4, 40.5], true); // endpoint on the underside
+  checkMapRay(W, [40.5, 2, 40.5], [40.5, 3.1, 40.5], false);
+  checkMapRay(W, [39.9, 2.7, 40.5], [40, 2.7, 40.5], true);
+  checkMapRay(W, [39.9, 2.7, 40.5], [40.0001, 2.7, 40.5], false); // shorter than one cover sample
+  checkMapRay(W, [39.5, 2.7, 40.5], [40.5, 2.7, 39.5], true); // touches one corner
+  W.over![K(W, 39, 39)] = 3;
+  checkMapRay(W, [39.5, 2.7, 40.5], [40.5, 2.7, 39.5], false); // two touching slabs seal it
+});
+
+test('the same raised firing position permits a small muzzle and blocks a tall muzzle', () => {
+  const { W, ctx } = scene();
+  const P = ctx.player;
+  P.x = C(W, 38); P.z = C(W, 40); P.y = 1.5;
+  W.over![K(W, 40, 40)] = 3;
+  ctx.input = { ...NO_INPUT, aim: { ox: P.x - 2, oy: P.y + 1, oz: P.z, dx: 1, dy: 0, dz: 0 } };
+  const move = compileMove(ctx.rules, 'ember');
+  for (const [species, clear] of [['totodile', true], ['feraligatr', false]] as const) {
+    P.species = SPECIES_BY_ID[species];
+    const aim = freshAimState();
+    assert.ok(resolveSpatial(ctx, move, aim));
+    checkMapRay(W, [aim.ox + W.half, aim.oy, aim.oz + W.half], [42, aim.oy, 40.5], clear, combatFlags(ctx));
+  }
+});
+
+test('single-surface cover keeps legacy walls and low platforms, including after cover is removed', () => {
+  const W = flatWorld(), m = W.map, k = K(W, 40, 40);
+  delete m.over;
+  Object.assign(W, { over: null });
+  m.props = [{ kind: 'bush', x: 40, y: 40, w: 1, h: 1, variant: 0 }];
+  m.platform[k] = 0.7;
+  checkMapRay(W, [38, 0.5, 40.5], [42, 0.5, 40.5], false);
+  checkMapRay(W, [38, 0.8, 40.5], [42, 0.8, 40.5], true);
+  assert.ok(segmentClear(W, X(W, 38), 0.5, C(W, 40), X(W, 42), 0.5, C(W, 40), MASK.los, QF.foliage));
+  m.platform[k] = 0; m.wall[k] = 1;
+  checkMapRay(W, [38, 10, 40.5], [42, 10, 40.5], false);
+  m.wall[k] = 0;
+  checkMapRay(W, [38, 0.5, 40.5], [42, 0.5, 40.5], true);
+});
+
 test('exact against dense sampling, and World.sight compared, on 10 000 segments over generated maps', () => {
   const rng = new Rng(7);
-  let segs = 0, blocked = 0, sightMiss = 0, sightBand = 0, sightOther = 0;
+  let segs = 0, blocked = 0, sightMiss = 0, sightOther = 0;
   for (const [loc, seed, count] of [['mt-moon', 4, 3334], ['chargestone-cave', 3, 3333], ['viridian-forest', 1, 3333]] as [string, number, number][]) {
     const rules = { ...defaultRules, worldgen: { ...defaultRules.worldgen, mode: 'generated' as const, locations: { meadow: loc } } };
     const W = new World(rules, BIOMES.meadow, seed), lim = W.half - 1;
@@ -541,17 +610,11 @@ test('exact against dense sampling, and World.sight compared, on 10 000 segments
       const sampled = W.sight(x0, y0, z0, x1, y1, z1);
       if (sampled === exact) continue;
       if (sampled && !exact) { sightMiss++; continue; } // sampling stepped over a solid the exact query met
-      // sight blocked where the exact query is clear: its 0.9 m deck band (vs the 0.6 m slab) must explain it
-      let band = false;
-      for (let q = 1; q < n && !band; q++) {
-        const t = (q * 0.5) / Lh, x = x0 + dx * t, z = z0 + dz * t, y = y0 + dy * t, k = W.tile(x, z), ov = W.over ? W.over[k] : 0;
-        if (ov > 0 && y >= ov - DECK_REACH && y <= ov - DECK_SLAB) band = true;
-      }
-      if (band) sightBand++; else sightOther++;
+      sightOther++;
     }
   }
-  console.log(`spatial vs sight: ${segs} segments, ${blocked} blocked; sight saw through ${sightMiss} (sampling), blocked ${sightBand} in the deck band, ${sightOther} unexplained`);
-  assert.equal(sightOther, 0, 'every disagreement is sampling or the deck band');
+  console.log(`spatial vs sight: ${segs} segments, ${blocked} blocked; sight saw through ${sightMiss} (sampling), falsely blocked ${sightOther}`);
+  assert.equal(sightOther, 0, 'a sampled solid must also obstruct the exact query');
   assert.ok(segs === 10000 && blocked > 1000);
 });
 

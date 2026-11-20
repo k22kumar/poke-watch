@@ -3,6 +3,7 @@
 //   player move f → t: t not wall or water, and a rise of ≤ 2.4 m (a jump reaches 1.84 m and then steps 0.6 m)
 // The enemy graph is directed (drops), so connectivity means strong connectivity: every enemy tile must be able to
 // reach the spawn and be reached from it, or enemies get trapped and the player finds unreachable perches.
+import { mapExposureClear } from '../../sim/spatial';
 import { DIRS4, canStep as symStep, navOpen, navTop } from '../gen/util';
 import { T, type ArenaMap } from '../tiles';
 import { blockMask, blockNeighbours, blockNodes, type NavGrid } from '../navblocks';
@@ -133,16 +134,7 @@ export function sightTiles(m: ArenaMap, a: number, ha: number, b: number, hb: nu
   const W = m.w;
   const x0 = (a % W) + 0.5, z0 = ((a / W) | 0) + 0.5, x1 = (b % W) + 0.5, z1 = ((b / W) | 0) + 0.5;
   const y0 = surf(m, a) + ha, y1 = surf(m, b) + hb;
-  const dx = x1 - x0, dz = z1 - z0, L = Math.sqrt(dx * dx + dz * dz), n = Math.floor(L / 0.5);
-  for (let s = 1; s < n; s++) {
-    const t = (s * 0.5) / L;
-    const x = Math.floor(x0 + dx * t), z = Math.floor(z0 + dz * t);
-    const k = z * W + x, y = y0 + (y1 - y0) * t;
-    if (m.over && m.over[k] > 0 && y >= m.over[k] - 0.9) { if (m.over[k] > y) return false; continue; }
-    if (m.wall[k]) return false;
-    if (surf(m, k) > y) return false;
-  }
-  return true;
+  return mapExposureClear(m, x0, y0, z0, x1, y1, z1);
 }
 
 /** BFS path (tile list) between two tiles over `allowed` with symmetric enemy steps, avoiding `avoid` when set */

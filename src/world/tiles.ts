@@ -95,6 +95,8 @@ export interface ArenaMap {
 }
 
 export const WATER_Y = -0.25;
+/** Thickness of the solid overhead deck, measured down from ArenaMap.over (metres). */
+export const DECK_SLAB = 0.6;
 /** a frozen water tile's surface sits this far above the water it covers (sim: World.height; the validator's frozen state) */
 export const ICE_LIFT = 0.25;
 

@@ -64,8 +64,7 @@
 // (scripts/spatialbench.ts counts collections and heap growth). Only +, −, ×, /, sqrt, floor, abs, min and max are used.
 
 import type { World } from './world';
-import { DECK_SLAB } from './world';
-import { T, WATER_Y, ICE_LIFT, type ArenaMap } from '../world/tiles';
+import { T, WATER_Y, ICE_LIFT, DECK_SLAB, type ArenaMap } from '../world/tiles';
 import type { CellField } from './cells';
 import type { SimContext } from './types';
 import type { Grid } from '../core/grid';
@@ -203,7 +202,9 @@ let KI = false;
  *  monomorphic. The arrays are the World's own (its W4 overlay and tide write into them in place), so the view stays
  *  current; it is rebuilt if the World's map or layer arrays are replaced. */
 class Geo {
-  readonly map: ArenaMap; readonly overSrc: Float32Array | null; readonly voidSrc: Uint8Array | null;
+  readonly map: ArenaMap;
+  readonly wlevelSrc: ArenaMap['wlevel']; readonly chasmSrc?: number[];
+  readonly overSrc: Float32Array | null; readonly voidSrc: Uint8Array | null;
   readonly w: number; readonly h: number; readonly half: number;
   readonly wall: Uint8Array; readonly terrain: Uint8Array; readonly elev: Float32Array; readonly platform: Float32Array; readonly stairs: Uint8Array;
   readonly over: Float32Array; readonly voids: Uint8Array; readonly wlevel: Float32Array;
@@ -212,30 +213,33 @@ class Geo {
   readonly soft: Uint8Array;
   /** R1b: the World's wallTop array (written in place by World.setBlock), or an all-Infinity one with the flag off */
   readonly top: Float64Array;
-  readonly cells: CellField;
-  constructor(W: World) {
-    const M = W.map, n = W.w * W.h;
-    this.map = M; this.overSrc = W.over; this.voidSrc = W.voids;
-    this.w = W.w; this.h = W.h; this.half = W.half;
+  readonly cells: CellField | undefined;
+  constructor(M: ArenaMap, W?: World) {
+    const n = M.w * M.h;
+    this.map = M; this.overSrc = W ? W.over : M.over ?? null; this.voidSrc = W?.voids ?? null;
+    this.w = M.w; this.h = M.h; this.half = W?.half ?? 0;
     this.wall = M.wall; this.terrain = M.terrain; this.elev = M.elev; this.platform = M.platform; this.stairs = M.stairs;
-    this.over = W.over ?? new Float32Array(n); this.voids = W.voids ?? new Uint8Array(n);
+    this.over = this.overSrc ?? new Float32Array(n); this.voids = this.voidSrc ?? new Uint8Array(n);
+    this.chasmSrc = W ? undefined : M.gen?.loc?.chasm;
+    if (this.chasmSrc) for (const k of this.chasmSrc) this.voids[k] = 1;
+    this.wlevelSrc = M.wlevel;
     this.wlevel = M.wlevel ?? new Float32Array(n).fill(WATER_Y);
-    this.top = W.wallTop ?? new Float64Array(n).fill(Infinity);
+    this.top = W?.wallTop ?? new Float64Array(n).fill(Infinity);
     this.soft = new Uint8Array(n);
     for (const p of M.props ?? []) {
       const pm = PROP_MATERIALS[p.kind];
       if (!pm) continue; // decoration (flowers, reeds, tall grass) claims no tile, as in PropField.at
       const v = MATERIALS[pm.mat].blocksShots ? 0 : 1;
-      for (let j = p.y; j < p.y + p.h && j < W.h; j++) for (let i = p.x; i < p.x + p.w && i < W.w; i++) if (i >= 0 && j >= 0) this.soft[j * W.w + i] = v;
+      for (let j = p.y; j < p.y + p.h && j < M.h; j++) for (let i = p.x; i < p.x + p.w && i < M.w; i++) if (i >= 0 && j >= 0) this.soft[j * M.w + i] = v;
     }
-    this.cells = W.cells;
+    this.cells = W?.cells;
   }
 }
 const GEOS = new WeakMap<World, Geo>();
 let lastW: World | null = null, lastG: Geo | null = null;
 function geoOf(W: World): Geo {
   let g = W === lastW ? lastG : (GEOS.get(W) ?? null);
-  if (!g || g.map !== W.map || g.overSrc !== W.over || g.voidSrc !== W.voids) GEOS.set(W, (g = new Geo(W)));
+  if (!g || g.map !== W.map || g.overSrc !== W.over || g.voidSrc !== W.voids) GEOS.set(W, (g = new Geo(W.map, W)));
   lastW = W; lastG = g;
   return g;
 }
@@ -273,7 +277,7 @@ function column(G: Geo, k: number, i: number, j: number, mask: number) {
         CLO[CN] = -Infinity; CHI[CN] = hi; CK[CN] = SK.wall; CN++;
       }
     } else {
-      const t = G.terrain[k], water = t === T.water, ice = water && G.cells.iceAt(k), kind = water && !ice ? SK.liquid : SK.terrain;
+      const t = G.terrain[k], water = t === T.water, ice = water && G.cells?.iceAt(k), kind = water && !ice ? SK.liquid : SK.terrain;
       if (mask & kind) {
         // World.height(x, z) with no reference, per tile: the stairs plane, a water surface (or the ice on it), a bridge
         // plank's deck top, else the ground plus its low prop
@@ -304,7 +308,11 @@ function solidIn(G: Geo, k: number, i: number, j: number, mask: number): number 
 /** The solid kind (SK bit, within `mask`) occupying the point (x, y, z), or 0 where it is open. Static geometry only:
  *  the renderer may call it. */
 export function solidAt(W: World, x: number, y: number, z: number, mask: number = SK_WORLD, flags = 0): number {
-  const G = geoOf(W), gx = x + G.half, gz = z + G.half, i = Math.floor(gx), j = Math.floor(gz);
+  return pointSolid(geoOf(W), x, y, z, mask, flags);
+}
+
+function pointSolid(G: Geo, x: number, y: number, z: number, mask: number, flags: number): number {
+  const gx = x + G.half, gz = z + G.half, i = Math.floor(gx), j = Math.floor(gz);
   F[PZG] = gz; F[PY] = y; SOFT = (flags & QF.foliage) !== 0; TOPS = (flags & QF.tops) !== 0;
   return solidIn(G, i < 0 || j < 0 || i >= G.w || j >= G.h ? -1 : j * G.w + i, i, j, mask);
 }
@@ -522,10 +530,58 @@ export function raycastWorld(W: World, ox: number, oy: number, oz: number, dx: n
 const LOS_HIT = new RayHit();
 /** Is the open segment between two points clear of the world kinds in `mask`? (Exact; World.sight samples.) */
 export function segmentClear(W: World, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask: number = MASK.los, flags = 0): boolean {
+  return clearSegment(geoOf(W), x0, y0, z0, x1, y1, z1, mask, flags);
+}
+
+function clearSegment(G: Geo, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask: number, flags: number): boolean {
   const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
-  if (L === 0) return solidAt(W, x0, y0, z0, mask, flags) === 0;
+  if (L === 0) return pointSolid(G, x0, y0, z0, mask, flags) === 0;
   F[OX] = x0; F[OY] = y0; F[OZ] = z0; F[DX] = dx / L; F[DY] = dy / L; F[DZ] = dz / L; F[MAXT] = L; F[RAD] = 0; F[HH] = 0;
-  return !castWorld(geoOf(W), mask, flags & QF_WORLD, LOS_HIT);
+  return !castWorld(G, mask, flags & QF_WORLD, LOS_HIT);
+}
+
+// Generation edits the map layers in place during repairs. Each environmental state has its own map.
+const mapGeometry = new WeakMap<ArenaMap, Geo>();
+
+function geoOfMap(m: ArenaMap): Geo {
+  let g = mapGeometry.get(m);
+  if (!g || g.wall !== m.wall || g.elev !== m.elev || g.platform !== m.platform || g.terrain !== m.terrain ||
+      g.stairs !== m.stairs || g.overSrc !== (m.over ?? null) || g.wlevelSrc !== m.wlevel || g.chasmSrc !== m.gen?.loc?.chasm) {
+    g = new Geo(m);
+    mapGeometry.set(m, g);
+  }
+  return g;
+}
+
+/** Exact physical sight on the supplied map state, in grid coordinates. Validation counts foliage and walls as cover. */
+export function mapSegmentClear(m: ArenaMap, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
+  return clearSegment(geoOfMap(m), x0, y0, z0, x1, y1, z1, MASK.los, 0);
+}
+
+/** Tactical exposure, in grid coordinates and absolute heights. Keep the half-metre samples for
+ *  legacy ground cover and endpoint footing. A thin overhead slab can fit between those samples
+ *  (including on a vertical ray), so test it over the entire segment. Both read combat's columns.
+ *  The map already represents the environmental state. Walls and foliage count as cover here. */
+export function mapExposureClear(m: ArenaMap, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
+  const g = geoOfMap(m);
+  const length = Math.hypot(x1 - x0, z1 - z0);
+  return samplesClear(g, x0, y0, z0, x1, y1, z1, length, SK_WORLD & ~SK.deck) &&
+    (!m.over || clearSegment(g, x0, y0, z0, x1, y1, z1, SK.deck, 0));
+}
+
+/** Legacy enemy sight keeps its half-metre samples, including on decks. */
+export function sampledSight(W: World, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
+  const dx = x1 - x0, dz = z1 - z0;
+  return samplesClear(geoOf(W), x0, y0, z0, x1, y1, z1, Math.sqrt(dx * dx + dz * dz), SK_WORLD);
+}
+
+function samplesClear(g: Geo, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, length: number, mask: number): boolean {
+  const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, steps = Math.floor(length / 0.5);
+  for (let s = 1; s < steps; s++) {
+    const t = (s * 0.5) / length;
+    if (pointSolid(g, x0 + dx * t, y0 + dy * t, z0 + dz * t, mask, 0)) return false;
+  }
+  return true;
 }
 
 // ---------------------------------------------------------------------------------------------------- actors

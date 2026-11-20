@@ -9,7 +9,8 @@ import { Rng, streamSeed } from '../core/rng';
 import type { Rules } from '../rules/defaults';
 import type { BiomeDef } from '../rules/stages';
 import { regionMap } from '../world/maps';
-import { T, WATER_Y, ICE_LIFT, deckTop, stairEdges, wallTopsOf, type ArenaMap, type ArenaProp } from '../world/tiles';
+import { T, WATER_Y, ICE_LIFT, DECK_SLAB, deckTop, stairEdges, wallTopsOf, type ArenaMap, type ArenaProp } from '../world/tiles';
+import { sampledSight } from './spatial';
 import { CellField, CS } from './cells';
 import { PropField } from './props';
 import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../world/navblocks';
@@ -22,9 +23,7 @@ export interface Chest { x: number; z: number; open: boolean }
 const UNREACHED = 0x7fff;
 /** an overhead deck is the surface for anything whose feet (or shot) are within this many metres below its top */
 export const DECK_REACH = 0.9;
-/** an overhead deck is a slab this thick: solid from its underside (top − DECK_SLAB) to its top (render/tilestage.ts
- *  draws the same 0.6 m). DECK_REACH is the layer-selection reach, not geometry */
-export const DECK_SLAB = 0.6;
+export { DECK_SLAB } from '../world/tiles';
 /** headroom (rules.size.headroom): a head may reach this far above a slab's underside (float32 positions and heights;
  *  an Extra Large body of exactly the class height, 2.4 m, fits the generators' 2.4 m gap under a 3.0 m deck) */
 export const HEAD_EPS = 1e-3;
@@ -419,22 +418,7 @@ export class World {
    * footing). Pure function of the map; no allocation.
    */
   sight(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
-    const dx = x1 - x0, dz = z1 - z0, L = dhypot(dx, dz);
-    const n = Math.floor(L / 0.5);
-    for (let s = 1; s < n; s++) {
-      const t = (s * 0.5) / L;
-      const x = x0 + dx * t, z = z0 + dz * t, y = y0 + (y1 - y0) * t;
-      const k = this.tile(x, z);
-      if (k < 0) return false;
-      if (this.over) {
-        // a deck's slab blocks a line passing through it; above a deck the ground's walls do not matter
-        const ov = this.over[k];
-        if (ov > 0 && y >= ov - DECK_REACH) { if (ov > y) return false; continue; }
-      }
-      if (this.map.wall[k] === 1 && !(this.voids && this.voids[k])) return false;
-      if (this.height(x, z) > y) return false;
-    }
-    return true;
+    return sampledSight(this, x0, y0, z0, x1, y1, z1);
   }
 
   /** Frozen or thawed water changed what is walkable: refresh the open tiles and force a new flow field. */

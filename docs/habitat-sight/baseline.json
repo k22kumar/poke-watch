@@ -1,0 +1,856 @@
+{
+  "baseCommit": "a95c333",
+  "habitatVersion": 2,
+  "size": [
+    128,
+    128
+  ],
+  "variant": "",
+  "mode": "control-point",
+  "profileSource": "profilesFor(defaultRules, 4)",
+  "snapshotRun": {
+    "seed": 11,
+    "species": "cyndaquil",
+    "botTicks": 300
+  },
+  "maps": [
+    {
+      "recipe": "river-gorge",
+      "requested": 3,
+      "accepted": 3,
+      "attempts": 1,
+      "kind": "direct",
+      "fallback": null,
+      "rejections": "",
+      "repairs": 1,
+      "initialState": "base",
+      "validatedStates": [
+        "base",
+        "frozen",
+        "stripped"
+      ],
+      "optional": [
+        "lip-ford"
+      ],
+      "replay": "?loc=river-gorge&mapseed=3&hv=2",
+      "orientation": "rot 90° mirrored",
+      "shape": {
+        "bend": 2.67,
+        "falls": 29.4,
+        "island": 61.8,
+        "spurA": 27,
+        "spurB": 25,
+        "crossA": 68.5,
+        "crossB": 54.9,
+        "lipFord": 19.5
+      },
+      "hashes": {
+        "checksum": "7997d385",
+        "geometry": "5f596e55.ba141ec5.2a450d76.a16e82b1.4d1fac32.38699dc5.3db4bf6d.811c9dc5",
+        "paint": "c496480c.465ab506",
+        "nav": "f8d454a5.c644e8e3",
+        "sim": "1f251977"
+      },
+      "contest": {
+        "x": 65.22916471748613,
+        "y": 65.56468998370863,
+        "h": 3,
+        "r": 5
+      },
+      "routes": {
+        "A.direct": {
+          "tiles": 466,
+          "length": 76.2,
+          "sinuosity": 1.87,
+          "turns": 1.6,
+          "rise": 3,
+          "fall": 6,
+          "lo": 0,
+          "hi": 6,
+          "form": "rim lip path, switchback, low bridge, cut ramp"
+        },
+        "A.flank": {
+          "tiles": 637,
+          "length": 118,
+          "sinuosity": 2.9,
+          "turns": 1.6,
+          "rise": 0,
+          "fall": 3,
+          "lo": 3,
+          "hi": 6,
+          "form": "rim forest path, bench ramp, causeway"
+        },
+        "B.direct": {
+          "tiles": 474,
+          "length": 79,
+          "sinuosity": 2.09,
+          "turns": 1.6,
+          "rise": 3,
+          "fall": 6,
+          "lo": 0,
+          "hi": 6,
+          "form": "rim lip path, switchback, low bridge, cut ramp"
+        },
+        "B.flank": {
+          "tiles": 645,
+          "length": 122.2,
+          "sinuosity": 3.24,
+          "turns": 1.7,
+          "rise": 0,
+          "fall": 3,
+          "lo": 3,
+          "hi": 6,
+          "form": "rim forest path, bench ramp, causeway"
+        }
+      },
+      "vertical": {
+        "contestH": 3,
+        "stageA": 6,
+        "stageB": 6,
+        "relief": 6,
+        "bands": {
+          "<2": 1247,
+          "2-4": 479,
+          "4-6": 84,
+          "6+": 8696
+        },
+        "contestAboveMedian": -3
+      },
+      "crossings": {
+        "bridge": 2,
+        "causeway": 2,
+        "ford": 1
+      },
+      "deckTiles": 141,
+      "cover": {
+        "hardTiles": 16,
+        "softTiles": 18,
+        "spurs": 0,
+        "ringTiles": 754
+      },
+      "gateMetrics": {
+        "highGround": 1,
+        "unanswered": 0,
+        "contestUsable": 1,
+        "hazardTiles": 0,
+        "hazardEscape": 0,
+        "fluidTiles": 1079,
+        "fallsEdges": 7,
+        "width:A.direct": 3.96,
+        "width:A.flank": 3.96,
+        "width:B.direct": 3.96,
+        "width:B.flank": 3.96,
+        "timeA": 11.3,
+        "timeB": 11.3,
+        "skew": 0,
+        "perches": 0
+      },
+      "priorMetricsThatDiffer": {},
+      "generationMs": {
+        "before": [
+          220,
+          209,
+          202
+        ],
+        "after": [
+          239,
+          200,
+          199
+        ]
+      }
+    },
+    {
+      "recipe": "river-gorge",
+      "requested": 7,
+      "accepted": 7,
+      "attempts": 1,
+      "kind": "direct",
+      "fallback": null,
+      "rejections": "",
+      "repairs": 1,
+      "initialState": "base",
+      "validatedStates": [
+        "base",
+        "frozen",
+        "stripped"
+      ],
+      "optional": [
+        "lip-ford"
+      ],
+      "replay": "?loc=river-gorge&mapseed=7&hv=2",
+      "orientation": "rot 270°",
+      "shape": {
+        "bend": 2.4,
+        "falls": 24.6,
+        "island": 56.6,
+        "spurA": 31,
+        "spurB": 37,
+        "crossA": 63.6,
+        "crossB": 49.8,
+        "lipFord": 15.3
+      },
+      "hashes": {
+        "checksum": "e549aa9b",
+        "geometry": "6e635dea.4e6b243a.5ea0c83d.ed45c3f1.bd13d54c.38699dc5.4eb3b443.811c9dc5",
+        "paint": "6cf31c34.6c8788a2",
+        "nav": "0dcf5484.3fb54dcf",
+        "sim": "6abe93bd"
+      },
+      "contest": {
+        "x": 56.57313677622005,
+        "y": 66.75298116163498,
+        "h": 3,
+        "r": 5
+      },
+      "routes": {
+        "A.direct": {
+          "tiles": 476,
+          "length": 74.4,
+          "sinuosity": 1.82,
+          "turns": 1.4,
+          "rise": 3,
+          "fall": 6,
+          "lo": 0,
+          "hi": 6,
+          "form": "rim lip path, switchback, low bridge, cut ramp"
+        },
+        "A.flank": {
+          "tiles": 633,
+          "length": 117.1,
+          "sinuosity": 2.87,
+          "turns": 1.6,
+          "rise": 0,
+          "fall": 3,
+          "lo": 3,
+          "hi": 6,
+          "form": "rim forest path, bench ramp, causeway"
+        },
+        "B.direct": {
+          "tiles": 492,
+          "length": 83.4,
+          "sinuosity": 2.08,
+          "turns": 1.6,
+          "rise": 3,
+          "fall": 6,
+          "lo": 0,
+          "hi": 6,
+          "form": "rim lip path, switchback, low bridge, cut ramp"
+        },
+        "B.flank": {
+          "tiles": 651,
+          "length": 123,
+          "sinuosity": 3.06,
+          "turns": 1.7,
+          "rise": 0,
+          "fall": 3,
+          "lo": 3,
+          "hi": 6,
+          "form": "rim forest path, bench ramp, causeway"
+        }
+      },
+      "vertical": {
+        "contestH": 3,
+        "stageA": 6,
+        "stageB": 6,
+        "relief": 6,
+        "bands": {
+          "<2": 2502,
+          "2-4": 541,
+          "4-6": 83,
+          "6+": 8281
+        },
+        "contestAboveMedian": -3
+      },
+      "crossings": {
+        "bridge": 2,
+        "causeway": 2,
+        "ford": 1
+      },
+      "deckTiles": 131,
+      "cover": {
+        "hardTiles": 13,
+        "softTiles": 12,
+        "spurs": 0,
+        "ringTiles": 753
+      },
+      "gateMetrics": {
+        "highGround": 0,
+        "unanswered": 0,
+        "contestUsable": 1,
+        "hazardTiles": 0,
+        "hazardEscape": 0,
+        "fluidTiles": 911,
+        "fallsEdges": 5,
+        "width:A.direct": 3.96,
+        "width:A.flank": 3.96,
+        "width:B.direct": 3.96,
+        "width:B.flank": 3.96,
+        "timeA": 11.8,
+        "timeB": 12.2,
+        "skew": 0.034,
+        "perches": 0
+      },
+      "priorMetricsThatDiffer": {},
+      "generationMs": {
+        "before": [
+          242,
+          213,
+          215
+        ],
+        "after": [
+          257,
+          212,
+          206
+        ]
+      }
+    },
+    {
+      "recipe": "volcanic-ridge",
+      "requested": 3,
+      "accepted": 548672811,
+      "attempts": 4,
+      "kind": "retry",
+      "fallback": null,
+      "rejections": "3[perch] 1556944651[perch] 3130656841[planned]",
+      "repairs": 31,
+      "initialState": "base",
+      "validatedStates": [
+        "base",
+        "venting",
+        "stripped"
+      ],
+      "optional": [
+        "vent-branch-A",
+        "vent-branch-B"
+      ],
+      "replay": "?loc=volcanic-ridge&mapseed=3&hv=2",
+      "orientation": "rot 180°",
+      "shape": {
+        "craterR": 20.6,
+        "breach": 1.73,
+        "chamberA": 31.5,
+        "chamberB": 31.5
+      },
+      "hashes": {
+        "checksum": "c59665d1",
+        "geometry": "5589ac50.dcaa6fcb.85e6821d.02d40b39.443c4bc5.38699dc5.a99ad781.3e5eec50",
+        "paint": "d5033c49.9c28a8be",
+        "nav": "2b7ade24.0831547f",
+        "sim": "8f65d5c4"
+      },
+      "contest": {
+        "x": 64.98177821993835,
+        "y": 70.97997950260759,
+        "h": 3.5,
+        "r": 5
+      },
+      "routes": {
+        "A.direct": {
+          "tiles": 378,
+          "length": 68.9,
+          "sinuosity": 1.58,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "grounded switchback, crest notch"
+        },
+        "A.flank": {
+          "tiles": 440,
+          "length": 72.9,
+          "sinuosity": 1.67,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "dry cave: mouth, tunnel, chamber, arch under the crest"
+        },
+        "B.direct": {
+          "tiles": 382,
+          "length": 69.7,
+          "sinuosity": 1.57,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "grounded switchback, crest notch"
+        },
+        "B.flank": {
+          "tiles": 442,
+          "length": 74.6,
+          "sinuosity": 1.68,
+          "turns": 0.8,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "dry cave: mouth, tunnel, chamber, arch under the crest"
+        }
+      },
+      "vertical": {
+        "contestH": 3.5,
+        "stageA": 0,
+        "stageB": 0,
+        "relief": 7,
+        "bands": {
+          "<2": 10143,
+          "2-4": 1654,
+          "4-6": 48,
+          "6+": 333
+        },
+        "contestAboveMedian": 3.5
+      },
+      "crossings": {
+        "arch": 4
+      },
+      "deckTiles": 65,
+      "cover": {
+        "hardTiles": 16,
+        "softTiles": 7,
+        "spurs": 30,
+        "ringTiles": 760
+      },
+      "gateMetrics": {
+        "highGround": 100,
+        "unanswered": 0,
+        "contestUsable": 0.97,
+        "hazardTiles": 7,
+        "hazardEscape": 1,
+        "fluidTiles": 140,
+        "fallsEdges": 0,
+        "width:A.direct": 3.96,
+        "width:A.flank": 3.96,
+        "width:B.direct": 3.96,
+        "width:B.flank": 3.96,
+        "timeA": 11.3,
+        "timeB": 11.3,
+        "skew": 0,
+        "perches": 0
+      },
+      "priorMetricsThatDiffer": {
+        "highGround": 101
+      },
+      "generationMs": {
+        "before": [
+          1840,
+          1802,
+          1790
+        ],
+        "after": [
+          1994,
+          1805,
+          1716
+        ]
+      }
+    },
+    {
+      "recipe": "volcanic-ridge",
+      "requested": 7,
+      "accepted": 7,
+      "attempts": 1,
+      "kind": "direct",
+      "fallback": null,
+      "rejections": "",
+      "repairs": 30,
+      "initialState": "base",
+      "validatedStates": [
+        "base",
+        "venting",
+        "stripped"
+      ],
+      "optional": [
+        "vent-branch-A",
+        "vent-branch-B"
+      ],
+      "replay": "?loc=volcanic-ridge&mapseed=7&hv=2",
+      "orientation": "rot 270°",
+      "shape": {
+        "craterR": 21.2,
+        "breach": 1.48,
+        "chamberA": 31.5,
+        "chamberB": 31.5
+      },
+      "hashes": {
+        "checksum": "c655a19c",
+        "geometry": "10907a03.3f6ddb6a.02cbfc5d.81185845.dbd74a05.38699dc5.1bd8cbce.17a5becb",
+        "paint": "a2e44a96.9ec2b523",
+        "nav": "0719466b.afec8ecd",
+        "sim": "431b2495"
+      },
+      "contest": {
+        "x": 54.49204524241199,
+        "y": 63.53300487317441,
+        "h": 3.5,
+        "r": 5
+      },
+      "routes": {
+        "A.direct": {
+          "tiles": 384,
+          "length": 69.6,
+          "sinuosity": 1.61,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "grounded switchback, crest notch"
+        },
+        "A.flank": {
+          "tiles": 474,
+          "length": 78.1,
+          "sinuosity": 1.8,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "dry cave: mouth, tunnel, chamber, arch under the crest"
+        },
+        "B.direct": {
+          "tiles": 383,
+          "length": 69,
+          "sinuosity": 1.62,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "grounded switchback, crest notch"
+        },
+        "B.flank": {
+          "tiles": 471,
+          "length": 77.7,
+          "sinuosity": 1.82,
+          "turns": 0.7,
+          "rise": 3.5,
+          "fall": 0,
+          "lo": 0,
+          "hi": 3.5,
+          "form": "dry cave: mouth, tunnel, chamber, arch under the crest"
+        }
+      },
+      "vertical": {
+        "contestH": 3.5,
+        "stageA": 0,
+        "stageB": 0,
+        "relief": 7,
+        "bands": {
+          "<2": 10320,
+          "2-4": 1742,
+          "4-6": 47,
+          "6+": 379
+        },
+        "contestAboveMedian": 3.5
+      },
+      "crossings": {
+        "arch": 4
+      },
+      "deckTiles": 66,
+      "cover": {
+        "hardTiles": 17,
+        "softTiles": 12,
+        "spurs": 29,
+        "ringTiles": 750
+      },
+      "gateMetrics": {
+        "highGround": 56,
+        "unanswered": 0,
+        "contestUsable": 0.95,
+        "hazardTiles": 14,
+        "hazardEscape": 2,
+        "fluidTiles": 121,
+        "fallsEdges": 0,
+        "width:A.direct": 3.96,
+        "width:A.flank": 3.96,
+        "width:B.direct": 3.96,
+        "width:B.flank": 3.96,
+        "timeA": 11.5,
+        "timeB": 11.5,
+        "skew": 0,
+        "perches": 0
+      },
+      "priorMetricsThatDiffer": {},
+      "generationMs": {
+        "before": [
+          428,
+          420,
+          422
+        ],
+        "after": [
+          428,
+          417,
+          402
+        ]
+      }
+    }
+  ],
+  "views": [
+    {
+      "image": "gorge3-chase-shrine.png",
+      "pose": {
+        "seed": 3,
+        "pos": [
+          1.2291647174861282,
+          3,
+          1.5646899837086323
+        ],
+        "yaw": 3.141592653589793,
+        "tick": 72,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "gorge3-chase",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 8859,
+          "meanDeltaE": 62,
+          "meanDeltaL": 25.6,
+          "camouflaged": 0.002
+        },
+        "player": {
+          "px": 8859,
+          "meanDeltaE": 60.8,
+          "meanDeltaL": 26.1,
+          "camouflaged": 0.016
+        },
+        "overlayCover": 0.0209,
+        "frame": {
+          "meanSat": 0.34,
+          "meanL": 56.6
+        },
+        "background": {
+          "meanSat": 0.338,
+          "meanL": 56.5
+        },
+        "actorsHidden": true
+      }
+    },
+    {
+      "image": "crater3-chase-altar.png",
+      "pose": {
+        "seed": 548672811,
+        "pos": [
+          0.9817782199383487,
+          3.5,
+          6.979979502607591
+        ],
+        "yaw": 3.141592653589793,
+        "tick": 72,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "crater3-chase",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 15163,
+          "meanDeltaE": 46.2,
+          "meanDeltaL": 21.9,
+          "camouflaged": 0
+        },
+        "player": {
+          "px": 15163,
+          "meanDeltaE": 46.9,
+          "meanDeltaL": 23.2,
+          "camouflaged": 0.015
+        },
+        "overlayCover": 0.0375,
+        "frame": {
+          "meanSat": 0.357,
+          "meanL": 30.6
+        },
+        "background": {
+          "meanSat": 0.359,
+          "meanL": 30
+        },
+        "actorsHidden": true
+      }
+    },
+    {
+      "image": "cam-G3-flank-deck-ahead-view.png",
+      "pose": {
+        "seed": 3,
+        "pos": [
+          6.5,
+          3,
+          23.5
+        ],
+        "yaw": -3.116185307179587,
+        "tick": 132,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "cam-G3-flank-deck-ahead",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 8075,
+          "meanDeltaE": 68.7,
+          "meanDeltaL": 28.8,
+          "camouflaged": 0
+        },
+        "player": {
+          "px": 8075,
+          "meanDeltaE": 67.4,
+          "meanDeltaL": 29.3,
+          "camouflaged": 0.011
+        },
+        "overlayCover": 0.0203,
+        "frame": {
+          "meanSat": 0.399,
+          "meanL": 53.9
+        },
+        "background": {
+          "meanSat": 0.398,
+          "meanL": 53.8
+        },
+        "actorsHidden": true
+      }
+    },
+    {
+      "image": "cam-G7-flank-ramp-ahead-view.png",
+      "pose": {
+        "seed": 7,
+        "pos": [
+          -17.5,
+          3.5258400440216064,
+          31.5
+        ],
+        "yaw": 1.9651853071795868,
+        "tick": 132,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "cam-G7-flank-ramp-ahead",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 11163,
+          "meanDeltaE": 65,
+          "meanDeltaL": 36.5,
+          "camouflaged": 0
+        },
+        "player": {
+          "px": 11163,
+          "meanDeltaE": 65,
+          "meanDeltaL": 36.5,
+          "camouflaged": 0
+        },
+        "overlayCover": 0.0078,
+        "frame": {
+          "meanSat": 0.395,
+          "meanL": 56.5
+        },
+        "background": {
+          "meanSat": 0.397,
+          "meanL": 56.4
+        },
+        "actorsHidden": true
+      }
+    },
+    {
+      "image": "cam-C3-direct-tunnel-ahead-view.png",
+      "pose": {
+        "seed": 548672811,
+        "pos": [
+          28.5,
+          3.5,
+          -1.5
+        ],
+        "yaw": -1.1031853071795867,
+        "tick": 132,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "cam-C3-direct-tunnel-ahead",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 8250,
+          "meanDeltaE": 53.9,
+          "meanDeltaL": 28,
+          "camouflaged": 0
+        },
+        "player": {
+          "px": 8250,
+          "meanDeltaE": 54.5,
+          "meanDeltaL": 29.7,
+          "camouflaged": 0.001
+        },
+        "overlayCover": 0.0109,
+        "frame": {
+          "meanSat": 0.301,
+          "meanL": 18.7
+        },
+        "background": {
+          "meanSat": 0.3,
+          "meanL": 18.4
+        },
+        "actorsHidden": true
+      }
+    },
+    {
+      "image": "cam-C7-flank-ramp-ahead-view.png",
+      "pose": {
+        "seed": 7,
+        "pos": [
+          -15.5,
+          3.5,
+          14.5
+        ],
+        "yaw": 2.864,
+        "tick": 132,
+        "chase": true,
+        "phase": "play"
+      },
+      "readability": {
+        "scene": "cam-C7-flank-ramp-ahead",
+        "size": [
+          960,
+          540
+        ],
+        "actors": {
+          "px": 8035,
+          "meanDeltaE": 57.3,
+          "meanDeltaL": 27,
+          "camouflaged": 0
+        },
+        "player": {
+          "px": 8035,
+          "meanDeltaE": 57.1,
+          "meanDeltaL": 27.3,
+          "camouflaged": 0.012
+        },
+        "overlayCover": 0.0072,
+        "frame": {
+          "meanSat": 0.373,
+          "meanL": 27.5
+        },
+        "background": {
+          "meanSat": 0.37,
+          "meanL": 27.3
+        },
+        "actorsHidden": true
+      }
+    }
+  ]
+}

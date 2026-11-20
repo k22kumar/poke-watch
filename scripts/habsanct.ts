@@ -12,7 +12,8 @@
 //               reachable by baseline walking from both stagings
 import { writeFileSync } from 'node:fs';
 import { generateHabitat, profilesFor } from '../src/world/habitat';
-import { clearance, sightAbs } from '../src/world/habitat/validate';
+import { mapExposureClear } from '../src/sim/spatial';
+import { clearance } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { navOpen, navTop } from '../src/world/gen/util';
 import type { ArenaMap } from '../src/world/tiles';
@@ -62,12 +63,12 @@ export function analyse(recipe: string, seed: number): Geo {
   const convergence = sep(bearing[0], bearing[2]);
   const sectors = new Set(bearing.map((b) => Math.floor(b / 45))).size;
 
-  // sightlines from the point's centre
+  // Historical tactical exposure metric: same sampled ground cover as the perch gate.
   const cx = H.contest.x, cy = H.contest.y, y0 = navTop(m, c) + 0.9, rays: number[] = [];
   for (let i = 0; i < 64; i++) {
     const a = (i / 64) * Math.PI * 2, dx = Math.cos(a), dy = Math.sin(a);
     let len = 0;
-    for (let s = 1; s <= 60; s++) { if (!sightAbs(m, cx, cy, y0, cx + dx * s, cy + dy * s, y0)) break; len = s; }
+    for (let s = 1; s <= 60; s++) { if (!mapExposureClear(m, cx, y0, cy, cx + dx * s, y0, cy + dy * s)) break; len = s; }
     rays.push(len);
   }
   rays.sort((a, b) => a - b);
@@ -79,7 +80,7 @@ export function analyse(recipe: string, seed: number): Geo {
     for (let i = p.length - 1; i >= 0 && tot < 60; i--) {
       const k = p[i] % n, tx = (k % W) + 0.5, ty = ((k / W) | 0) + 0.5;
       tot++;
-      if (sightAbs(m, cx, cy, y0, tx, ty, level(p[i]) + 0.9)) vis++;
+      if (mapExposureClear(m, cx, y0, cy, tx, level(p[i]) + 0.9, ty)) vis++;
     }
     return +(vis / Math.max(1, tot)).toFixed(2);
   });
@@ -93,7 +94,7 @@ export function analyse(recipe: string, seed: number): Geo {
     if (!navOpen(m, k)) continue;
     const px = (k % W) + 0.5, py = ((k / W) | 0) + 0.5, d = Math.hypot(px - cx, py - cy), h = navTop(m, k);
     if (d > 24 || h < H.contest.h + 2.4) continue;
-    if (!sightAbs(m, px, py, h + eyeHi, cx, cy, H.contest.h + 0.9)) continue;
+    if (!mapExposureClear(m, px, h + eyeHi, py, cx, H.contest.h + 0.9, cy)) continue;
     tiles++; rise = Math.max(rise, h - H.contest.h); arc.add(Math.floor(deg(Math.atan2(py - cy, px - cx)) / 22.5));
     if (d < nearest.d) nearest = { k, d };
   }

@@ -9,7 +9,7 @@ import { Atlas } from '../overworld/render';
 import { boxGeo } from '../overworld/buildings';
 import { Pix, hex, type RGB } from '../overworld/paint';
 import { paintCliff, paintGround, paintRockFace, paintStairs, paintWater, type GroundInput } from '../overworld/terrain';
-import { PROP_RULES, T, WATER_Y, deckTop, graveClassOf, stairEdges, type ArenaMap } from '../world/tiles';
+import { PROP_RULES, T, WATER_Y, DECK_SLAB, deckTop, graveClassOf, stairEdges, type ArenaMap } from '../world/tiles';
 import { BIOME_ART, TERRAIN_STYLE, arenaSprites } from './tileart';
 import { decorSprites, layoutDecor } from './decor';
 import { artDirection, edgeShade, forestDepth, type ArtDirection } from './artdirection';
@@ -420,7 +420,7 @@ export class TileStage {
     // its open sides and posts down to the passage beneath
     if (m.over) {
       const OV = (x: number, y: number) => (x < 0 || y < 0 || x >= W || y >= H ? 0 : m.over![y * W + x]);
-      const TH = 0.6;
+      const TH = DECK_SLAB;
       const dt: number[] = [], ds: number[] = [];
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
         const ov = OV(x, y);
