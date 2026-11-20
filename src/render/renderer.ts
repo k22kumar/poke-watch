@@ -1067,14 +1067,7 @@ export class Renderer {
     { const O = ctx.objective, E = ctx.enemies, R = ctx.rules.objectives;
       if (O && (O.phase === 'offer' || O.phase === 'active')) {
         const pulse = 0.55 + 0.45 * Math.sin(this.time * 5);
-        if (O.kind === 'hold') put(D, O.x, O.z, R.hold.radius, [1, 0.84, 0.3], O.phase === 'offer' ? 0.5 + 0.4 * pulse : 0.9, 2, 0.12, O.charge);
-        else if (O.kind === 'transport') {
-          put(D, O.x, O.z, R.transport.goalRadius, [0.45, 1, 0.55], 0.6 + 0.35 * pulse, 2, 0.14, 0);
-          if (O.egg >= 0 && ctx.bodies.carrier[O.egg] === -1) put(T, ctx.bodies.x[O.egg], ctx.bodies.z[O.egg], 1.1, [1, 1, 0.6], pulse, 1, 0.16);
-        } else if (O.target >= 0 && E.alive[O.target]) {
-          put(T, E.x[O.target], E.z[O.target], E.radius[O.target] * 1.9, [1, 0.25, 0.2], 0.6 + 0.4 * pulse, 1, 0.12);
-          if (O.mender >= 0 && E.alive[O.mender]) put(D, E.x[O.mender], E.z[O.mender], E.radius[O.mender] * 1.7, [0.4, 1, 0.45], 0.7, 1, 0.12);
-        }
+        put(D, O.x, O.z, R.hold.radius, [1, 0.84, 0.3], O.phase === 'offer' ? 0.5 + 0.4 * pulse : 0.9, 2, 0.12, O.charge);
       } }
     // roles: a raised Bulwark shield, a Hexer's element, a Raider's orange tag
     { const E = ctx.enemies, RR = ctx.rules.roles;

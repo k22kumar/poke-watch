@@ -58,15 +58,12 @@ export function botInput(ctx: SimContext): InputFrame { return botFor(ctx).input
 function survivorPull(bot: Bot, ctx: SimContext): [number, number, number, number] {
   const P = ctx.player;
   let gx = 0, gz = 0, gd = 1e9;
-  // objectives (when the bot engages them): the pad, the Hunt target, the egg and then its goal
+  // the Hold's pad (when the bot engages objectives)
   let objPull = 0;
   const O = ctx.objective;
   if (bot.objectives && O && (O.phase === 'offer' || O.phase === 'active')) {
-    let ox = O.x, oz = O.z;
-    if (O.kind === 'transport' && O.egg >= 0 && ctx.bodies.carrier[O.egg] !== -2) { ox = ctx.bodies.x[O.egg]; oz = ctx.bodies.z[O.egg]; }
-    const d = Math.hypot(ox - P.x, oz - P.z);
-    const stay = O.kind === 'hold' ? 2.5 : O.kind === 'hunt' ? 4 : 0;
-    if (d > stay) { gx = ox - P.x; gz = oz - P.z; gd = 0; objPull = 1.6; }
+    const d = Math.hypot(O.x - P.x, O.z - P.z);
+    if (d > 2.5) { gx = O.x - P.x; gz = O.z - P.z; gd = 0; objPull = 1.6; }
   }
   // portal
   if (ctx.portal.active) { gx = ctx.portal.x - P.x; gz = ctx.portal.z - P.z; gd = 0; }

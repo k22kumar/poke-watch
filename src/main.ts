@@ -307,10 +307,8 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'recruit': audio.levelUp(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.banner(`${SPECIES_BY_ID[e.species].name} joined your squad!`, 'Tag it in with Q (tap) or hold Q + click', 2.6); break;
       // objectives and the director (blueprint section 9)
       case 'objective': {
-        const what = e.kind === 'hold' ? 'Hold the pad!' : e.kind === 'hunt' ? 'A marked Pokémon is roaming!' : 'Carry the Egg to the goal!';
-        const why = e.kind === 'hold' ? 'Stand on it for 30 s · pays an item ball' : e.kind === 'hunt' ? 'Defeat it and it may join you' : 'Walk into it · it pays an evolution';
-        if (e.phase === 'offer') { ui.banner(what, why, 2.6); audio.chest(); }
-        else if (e.phase === 'done') { ui.banner(e.kind === 'hunt' ? 'Hunt complete!' : e.kind === 'hold' ? 'Pad charged!' : 'Egg delivered!', e.reward === 'recruit' ? 'It wants to join you' : e.reward === 'item' ? 'You found an item ball!' : e.reward === 'heal' ? 'Your squad is fully healed' : '', 2.2); audio.levelUp(); audio.onMusicClimax(); }
+        if (e.phase === 'offer') { ui.banner('Hold the pad!', 'Stand on it for 30 s', 2.6); audio.chest(); }
+        else if (e.phase === 'done') { ui.banner('Pad charged!', '', 2.2); audio.levelUp(); audio.onMusicClimax(); }
         else if (e.phase === 'expired') ui.banner('The objective slipped away', 'Here they come…', 1.8);
         else if (e.phase === 'failed') audio.brace();
         break;
@@ -543,7 +541,7 @@ async function boot() {
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
     cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
-    objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
+    objective: (kind: 'hold' = 'hold') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species
     roster: () => playRoster().map((r) => ({ id: r.id, tier: r.tier, opening: r.opening, reasons: r.reasons.join('; ') })),

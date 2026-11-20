@@ -83,41 +83,6 @@ test('Hold: standing on the pad for 30 s completes it', () => {
   assert.equal(O.phase, 'done');
 });
 
-test('Hunt: the marked target runs to its Mender when hurt, and defeating it queues it as a recruit', () => {
-  const ctx = calm();
-  assert.ok(startObjective(ctx, 'hunt'));
-  const O = ctx.objective!, E = ctx.enemies;
-  assert.ok(E.roles[O.target] & ROLE.hunt);
-  E.hp[O.target] = E.maxHp[O.target] * 0.4;
-  const m = O.mender;
-  if (m >= 0) {
-    const before = Math.hypot(E.x[O.target] - E.x[m], E.z[O.target] - E.z[m]);
-    secs(ctx, 1.5);
-    assert.ok(Math.hypot(E.x[O.target] - E.x[m], E.z[O.target] - E.z[m]) < before, 'it heads for the Mender');
-  }
-  damageEnemy(ctx, O.target, 1e9, hit('plain'));
-  secs(ctx, 0.1);
-  assert.equal(O.phase, 'done');
-  secs(ctx, 0.1);
-  assert.ok(ctx.recruit.pending?.includes(O.species), 'the hunted species is the pending recruit');
-});
-
-test('Transport: carrying slows you and locks Move A / B; delivering the egg evolves the field Pokémon', () => {
-  const ctx = calm('totodile');
-  assert.ok(startObjective(ctx, 'transport'));
-  const O = ctx.objective!, B = ctx.bodies;
-  teleport(ctx, B.x[O.egg], B.z[O.egg] - 0.5);
-  secs(ctx, 0.2);
-  assert.equal(ctx.bodies.carrier[O.egg], -2);
-  assert.ok(ctx.player.carrying);
-  assert.equal(O.phase, 'active');
-  teleport(ctx, O.x, O.z);
-  secs(ctx, 0.3);
-  assert.equal(O.phase, 'done');
-  assert.equal(ctx.player.species.id, 'croconaw');
-  assert.ok(!ctx.player.carrying);
-});
-
 test('an ignored objective lapses after 45 s and brings a Peak forward', () => {
   const ctx = createRun({ seed: 4, species: 'totodile', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 } } as never });
   secs(ctx, 1);

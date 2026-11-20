@@ -397,26 +397,19 @@ export interface Beat {
   peaks: number; objectives: number;
 }
 
-export type ObjectiveKind = 'hold' | 'hunt' | 'transport';
-/** the stage's live objective (blueprint section 9): optional, timed, and paid in the scarce currencies */
+/** the objective kinds (Hunt and Transport were deleted at pivot step 9) */
+export type ObjectiveKind = 'hold';
+
 export interface Objective {
   kind: ObjectiveKind;
   /** 'offer' = waiting for you to engage (45 s), 'active' = under way, then 'done' or 'failed' */
   phase: 'offer' | 'active' | 'done' | 'failed';
   /** s left in the current phase */
   t: number;
-  /** the site: Hold's pylon or Transport's goal; Hunt: where the target was marked */
+  /** the pylon */
   x: number; z: number;
-  /** Transport: where the egg started */
-  sx: number; sz: number;
-  /** Hold: charge 0-1 */
+  /** charge 0-1 */
   charge: number;
-  /** Hunt: target enemy slot and its generation; the Mender it flees to */
-  target: number; targetGen: number; mender: number;
-  /** Transport: the egg body (who carries it: BodyPool.carrier, src/sim/carry.ts) */
-  egg: number;
-  /** the target's species (Hunt) */
-  species: string;
 }
 
 export interface SimContext {

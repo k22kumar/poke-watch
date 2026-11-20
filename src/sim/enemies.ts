@@ -220,7 +220,7 @@ export const enemySystem = {
       // ground nothing connects to the point). It stays where it is until it is killed or the Hold ends.
       const raiding = !!W.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
       // training targets are pinned too (src/sim/targets.ts): they stand, patrol or strafe where the set put them
-      const pinned = raiding || (roles & ROLE.target) !== 0 || (O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active'));
+      const pinned = raiding || (roles & ROLE.target) !== 0;
       // a wide body with no wide route to the player (it holds: see the pursuit below) is moved the same way after
       // rules.enemy.holdRelocate seconds, onto ground the wide field reaches, rather than standing idle for good
       const far = dist > R.despawnDistance;
@@ -283,18 +283,9 @@ export const enemySystem = {
       }
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }
 
-      // the objective a Raider is after, or the Mender a hurt Hunt target runs to (blueprint section 9)
+      // a target's goal (src/sim/targets.ts), or the Hold a Raider is after (blueprint section 9)
       let goal: [number, number] | null = roles & ROLE.target ? targetGoal(ctx, i) : null;
-      if (!goal && O && (O.phase === 'offer' || O.phase === 'active')) {
-        if (roles & ROLE.hunt && O.kind === 'hunt' && O.target === i && E.hp[i] < E.maxHp[i] * ctx.rules.objectives.hunt.flee && O.mender >= 0 && E.alive[O.mender]) goal = [E.x[O.mender], E.z[O.mender]];
-        else if (roles & ROLE.raider && O.phase === 'active') {
-          if (O.kind === 'hold') goal = [O.x, O.z];
-          else if (O.kind === 'transport' && O.egg >= 0) {
-            if (ctx.bodies.carrier[O.egg] === i) goal = [E.x[i] - dx, E.z[i] - dz]; // got it: run away from you
-            else if (ctx.bodies.carrier[O.egg] === -1) goal = [ctx.bodies.x[O.egg], ctx.bodies.z[O.egg]];
-          }
-        }
-      }
+      if (!goal && O && O.phase === 'active' && roles & ROLE.raider) goal = [O.x, O.z];
 
       if (roles & ROLE.boss) {
         bossThink(ctx, i, sp, dist, ux, uz, dt);

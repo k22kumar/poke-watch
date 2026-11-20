@@ -409,8 +409,6 @@ export const defaultRules = {
     offerTime: 45, // s to engage before an objective lapses
     firstAfter: 90, secondAfter: 200, // s into the stage before the first and second objective can open
     hold: { radius: 5, time: 30, drain: 0.015, limit: 60 }, // drain: charge lost per Raider on the pad per s (4 out-drain you)
-    hunt: { escort: 4, flee: 0.5, limit: 75, menderDistance: 14 },
-    transport: { distance: 36, goalRadius: 2.5, limit: 90 },
   },
   beats: {
     enabled: true,

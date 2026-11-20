@@ -1030,29 +1030,23 @@ export class UI {
     const live = O && (O.phase === 'offer' || O.phase === 'active');
     H.obj.classList.toggle('hidden', !O);
     if (!O) return;
-    const R = ctx.rules.objectives;
-    const name = O.kind === 'hold' ? 'Hold the pad' : O.kind === 'hunt' ? `Hunt the marked ${SPECIES_BY_ID[O.species]?.name ?? 'Pokémon'}` : 'Carry the Egg to the goal';
-    const title = O.phase === 'done' ? (O.kind === 'hunt' ? 'Hunt complete!' : O.kind === 'hold' ? 'Pad charged!' : 'Egg delivered!') : O.phase === 'failed' ? 'Objective lost' : O.phase === 'offer' ? name + (O.kind === 'hold' ? ' (step on it)' : O.kind === 'transport' ? ' (walk into it)' : '') : name;
+    const name = 'Hold the pad';
+    const title = O.phase === 'done' ? 'Pad charged!' : O.phase === 'failed' ? 'Objective lost' : O.phase === 'offer' ? name + ' (step on it)' : name;
     if (H.objTitle.textContent !== title) H.objTitle.textContent = title;
-    let prog = 0;
-    if (O.kind === 'hold') prog = O.charge;
-    else if (O.kind === 'hunt') { const E = ctx.enemies; prog = O.target >= 0 && E.alive[O.target] ? 1 - E.hp[O.target] / E.maxHp[O.target] : 1; }
-    else if (O.egg >= 0) { const B = ctx.bodies, d0 = Math.hypot(O.sx - O.x, O.sz - O.z) || 1; prog = Math.max(0, Math.min(1, 1 - Math.hypot(B.x[O.egg] - O.x, B.z[O.egg] - O.z) / d0)); }
-    if (O.phase === 'done') prog = 1;
+    const prog = O.phase === 'done' ? 1 : O.charge;
     H.objBar.style.width = Math.round(prog * 100) + '%';
     H.obj.classList.toggle('done', O.phase === 'done');
     H.obj.classList.toggle('failed', O.phase === 'failed');
     H.objTime.textContent = live ? fmtTime(Math.max(0, O.t)) : '';
     if (!live) return;
-    // where it is: the pad / goal, the Hunt target, or the loose egg when nobody carries it
-    let tx = O.x, tz = O.z;
-    if (O.kind === 'transport' && O.egg >= 0 && ctx.bodies.carrier[O.egg] !== -2) { tx = ctx.bodies.x[O.egg]; tz = ctx.bodies.z[O.egg]; }
+    // where it is: the pad
+    const tx = O.x, tz = O.z;
     const p = project(tx, ctx.world.height(tx, tz) + 1.6, tz);
     if (!p) return;
     // the overlay canvas is W x Hh internal pixels; project() gives display pixels (scale per internal pixel)
     const c = this.fx2d, x = p[0] / scale, y = p[1] / scale, w = W, hh = Hh, m = 14;
     const on = x > m && x < w - m && y > m + 24 && y < hh - m - 30;
-    const color = O.kind === 'hunt' ? '#ff5a48' : O.kind === 'hold' ? '#ffd23a' : '#7cf08c';
+    const color = '#ffd23a';
     c.save();
     c.imageSmoothingEnabled = false;
     if (on) {

@@ -22,7 +22,7 @@ class FreeList {
 
 /** role bits. Phase 7 roles (blueprint section 9): shielder = Bulwark (blocks shots in its front arc), healer =
  *  Mender, hexer lays deep agents on you and the ground, raider goes for the objective, hunt marks the Hunt target */
-export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, shielder: 64, hexer: 128, raider: 256, swarm: 512, stampede: 1024, hunt: 2048, target: 4096 } as const;
+export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, shielder: 64, hexer: 128, raider: 256, swarm: 512, stampede: 1024, target: 4096 } as const; // 2048 was the Hunt target (deleted)
 
 export class EnemyPool {
   readonly cap: number;
