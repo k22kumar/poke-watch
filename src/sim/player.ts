@@ -68,7 +68,7 @@ export const playerSystem = {
     // a liquid underfoot (hazards on): an exposed Pokémon wades slowly and cannot jump out; a safe swimmer keeps pace
     const liquid = playerLiquid(ctx);
     const [swim, canJump] = W.hazards ? liquidMotion(ctx, liquid) : [W.waterAt(P.x, P.z) > P.y + 0.3 ? 0.8 : 1, true];
-    const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * swim * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.objectives.transport.carrySpeed : 1)
+    const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * swim * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.caps.carry.speed : 1)
       * (tm & TB.heavy ? BT.heavyFooting.speed : 1) * (rooted ? 0 : 1);
 
     // Reflex: two charges shared by Dash and Guard

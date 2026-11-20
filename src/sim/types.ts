@@ -429,8 +429,8 @@ export interface Objective {
   charge: number;
   /** Hunt: target enemy slot and its generation; the Mender it flees to */
   target: number; targetGen: number; mender: number;
-  /** Transport: the egg body, and who carries it (-1 nobody, -2 the player, else an enemy slot) */
-  egg: number; carrier: number;
+  /** Transport: the egg body (who carries it: BodyPool.carrier, src/sim/carry.ts) */
+  egg: number;
   /** the target's species (Hunt) */
   species: string;
 }

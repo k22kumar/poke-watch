@@ -58,6 +58,8 @@ export class BodyPool {
   hPT: Float64Array; hP: Uint8Array; hX: Float64Array; hZ: Float64Array;
   /** made by a player's Create (counted against rules.caps.createCap) */
   made: Uint8Array;
+  /** who carries it (src/sim/carry.ts CARRIER): -1 nobody, -2 the player, else an enemy slot */
+  carrier: Int32Array;
   /** recently struck bodies (body-on-body impacts): body index and until when */
   bhitE: Int32Array; bhitT: Float64Array; bhitN: Uint8Array;
   private free: number[] = [];
@@ -72,7 +74,7 @@ export class BodyPool {
     this.pushT = F(); this.pushP = new Uint8Array(cap); this.pushX = F(); this.pushZ = F(); this.hitCd = F();
     this.hitE = new Int32Array(cap * HIT_RING); this.hitT = new Float64Array(cap * HIT_RING); this.hitN = new Uint8Array(cap);
     this.holdT = F(); this.holdP = new Uint8Array(cap); this.holdBtn = new Uint8Array(cap);
-    this.hPT = F(); this.hP = new Uint8Array(cap); this.hX = F(); this.hZ = F(); this.made = new Uint8Array(cap);
+    this.hPT = F(); this.hP = new Uint8Array(cap); this.hX = F(); this.hZ = F(); this.made = new Uint8Array(cap); this.carrier = new Int32Array(cap).fill(-1);
     this.bhitE = new Int32Array(cap * HIT_RING); this.bhitT = new Float64Array(cap * HIT_RING); this.bhitN = new Uint8Array(cap);
     for (let i = cap - 1; i >= 0; i--) this.free.push(i);
   }
@@ -83,7 +85,7 @@ export class BodyPool {
     if (i >= this.hi) this.hi = i + 1;
     this.vx[i] = this.vz[i] = 0; this.age[i] = 0; this.roll[i] = 0; this.pushT[i] = -9; this.pushP[i] = 0; this.hitCd[i] = 0; this.hitN[i] = 0;
     this.hitE.fill(-1, i * HIT_RING, (i + 1) * HIT_RING);
-    this.holdT[i] = 0; this.holdP[i] = 0; this.holdBtn[i] = 0; this.hPT[i] = -9; this.hP[i] = 0; this.made[i] = 0; this.bhitN[i] = 0;
+    this.holdT[i] = 0; this.holdP[i] = 0; this.holdBtn[i] = 0; this.hPT[i] = -9; this.hP[i] = 0; this.made[i] = 0; this.bhitN[i] = 0; this.carrier[i] = -1;
     this.bhitE.fill(-1, i * HIT_RING, (i + 1) * HIT_RING);
     return i;
   }
@@ -178,7 +180,7 @@ export function pushBody(ctx: SimContext, b: number, power: number, dx: number, 
 export function holdBody(ctx: SimContext, b: number, power: number, dx: number, dz: number, team: number, btn: number): boolean {
   const B = ctx.bodies, W = bodyWeight(ctx, b), C = ctx.rules.caps;
   if (B.holdT[b] > 0) return true; // already suspended: a hold lasts its time, it is not refreshed
-  if (ctx.objective && ctx.objective.egg === b && ctx.objective.carrier !== -1) return false; // carried
+  if (B.carrier[b] !== -1) return false; // carried
   const L = dhypot(dx, dz) || 1; dx /= L; dz /= L;
   let P = power;
   if (ctx.time - B.hPT[b] <= C.combineWindow && dx * B.hX[b] + dz * B.hZ[b] >= C.combineCos) P = Math.min(4, Math.max(P, B.hP[b]) + 1);
@@ -205,7 +207,7 @@ function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
   B.holdT[b] -= dt;
   const [ux, uz] = holdAim(ctx);
   const O = ctx.objective;
-  if (P.paraT > 0 || P.faintT >= 0 || ctx.state !== 'play' || (O && O.egg === b && O.carrier !== -1)) {
+  if (P.paraT > 0 || P.faintT >= 0 || ctx.state !== 'play' || B.carrier[b] !== -1) {
     // a stunned or fainted holder drops it where it is
     B.holdT[b] = 0; B.vx[b] = B.vz[b] = 0;
     const r = rec(ctx, 'release', 'drop');
@@ -439,7 +441,7 @@ export const bodySystem = {
           if (res !== 'none') { B.vx[b] *= 0.8; B.vz[b] *= 0.8; }
         }
       }
-      const held = ctx.objective && ctx.objective.egg === b && ctx.objective.carrier !== -1;
+      const held = B.carrier[b] !== -1;
       // resting contact is physical: with size geometry on it is the partner's movement footprint that touches the body
       // (docs/SIZING.md "Footprint"), not its hurtbox, which only decides what hits it
       const pf = partnerFootprint(ctx.player.species, ctx.rules), rs = pf > 0 ? R + pf : rp;
@@ -461,7 +463,7 @@ function bodyImpacts(ctx: SimContext, b: number, sp: number): number {
   for (let j = 0; j < B.hi && B.alive[b]; j++) {
     if (j === b || !B.alive[j] || B.holdT[j] > 0) continue;
     if (B.age[b] < 0.25 && B.age[j] < 0.25) continue; // pieces of one break do not strike each other
-    if (O && O.egg === j && O.carrier !== -1) continue; // a carried egg is in someone's arms
+    if (B.carrier[j] !== -1) continue; // a carried body is in someone's arms
     const Tj = tpl(ctx, j), rr = T.radius + Tj.radius;
     const dx = B.x[j] - B.x[b], dz = B.z[j] - B.z[b];
     if (dx * dx + dz * dz > rr * rr) continue;

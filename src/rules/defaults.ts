@@ -440,7 +440,7 @@ export const defaultRules = {
     firstAfter: 90, secondAfter: 200, // s into the stage before the first and second objective can open
     hold: { radius: 5, time: 30, drain: 0.015, limit: 60 }, // drain: charge lost per Raider on the pad per s (4 out-drain you)
     hunt: { escort: 4, flee: 0.5, limit: 75, menderDistance: 14 },
-    transport: { distance: 36, goalRadius: 2.5, carrySpeed: 0.7, limit: 90 },
+    transport: { distance: 36, goalRadius: 2.5, limit: 90 },
   },
   beats: {
     enabled: true,
@@ -598,6 +598,9 @@ export const defaultRules = {
     burnNavCost: 8,
     /** bodies one player's Create can keep at once; the oldest breaks first */
     createCap: 6,
+    /** carrying a body (src/sim/carry.ts): the carrier's speed ×, the pick-up reach beyond body + partner radius (m), a
+     *  Raider's grab reach (m), and where it rides: ahead of the player, behind an enemy (m) */
+    carry: { speed: 0.7, reach: 0.3, raiderReach: 1.2, front: 0.9, behind: 0.6 },
     /** capability events kept for the death recap and pokewatch.debug('caps') */
     logSize: 512,
     recapSeconds: 5,

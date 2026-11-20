@@ -299,8 +299,8 @@ export const enemySystem = {
         else if (roles & ROLE.raider && O.phase === 'active') {
           if (O.kind === 'hold') goal = [O.x, O.z];
           else if (O.kind === 'transport' && O.egg >= 0) {
-            if (O.carrier === i) goal = [E.x[i] - dx, E.z[i] - dz]; // got it: run away from you
-            else if (O.carrier === -1) goal = [ctx.bodies.x[O.egg], ctx.bodies.z[O.egg]];
+            if (ctx.bodies.carrier[O.egg] === i) goal = [E.x[i] - dx, E.z[i] - dz]; // got it: run away from you
+            else if (ctx.bodies.carrier[O.egg] === -1) goal = [ctx.bodies.x[O.egg], ctx.bodies.z[O.egg]];
           }
         }
       }

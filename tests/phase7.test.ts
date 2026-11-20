@@ -110,7 +110,7 @@ test('Transport: carrying slows you and locks Move A / B; delivering the egg evo
   const O = ctx.objective!, B = ctx.bodies;
   teleport(ctx, B.x[O.egg], B.z[O.egg] - 0.5);
   secs(ctx, 0.2);
-  assert.equal(O.carrier, -2);
+  assert.equal(ctx.bodies.carrier[O.egg], -2);
   assert.ok(ctx.player.carrying);
   assert.equal(O.phase, 'active');
   teleport(ctx, O.x, O.z);

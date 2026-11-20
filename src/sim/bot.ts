@@ -87,7 +87,7 @@ function survivorPull(bot: Bot, ctx: SimContext): [number, number, number, numbe
   const O = ctx.objective;
   if (bot.objectives && O && (O.phase === 'offer' || O.phase === 'active')) {
     let ox = O.x, oz = O.z;
-    if (O.kind === 'transport' && O.egg >= 0 && O.carrier !== -2) { ox = ctx.bodies.x[O.egg]; oz = ctx.bodies.z[O.egg]; }
+    if (O.kind === 'transport' && O.egg >= 0 && ctx.bodies.carrier[O.egg] !== -2) { ox = ctx.bodies.x[O.egg]; oz = ctx.bodies.z[O.egg]; }
     const d = Math.hypot(ox - P.x, oz - P.z);
     const stay = O.kind === 'hold' ? 2.5 : O.kind === 'hunt' ? 4 : 0;
     if (d > stay) { gx = ox - P.x; gz = oz - P.z; gd = 0; objPull = 1.6; }

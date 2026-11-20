@@ -1327,7 +1327,7 @@ export class UI {
     if (!live) return;
     // where it is: the pad / goal, the Hunt target, or the loose egg when nobody carries it
     let tx = O.x, tz = O.z;
-    if (O.kind === 'transport' && O.egg >= 0 && O.carrier !== -2) { tx = ctx.bodies.x[O.egg]; tz = ctx.bodies.z[O.egg]; }
+    if (O.kind === 'transport' && O.egg >= 0 && ctx.bodies.carrier[O.egg] !== -2) { tx = ctx.bodies.x[O.egg]; tz = ctx.bodies.z[O.egg]; }
     const p = project(tx, ctx.world.height(tx, tz) + 1.6, tz);
     if (!p) return;
     // the overlay canvas is W x Hh internal pixels; project() gives display pixels (scale per internal pixel)

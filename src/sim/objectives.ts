@@ -20,6 +20,7 @@ import { tagLineOf } from '../rules/tags';
 import { isRecruitable } from '../rules/profiles';
 import { fits } from '../rules/compositions';
 import { spawnBody, tpl } from './bodies';
+import { CARRIER, carryTick, release } from './carry';
 import { compositionsFor, forcePeak, spawnComposition } from './director';
 import { ringPoint, spawnEnemy } from './enemies';
 import { ROLE } from './pools';
@@ -68,7 +69,7 @@ function site(ctx: SimContext, rMin: number, rMax: number, fromX = ctx.player.x,
 }
 
 function blank(kind: ObjectiveKind, x: number, z: number, t: number): Objective {
-  return { kind, phase: 'offer', t, x, z, sx: x, sz: z, charge: 0, target: -1, targetGen: 0, mender: -1, egg: -1, carrier: -1, species: '' };
+  return { kind, phase: 'offer', t, x, z, sx: x, sz: z, charge: 0, target: -1, targetGen: 0, mender: -1, egg: -1, species: '' };
 }
 
 /** open an objective; returns false when the region cannot host it */
@@ -125,8 +126,7 @@ function activate(ctx: SimContext, O: Objective) {
 function finish(ctx: SimContext, O: Objective, ok: boolean, reward = '') {
   O.phase = ok ? 'done' : 'failed';
   O.t = 3;
-  if (O.carrier === -2) ctx.player.carrying = false;
-  O.carrier = -1;
+  if (O.egg >= 0) release(ctx, O.egg);
   ctx.events.push({ t: 'objective', kind: O.kind, phase: ok ? 'done' : 'failed', x: O.x, z: O.z, reward });
   if (!ok) forcePeak(ctx);
 }
@@ -186,26 +186,10 @@ export const objectiveSystem = {
     } else {
       const B = ctx.bodies, g = O.egg;
       if (g < 0 || !B.alive[g]) { finish(ctx, O, false); return; }
-      const reach = tpl(ctx, g).radius + partnerRadius(ctx.player.species, ctx.rules) + 0.3;
-      if (O.carrier === -2) {
-        // dropped by Guard, Dash, Tag, a faint or anything that ends normal play
-        if (P.guardT >= 0 || P.dashT > 0 || P.tagPending >= 0 || P.faintT >= 0 || ctx.state !== 'play') { O.carrier = -1; P.carrying = false; }
-        else { B.x[g] = P.x + dsin(P.facing) * 0.9; B.z[g] = P.z + dcos(P.facing) * 0.9; B.vx[g] = B.vz[g] = 0; }
-      } else if (O.carrier >= 0) {
-        const r = O.carrier;
-        if (!E.alive[r]) O.carrier = -1;
-        else { B.x[g] = E.x[r] - dsin(E.facing[r]) * 0.6; B.z[g] = E.z[r] - dcos(E.facing[r]) * 0.6; B.vx[g] = B.vz[g] = 0; }
-      }
-      if (O.carrier === -1) {
-        if (dhypot(P.x - B.x[g], P.z - B.z[g]) < reach && P.faintT < 0 && P.guardT < 0 && P.dashT <= 0) { O.carrier = -2; P.carrying = true; }
-        else {
-          const n = ctx.grid.query(B.x[g], B.z[g], 1.2);
-          for (let k = 0; k < n; k++) { const e = ctx.grid.result[k]; if (E.alive[e] && E.roles[e] & ROLE.raider) { O.carrier = e; break; } }
-        }
-      }
-      if (O.phase === 'offer' && (O.carrier === -2 || dhypot(B.x[g] - O.sx, B.z[g] - O.sz) > 1.5)) activate(ctx, O);
+      carryTick(ctx, g); // the egg is carried like any body (src/sim/carry.ts)
+      if (O.phase === 'offer' && (B.carrier[g] === CARRIER.player || dhypot(B.x[g] - O.sx, B.z[g] - O.sz) > 1.5)) activate(ctx, O);
       if (dhypot(B.x[g] - O.x, B.z[g] - O.z) < R.transport.goalRadius) {
-        B.kill(g); O.egg = -1;
+        release(ctx, g); B.kill(g); O.egg = -1;
         finish(ctx, O, true, reward(ctx, O));
         return;
       }
