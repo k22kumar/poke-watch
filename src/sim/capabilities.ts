@@ -195,8 +195,8 @@ export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec,
     // anything heavier is only hit
     const w = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
     if (w > 1 || w > spec.hold || E.heldT[e] > 0) return false;
-    if (ccApply(ctx, e, ctx.rules.build.lassoHold) <= 0) return false; // crowd-control immune: it slips the lasso
-    E.heldT[e] = Math.max(ctx.rules.build.lassoHold, holdSeconds(ctx) - ctx.rules.caps.holdTime + ctx.rules.build.lassoHold);
+    if (ccApply(ctx, e, ctx.rules.caps.lassoHold) <= 0) return false; // crowd-control immune: it slips the lasso
+    E.heldT[e] = Math.max(ctx.rules.caps.lassoHold, holdSeconds(ctx) - ctx.rules.caps.holdTime + ctx.rules.caps.lassoHold);
     E.heldP[e] = spec.hold; E.heldBtn[e] = holdButton(ctx, castSlot);
     E.stun[e] = Math.max(E.stun[e], E.heldT[e]);
     setSrc('move', 'Lasso');

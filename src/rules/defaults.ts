@@ -476,6 +476,8 @@ export const defaultRules = {
   // Actions, terrain and weather, stick to everything, and can only be spent by another deep agent.
   reactions: {
     lightTime: 3, deepTime: 8,
+    /** a bramble cell (src/sim/cells.ts): how long it lasts (s) and the speed × of a non-Grass enemy in it */
+    brambleTime: 10, brambleSlow: 0.55,
     lightIcd: 1, // s between light coats or light reactions on the same creature
     steam: { light: { r: 2, t: 2 }, deep: { r: 4, t: 4 } }, // cloud: enemies inside lose their target and stop shooting
     freeze: { light: 1, deep: 3, shatter: 2 }, // s frozen; the next physical hit or push deals x2
@@ -601,6 +603,9 @@ export const defaultRules = {
     /** carrying a body (src/sim/carry.ts): the carrier's speed ×, the pick-up reach beyond body + partner radius (m), a
      *  Raider's grab reach (m), and where it rides: ahead of the player, behind an enemy (m) */
     carry: { speed: 0.7, reach: 0.3, raiderReach: 1.2, front: 0.9, behind: 0.6 },
+    /** Lasso on a creature (a move's `lasso` spec flag, src/sim/capabilities.ts creatureForce): s it is suspended before
+     *  the throw (a manual move lets go early); the throw's speed rule is the body rule, 8 x (1 + 0.5 x (Power - Weight)) m/s */
+    lassoHold: 0.6,
     /** capability events kept for the death recap and pokewatch.debug('caps') */
     logSize: 512,
     recapSeconds: 5,
@@ -646,9 +651,6 @@ export const defaultRules = {
       quarry: { rubble: 2, integrity: 0.75, speed: 6 },
       secondWind: { tagCooldown: 5 },
     },
-    /** Lasso on a creature: the throw's speed rule is the body rule, 8 x (1 + 0.5 x (Power - Weight)) m/s */
-    lassoHold: 0.6, // s a lassoed creature is suspended before the throw (a manual move lets go early)
-    brambleTime: 10, brambleSlow: 0.55,
   },
   bosses: {
     // extra attacks layered on a boss's roster kit: Rock-type bosses roll boulders at you

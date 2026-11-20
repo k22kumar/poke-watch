@@ -196,7 +196,7 @@ function freezeCreatures(ctx: SimContext, k: number) {
 
 /** Phase 8b Burrow (Create): a Grass patch of radius r on open ground; returns the tiles it covered */
 export function brambleAt(ctx: SimContext, x: number, z: number, r: number): number {
-  const C = ctx.world.cells, B = ctx.rules.build;
+  const C = ctx.world.cells, B = ctx.rules.reactions;
   let n = 0;
   const ri = Math.ceil(r);
   for (let dz = -ri; dz <= ri; dz++) for (let dx = -ri; dx <= ri; dx++) {
@@ -227,7 +227,7 @@ export function footing(ctx: SimContext, x: number, z: number, elements: readonl
   const s = ctx.world.cells.at(x, z);
   if (s === CS.frozen) return F_ICE;
   if (s === CS.rubble && !elements.some((e) => HARD.includes(e))) return F_RUBBLE;
-  if (s === CS.bramble && enemy && !elements.includes('bloom')) return [ctx.rules.build.brambleSlow, 1];
+  if (s === CS.bramble && enemy && !elements.includes('bloom')) return [ctx.rules.reactions.brambleSlow, 1];
   const k = ctx.world.tile(x, z);
   if (!ctx.world.map.gen || k < 0) return F_NONE;
   const terrain = ctx.world.map.terrain[k], habitat = ctx.world.habitatAt(x, z), biome = ctx.world.biome.id;
