@@ -8,7 +8,7 @@ import { deepMerge } from '../core/util';
 import { defaultRules, type Rules } from '../rules/defaults';
 import { buildTypeChart } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID } from '../rules/species';
-import { BIOMES, STAGES } from '../rules/stages';
+import { BIOMES, STAGES, type BiomeDef } from '../rules/stages';
 import { spawnTableFor } from '../rules/spawning';
 import { mapSpawnPool, type WorldgenRules } from '../world/maps';
 import type { Mod, Mode } from '../mods/types';
@@ -119,29 +119,36 @@ function freshDirector(rules: Rules) {
   };
 }
 
-export function startStage(ctx: SimContext, stage: number) {
-  ctx.stage = stage;
-  // the region's spawn pool, with the map source's pool and the rules override layered on (src/rules/spawning.ts)
-  const def = spawnTableFor(ctx.rules, stage, mapSpawnPool(ctx.rules.worldgen as WorldgenRules, STAGES[stage % STAGES.length].biome), ctx.rules.spawning.override ?? undefined);
-  ctx.spawnTable = def;
-  const biome = BIOMES[def.biome];
-  ctx.world = new World(ctx.rules, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919 + ctx.loop * 104729) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
+/** The match start on a map, for any mode (docs/hero-shooter-pivot.md §8a 4): the World, every pool cleared, the player at
+ *  the spawn with its hazard state reset, the flow field, and the map's loose bodies (seedBodies). `species` is the
+ *  World's navigation species list. */
+export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number, species: string[]) {
+  ctx.world = new World(ctx.rules, biome, seed, species);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.pickups.clear(); ctx.bodies.clear();
-  const liveCap = ctx.director.liveCap;
-  ctx.director = freshDirector(ctx.rules);
-  ctx.director.liveCap = liveCap;
-  ctx.stageTime = 0;
-  { const seen = ctx.stats.damageTaken; ctx.beat = freshBeat(); ctx.beat.dmgSeen = seen; }
-  ctx.objective = null;
   ctx.player.carrying = false;
-  ctx.portal = { active: false, x: 0, z: 0 };
   const P = ctx.player;
   const [sx, sz] = ctx.world.spawn;
   P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = ctx.world.height(sx, sz); P.vx = P.vz = P.vy = 0; P.facing = Math.PI;
   P.safeX = sx; P.safeY = P.y; P.safeZ = sz; P.hzKind = 0; P.hzT = 0; P.hzAcc = 0; P.hzCue = 0; P.hzCueT = 0; P.hzSafe = 0; P.hzRecover = '';
   ctx.world.updateFlow(sx, sz);
   seedBodies(ctx);
-  for (const m of P.squad) m.sturdyUsed = false;
+}
+
+export function startStage(ctx: SimContext, stage: number) {
+  ctx.stage = stage;
+  // the region's spawn pool, with the map source's pool and the rules override layered on (src/rules/spawning.ts)
+  const def = spawnTableFor(ctx.rules, stage, mapSpawnPool(ctx.rules.worldgen as WorldgenRules, STAGES[stage % STAGES.length].biome), ctx.rules.spawning.override ?? undefined);
+  ctx.spawnTable = def;
+  const biome = BIOMES[def.biome];
+  enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919 + ctx.loop * 104729) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
+  const liveCap = ctx.director.liveCap;
+  ctx.director = freshDirector(ctx.rules);
+  ctx.director.liveCap = liveCap;
+  ctx.stageTime = 0;
+  { const seen = ctx.stats.damageTaken; ctx.beat = freshBeat(); ctx.beat.dmgSeen = seen; }
+  ctx.objective = null;
+  ctx.portal = { active: false, x: 0, z: 0 };
+  for (const m of ctx.player.squad) m.sturdyUsed = false;
   // Phase 8b: rerolls and banishes are per region
   if (ctx.rules.build.enabled) { ctx.cards.rerolls = ctx.rules.build.rerolls; ctx.cards.banishes = ctx.rules.build.banishes; }
   ctx.events.push({ t: 'stageStart', stage, biome: biome.id });
