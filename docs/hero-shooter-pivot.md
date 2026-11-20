@@ -609,3 +609,15 @@ Open after step 9:
 - **Hold balance** without the Bulwark (above); enemy `behaviourHp` all 1.
 - **Elite, alpha, swarm and stampede roles** and `rules.enemy.roles` have no spawner left (the director was the only one); `ROLE.boss` is dead too. Step 10 or the co-op wave decides.
 - **tools/*scenes.json** still hold survivor scenes (boss, level-up, `addLevel`); Q45 deletes them at the merge check.
+
+Before step 10 (owner, 2026-11-20):
+
+- **The 31 stuckwatch enemy episodes are navigation, not the crowd's placement.** Each stuck walker's spawn point recorded beside its episode (`stuckwatch all 3` reproduces 31 exactly):
+  - *Viridian Forest seed 1, Totodile, 15:* a jam. The flow field funnels small walkers into the notch of a diagonal staircase wall at (−29.5, −42); up to 30 bodies within 1.2 m, every one moving at full speed into the notch, the field and the straight probes both reading open. Each had walked 20–35 m from its spawn (most from a terrace at y 3).
+  - *River Gorge seed 3, Totodile, 9:* walkers at the lip of the ledge (y 6) 5 m above the pocket (y 0.7) where the player is TRAPPED in the same run, the known 3 player episodes at (−28.6, 16.4). Their route to the pocket flickers between finite and none as the player oscillates in it. The same world fault as the player trap.
+  - *Volcanic Ridge seed 3, Feraligatr, 1:* the only walker stuck where it was put: a Cetoddle (footprint 0.66, wide) 0.1 m from its spawn. The point is `spawnEnemy`'s own `nearestFit` (a wide-block centre), not the crowd's ring point, beside a 1 m wall prop. The wide field heads it past the prop's corner, which its footprint cannot clear (`moveBody` gives 0.00–0.05 m of a 0.1 m step along that heading). Any spawner, or a walker arriving at that lattice point, stalls the same way: the wide field and `moveBody` disagree at a prop corner.
+  - *The other 6* (Shoal Grotto seed 1, Memorial Ridge seeds 2 and 3, Mt. Moon seeds 1 and 3 ×2): one walker each, 6–82 m from its spawn.
+  
+  Why 2 became 31: the crowd keeps 120 alive all the time (217 415 enemy-seconds against the director's 73 918), so chokes the director's thinner, staggered crowd rarely filled now jam. The rate went from 2.7 per 100 000 enemy-seconds to 14. Not fixed and stuckwatch not re-baselined (owner: navigation is logged, not fixed, now). It belongs to the co-op wave (T1), which pays for the flow-field chase: crowd jams at chokes, the wide field against `moveBody` at prop corners, and River Gorge seed 3's pocket.
+- **Hold is easy for a ranged hero since the Bulwark went** (compositions above: Charmander's mean damage taken 60 → 10, lowest health 171 of 208). Tune in the co-op wave or T2, not before the merge.
+- **perf-sim spike on Totodile seed 1:** ticks up to 18 ms after about 199 s, deterministic. It is the exposure system's pond shore search for enemies knocked into the pond, which the denser always-on crowd hits. Within the gate's p95 / p99, but a worst-case tick to cut (cache or bound the shore search) before the co-op wave's crowd lands.
