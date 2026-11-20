@@ -933,6 +933,21 @@
     },
     "terapagos": {
       "wave": "catalogue"
+    },
+    "graveler": {
+      "wave": "heroes"
+    },
+    "golem": {
+      "wave": "heroes"
+    },
+    "bagon": {
+      "wave": "heroes"
+    },
+    "shelgon": {
+      "wave": "heroes"
+    },
+    "salamence": {
+      "wave": "heroes"
     }
   },
   "spriteFolders": {

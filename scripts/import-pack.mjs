@@ -202,7 +202,10 @@ async function evolutionInfo(speciesJson, pokemonName) {
   const next = node?.evolves_to?.[0];
   if (!next) return null;
   const det = next.evolution_details?.[0];
-  return { to: next.species.name, level: det?.trigger?.name === 'level-up' && det.min_level ? det.min_level : null, trigger: det?.trigger?.name ?? 'unknown', from: pokemonName };
+  // toDex and branches let scripts/build-content.mjs link every imported species to its next form (a branching
+  // species, more than one next form, is left unlinked: a Breakthrough needs one next form)
+  const toDex = Number(next.species.url.match(/\/(\d+)\/?$/)?.[1]);
+  return { to: next.species.name, toDex, branches: node.evolves_to.length, level: det?.trigger?.name === 'level-up' && det.min_level ? det.min_level : null, trigger: det?.trigger?.name ?? 'unknown', from: pokemonName };
 }
 
 // ----------------------------------------------------------------------------- SpriteCollab -> packed atlas
@@ -383,6 +386,7 @@ function buildSpecies(e, { playable, learnset, starter, evolvesTo, evolveLevel, 
     playable: playable || undefined,
     blurb: `${typeLabel} type.${evolvesTo ? ` Evolves at Lv ${evolveLevel}.` : ''} Imported from PokéAPI and PMD SpriteCollab.`,
     starter, learnset, evolvesTo, evolveLevel, coverage, canon: e.canon,
+    evoNext: e.evo ? { to: e.evo.to, toDex: e.evo.toDex, branches: e.evo.branches } : undefined,
     art: {
       source: `PMD SpriteCollab sprite/${e.sprites.d4}${e.sprites.folder ? '/' + e.sprites.folder : ''}`,
       atlas: dataUrl('image/png', e.sprites.atlasPng), anims: e.sprites.anims, shadowSize: e.sprites.shadowSize,

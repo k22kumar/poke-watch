@@ -126,6 +126,24 @@ for (const s of enemies.pack.species) {
   }
   species.push(out);
 }
+// evolution links for every species, not only the partner lines (which carry theirs from the importer's chain): a
+// species whose single canonical next form was also imported links to it. No evolveLevel is written for these, so the
+// survivor level trigger never fires on them; the Breakthrough reads evolvesTo alone. A branching species stays
+// unlinked (how a Breakthrough would choose a branch is an open design question, docs/hero-shooter-pivot.md §11).
+{
+  const byDex = new Map();
+  for (const s of species) { const l = byDex.get(s.dex) ?? []; l.push(s); byDex.set(s.dex, l); }
+  const unlinked = [];
+  for (const s of species) {
+    if (s.evolvesTo || !s.evoNext) continue;
+    const to = (byDex.get(s.evoNext.toDex) ?? []);
+    const hit = to.find((t) => t.id === s.evoNext.to) ?? (to.length === 1 ? to[0] : undefined);
+    if (!hit) continue;
+    if (s.evoNext.branches > 1) { unlinked.push(`${s.id} (${s.evoNext.branches} branches)`); continue; }
+    s.evolvesTo = hit.id;
+  }
+  if (unlinked.length) console.log(`  branching, left unlinked: ${unlinked.join(', ')}`);
+}
 // cries: keep the original OGG (Vorbis) recording and add an MP3 transcode for browsers that
 // can't decode Vorbis; measure each recording's mean loudness for the report
 const ffmpeg = (() => { try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
