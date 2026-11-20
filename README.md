@@ -125,12 +125,8 @@ npx tsx scripts/shotbench.ts --gate # player shots over a ~475-enemy crowd: plan
 npx tsx scripts/camframe.ts     # third-person composition: every sprite frame against the crosshair's keep-out and the HUD's move bar
 npx tsx scripts/camstats.ts --bench tuning   # third-person motion on real maps by movement mode (apparent size, lens steps); --bench holdout
 npx tsx scripts/camaim.ts --fight            # third-person aim: the sim's aim point against the crosshair in tight poses; blocked crosshair in bot fights
-npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim
-npx tsx scripts/h2.ts           # H2: damage gain from rotating Tag for cooldowns (ceiling 15%)
-npx tsx scripts/h6.ts           # H6: objectives engaged vs ignored, with the bot
-npx tsx scripts/h8b.ts 3 360    # Phase 8b: technique x partner survival (dominance), technique frequency, transform sweep
+npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate # sim cost per tick at ~500 enemies (the test crowd, scripts/lib/crowd.ts) (min of 3 replays strips machine noise); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim
 npm run typecheck
-npm run sim -- --species cyndaquil --seconds 1500 --seed 2 --mode classic   # headless balance run
 npm run fixtures && npm run import:fixture   # offline importer run on the test mirror
 node scripts/build.mjs --overworld           # Maplebrook overworld -> dist/overworld.html
 ```
@@ -279,7 +275,7 @@ Settings → World → Sunpetal Meadow → *Generated each run* (or `?world=gen`
 rivers and lakes in basins, roads and trails, a hamlet, landmarks, encounter spaces and cover, validated against hard
 gates. Trees, bushes and rocks have materials: they burn, break and leave stumps or rubble. `docs/WORLDGEN.md` has the
 rules and measurements; `npx tsx scripts/worldsheet.ts 8 1 sheet.png` draws a contact sheet, `scripts/worldstats.ts`
-runs the gate sweep and `scripts/worldsurvival.ts` the bot gates.
+runs the gate sweep.
 
 ## Deploying (GitHub Pages)
 

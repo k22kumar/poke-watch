@@ -11,7 +11,7 @@ and the gameplay interpretations it is allowed. The same generator builds every 
 | `src/world/maps.ts` | Which stage biome uses which location (`rules.worldgen.locations`), cache |
 | `src/sim/world.ts`, `enemies.ts`, `effects.ts`, `player.ts`, `bodies.ts` | Drop navigation, line of sight, spawn anchors, loose stones, corner-cut fix, two-layer height / collision / flow field for decks (location maps only) |
 | `src/render/*` | Location palettes and `TERRAIN_STYLE` (rock tops, rock faces, veins, light pools), deck slabs, gatehouse / tent / ladder / house sprites, location stones, camera climb and deck ceiling |
-| `scripts/locstats.ts`, `scripts/locsheet.ts`, `scripts/locsurvival.ts` | Gate sweep and metrics, diagnostic contact sheet, bot playtest |
+| `scripts/locstats.ts`, `scripts/locsheet.ts` | Gate sweep and metrics, diagnostic contact sheet (the survivor bot playtest `locsurvival.ts` was deleted at hero-shooter pivot step 9) |
 | `tests/locations.test.ts` | Determinism, gates over seeds, identity, sim rules, bot play |
 
 ## Why the old maps felt flat (the audit)
@@ -146,7 +146,7 @@ Before this gate, `wideBoss` read 73 / 50 / 37 % of seeds (Viridian Forest / Mt.
 High is intended — a rim is where you stand to shoot down, and where you can be shot from below; the interior of a
 raised space is safe from below and cannot shoot down either.
 
-Bot playtest (`npx tsx scripts/locsurvival.ts 6 180`: 6 seeds × Totodile and Cyndaquil, 180 s, meadow roster):
+Bot playtest (historical: `scripts/locsurvival.ts`, deleted at hero-shooter pivot step 9; `npx tsx scripts/locsurvival.ts 6 180`: 6 seeds × Totodile and Cyndaquil, 180 s, meadow roster):
 
 | Map | reach 180 s | mean survival | KOs/min | damage taken/min | ground enemies with no path |
 | --- | --- | --- | --- | --- | --- |
@@ -202,7 +202,6 @@ generator: none of these locations fits them. `?loc=` overrides this for testing
 - `npx tsx scripts/locsheet.ts mt-moon 8 1 sheet.png 3` — contact sheet: tiers by colour, cliff lines, zone graph
   (white path/trail, blue ramp, orange bridge), spawn (white), boss (red), anchors (orange), chests (yellow), stones
   (cyan), pinches (magenta), and any player-only perch (red; there should be none).
-- `npx tsx scripts/locsurvival.ts 6 180` — bot playtest table above.
 
 ## Adding a location
 
