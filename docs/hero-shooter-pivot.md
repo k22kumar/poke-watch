@@ -24,7 +24,7 @@ Line counts are today's (`wc -l`), to size the work.
 | Enemy difficulty curves (HP/speed/toughness over stage time) | **Remove** | `src/sim/enemies.ts:28-55` |
 | XP, gems, magnet, heal/magnet drops | **Remove** | `src/sim/progression.ts` (`gainXp`, `pickupSystem`), `src/sim/combat.ts:218` (`dropXp`) |
 | Levels | **Split** | level feeds stat growth and move scaling, which stay as a fixed hero level (§3.3) |
-| Evolution by level | **Split**: remove the XP/level trigger, keep the evolution transition for a future rest-gated trigger (§2.4) | trigger: `progression.ts:332-360`; transition: `finishEvolution`, `ctx.state 'evolving'`, renderer, camera |
+| Evolution by level | **Split**: remove the XP/level trigger, keep the evolution transition for a future hold-F Breakthrough trigger (§2.4) | trigger: `progression.ts:332-360`; transition: `finishEvolution`, `ctx.state 'evolving'`, renderer, camera |
 | Level-up cards, rerolls/skips/banishes | **Remove** | `progression.ts:86-370` |
 | Build layer: transforms, techniques, mastery, wildcards | **Remove** (data and offers); **Split** (`sim/techniques.ts` helpers) | `src/sim/build.ts` (438), `src/rules/build.ts` (164), `src/sim/techniques.ts` (72) |
 | Items: vitamins, chests (item balls), pickups UI | **Remove** | `rules.vitamins`, `world.chests`, `src/ui/items.ts`, `src/ui/icons.ts` (vitamin glyph) |
@@ -121,7 +121,7 @@ Each entry lists the files, then what depends on it: tests, gates and scripts, d
 
 ### 2.4 Evolution: a split, not a removal
 
-The owner's control-scheme decisions keep evolution as a mechanic with a future **rest-gated trigger**. Only the XP/level trigger goes. The transition stays and must keep working when something other than a level calls it.
+The owner keeps evolution as a mechanic with a future **Breakthrough** trigger: hold F (Touch) any time you can afford it (`docs/STATS_GROWTH_TARGET.md` §Breakthroughs, which supersedes the rest-gated trigger in `docs/CONTROL_SCHEME_TARGET.md`; rest now opens the dream shop). Only the XP/level trigger goes. The transition stays and must keep working when something other than a level calls it.
 
 - **Remove: the triggers**
   - The level check in `maybeOpenCards` (`progression.ts:332-360`): `P.level >= sp.evolveLevel` starts the cinematic. Bench members evolve on level with no cinematic (`benchEvolve`, `:335-345`).
