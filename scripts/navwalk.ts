@@ -24,6 +24,7 @@ import { bodyTiles } from './habplay';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { RANGE } from '../src/mods';
+import { assertRunning, endedNote, runEnded } from './lib/ended';
 /** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m), an Extra Large (0.88 m) and
  *  a Large elite (×2, capped at 0.95 m) */
 const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0], ['elite', 'heracross', ROLE.elite]];
@@ -69,6 +70,7 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
   let pen = false, note = '';
   const ring: string[] = [];
   while (ctx.time - t0 < budget) {
+    assertRunning(ctx, 'navwalk enemy walker');
     P.iframes = 1; P.hp = P.maxHp; place(ctx, px, pz, deck);
     step(ctx, NO_INPUT);
     // NAVWALK_DEBUG=1: print the last 8 ticks before the first overlap
@@ -131,6 +133,7 @@ function driveTrainer(ctx: SimContext, path: [number, number][], budget: number)
   const P = ctx.player, t0 = ctx.time, foot = partnerFootprint(P.species, ctx.rules);
   let i = 0, pen = false, note = '', bestI = 0, lastProgress = ctx.time;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return { arrived: false, t: ctx.time - t0, pen, note: endedNote(ctx) };
     P.iframes = 1; P.hp = P.maxHp;
     // the nearest waypoint among the next few is where the trainer is along the route (the look-ahead cuts past some)
     // (only one it can walk to in a straight line: a waypoint a metre away across a face is further along the route)

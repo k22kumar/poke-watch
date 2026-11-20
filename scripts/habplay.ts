@@ -20,6 +20,7 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
 import { RANGE } from '../src/mods';
+import { runEnded } from './lib/ended';
 export interface PlayResult { recipe: string; seed: number; route: string; reach: number | null; held: boolean; holdT: number | null; back: number | null; stalls: number; hp: number; note: string; raidAt: number | null;
   /** damage the trainer took from everything (a stampede can arrive) and environment hits (vent ticks, cold dunks, burning or charged tiles) on anyone: none on required travel */
   dmg: number; hazardHits: number; ventSeconds: number;
@@ -67,6 +68,7 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
   const pf = Math.max(0.45, trainerFoot(ctx)), probes = [[0, 0], [pf, 0], [-pf, 0], [0, pf], [0, -pf]];
   let i = 0, lastProgress = ctx.time, best = Infinity;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return null; // ended: no arrival (drive's callers report a missing time as a failure)
     // shoved into a liquid (hazards on: crowds and knockback can do that): swim to the nearest shore, then re-plan the
     // rest of the route from wherever that is
     const shore = shoreFor(ctx);

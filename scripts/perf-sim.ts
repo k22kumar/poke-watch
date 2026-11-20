@@ -13,6 +13,7 @@ import { botInput } from '../src/sim/bot';
 import { withAim } from './lib/aimbot';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
+import { assertRunning } from './lib/ended';
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
 const repeat = Math.max(1, Number(process.argv[process.argv.indexOf('--repeat') + 1]) || 1);
 const capsOff = process.argv.includes('--caps-off');
@@ -26,6 +27,7 @@ for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 
     const times: number[] = [], inBand: number[] = [];
     // keep the bot alive so the crowd can build
     while (ctx.time < 240) {
+      assertRunning(ctx, 'perf-sim');
       ctx.player.hp = ctx.player.maxHp;
       const inp = aimed ? withAim(ctx, botInput(ctx)) : botInput(ctx);
       const t0 = performance.now();

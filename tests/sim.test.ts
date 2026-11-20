@@ -14,6 +14,7 @@ import { createRun, step } from '../src/sim/run';
 import { hpMultiplier, speedFactor, toughness } from '../src/sim/enemies';
 import type { SimContext } from '../src/sim/types';
 
+import { runEnded as ended } from '../scripts/lib/ended';
 function hashRun(ctx: SimContext) {
   const h = new Hasher();
   const P = ctx.player;
@@ -112,7 +113,7 @@ test('mods and modes plug in without engine changes', () => {
   const ctx = createRun({ seed: 5, species: 'charmander', mode: MODES.find((m) => m.id === 'glass-cannon'), mods: [{ id: 'probe', name: 'probe', hooks: { onKill: () => { healed++; } } }] });
   assert.equal(ctx.rules.damage.stab, 1.8);
   assert.equal(ctx.hooks.modifyDamage.length, 1); // vampiric from the mode
-  while (ctx.time < 60) step(ctx, botInput(ctx));
+  while (ctx.time < 60 && !ended(ctx)) step(ctx, botInput(ctx));
   assert.equal(healed, ctx.stats.kills);
   assert.ok(vampiric.hooks?.modifyDamage);
 });

@@ -44,6 +44,7 @@ import { T } from '../src/world/tiles';
 import { drive, playHabitat, routeTo } from './habplay';
 
 import { RANGE } from '../src/mods';
+import { assertRunning, runEnded } from './lib/ended';
 export const RECIPE = 'tidal-cave';
 export interface Check { id: string; seed: number; coverage: 'static' | 'live'; ok: boolean; detail: string }
 type Tide = Partial<typeof defaultRules.habitat.tide>;
@@ -167,6 +168,7 @@ function raidParty(ctx: SimContext, budget = 40): { steps: number; tidal: number
   let steps = 0, tidal = 0, at: number | null = null, water = 0;
   ctx.hooks.onTick.push((c) => { for (const e of c.events) if (e.t === 'hazardHit' && e.who === 'enemy' && (c.enemies.roles[e.id] & ROLE.raider) && e.kind === 'water') water++; });
   while (ctx.time - t0 < budget && O.phase === 'active') {
+    assertRunning(ctx, 'habtide raid party');
     ctx.player.iframes = 1; ctx.player.hp = ctx.player.maxHp;
     for (let e = 0; e < E.hi; e++) if (E.alive[e] && !(E.roles[e] & ROLE.raider)) E.kill(e);
     step(ctx, NO_INPUT);
@@ -284,6 +286,7 @@ function driveLine(ctx: SimContext, path: number[], budget: number): number | nu
   const P = ctx.player, t0 = ctx.time;
   let i = 0;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return null;
     quiet(ctx);
     while (i < path.length - 1) { const [x, z] = centre(ctx, path[i]); if (Math.hypot(x - P.x, z - P.z) < 0.9) i++; else break; }
     const [tx, tz] = centre(ctx, path[Math.min(path.length - 1, i + 1)]);

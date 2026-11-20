@@ -20,6 +20,7 @@ import { compileMove } from '../src/sim/moves';
 import { freshAimState, NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
+import { runEnded as ended } from '../scripts/lib/ended';
 import {
   CF, Contacts, MASK, QF, RayHit, SK, SK_ACTOR, SK_WORLD, overlapCylinder, overlapSector, raycastWorld, segmentClear,
   mapExposureClear, solidAt, spatialQuery, sweep, sweepTo,
@@ -625,7 +626,7 @@ test('live crowd: the grid broad phase never misses what a brute-force pass find
   const E = ctx.enemies, rng = new Rng(11), out = new Contacts(64), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
   let maxMove = 0, compared = 0, contacts = 0, peak = 0;
   const brute: [number, number][] = [];
-  while (ctx.time < 70) {
+  while (ctx.time < 70 && !ended(ctx)) {
     ctx.player.hp = ctx.player.maxHp;
     step(ctx, botInput(ctx));
     peak = Math.max(peak, E.count);
@@ -664,7 +665,7 @@ test('live strays (Phase 2B): an enemy relocated or added after the grid rebuild
   const ctx = createRun({ seed: 5, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 14, spawnPerMin: 8, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
   const E = ctx.enemies, out = new Contacts(256), q = spatialQuery({ mask: SK.enemy, pierce: Infinity });
   let probes = 0, gridMiss = 0, ticksWithStrays = 0, far = 0;
-  while (ctx.time < 60) {
+  while (ctx.time < 60 && !ended(ctx)) {
     ctx.player.hp = ctx.player.maxHp;
     step(ctx, botInput(ctx));
     let strays = 0;
@@ -689,7 +690,7 @@ test('live strays (Phase 2B): an enemy relocated or added after the grid rebuild
 test('determinism: repeated replays, another grid cell size and an in-use grid.result give identical contacts', () => {
   const build = () => {
     const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'mt-moon' } }, director: { spawnBase: 12, spawnPerMin: 6, capBase: 200, capPerMin: 0 }, enemy: { liveCap: 200 } } as never });
-    while (ctx.time < 40) { ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
+    while (ctx.time < 40 && !ended(ctx)) { ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
     return ctx;
   };
   const digest = (ctx: SimContext) => {
@@ -726,7 +727,7 @@ test('determinism: repeated replays, another grid cell size and an in-use grid.r
 test('no sim state changes: a query reads only (stateHash unchanged after thousands of queries)', async () => {
   const { stateHash } = await import('../src/sim/checksum');
   const ctx = createRun({ seed: 4, species: 'charmander' });
-  while (ctx.time < 20) step(ctx, botInput(ctx));
+  while (ctx.time < 20 && !ended(ctx)) step(ctx, botInput(ctx));
   const h0 = stateHash(ctx), out = new Contacts(), q = spatialQuery({ mask: SK_WORLD | SK_ACTOR, pierce: Infinity });
   for (let s = 0; s < 3000; s++) {
     const a = s * 0.37;
@@ -736,7 +737,7 @@ test('no sim state changes: a query reads only (stateHash unchanged after thousa
   assert.equal(stateHash(ctx), h0);
   // and stepping on afterwards matches a run that never queried
   const twin = createRun({ seed: 4, species: 'charmander' });
-  while (twin.time < 20) step(twin, botInput(twin));
+  while (twin.time < 20 && !ended(twin)) step(twin, botInput(twin));
   for (let t = 0; t < 300; t++) { step(ctx, botInput(ctx)); step(twin, botInput(twin)); }
   assert.equal(stateHash(ctx), stateHash(twin));
 });

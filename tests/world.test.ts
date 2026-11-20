@@ -9,6 +9,7 @@ import { botInput } from '../src/sim/bot';
 import { getArena } from '../src/world/arenas';
 import { PROP_RULES, T } from '../src/world/tiles';
 
+import { runEnded as ended } from '../scripts/lib/ended';
 const rules = defaultRules as typeof defaultRules;
 
 test('every arena is one connected walkable region with reachable chests and landmarks', () => {
@@ -77,7 +78,7 @@ test('the player climbs the bluff stairs and cannot walk up a cliff face', () =>
 test('ground enemies never finish a tick inside a wall, and are in water only when knocked in (the exposure rule has them)', () => {
   const ctx = createRun({ seed: 11, species: 'bulbasaur', ruleOverrides: { hero: { health: 5000 }, director: { spawnBase: 6 } } });
   let checked = 0;
-  while (ctx.time < 90) {
+  while (ctx.time < 90 && !ended(ctx)) {
     step(ctx, botInput(ctx));
     if (ctx.tick % 30) continue;
     const E = ctx.enemies, W = ctx.world;
