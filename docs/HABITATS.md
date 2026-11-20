@@ -500,7 +500,9 @@ whether the bank reads as a bank at chase-camera height (the lens collapses agai
 
 ## Roster assumptions (body profiles)
 
-From `rules.player`, `rules.size`, `rules.enemy.roles` and the spawn pools (`profilesFor`). Bodies are movement footprints from the size classes (`body`, docs/SIZING.md "Footprint"), the circle the sim collides with (`World.moveBody`), not the hurtboxes. The species counted are the ones a spawn pool can field (`spawnableSpecies`, src/rules/spawning.ts: region presets, every named preset, every map source's own pool), not the whole roster. Eyes and muzzles stay on the sprite-derived heights, because the sim fires every partner's shots from a fixed +0.8 m.
+**Frozen (2026-11-19, `docs/hero-shooter-pivot.md` §8 step 3).** The sizes, eyes and trainer speed below are constants (`VALIDATED_PROFILES` in `src/world/habitat/mode.ts`), the numbers every shipped map and `docs/habaudit/baseline.json` were accepted against. `profilesFor` no longer reads the roster or the spawn pools, so importing species or deleting the pools can't move a layout. Step, climb and the jump apex still come from `rules.player`. `tests/habitat.test.ts` pins the numbers and fails when the playable roster outgrows the trainer (`measuredProfileInputs`). Changing a constant needs a `HAB_VERSION` bump and a new baseline. The rest of this section records how the numbers were measured when they were accepted.
+
+From `rules.player`, `rules.size`, `rules.enemy.roles` and the spawn pools (`profilesFor`, as it was). Bodies are movement footprints from the size classes (`body`, docs/SIZING.md "Footprint"), the circle the sim collides with (`World.moveBody`), not the hurtboxes. The species counted are the ones a spawn pool can field (`spawnableSpecies`, src/rules/spawning.ts: region presets, every named preset, every map source's own pool), not the whole roster. Eyes and muzzles stay on the sprite-derived heights, because the sim fires every partner's shots from a fixed +0.8 m.
 
 | Profile | Radius | Step / climb | Eyes | Gated |
 | --- | --- | --- | --- | --- |

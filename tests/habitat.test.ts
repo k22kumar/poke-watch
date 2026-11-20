@@ -12,6 +12,7 @@ import { ventPhase } from '../src/sim/hazards';
 import { objectiveDue, startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { generateHabitat, HabitatError, HABITATS, HAB_VERSION, profilesFor, findHabitat, CONTROL_POINT } from '../src/world/habitat';
+import { measuredProfileInputs, VALIDATED_PROFILES } from '../src/world/habitat/mode';
 import { clearance, validateHabitat, type Layout } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { findMapSource, locationFor, mapChecksum, regionKey, regionMap } from '../src/world/maps';
@@ -261,4 +262,21 @@ test('settings: Map and Map seed survive a save and load; anything else in a sav
   }
   assert.equal(loadSettings({ camV: 2, worldV: 2, world: 'generated' }).world, 'generated', 'a saved classic-regions choice is kept');
   assert.equal(loadSettings({ world: 'generated' }).world, 'locations', 'a copy from before locations moves to the default once (unchanged)');
+});
+
+// The body profiles are frozen at the numbers every shipped map was accepted against (docs/hero-shooter-pivot.md §8
+// step 3): no roster or pool change can move a layout. A playable roster that outgrows them fails here instead of
+// quietly walking bodies through routes the maps were never validated for.
+test('habitat body profiles are the frozen validated numbers, and the playable roster still fits the trainer', () => {
+  const P = Object.fromEntries(profilesFor().map((p) => [p.id, p]));
+  assert.deepEqual(Object.fromEntries(Object.entries(P).map(([id, p]) => [id, [p.radius, p.step, p.climb, p.drop, p.eye, p.speed, p.essential]])), {
+    trainer: [0.88, 0.6, 0.6, 4, [0.7, 1.42], 7.2, true],
+    'trainer-jump': [0.88, 0.6, 2.44, Infinity, [0.7, 1.42], 7.2, false],
+    'wild-small': [0.3, 0.6, 0.6, 4, [0.5, 0.9], 3.5, true],
+    'wild-elite': [1.42, 0.6, 0.6, 4, [0.9, 1.4], 3.5, true],
+    boss: [0.95, 0.6, 0.6, 4, [1.2, 2.5], 3, false],
+  });
+  const m = measuredProfileInputs();
+  assert.ok(m.trainerRadius <= VALIDATED_PROFILES.trainerRadius + 1e-9, `the widest playable footprint ${m.trainerRadius} m is wider than the validated trainer ${VALIDATED_PROFILES.trainerRadius} m`);
+  assert.ok(m.trainerEyeTop <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `the tallest playable eye ${m.trainerEyeTop.toFixed(2)} m is above the validated ${VALIDATED_PROFILES.trainerEye[1]} m`);
 });

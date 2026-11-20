@@ -266,9 +266,9 @@ test('isolation: catalogue records are not game species and move nothing in the 
       assert.ok(!(key in r), `${r.id} must not carry ${key}`);
     }
   }
-  // The active roster membership itself, pinned. The habitat navigation profiles (`profilesFor()`,
-  // src/world/habitat/mode.ts) take the extremes of the bodies the spawn pools can field, so a change to
-  // this set is what moves habitat layout acceptance and the replay hashes. The pre-wave roster by name, then the wave.
+  // The active roster membership itself, pinned: a change to this set moves the replay hashes (the habitat
+  // navigation profiles no longer read it, src/world/habitat/mode.ts `VALIDATED_PROFILES`). The pre-wave roster by
+  // name, then the wave.
   assert.deepEqual(SPECIES.filter((s) => !s.wave).map((s) => s.id).sort(), [
     'articuno', 'bayleef', 'bergmite', 'blastoise', 'budew', 'bulbasaur', 'cetoddle', 'charizard', 'charmander', 'charmeleon',
     'chikorita', 'croconaw', 'cutiefly', 'cyndaquil', 'delibird', 'diglett', 'doduo', 'dreepy', 'ekans', 'feraligatr', 'furret',

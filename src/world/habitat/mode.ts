@@ -10,12 +10,8 @@
 // headroom over the deck clearance, grade and step from the sim's movement rules, exposure, approach group).
 // Movement profiles come from the sim's rules and the roster's real dimensions (profilesFor).
 import { defaultRules, type Rules } from '../../rules/defaults';
-import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../../rules/species';
-import { enemyRadius, footprintOf, partnerFootprint, partnerRadius } from '../../rules/sizing';
-import { spawnableSpecies, type SpawnPoolDef } from '../../rules/spawning';
-import { traversalOf } from '../../rules/profiles';
-import { LOCATIONS } from '../locations';
-import { HABITATS } from './recipes';
+import { SPECIES, type SpeciesDef } from '../../rules/species';
+import { partnerFootprint } from '../../rules/sizing';
 import type { BodyProfile, EdgeReq, ModeGraph } from './types';
 
 const approach = (group: string, exposure: EdgeReq['exposure']): EdgeReq => ({ width: 5, clearance: 2.9, grade: 0.5, step: 0.6, rise: 8, exposure, group });
@@ -57,46 +53,52 @@ export function playableLine(): SpeciesDef[] {
   return [...out];
 }
 
-/** body and locomotion profiles from the sim's rules and the roster (docs/HABITATS.md, "Roster assumptions").
- *  Every body is a movement footprint from the size classes (src/rules/sizing.ts `body`), the circle the sim collides
- *  with (World.moveBody), not the hurtbox:
- *    trainer     the widest partner footprint (an Extra Large partner, 0.88 m); eyes from the sprite heights, as before
- *    wild-small  the narrowest ground footprint any spawn pool can field
- *    wild-elite  the widest ground body the director spawns: any pool's ground species at ×1, an elite at the elite
- *                role size, never under the validated headroom below
- *    boss        the widest ground boss at the boss role size (bosses keep their authored encounter body)
- *  Which species count is read from the spawn pools (src/rules/spawning.ts: region presets, every named preset and
- *  every map source's own pool), not from the whole roster, so a species no pool fields never widens a route. With
- *  rules.size.geometry off the old sprite-height bodies and the shared partner radius come back. */
+/** The body numbers every shipped habitat map and `docs/habaudit/baseline.json` were accepted against, frozen
+ *  (docs/hero-shooter-pivot.md §8 step 3). They used to be measured from the roster and the spawn pools: the trainer
+ *  from the widest playable footprint and the tallest playable sprite, the wild bodies from what any pool fields, the
+ *  boss from the widest ground boss. The pools are going away and the roster is growing, so the profiles no longer
+ *  read either: a roster change can't move a layout. Changing a number here is a deliberate act that needs a
+ *  HAB_VERSION bump and a new baseline. `measuredProfileInputs` keeps the roster measurement for the gate in
+ *  tests/habitat.test.ts, which fails when the playable roster outgrows the frozen trainer. */
+export const VALIDATED_PROFILES = {
+  /** the widest partner footprint (an Extra Large partner) */
+  trainerRadius: 0.88,
+  /** eye / muzzle bracket: shots leave at +0.7 m, the top is 0.8 × the tallest playable sprite (1.77 m) */
+  trainerEye: [0.7, 1.42] as [number, number],
+  /** the trainer's planar speed the maps were timed with (rules.player.baseSpeed when they were accepted) */
+  trainerSpeed: 7.2,
+  /** the narrowest ground body a spawn pool fielded (the Tiny footprint) */
+  wildSmallRadius: 0.3,
+  /** the widest ground body the director spawned, the validated elite headroom */
+  wildEliteRadius: 1.42,
+  /** the widest ground boss at the boss role size */
+  bossRadius: 0.95,
+} as const;
+
+/** What the roster measures today for the trainer profile (the widest playable footprint, the eye top from the
+ *  tallest playable sprite). Only the habitat test reads it, to refuse a roster that outgrows VALIDATED_PROFILES. */
+export function measuredProfileInputs(rules: Rules = defaultRules): { trainerRadius: number; trainerEyeTop: number; species: number } {
+  const line = playableLine();
+  return {
+    trainerRadius: Math.max(...line.map((s) => partnerFootprint(s, rules))),
+    trainerEyeTop: Math.max(...line.map((s) => s.height)) * 0.8,
+    species: line.length,
+  };
+}
+
+/** body and locomotion profiles for habitat validation (docs/HABITATS.md, "Roster assumptions"). Every body is a
+ *  movement footprint, the circle the sim collides with (World.moveBody), not the hurtbox. Sizes are the frozen
+ *  VALIDATED_PROFILES; step, climb and the jump apex still come from the rules. */
 export function profilesFor(rules: Rules = defaultRules, dropNav = 4): BodyProfile[] {
   const R = rules.player, jumpApex = (R.jumpVelocity * R.jumpVelocity) / (2 * R.gravity);
-  const line = playableLine();
-  // eye / muzzle heights stay on the sprite-derived height: the sim fires every partner's shots from a fixed +0.8 m
-  // (sim/moves.ts), so the size classes widen bodies but do not raise a muzzle, and the validated marker bracket holds
-  const hMin = Math.min(...line.map((s) => s.height)), hMax = Math.max(...line.map((s) => s.height));
-  // movement footprints (World.moveBody); with size geometry off (no footprint) the old hurt radii, as before
-  const foot = rules.size.geometry;
-  const trainerR = Math.max(...line.map((s) => (foot ? partnerFootprint(s, rules) : partnerRadius(s, rules))));
-  const bodyR = (s: SpeciesDef, size: number) => (foot ? footprintOf(s, size, rules) : enemyRadius(s, size, rules));
-  const pools: SpawnPoolDef[] = [...Object.values(LOCATIONS), ...Object.values(HABITATS)].flatMap((d) => (d.spawns ? [d.spawns] : []));
-  const fielded = spawnableSpecies(pools, rules);
-  const ground = (ids: Set<string>) => [...ids].map((id) => SPECIES_BY_ID[id]).filter((s): s is SpeciesDef => !!s && !s.boss && traversalOf(s, rules).groundNav);
-  const wild = ground(fielded.spawns), elites = ground(fielded.elites);
-  const bosses = SPECIES.filter((s) => s.boss && traversalOf(s, rules).groundNav);
-  const eliteSize = rules.enemy.roles.elite.size;
-  // VALIDATED_ELITE_R is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against. The
-  // gate keeps it as a floor so a roster or pool change cannot quietly loosen the approaches; raising it is a deliberate
-  // act that needs a HAB_VERSION bump and a new baseline.
-  const VALIDATED_ELITE_R = 1.42;
-  const wMin = Math.min(...wild.map((s) => bodyR(s, 1)));
-  const wBig = Math.max(VALIDATED_ELITE_R, ...wild.map((s) => bodyR(s, 1)), ...elites.map((s) => bodyR(s, eliteSize)));
-  const bMax = Math.max(...bosses.map((s) => bodyR(s, rules.enemy.roles.boss.size)));
+  const V = VALIDATED_PROFILES;
+  const eye: [number, number] = [V.trainerEye[0], V.trainerEye[1]];
   // shots leave the player at +0.7 m (sim/effects.ts) and enemies aim at the chest (+0.9 m); eyes sit near the top
   return [
-    { id: 'trainer', radius: +trainerR.toFixed(2), step: R.stepHeight, climb: R.stepHeight, drop: dropNav, eye: [0.7, +(hMax * 0.8).toFixed(2)], speed: R.baseSpeed, essential: true, note: `every playable Pokémon (${line.length} species, ${hMin}–${hMax} m tall, the widest body r ${trainerR.toFixed(2)}), jump and glide disabled` },
-    { id: 'trainer-jump', radius: +trainerR.toFixed(2), step: R.stepHeight, climb: +(jumpApex + R.stepHeight).toFixed(2), drop: Infinity, eye: [0.7, +(hMax * 0.8).toFixed(2)], speed: R.baseSpeed, essential: false, note: `ordinary jump (apex ${jumpApex.toFixed(2)} m) and any drop: only used to prove there is no player-only perch` },
-    { id: 'wild-small', radius: +wMin.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [0.5, 0.9], speed: 3.5, essential: true, note: `narrowest ground body a spawn pool fields (${wild.length} ground species)` },
-    { id: 'wild-elite', radius: +wBig.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [0.9, 1.4], speed: 3.5, essential: true, note: `largest ground body the director spawns (elite-capable at ×${eliteSize}, any other ground wild Pokémon at ×1), never under the validated ${VALIDATED_ELITE_R} m headroom` },
-    { id: 'boss', radius: +bMax.toFixed(2), step: 0.6, climb: 0.6, drop: dropNav, eye: [1.2, 2.5], speed: 3, essential: false, note: 'largest ground boss (bosses arrive after the objectives close; reported, not gated)' },
+    { id: 'trainer', radius: V.trainerRadius, step: R.stepHeight, climb: R.stepHeight, drop: dropNav, eye, speed: V.trainerSpeed, essential: true, note: `every playable Pokémon (the widest body r ${V.trainerRadius}), jump and glide disabled` },
+    { id: 'trainer-jump', radius: V.trainerRadius, step: R.stepHeight, climb: +(jumpApex + R.stepHeight).toFixed(2), drop: Infinity, eye: [eye[0], eye[1]], speed: V.trainerSpeed, essential: false, note: `ordinary jump (apex ${jumpApex.toFixed(2)} m) and any drop: only used to prove there is no player-only perch` },
+    { id: 'wild-small', radius: V.wildSmallRadius, step: 0.6, climb: 0.6, drop: dropNav, eye: [0.5, 0.9], speed: 3.5, essential: true, note: 'narrowest ground wild body (the Tiny footprint)' },
+    { id: 'wild-elite', radius: V.wildEliteRadius, step: 0.6, climb: 0.6, drop: dropNav, eye: [0.9, 1.4], speed: 3.5, essential: true, note: `largest ground wild body, the validated ${V.wildEliteRadius} m headroom` },
+    { id: 'boss', radius: V.bossRadius, step: 0.6, climb: 0.6, drop: dropNav, eye: [1.2, 2.5], speed: 3, essential: false, note: 'largest ground boss (reported, not gated)' },
   ];
 }
