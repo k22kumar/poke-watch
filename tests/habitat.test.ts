@@ -13,6 +13,9 @@ import { objectiveDue, startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { generateHabitat, HabitatError, HABITATS, HAB_VERSION, profilesFor, findHabitat, CONTROL_POINT } from '../src/world/habitat';
 import { measuredProfileInputs, VALIDATED_PROFILES } from '../src/world/habitat/mode';
+import { FEATURED } from '../src/rules/heroes';
+import { SPECIES_BY_ID } from '../src/rules/species';
+import { partnerFootprint } from '../src/rules/sizing';
 import { clearance, validateHabitat, type Layout } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { findMapSource, locationFor, mapChecksum, regionKey, regionMap } from '../src/world/maps';
@@ -276,6 +279,13 @@ test('habitat body profiles are the frozen validated numbers, and the playable r
     'wild-elite': [1.42, 0.6, 0.6, 4, [0.9, 1.4], 3.5, true],
     boss: [0.95, 0.6, 0.6, 4, [1.2, 2.5], 3, false],
   });
+  // every hero, not just the partners: the featured lines (and, once drafted, the prototype list) must fit the frozen
+  // trainer, or the maps were never validated for them
+  for (const id of FEATURED) {
+    const sp = SPECIES_BY_ID[id];
+    assert.ok(partnerFootprint(sp, defaultRules) <= VALIDATED_PROFILES.trainerRadius + 1e-9, `${id}: footprint ${partnerFootprint(sp, defaultRules)} m`);
+    assert.ok(sp.height * 0.8 <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `${id}: eye ${(sp.height * 0.8).toFixed(2)} m`);
+  }
   const m = measuredProfileInputs();
   assert.ok(m.trainerRadius <= VALIDATED_PROFILES.trainerRadius + 1e-9, `the widest playable footprint ${m.trainerRadius} m is wider than the validated trainer ${VALIDATED_PROFILES.trainerRadius} m`);
   assert.ok(m.trainerEyeTop <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `the tallest playable eye ${m.trainerEyeTop.toFixed(2)} m is above the validated ${VALIDATED_PROFILES.trainerEye[1]} m`);

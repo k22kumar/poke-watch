@@ -49,6 +49,10 @@ export function openingMove(sp: SpeciesDef): string | undefined {
   return sp.starter ?? lineage(sp)[0].starter ?? firstAttacks(sp, 1, 1)[0];
 }
 
+/** The four test lines (docs/STATS_GROWTH_TARGET.md "Prototype scope"): shown first on hero pick and used by the replay
+ *  baseline and tests. Calibrated first with scripted duels. */
+export const FEATURED: readonly string[] = ['caterpie', 'metapod', 'butterfree', 'charmander', 'charmeleon', 'charizard', 'tauros', 'mewtwo'];
+
 /** A hero's kit (docs/STATS_GROWTH_TARGET.md "Kit and gating", docs/hero-shooter-pivot.md Q27): the primary (left
  *  click, fixed by species), Ability 1 (Q) and Ability 2 (E). The Ultimate (R) is unbound until it exists. */
 export interface HeroKit { primary?: string; q?: string; e?: string }

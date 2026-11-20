@@ -560,3 +560,19 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 - **Q43 Hash.** `stateHash` plus `vy`, jump and coyote state, `breakT`, target and body state; checkpoints every 10 s and an end hash; in `tests/fixtures/replays.json`, asserted by `tests/replays.test.ts` in `npm test`. `checksum.ts --update` rewrites it, and the commit says why.
 - **Q44 `checksum.ts`.** Runs scenarios by name (`[scenario|all] [--update]`); the old set names and `legacyHash` go in the retire commit.
 - **Q45 Merge check.** `tests/browser/range.py` in capture mode: title, pick a featured hero, spawn, fire at a dummy and see its health drop, hold F with Caterpie to Breakthrough, with screenshots; plus a look at the frames. `play.py`, `menus.py` and the survivor scene JSONs are deleted. Run at merge time, not in `npm run check`.
+
+## 11. Progress on `hero-core`
+
+| Step | Commit | State |
+|---|---|---|
+| 1 `range` Mode | `cdaa96c` | done |
+| 2 Audio cut (Q51) | `a73fa22` | done |
+| 3 Frozen habitat profiles | `914b86b` | done |
+| 4 Salvage | `9b08b67` | done |
+| 5 Test lines | `f0b0c9b` | done |
+| 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed in the step-6 commit | done, two open findings below |
+
+Open findings (owner to decide; neither limit nor harness changed):
+
+- **habtide seed 7 `live.warning-escape`.** Not a hazard bug. The harness driver counts arrival within 1.2 m of its dry goal and then lets go; at 7.2 m/s the body coasted onto dry ground, at the band's 5.76 m/s it stops on a tidal tile (33.52, −17.07) and takes two water hits when the flood comes in. The escape itself takes 1.73 s of the 8 s warning.
+- **viewsample "camera collision and species sizes", lens p99 1.40 m.** Not a lens regression. At 6 m/s the scripted walk puts Feraligatr against rock at (−35.2, 11.1) during a strafe with look input; for 7 consecutive frames the arm comes in at once as rock enters it (P1, by design), 0.5–3.5 m a frame. At 8 m/s the same course meets it for 3 frames, under the 1 % the p99 < 0.4 m line assumes.
