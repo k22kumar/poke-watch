@@ -1,45 +1,8 @@
-// Modes = rule overrides + mods. Add a file, register it here, it appears on the title screen.
-import { enemiesInRadius, hitScratch } from '../sim/moves';
-import { damageEnemy } from '../sim/combat';
-import { healPlayer } from '../sim/combat';
+// Modes = rule overrides + mods. Add a file, register it in MODES, it appears on the title screen.
 import { swapSystem } from '../sim/swap';
 import { startObjective } from '../sim/objectives';
 import type { System } from '../sim/types';
 import type { Mod, Mode } from './types';
-import { deepMerge } from '../core/util';
-import { defaultRules } from '../rules/defaults';
-
-// ---------------------------------------------------------------- example mods
-export const vampiric: Mod = {
-  id: 'vampiric',
-  name: 'Vampiric',
-  description: 'Critical hits heal 5% of the damage dealt.',
-  hooks: {
-    modifyDamage(ctx, hit) {
-      if (hit.crit) healPlayer(ctx, hit.amount * 0.05);
-    },
-  },
-};
-
-export const volatile: Mod = {
-  id: 'volatile',
-  name: 'Volatile',
-  description: 'Defeated creatures burst, damaging neighbours.',
-  hooks: {
-    onKill(ctx, e) {
-      const E = ctx.enemies;
-      const x = E.x[e], z = E.z[e];
-      const dmg = E.maxHp[e] * 0.25;
-      // copy targets first: damageEnemy may kill and re-enter this hook
-      const n = enemiesInRadius(ctx, x, z, 2.5);
-      const targets = Array.from(hitScratch.subarray(0, n));
-      ctx.events.push({ t: 'ring', x, z, r: 2.5, element: 'blaze', life: 0.3 });
-      for (const j of targets) if (j !== e && E.alive[j]) damageEnemy(ctx, j, dmg / Math.max(0.5, ctx.player.derived.spa), { element: 'blaze', cls: 'special', ailment: 'burn', chance: 0, knock: 3, kx: E.x[j] - x, kz: E.z[j] - z, drain: 0, source: 'volatile' });
-    },
-  },
-};
-
-export const ALL_MODS: Mod[] = [vampiric, volatile];
 
 /** The survivor loop's systems left: progression (chests). The director was deleted at pivot step 9; objectives stay
  *  and run only when something starts one (the Hold mode, the habitat Hold gates). */
@@ -77,7 +40,7 @@ export const swap: Mod = {
 export const RANGE: Mode = {
   id: 'range', name: 'Training range',
   description: 'No waves, no levels: move, aim and fight on any map.',
-  rules: { mode: { id: 'range', difficulty: 1 }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
+  rules: { mode: { id: 'range' }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
   mods: [noSurvivorLoop, solo],
 };
 
@@ -98,7 +61,7 @@ export const holdMod: Mod = {
 export const HOLD: Mode = {
   id: 'hold', name: 'Hold',
   description: 'Take the point on a habitat map and hold it against the raid party.',
-  rules: { mode: { id: 'hold', difficulty: 1 } },
+  rules: { mode: { id: 'hold' } },
   mods: [noSurvivorLoop, solo, holdMod],
 };
 
@@ -111,27 +74,8 @@ export const RANGE_SWAP: Mode = {
 };
 
 // ---------------------------------------------------------------- modes
-export const MODES: Mode[] = [
-  {
-    id: 'classic', name: 'Classic',
-    description: 'Four regions, a boss at 5:00 in each. Beat the boss, take the portal.',
-  },
-  {
-    id: 'survival', name: 'Survival',
-    description: 'Endless. Regions loop with steeper enemies every lap. How long can you last?',
-    rules: { mode: { id: 'survival', difficulty: 1 } },
-  },
-  {
-    id: 'glass-cannon', name: 'Glass Cannon',
-    description: 'You hit much harder, so do they. Crits heal a little.',
-    rules: { mode: { id: 'glass-cannon', difficulty: 1.6 }, damage: { stab: 1.8, critChance: 0.15 } },
-    mods: [vampiric],
-  },
-  {
-    id: 'boss-rush', name: 'Boss Rush',
-    description: 'Bosses arrive at 1:30. Short stages.',
-  },
-  RANGE,
-  HOLD,
-];
+/** The shipped modes (docs/hero-shooter-pivot.md Q48): the training range and Hold. The survivor modes (Classic,
+ *  Survival, Glass Cannon, Boss Rush) and their example mods were deleted at pivot step 9; the Mode / Mod mechanism
+ *  stays (src/mods/types.ts). RANGE_SWAP is the swap system's own mode, used by its replay scenario. */
+export const MODES: Mode[] = [RANGE, HOLD];
 

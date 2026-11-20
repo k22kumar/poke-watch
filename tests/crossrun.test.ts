@@ -11,13 +11,11 @@ import { createRun, step } from '../src/sim/run';
 import { playerLiquid, shoreFor } from '../src/sim/hazards';
 import { stateHash } from '../src/sim/checksum';
 import { partnerRadius } from '../src/rules/sizing';
-import { MODES } from '../src/mods';
 import { T } from '../src/world/tiles';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
 import { RANGE } from '../src/mods';
 import { runEnded } from '../scripts/lib/ended';
 
-const mode = (id: string) => MODES.find((m) => m.id === id);
 
 /** a scripted run (no bot): head for a water tile, and once in the liquid swim to the shore shoreFor gives (the cached
  *  answer the leak was in), then walk back toward the spawn for 2 s and go again. Per tick, the input and the state */
@@ -69,8 +67,8 @@ function wade(ctx: SimContext, x: number, z: number) {
 
 test('shoreFor: each world answers from its own map, position and partner, whatever another world asked first', () => {
   // two runs on the same authored map: the same tile indices, different worlds
-  const a = createRun({ seed: 3, species: 'onix', mode: mode('classic') });
-  const b = createRun({ seed: 4, species: 'gastly', mode: mode('classic') });
+  const a = createRun({ seed: 3, species: 'onix' });
+  const b = createRun({ seed: 4, species: 'gastly' });
   assert.equal(a.world.map.id, b.world.map.id, 'one layout');
   const [x, z] = waterTile(a);
   wade(a, x + 0.3, z + 0.3); // the far corner of the tile, with an Extra Large footprint

@@ -544,8 +544,7 @@ export const defaultRules = {
     windup: { strike: 0.1, dash: 0.06, cone: 0.1, nova: 0.1, spin: 0.08, aura: 0.1, homing: 0.08, orb: 0.09, bolt: 0.07, barrage: 0.08, lob: 0.1, boomerang: 0.08, beam: 0.12, chain: 0.12, vortex: 0.12, meteor: 0.14, smite: 0.12, drain: 0.08, orbit: 0.1, trail: 0.06, trap: 0.1, buff: 0.12, weather: 0.12 } as Record<string, number>,
   },
   mode: {
-    id: 'classic',
-    difficulty: 1, // multiplies enemy hp, dmg, speed
+    id: 'default', // the mode's id (src/mods); the survivor difficulty multiplier went with the survivor modes (Q48)
   },
 };
 

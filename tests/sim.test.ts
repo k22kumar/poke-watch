@@ -6,7 +6,8 @@ import { Hasher } from '../src/core/util';
 import { defaultRules } from '../src/rules/defaults';
 import { MOVES } from '../src/rules/moves';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
-import { MODES, vampiric } from '../src/mods';
+import { MODES, RANGE } from '../src/mods';
+import type { Mod } from '../src/mods/types';
 import { classify, compileMove } from '../src/sim/moves';
 import { botInput } from '../src/sim/bot';
 import { createRun, step } from '../src/sim/run';
@@ -85,13 +86,15 @@ test('same seed + same inputs = identical run (determinism)', () => {
 });
 
 test('mods and modes plug in without engine changes', () => {
-  let healed = 0;
-  const ctx = createRun({ seed: 5, species: 'charmander', mode: MODES.find((m) => m.id === 'glass-cannon'), mods: [{ id: 'probe', name: 'probe', hooks: { onKill: () => { healed++; } } }] });
-  assert.equal(ctx.rules.damage.stab, 1.8);
-  assert.equal(ctx.hooks.modifyDamage.length, 1); // vampiric from the mode
+  let kills = 0, hits = 0;
+  const probe: Mod = { id: 'probe', name: 'probe', rules: { damage: { stab: 1.8 } }, hooks: { onKill: () => { kills++; }, modifyDamage: () => { hits++; } } };
+  const ctx = createRun({ seed: 5, species: 'charmander', mode: RANGE, mods: [probe, crowd(30)] });
+  assert.equal(ctx.rules.damage.stab, 1.8, 'a mod\'s rules merge over the mode\'s');
+  assert.equal(ctx.hooks.modifyDamage.length, 1);
+  assert.deepEqual(MODES.map((m) => m.id), ['range', 'hold'], 'the shipped modes (Q48)');
   while (ctx.time < 60 && !ended(ctx)) step(ctx, botInput(ctx));
-  assert.equal(healed, ctx.stats.kills);
-  assert.ok(vampiric.hooks?.modifyDamage);
+  assert.equal(kills, ctx.stats.kills);
+  assert.ok(kills > 0 && hits > 0);
 });
 
 test('enemy pool never exceeds capacity under heavy spawning', () => {

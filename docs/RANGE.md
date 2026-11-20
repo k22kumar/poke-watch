@@ -10,7 +10,7 @@ The match foundation the hero shooter's replay baseline is built on (`docs/hero-
 | `range-swap` (`RANGE_SWAP`) | the range plus the opt-in `swap` Mod | `hero.loadout` 3 |
 | `hold` (`HOLD`) | no survivor loop, solo, `holdMod` (opens a Hold on the first tick of a habitat map) | — |
 
-The survivor modes (Classic, Survival, Glass Cannon, Boss Rush) still run with the default system list until pivot step 9 deletes them. `RANGE` also serves tests and gates as "the foundation with no survivor loop" on any map; the range *arena* is a separate choice (`rules.worldgen.arena: 'range'`), which the title flow makes for the range modes (`src/main.ts startRun`) unless the URL names a map (`?loc=`, `?world=`).
+The survivor modes (Classic, Survival, Glass Cannon, Boss Rush) were deleted at pivot step 9; `MODES` is `[RANGE, HOLD]`. `RANGE` also serves tests and gates as "the foundation with no survivor loop" on any map; the range *arena* is a separate choice (`rules.worldgen.arena: 'range'`), which the title flow makes for the range modes (`src/main.ts startRun`) unless the URL names a map (`?loc=`, `?world=`).
 
 ## The range arena (`src/world/arenas.ts buildRange`)
 

@@ -239,7 +239,7 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
     ctx.events.push({ t: 'brace', x: P.x, z: P.z, amount: raw });
   }
   const R = ctx.rules.player;
-  let amt = (raw * ctx.rules.mode.difficulty) / Math.max(0.05, cls === 'special' ? P.derived.spd : P.derived.def);
+  let amt = raw / Math.max(0.05, cls === 'special' ? P.derived.spd : P.derived.def);
   // Sturdy: once per region, a hit from full health leaves it at 1 HP
   if (pa === A.sturdy && !P.m.sturdyUsed && P.hp >= P.maxHp - 0.01 && amt >= P.hp) { amt = P.hp - 1; P.m.sturdyUsed = true; abilityPop(ctx, 'Sturdy'); }
   logHurt(ctx, P.guardT >= 0 ? 'brace' : 'hit', amt, eff, weight, element, src, fromX, fromZ);

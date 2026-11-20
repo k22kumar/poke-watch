@@ -206,7 +206,7 @@ export function coatMember(ctx: SimContext, m: Member, agent: number, depth: num
       clear();
       if (P.m === m) {
         P.paraT = Math.max(P.paraT, 1.8);
-        const amt = m.maxHp * 0.06 * ctx.rules.mode.difficulty;
+        const amt = m.maxHp * 0.06;
         m.hp = Math.max(0, m.hp - amt);
         P.hurtFlash = 0.2;
         ctx.stats.damageTaken += amt;

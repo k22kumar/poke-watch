@@ -367,7 +367,7 @@ function settleMelted(ctx: SimContext) {
       const pf = partnerFootprint(ctx.player.species, ctx.rules);
       const [x, z] = W.shore(P.x, P.z, pf || partnerRadius(ctx.player.species, ctx.rules), P.y) ?? (pf > 0 ? W.nearestFit(P.x, P.z, pf, navWide(pf, ctx.rules), true, partnerHeight(ctx.player.species, ctx.rules)) : W.nearestWalkable(P.x, P.z));
       P.x = x; P.z = z; P.y = W.height(x, z); P.vx = P.vz = P.kx = P.kz = 0; P.vy = 0; P.grounded = true;
-      const amt = Math.min(P.maxHp * I.dunk, Math.max(0, (P.hp - 1) / ctx.rules.mode.difficulty));
+      const amt = Math.min(P.maxHp * I.dunk, Math.max(0, P.hp - 1));
       if (amt > 0) { const before = P.hp; hurtPlayer(ctx, amt, 'dunk'); if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'dunk', who: 'player', id: -1, amount: before - P.hp, x, z }); }
     }
     for (let e = 0; e < E.hi && actors; e++) {
@@ -395,12 +395,12 @@ export function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
   if (P.dashT > 0 || P.m.fainted || P.faintT >= 0 || P.breakT > 0) return; // a Breakthrough is invulnerable (sim/evolution.ts)
   setSrc('tile', kind);
   const r = rec(ctx, 'tile', 'hit', true);
-  if (r) { r.amount = amount * ctx.rules.mode.difficulty; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }
-  P.hp -= amount * ctx.rules.mode.difficulty;
+  if (r) { r.amount = amount; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }
+  P.hp -= amount;
   P.hurtFlash = 0.2;
   ctx.stats.damageTaken += amount;
   ctx.events.push({ t: 'playerHurt', amount, x: P.x, z: P.z });
   ctx.events.push({ t: 'cellHurt', kind });
   if (P.hp <= 0) P.hp = 0;
-  onHpLoss(ctx, amount * ctx.rules.mode.difficulty);
+  onHpLoss(ctx, amount);
 }
