@@ -45,28 +45,5 @@
     "eval": "(()=>{const r=pokewatch.renderer,c=pokewatch.ctx;return {boom:r.rig.boomUsed,aim:r.chaseAim(c),player:[c.player.x,c.player.z],n:c.enemies.count}})()"
    }
   ]
- },
- {
-  "name": "boss",
-  "query": "go=1&seed=5&species=cyndaquil&cam=chase",
-  "steps": [
-   {
-    "advance": 4,
-    "bot": true
-   },
-   {
-    "eval": "(()=>{pokewatch.spawn('articuno',16,-4,4);return 1})()"
-   },
-   {
-    "advance": 3,
-    "bot": true
-   },
-   {
-    "shot": "a"
-   },
-   {
-    "eval": "(()=>{const r=pokewatch.renderer;return {boom:r.rig.boomUsed}})()"
-   }
-  ]
  }
 ]

@@ -119,49 +119,6 @@
     ]
   },
   {
-    "name": "size-evolve-charmander",
-    "query": "go=1&seed=1&species=charmander&calm=1&tp=64,64&cam=classic",
-    "steps": [
-      {
-        "advance": 1.5,
-        "frames": 90
-      },
-      {
-        "raw": "before"
-      },
-      {
-        "eval": "(() => { for (let i = 0; i < 20; i++) window.pokewatch.addLevel(); return [window.pokewatch.ctx.player.level, window.pokewatch.ctx.state]; })()"
-      },
-      {
-        "advance": 0.2,
-        "frames": 12
-      },
-      {
-        "eval": "[window.pokewatch.ctx.state, window.pokewatch.ctx.player.species.id]"
-      },
-      {
-        "raw": "flicker"
-      },
-      {
-        "advance": 3,
-        "frames": 180
-      },
-      {
-        "eval": "[window.pokewatch.ctx.state, window.pokewatch.ctx.player.species.id, window.pokewatch.ctx.player.level]"
-      },
-      {
-        "advance": 1,
-        "frames": 60
-      },
-      {
-        "raw": "after"
-      },
-      {
-        "eval": "window.pokewatch.renderer.sizes().filter((s) => ['charmander','charmeleon','charizard'].includes(s.id))"
-      }
-    ]
-  },
-  {
     "name": "size-boss-fixed",
     "query": "go=1&seed=1&species=charmander&calm=1&cam=classic&tp=64,64",
     "steps": [
