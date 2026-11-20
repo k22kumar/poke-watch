@@ -22,11 +22,10 @@ const secs = (ctx: SimContext, s: number, inp: InputFrame = NO_INPUT) => { for (
 /** tap Tag: one tick down, then up */
 function tap(ctx: SimContext) { step(ctx, press(BTN.sig)); step(ctx, NO_INPUT); }
 
-test('every partner and recruitable wild line has a Tag Action whose moves exist', () => {
-  const recruitable = new Set(STAGES.flatMap((s) => s.spawns.map(([id]) => id)));
+test('every partner line has a Tag Action whose moves exist', () => {
   for (const sp of SPECIES) {
     const base = lineage(sp)[0].id;
-    if (!sp.playable && !recruitable.has(base)) continue;
+    if (!sp.playable) continue;
     const line = tagLineOf(base);
     assert.ok(line, `${sp.id} has a Tag Action`);
     assert.ok(MOVE_BY_KEY[line.base.move], `${base} base ${line.base.move}`);

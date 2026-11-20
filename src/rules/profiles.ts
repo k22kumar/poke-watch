@@ -6,10 +6,10 @@
 //                                               hover, swim; defaults from the roster's legacy `flying` flag and the
 //                                               swimming types (rules.hazards.water.safeTypes), replaced per species by
 //                                               `traversal`. Knowing a safe move (Surf) also swims (`canSwim`)
-//   preference   what it TENDS to favour        `prefers`: habitat tags whose tiles raise its encounter odds
-//                                               (rules.spawning.preference) — never required
+//   preference   what it TENDS to favour        `prefers`: habitat tags it favours (data only since the spawn pools
+//                                               and their encounter odds were deleted at pivot step 9) — never required
 //   restriction  what MUST or MUST NOT hold     `requires` / `avoids`: habitat tags a spawn tile must have / must not
-//                                               have. Checked only by spawn compatibility (src/rules/spawning.ts).
+//                                               have. Checked only by placement (src/sim/placement.ts allowedAt).
 //
 // Defaults are derived; an entry in SPECIES_OVERRIDES replaces individual fields. Nothing here is implied by a
 // Pokémon's type: a Water type is not given `requires: water`, and an unlisted species has no preference at all.
@@ -185,14 +185,6 @@ export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): T
  *  rules.hazards.water.safeMoves move in its move set (knowing Surf lends it, cooling down or not). */
 export function canSwim(species: TraversalSource, moves?: readonly { key: string }[], rules: Rules = defaultRules): boolean {
   return traversalOf(species, rules).swim !== null || (!!moves && moves.some((s) => rules.hazards.water.safeMoves.includes(s.key)));
-}
-
-/** Preference: encounter-odds factor of a species on a tile with these habitat tags. Never 0: preference is not
- *  eligibility. A species with no preference, or a tile with no tags, is neutral (1). */
-export function habitatSpawnFactor(species: string, habitat: number, pref: Rules['spawning']['preference'] = defaultRules.spawning.preference): number {
-  const native = speciesProfile(species).prefers;
-  if (!native || !habitat) return 1;
-  return native & habitat ? pref.native : pref.foreign;
 }
 
 /** Restriction: may this species spawn on a tile with these habitat tags? (Preference plays no part.) */

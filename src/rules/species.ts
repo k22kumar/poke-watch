@@ -49,7 +49,7 @@ export interface SpeciesDef {
   // enemy-only
   /** a wild roster entry (content/roster.json `wild`), whether or not it names its role */
   wild?: boolean;
-  /** the roster wave it joined with (content/roster.json; rules.spawning.waves can turn a wave off) */
+  /** the roster wave it joined with (content/roster.json; data only since the spawn pools were deleted) */
   wave?: string;
   /** `rule`: behaviour and flight came from the default role rule (src/rules/roles.ts), not the roster entry */
   roleFrom?: 'rule';

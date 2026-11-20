@@ -1,4 +1,4 @@
-# Customising Pokémon, sizes, maps and spawns
+# Customising Pokémon, sizes, maps and what stands on them
 
 A practical guide to the common changes. Each section names the real file, shows a working example, and says which check to run. After any change, run `npm run check` (typecheck, every test, production build). The background is in docs/SIZING.md, docs/SPAWNING.md, docs/PIPELINE.md and docs/HABITATS.md.
 
@@ -7,15 +7,13 @@ A practical guide to the common changes. Each section names the real file, shows
 | What | File | Rebuild content? |
 |---|---|---|
 | Which Pokémon exist, and their role (partner, wild behaviour, boss kit) | `content/roster.json` | yes (`npm run content`) |
-| Per-species facts: habitat preferences, restrictions, size-class pin, mender | `src/rules/profiles.ts` (`SPECIES_OVERRIDES`) | no |
+| Per-species facts: habitat preferences, restrictions, size-class pin | `src/rules/profiles.ts` (`SPECIES_OVERRIDES`) | no |
 | Tag Action (optional; one is derived from the Pokémon's own moves) | `src/rules/tags.ts` (`TAG_ACTIONS`) | no |
 | Size-class numbers, partner radius clamp, wide-body threshold | `src/rules/defaults.ts` (`size`) | no |
-| Spawn presets and region tables | `src/rules/spawning.ts` (`SPAWN_PRESETS`), `src/rules/defaults.ts` (`spawning.regions`) | no |
-| A map's own spawn pool | `spawns` on a location (`src/world/locations/*.ts`) or habitat recipe (`src/world/habitat/recipes.ts`) | no |
-| A mode's spawn pool | `rules.spawning.override` in a `MODES` entry (`src/mods/index.ts`) | no |
+| Training targets | `src/rules/targets.ts` (`RANGE_TARGETS`, `HABITAT_TARGETS`) | no |
+| The Hold's Raid party | `RAID_PARTY` in `src/sim/modes/hold.ts` | no |
 
 When two settings disagree, the later one wins:
-- **Pools:** region preset → map `spawns` → mode `rules.spawning.override` → `?pool=` in the URL.
 - **Size class:** `sizeClass` pin → `NEUTRAL_CORE_EXTENT_M` → canonical height → sprite height.
 
 ---
@@ -33,7 +31,7 @@ Implemented. Example: Wooper as a Meadow wild Pokémon.
    npm run fetch-sources   # sparse clones into ../src-data (adds Wooper's data, sprite folder and cry)
    npm run content         # imports it; check the log for warnings (missing cry, animations)
    ```
-3. Put it in a pool. For example, add `['wooper', 1]` to the `meadow` preset's `include` in `src/rules/spawning.ts`. Without this step it is already eligible wherever a pool uses `all-wild`.
+3. Put it on a map, if you want one to meet: a target in a set (`src/rules/targets.ts`, §7). There are no spawn pools since hero-shooter pivot step 9.
 4. Optional:
    - a habitat preference in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`): `wooper: { prefers: HAB.water }`;
    - an authored Tag Action in `src/rules/tags.ts`, if the derived one (its earliest damaging move of its own type, then its strongest by Lv 30) doesn't suit;
@@ -100,50 +98,27 @@ Implemented. Edit its definition file (`src/world/locations/<name>.ts`, `src/wor
 
 ## 7. Change which Pokémon appear on a map
 
-Implemented. Give the map a `spawns` pool. It layers over whichever region uses the map. For example, Mt. Moon keeping only cave-type Pokémon from the region's pool, plus Onix and Geodude:
-```ts
-// src/world/locations/mtMoon.ts, inside MT_MOON
-spawns: {
-  filter: { types: ['rock', 'ground', 'poison', 'ghost', 'dark'] },   // keep cave-type Pokémon from the region's pool
-  include: [['onix', 1.5], 'geodude'],                               // and add these wherever this map is used
-  exclude: ['zubat'],
-},
-```
-Or fix the exact list: `spawns: { only: [['geodude', 3], ['onix', 1]] }`. Elites and the boss stay the region's unless the pool sets `elites` / `boss`.
-
-Check: `npx tsx --test tests/spawning.test.ts`. Its configuration test validates every map's pool and fails on unknown ids or an empty result.
+Implemented, per source (docs/SPAWNING.md). Spawn pools, presets and `?pool=` were deleted at hero-shooter pivot step 9; they are on the `survivor-final` tag.
+- **Training targets:** edit or add a `TargetSet` in `src/rules/targets.ts`: each target is a species, a kind (`dummy`, `patrol`, `strafe`), an anchor (`spawn`, `contest`, `stageA`, `stageB`) with an offset, and a patrol's loop. Check with `npx tsx --test tests/range.test.ts`.
+- **The Hold's Raid party:** edit `RAID_PARTY` in `src/sim/modes/hold.ts`. It moves the `gorge-hold` replay: re-record it with `npx tsx scripts/checksum.ts scenarios --update` and say why in the commit.
 
 ## 8. Adjust spawn weights and conditions
 
-Implemented.
-- **Weights:** change the numbers in a preset's `include` (`src/rules/spawning.ts`), or override them from a map, mode or another preset with `weights: { rattata: 2 }`.
-- **Habitat odds:** `rules.spawning.preference` (`native: 2, foreign: 0.55`) scales a species on tiles it prefers or doesn't.
-- **Other conditions:** see section 10.
-- **Not implemented:** time- or event-based conditions (night-only, after a boss). The director would need a new layer for those. The four-layer resolution in `spawnTableFor` / `resolveSpawnTable` (`src/rules/spawning.ts`) is where it would go.
+Not implemented since the pools went. A Raid party member's species is an even draw from its list; repeat an id to weight it (it moves `gorge-hold`). The co-op wave (T1) will bring its own rules.
 
 ## 9. Create a reusable spawning preset
 
-Implemented. Add an entry to `SPAWN_PRESETS` in `src/rules/spawning.ts`. It can build on another preset:
-```ts
-'spooky': { preset: 'all-wild', filter: { types: ['ghost', 'dark'] }, elites: ['houndour'] },
-```
-Use it from a map (`spawns: { preset: 'spooky' }`), as a region's table (`rules.spawning.regions: ['meadow', 'badlands', 'frost', 'spooky']`), or from a mode:
-```ts
-// src/mods/index.ts, in MODES
-{ id: 'haunted', name: 'Haunted', description: 'Only ghosts and dark Pokémon.',
-  rules: { spawning: { override: { preset: 'spooky' } } } },
-```
-Try it without code: `index.html?go=1&pool=spooky`.
+Not implemented since the pools went: a target set (section 7) is the reusable unit.
 
 ## 10. Define an environmental restriction, preference or override
 
 Implemented, in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`), using `HAB` tags (`meadow`, `grass`, `water`, `rock`, `dry`, `forest`):
 ```ts
-lapras:  { prefers: HAB.water },                           // preference: more likely near water, still spawns anywhere
+lapras:  { prefers: HAB.water },                           // preference: data only (nothing reads it as odds since the pools went)
 wooper:  { prefers: HAB.water, requires: HAB.water },      // restriction: only on water-tagged tiles (skipped elsewhere)
 slugma:  { prefers: HAB.rock | HAB.dry, avoids: HAB.water }, // restriction: never on a water-tagged tile
 ```
-- A restricted species that finds no allowed spot is skipped, with a `spawnSkipped` event, never placed somewhere wrong.
+- A restricted Raid party member that finds no allowed spot is skipped, with a `spawnSkipped` event, never placed somewhere wrong (`allowedAt`, `src/sim/placement.ts`).
 - Authored arenas carry no habitat tags, so a `requires` species never spawns there. Use it on generated regions and locations.
 - `validateProfiles()` rejects contradictions (every required tag also avoided).
 

@@ -1,4 +1,3 @@
-import type { SpawnPoolDef } from './spawning';
 import { TRAVERSAL_TEMPLATES } from './traversal';
 // Every tunable number lives here. Systems read ctx.rules, never literals.
 // Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/ANALYSIS.md),
@@ -194,22 +193,6 @@ export const defaultRules = {
     },
     rangedRange: 13, rangedCooldown: 2.6, rangedShotSpeed: 11, // [B]
     chargeWindup: 0.6, chargeSpeedMult: 2.8, chargeTime: 0.7, chargeCooldown: 3.5, // [B]
-  },
-  // Spawning (src/rules/spawning.ts, docs/SPAWNING.md). Preference changes odds, never eligibility.
-  spawning: {
-    preference: { native: 2, foreign: 0.55 }, // [B] odds x on a tile with / without one of the species' preferred habitats
-    /** the spawn preset each region fields, in stage order (meadow, badlands, frost, dusk; presets in src/rules/spawning.ts).
-     *  The `*-classic` presets are the tables before the 2026-11 roster wave: older rule layers select them. */
-    regions: ['meadow', 'badlands', 'frost', 'dusk'] as string[],
-    /** a pool layered over every region's and map's (a mode or mod sets it; see SpawnPoolDef in src/rules/spawning.ts) */
-    override: null as SpawnPoolDef | null,
-    retries: 4, // [B] spots tried for a species before the director picks another or skips the spawn
-    /** roster waves in play (content/roster.json `wave`): a wave set false leaves every pool, so neither the director nor
-     *  the habitat navigation profiles (spawnableSpecies) see its species. Older replay layers turn `catalogue` off */
-    waves: { catalogue: true } as Record<string, boolean>,
-    /** canon.special values (the snapshot's legendary / mythical flags) an `everyWild` layer leaves out: such a species
-     *  appears only in a pool that names it (`only`, `include`) */
-    everyWildSkips: ['legendary', 'mythical'] as string[],
   },
   // The default role rule (src/rules/roles.ts, docs/SPECIES.md "Default roles"): a wild roster entry with no behaviour
   // takes one from its base stats, types, shape, abilities and level-up moves; a field the entry sets always wins. The

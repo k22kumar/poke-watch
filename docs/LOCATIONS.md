@@ -187,7 +187,7 @@ References are in each file; the main ones: [Bulbapedia — Viridian Forest](htt
 [Bulbapedia — Chargestone Cave](https://bulbapedia.bulbagarden.net/wiki/Chargestone_Cave),
 [Serebii — Chargestone Cave](https://serebii.net/pokearth/unova/chargestonecave.shtml).
 
-**Species fit.** Spawn tables stay the region's (`src/rules/spawning.ts`) unless the location sets its own `spawns` pool (docs/SPAWNING.md); otherwise only the map changes. The default
+**Species fit.** `biomeFit` names the stage biomes a location suits; the region spawn pools it once fed were deleted at hero-shooter pivot step 9 (docs/SPAWNING.md). The default
 mapping puts a location where its canonical ecology overlaps the roster: Viridian Forest in the first region (Ledyba,
 Oddish, Rattata are forest and grass dwellers, and Pikachu is now in the Meadow pool; Caterpie and Weedle are not in the roster), Mt. Moon
 in the last (Zubat and Paras are canonical Mt. Moon Pokémon). Badlands (Fire) and Frost (Articuno) keep the classic

@@ -6,8 +6,7 @@
 //
 // Reads content/roster.json (which Pokémon play which role), runs scripts/import-pack.mjs for
 // the partners (with their evolutions) and for the wild Pokémon and bosses, then writes:
-//   src/content/pokedex.ts  species, moves and the type chart (imported by the sim; spawn pools are authored in
-//                           src/rules/spawning.ts, so changing one needs no content rebuild)
+//   src/content/pokedex.ts  species, moves and the type chart (imported by the sim)
 //   src/content/art.json    sprite atlases, animation frames, portraits, cries, credits
 //                           (loaded by the browser at boot)
 //   content/report.json     provenance of every source file (URL + SHA-256) and warnings

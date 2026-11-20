@@ -3,7 +3,6 @@ import type { Grid } from '../core/grid';
 import type { Rules } from '../rules/defaults';
 import type { Element, Ailment } from '../rules/elements';
 import type { SpeciesDef } from '../rules/species';
-import type { StageDef } from '../rules/stages';
 import type { Hooks } from '../mods/types';
 import type { World } from './world';
 import type { JumpControl, LocoState } from './locomotion';
@@ -382,8 +381,6 @@ export interface SimContext {
   time: number;
   stageTime: number;
   stage: number;
-  /** the current region's resolved spawn pool (src/rules/spawning.ts): region preset + map pool + rules override */
-  spawnTable: StageDef;
   state: RunState;
   stateTimer: number;
   rng: { spawn: Rng; combat: Rng; world: Rng; ai: Rng };

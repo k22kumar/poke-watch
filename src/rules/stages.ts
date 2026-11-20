@@ -1,7 +1,6 @@
-// Biomes and stage tables. PokéBonk keeps biomes as data entries (size, ground set,
+// Biomes and the stages' regions. PokéBonk keeps biomes as data entries (size, ground set,
 // cliff colours, prop densities); this file is the Poke-Watch equivalent.
 
-import { REGION_BIOMES, resolveSpawnTable } from './spawning';
 
 export interface BiomeDef {
   id: string;
@@ -22,12 +21,13 @@ export interface BiomeDef {
   music: { root: number; scale: number[]; tempo: number };
 }
 
+/** a stage's region: only its biome since the spawn pools were deleted at pivot step 9 */
 export interface StageDef {
   biome: string;
-  spawns: [string, number][]; // species, weight
-  elites: string[];
-  boss: string;
 }
+
+/** the regions' biomes in stage order */
+export const REGION_BIOMES = ['meadow', 'badlands', 'frost', 'dusk'] as const;
 
 export const BIOMES: Record<string, BiomeDef> = {
   meadow: {
@@ -64,6 +64,4 @@ export const BIOMES: Record<string, BiomeDef> = {
   },
 };
 
-// Wild Pokémon, elites and the boss of each region before any map or mode layer (src/rules/spawning.ts). A run reads
-// its live table from ctx.spawnTable, which adds the map's pool and rules.spawning.override.
-export const STAGES: StageDef[] = REGION_BIOMES.map((_, i) => resolveSpawnTable(i));
+export const STAGES: StageDef[] = REGION_BIOMES.map((biome) => ({ biome }));

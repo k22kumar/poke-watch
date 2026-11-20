@@ -2,11 +2,10 @@
 import { buildRecap, debugLine } from './sim/caplog';
 import { Audio } from './audio/audio';
 import { Input } from './input/input';
-import { MODES, modeSpawnProblems } from './mods';
+import { MODES } from './mods';
 import type { Mode } from './mods/types';
 import { BIOMES, STAGES } from './rules/stages';
 import { SPECIES_BY_ID } from './rules/species';
-import { SPAWN_PRESETS, type SpawnPoolDef } from './rules/spawning';
 import { Renderer } from './render/renderer';
 import { aimRayOf, lookDelta, runFrame } from './render/hostframe';
 import type { ViewSample } from './render/camera';
@@ -168,21 +167,6 @@ function resize() {
  *  ?loc=meadow:viridian-forest,dusk:mt-moon sets them per stage biome; ?loc=river-gorge (or volcanic-ridge,
  *  river-gorge/snow) builds every region from a habitat recipe. 'generated' is the classic generator. ?mapseed=N
  *  (or Settings → World → Map seed) holds the map seed for every region, so a layout can be replayed. */
-/** ?pool=meadow (a spawn preset) or ?pool=onix,zubat (exactly these species): a debug layer over every region's spawn
- *  pool (src/rules/spawning.ts, docs/SPAWNING.md). Elites and the boss stay the region's. */
-function poolOverride(): { spawning?: { override: SpawnPoolDef } } {
-  const q = params.get('pool');
-  if (!q) return {};
-  if (SPAWN_PRESETS[q]) return { spawning: { override: { preset: q } } };
-  const known = q.split(',').filter((id) => SPECIES_BY_ID[id]);
-  // a boss spawns only as the region's boss: the pool drops it from the spawns (src/rules/spawning.ts), so say so here
-  const bosses = known.filter((id) => SPECIES_BY_ID[id].boss);
-  if (bosses.length) console.warn(`?pool=${q}: ${bosses.join(', ')} ${bosses.length > 1 ? 'are bosses' : 'is a boss'}, which spawn only as a region's boss; left out of the pool`);
-  const ids = known.filter((id) => !SPECIES_BY_ID[id].boss);
-  if (!ids.length) { console.warn(`?pool=${q}: no preset or wild species by that name; presets: ${Object.keys(SPAWN_PRESETS).join(', ')}`); return {}; }
-  return { spawning: { override: { only: ids } } };
-}
-
 function worldgenOverrides(world: 'authored' | 'generated' | 'locations', loc: string | null) {
   const ms = params.get('mapseed') ?? (settings.mapSeed >= 0 ? String(settings.mapSeed) : null);
   return worldgenFromQuery({ world, loc, mapseed: ms, hv: params.get('hv'), biomes: Object.keys(BIOMES) }, (m) => console.warn(m.startsWith('unknown map') ? `${m}; known maps: ${[...Object.keys(LOCATIONS), ...Object.keys(HABITATS)].join(', ')}` : m));
@@ -204,7 +188,6 @@ function startRun(mode: Mode, species: string, seed: number) {
   cancelEnd();
   audio.setPaused(false); // restarting from the pause menu must not keep the muffled pause mix
   current = { mode, species, seed };
-  for (const msg of modeSpawnProblems(mode)) console.warn(msg); // a mode's or mod's spawn override, checked as it loads
   // the URL beats the saved settings: ?loc= names the map, and ?world= asks for handcrafted or classic regions, so the
   // saved Map (Settings → World → Map) applies only when the URL says neither
   const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
@@ -215,7 +198,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   const named = !!loc || params.has('world');
   const wg = range && !named ? { ...worldgenOverrides(world, loc), arena: 'range' } : worldgenOverrides(world, loc);
   try {
-    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg, ...poolOverride() } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
   } catch (e) {
     // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
     failMap(e);

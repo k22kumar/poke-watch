@@ -80,7 +80,7 @@ node scripts/build-content.mjs --catalogue-only --catalogue-out DIR   # isolated
 
 - **Partners** get a starter move (an early same-type attack), six more moves on the game's pacing, and their first evolution at its real level (Charmander → Charmeleon at 16).
 - **Wild Pokémon** take a behaviour (`chase`, `tank`, `swarm`, `ranged` with a shot element, `charger`, `healer`) and an optional `flying` flag (`false` grounds a Flying type such as Doduo). Both may be left out: the default role rule fills them in when the roster loads (`src/rules/roles.ts`, docs/SPECIES.md "Default roles"), and the content build keeps the importer's type-based `flying` only beside an authored behaviour. Every wild def carries `wild: true`; a `wave` entry imports after the bosses, so older species keep their registry index.
-- **Where they spawn is not in the roster.** Spawn pools are authored in `src/rules/spawning.ts` (docs/SPAWNING.md), so changing a weight or a region's table needs no content rebuild. The generator no longer emits `STAGE_TABLES`.
+- **Where they spawn is not in the roster.** What stands on a map is set by the mode (docs/SPAWNING.md; the spawn pools were deleted at hero-shooter pivot step 9), so it needs no content rebuild. The generator no longer emits `STAGE_TABLES`.
 - **Bosses** take a title, an attack kit (`slam`, `radial`, `summon`, `charge`, `spiral`, `volley`), HP phase thresholds and the Pokémon they summon. They're drawn at `clamp(round(bossPixelHeight / idleHeight), 2, 3)`× so the pixel grid stays whole; the hitbox follows the drawn height.
 
 ## What the importer does (per Pokémon)

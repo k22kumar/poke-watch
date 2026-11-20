@@ -8,7 +8,6 @@ import { LOC_VERSION, generateLocation } from './locgen';
 import { LOCATIONS, findLocation } from './locations';
 import { HAB_VERSION, HABITATS, findHabitat, generateHabitat } from './habitat';
 import type { ArenaMap } from './tiles';
-import type { SpawnPoolDef } from '../rules/spawning';
 
 export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string>; arena?: string }
 
@@ -18,21 +17,6 @@ export const locationFor = (wg: WorldgenRules | undefined, biome: string) => {
   const id = wg?.mode === 'generated' ? wg.locations?.[biome] ?? '' : '';
   return id && (LOCATIONS[id] || HABITATS[id.split(':')[0]]) ? id : '';
 };
-/** the spawn pool the map source of a stage biome layers over the region's (undefined: the region's own) */
-export function mapSpawnPool(wg: WorldgenRules | undefined, biome: string): SpawnPoolDef | undefined {
-  const id = locationFor(wg, biome);
-  if (!id) return undefined;
-  return LOCATIONS[id]?.spawns ?? HABITATS[id.split(':')[0]]?.spawns;
-}
-
-/** every spawn pool a map source declares, by source id (validation and habitat navigation profiles) */
-export function allMapSpawnPools(): Record<string, SpawnPoolDef> {
-  const out: Record<string, SpawnPoolDef> = {};
-  for (const [id, L] of Object.entries(LOCATIONS)) if (L.spawns) out[id] = L.spawns;
-  for (const [id, H] of Object.entries(HABITATS)) if (H.spawns) out[id] = H.spawns;
-  return out;
-}
-
 /** is this map source a habitat recipe (rather than a Pokémon location)? */
 export const isHabitat = (id: string) => !!id && !!HABITATS[id.split(':')[0]];
 

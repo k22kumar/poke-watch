@@ -8,8 +8,6 @@ import { defaultRules, type Rules } from '../rules/defaults';
 import { buildTypeChart } from '../rules/elements';
 import { SPECIES, SPECIES_BY_ID } from '../rules/species';
 import { BIOMES, STAGES, type BiomeDef } from '../rules/stages';
-import { spawnTableFor } from '../rules/spawning';
-import { mapSpawnPool, type WorldgenRules } from '../world/maps';
 import type { Mod, Mode } from '../mods/types';
 import { projectileSystem, zoneSystem } from './effects';
 import { enemySystem } from './enemies';
@@ -67,7 +65,7 @@ export function createRun(opts: RunOptions): SimContext {
   const seed = opts.seed >>> 0;
   const ctx: SimContext = {
     rules, chart: buildTypeChart(rules.damage.immuneMult), seed,
-    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0, spawnTable: STAGES[0],
+    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0,
     state: 'play', stateTimer: 0,
     rng: {
       spawn: new Rng(streamSeed(seed, 'spawn')), combat: new Rng(streamSeed(seed, 'combat')),
@@ -108,8 +106,8 @@ export function createRun(opts: RunOptions): SimContext {
 /** The match start on a map, for any mode (docs/hero-shooter-pivot.md §8a 4): the World, every pool cleared, the player at
  *  the spawn with its hazard state reset, the flow field, and the map's loose bodies (seedBodies). `species` is the
  *  World's navigation species list. */
-export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number, species: string[]) {
-  ctx.world = new World(ctx.rules, biome, seed, species);
+export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
+  ctx.world = new World(ctx.rules, biome, seed);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
   const P = ctx.player;
@@ -122,11 +120,10 @@ export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number, species
 
 export function startStage(ctx: SimContext, stage: number) {
   ctx.stage = stage;
-  // the region's spawn pool, with the map source's pool and the rules override layered on (src/rules/spawning.ts)
-  const def = spawnTableFor(ctx.rules, stage, mapSpawnPool(ctx.rules.worldgen as WorldgenRules, STAGES[stage % STAGES.length].biome), ctx.rules.spawning.override ?? undefined);
-  ctx.spawnTable = def;
-  const biome = BIOMES[def.biome];
-  enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
+  const biome = BIOMES[STAGES[stage % STAGES.length].biome];
+  // no spawn species: the classic generator's habitat gate read only their `requires`, which no species sets, so every
+  // layout is the same without them (pivot §11, 48/48 mapChecksums)
+  enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0);
   ctx.stageTime = 0;
   ctx.objective = null;
   for (const m of ctx.player.squad) m.sturdyUsed = false;

@@ -30,6 +30,8 @@ The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 cat
 
 ## The 2026-11 wave (32 wild Pokémon)
 
+> Historical since hero-shooter pivot step 9: the region spawn pools, presets and roster-wave switch this section names were deleted (`survivor-final` has them). The species stay game species; what stands on a map now comes from docs/SPAWNING.md.
+
 32 catalogue species became ordinary wild encounters: `content/roster.json` `wild` entries, `npm run content` from `fetch-sources` clones, and a place in each region's preset (`src/rules/spawning.ts`, composed over the `*-classic` tables). They needed no new mechanics. Tag Actions are derived from each Pokémon's own moves (`tagLineOf`, `src/rules/tags.ts`); Snorlax has an authored one. Habitat preferences are in `src/rules/profiles.ts`. None has a hard restriction.
 
 | Region | Pokémon (size class) |
@@ -48,6 +50,8 @@ Notes:
 - **Balance.** Over 36 bot runs, survival matches the classic tables (313 s each). Deaths are 12 vs 14, and kills are about the same. Fewer runs clear region 1 by 7:00 (stage mean 0.39 vs 0.53).
 
 ## The catalogue wave (162 wild Pokémon) and default roles
+
+> Historical since hero-shooter pivot step 9: the region spawn pools, presets and roster-wave switch this section names were deleted (`survivor-final` has them). The species stay game species; what stands on a map now comes from docs/SPAWNING.md.
 
 The 169 species of the catalogue's families that had no role came in on 2026-11-18 (docs/size-extremes-plan.md §S2) as
 `wild` entries with `"wave": "catalogue"` and no authored role. Keys are PokéAPI Pokémon slugs, the catalogue's id

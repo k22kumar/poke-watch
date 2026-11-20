@@ -53,7 +53,7 @@ npm run content          # -> src/content/pokedex.ts + src/content/art.json (+ c
 npm run build
 ```
 
-`npm run content:net` reads the same sources over HTTPS instead. See `docs/PIPELINE.md`. Which Pokémon spawn where is set in `src/rules/spawning.ts` (no rebuild needed; `docs/SPAWNING.md`), and how big each one is comes from its size class (`docs/SIZING.md`). `docs/CUSTOMISING.md` walks through adding a Pokémon, changing its size class, building a map's spawn pool and more.
+`npm run content:net` reads the same sources over HTTPS instead. See `docs/PIPELINE.md`. What stands on a map is set by the mode (target sets, the Hold's Raid party: `docs/SPAWNING.md`), and how big each one is comes from its size class (`docs/SIZING.md`). `docs/CUSTOMISING.md` walks through adding a Pokémon, changing its size class, building a map's spawn pool and more.
 
 ### URL parameters (testing)
 
@@ -188,17 +188,15 @@ The rules that keep it modular:
 
 **Change a number.** Edit `src/rules/defaults.ts`, or use the in-game tuning panel (backtick) for live changes to the current run.
 
-**Add a Pokémon.** Add its name to `content/roster.json` (as a partner, or as a wild Pokémon with a behaviour: chase, tank, swarm, ranged, charger, healer), then `npm run fetch-sources && npm run content`, and add it to a spawn preset in `src/rules/spawning.ts` (it is already in `all-wild`). Missing animation states come from the fallback table in `src/assets/art.ts`; a Tag Action is derived from its own moves. Step by step: `docs/CUSTOMISING.md`.
+**Add a Pokémon.** Add its name to `content/roster.json` (as a partner, or as a wild Pokémon with a behaviour: chase, tank, swarm, ranged, charger, healer), then `npm run fetch-sources && npm run content`, and put it in a target set in `src/rules/targets.ts` if you want to meet it` (it is already in `all-wild`). Missing animation states come from the fallback table in `src/assets/art.ts`; a Tag Action is derived from its own moves. Step by step: `docs/CUSTOMISING.md`.
 
-**Spawn pools, sizes, preferences.** `src/rules/spawning.ts` (presets, region tables), `src/rules/profiles.ts` (habitat preferences and restrictions, size-class pins, traversal templates per species: `traversalOf`), `rules.size` in `src/rules/defaults.ts` (size-class targets). See `docs/SPAWNING.md` and `docs/SIZING.md`.
+**Sizes, preferences.** `src/rules/profiles.ts` (habitat preferences and restrictions, size-class pins, traversal templates per species: `traversalOf`), `rules.size` in `src/rules/defaults.ts` (size-class targets). See `docs/SPAWNING.md` and `docs/SIZING.md`.
 
 **Change an arena.** Edit `src/world/arenas.ts` (builder calls: `blob`, `path`, `river`, `bridge`, `elevBlob`, `stairs`, `prop`, `clump`, `tall`, `scatter`, `border`). `npm test` checks every walkable tile stays reachable.
 
 **Moves.** Moves are the roster's level-up moves from PokéAPI. The classifier in `src/rules/moves.ts` picks each move's behaviour from its key, class, power, hits and drain. To force a behaviour, add the key to `archetypeOverrides`.
 
 **Add a behaviour (archetype).** Add a template to `defaultRules.archetypes` and an implementation to `ARCHETYPES` in `src/sim/moves.ts`, then map moves to it.
-
-**Change waves or bosses.** Spawn weights, elites and each region's boss are presets in `src/rules/spawning.ts` (no rebuild). A boss's attack kit, phase thresholds and summons are `bosses` in `content/roster.json`, then `npm run content`. Bosses are drawn at a whole-number scale (2–3×) so their pixels stay crisp.
 
 **Write a mod.**
 

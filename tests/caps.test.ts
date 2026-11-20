@@ -1,7 +1,6 @@
 // Phase 8a: capability tags, the shared resolver, projectile interception, suspend-and-release Hold,
 // body-on-body impacts, the burning-tile flow cost, the death recap, and determinism (blueprint sections 7,
 // 10, 12 and 16). Rule tests, property tests, micro-scene scenario tests and regression tests.
-import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
@@ -503,7 +502,7 @@ test('regression: with the capability layer off, replay hashes equal the v10 bui
   for (const [species, seed, mode, seconds, want] of V10) {
     // v10 had neither the capability layer nor the Phase 8b build layer (nor liquid exposure and falls), and its basic
     // attack cast only at a target
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, spawning: { regions: CLASSIC_REGIONS }, combat: { basicNeedsTarget: true } } as never });
+    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
     while (ctx.time < seconds && ctx.state !== 'over') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);

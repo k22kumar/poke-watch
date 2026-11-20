@@ -4,7 +4,6 @@ import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { MODES } from '../src/mods';
 import { StateHasher } from '../src/sim/checksum';
-import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import { withAim } from './lib/aimbot';
 import type { SimContext } from '../src/sim/types';
 
@@ -87,7 +86,7 @@ const TOPS_OFF = { wallTops: false };
 // the catalogue wave (docs/size-extremes-plan.md §S2): rules.spawning.waves.catalogue off takes its species out of every
 // pool and the habitat profiles. Every older set turns it off
 const WAVES_OFF = { waves: { catalogue: false } };
-const CLASSIC = { spawning: { regions: CLASSIC_REGIONS, ...WAVES_OFF }, size: HEADROOM_OFF, world: TOPS_OFF };
+const CLASSIC = { spawning: { ...WAVES_OFF }, size: HEADROOM_OFF, world: TOPS_OFF }; // spawn pools deleted (pivot step 9): these survivor sets retire at step 10
 const SIZE_OFF = { ...CLASSIC, size: { geometry: false, ...HEADROOM_OFF } };
 const DECK_MAP = 'mt-moon';
 const DECK = {
