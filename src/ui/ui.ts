@@ -72,7 +72,7 @@ export interface UIHooks {
   applySettings(): void;
   resetSettings(): void;
   preview(kind: 'cry' | 'sfx' | 'music'): void;
-  tuning(): { rules: any; ctx: SimContext | null; spawnBoss(): void; addLevel(): void; god(on: boolean): void; killAll(): void };
+  tuning(): { rules: any; ctx: SimContext | null; spawnBoss(): void; god(on: boolean): void; killAll(): void };
   /** developer roster (docs/PLAYABILITY.md): `dev` (?dev=1) adds the All Pokémon view to the partner screen */
   dev: boolean;
   /** every species graded for player control, in registry order (sim/playability.ts plus the host's art check) */
@@ -290,8 +290,7 @@ export class UI {
         H.types,
         h('div', { class: 'hp-line' },
           h('div', { class: 'hprow' }, h('span', { class: 'hptag' }, 'HP'), h('div', { class: 'hpbar' }, h('div', { class: 'track' }, H.hpLag, H.hpFill))),
-          H.hpText),
-        h('div', { class: 'exprow' }, h('span', { class: 'exptag' }, 'EXP'), h('div', { class: 'expbar' }, H.xp)))),
+          H.hpText))),
       H.status, H.squad,
       h('div', { class: 'box timebox' }, H.timer, H.stage),
       H.obj,
@@ -551,7 +550,6 @@ export class UI {
     const H = this.hud;
     const P = ctx.player;
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) document.getElementById('banner')!.classList.remove('show'); }
-    H.xp.style.width = `${(P.xp / P.xpNext) * 100}%`;
     if (this.lastSpecies !== P.species.id) {
       this.lastSpecies = P.species.id;
       H.portrait.innerHTML = '';
@@ -988,7 +986,7 @@ export class UI {
     el.innerHTML = '';
     el.append(h('div', { style: 'font-weight:700;font-size:15px' }, 'Tuning (live rules)'), h('div', { class: 'sub2' }, 'Edits apply to this run immediately. Defaults live in src/rules/defaults.ts.'));
     const groups: [string, [string, number, number, number][]][] = [
-      ['Player', [['hero.topSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.magnetRadius', 1, 20, 0.5], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
+      ['Player', [['hero.topSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
       ['Enemies', [['enemy.liveCap', 50, 2200, 10], ['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5], ['mode.difficulty', 0.2, 4, 0.05]]],
       ['Director', [['director.spawnBase', 0, 10, 0.1], ['director.spawnPerMin', 0, 6, 0.1], ['director.eliteEvery', 5, 120, 1], ['stage.bossAt', 10, 900, 5]]],
       ['Progression', [['xp.base', 1, 40, 0.5], ['xp.linear', 0, 15, 0.1], ['xp.exponent', 1, 2.6, 0.02], ['damage.critChance', 0, 1, 0.01], ['damage.stab', 1, 3, 0.05]]],
@@ -1019,7 +1017,6 @@ export class UI {
     let god = false;
     el.append(h('div', { class: 'btns' },
       btn('Spawn boss', () => T.spawnBoss(), 'btn small'),
-      btn('+1 level', () => T.addLevel(), 'btn small'),
       btn('Clear wild', () => T.killAll(), 'btn small'),
       btn('God: off', function (this: HTMLElement) { god = !god; T.god(god); this.textContent = god ? 'God: on' : 'God: off'; }, 'btn small'),
       btn('Close', () => this.toggleTuning(), 'btn small'),

@@ -5,7 +5,6 @@ import { createRun, step } from '../src/sim/run';
 import { addMember, maybeOfferRecruit, onHpLoss } from '../src/sim/squad';
 import { tagDefOf, tagSpec } from '../src/sim/swap';
 import { damagePlayer } from '../src/sim/combat';
-import { gainXp } from '../src/sim/progression';
 import { lineage } from '../src/rules/heroes';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES } from '../src/rules/species';

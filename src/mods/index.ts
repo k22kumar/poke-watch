@@ -42,10 +42,10 @@ export const volatile: Mod = {
 
 export const ALL_MODS: Mod[] = [vampiric, volatile];
 
-/** The survivor loop's systems: the director (waves, elites, swarms, beats, weather, the boss and the final swarm), XP
- *  pickups, and progression (levels, chests, evolution by level). Objectives stay: only the director opens one on
+/** The survivor loop's systems: the director (waves, elites, swarms, beats, weather, the boss and the final swarm) and
+ *  progression (chests, evolution by level). Objectives stay: only the director opens one on
  *  its own, so with it gone an objective runs only when something starts it (the habitat Hold gates do). */
-export const SURVIVOR_SYSTEMS: ReadonlySet<string> = new Set(['director', 'pickups', 'progression']);
+export const SURVIVOR_SYSTEMS: ReadonlySet<string> = new Set(['director', 'progression']);
 
 /** No survivor loop (docs/hero-shooter-pivot.md §8 step 1, Q15): the foundation systems only. Tests and gates that
  *  exercise movement, combat, worldgen or hazards run under it instead of silencing the director with rule hacks. */
@@ -131,8 +131,8 @@ export const MODES: Mode[] = [
   },
   {
     id: 'boss-rush', name: 'Boss Rush',
-    description: 'Bosses arrive at 1:30. Fast levels, short stages.',
-    rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, xp: { base: 4, linear: 3 }, director: { alphaAt: 60, eliteEvery: 20 } },
+    description: 'Bosses arrive at 1:30. Short stages.',
+    rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, director: { alphaAt: 60, eliteEvery: 20 } },
   },
   RANGE,
   HOLD,

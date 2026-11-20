@@ -196,8 +196,6 @@ export function killEnemy(ctx: SimContext, e: number) {
   ctx.stats.kills++;
   ctx.events.push({ t: 'kill', x: E.x[e], y: E.y[e], z: E.z[e], species: E.species[e], roles: E.roles[e], element: sp.elements[0] });
   for (const h of ctx.hooks.onKill) h(ctx, e);
-  // xp drop
-  dropXp(ctx, E.x[e], E.z[e], E.xp[e], E.roles[e]);
   if (E.roles[e] & ROLE.boss) {
     ctx.stats.bosses++;
     ctx.director.bossDead = true;
@@ -214,46 +212,6 @@ export function killEnemy(ctx: SimContext, e: number) {
     maybeOfferRecruit(ctx);
   }
   E.kill(e);
-}
-
-export function dropXp(ctx: SimContext, x: number, z: number, value: number, roles: number) {
-  // XP is the survivor loop's: with no pickup system (a hero mode) nothing drops, and nothing draws from rng.combat, so
-  // deleting XP later cannot move a hero-mode replay
-  if (!ctx.systems.some((s) => s.name === 'pickups')) return;
-  const Pk = ctx.pickups;
-  const big = roles & (ROLE.elite | ROLE.alpha | ROLE.boss);
-  const pieces = roles & ROLE.boss ? 12 : roles & ROLE.alpha ? 6 : big ? 3 : 1;
-  for (let k = 0; k < pieces; k++) {
-    const v = value / pieces;
-    // merge when the floor is crowded [C] (> 260 gems)
-    if (Pk.count > ctx.rules.pickups.mergeThreshold) {
-      let best = -1, bd = 1e9;
-      const start = (ctx.tick * 7) % Math.max(1, Pk.hi);
-      for (let s = 0; s < Math.min(Pk.hi, 64); s++) {
-        const j = (start + s) % Pk.hi;
-        if (!Pk.alive[j] || Pk.kind[j] !== 0) continue;
-        const d = Math.abs(Pk.x[j] - x) + Math.abs(Pk.z[j] - z);
-        if (d < bd) { bd = d; best = j; }
-      }
-      if (best >= 0) { Pk.value[best] += v; continue; }
-    }
-    const i = Pk.spawn();
-    if (i < 0) return;
-    const a = ctx.rng.combat.range(0, Math.PI * 2), r = pieces > 1 ? ctx.rng.combat.range(0.3, 2.2) : 0;
-    Pk.x[i] = x + dcos(a) * r;
-    Pk.z[i] = z + dsin(a) * r;
-    Pk.y[i] = ctx.world.height(Pk.x[i], Pk.z[i]);
-    Pk.value[i] = v;
-    Pk.kind[i] = 0;
-  }
-  // occasional heal / magnet drops
-  if (ctx.rng.combat.next() < (big ? 0.25 : ctx.rules.pickups.healChance)) {
-    const i = Pk.spawn();
-    if (i >= 0) {
-      Pk.x[i] = x + 0.8; Pk.z[i] = z; Pk.y[i] = ctx.world.height(x + 0.8, z);
-      Pk.kind[i] = big && ctx.rng.combat.next() < 0.4 ? 2 : 1; Pk.value[i] = 0;
-    }
-  }
 }
 
 /** Damage to the player from enemies / hostile projectiles / boss attacks.

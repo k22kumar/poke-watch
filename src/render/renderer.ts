@@ -477,11 +477,6 @@ export class Renderer {
           this.rings.push({ x: e.x, z: e.z, r: 2.4, c: ELC[e.element], life: 0.4, max: 0.4, kind: 1, grow: true });
           break;
         }
-        case 'pickup': {
-          const c = e.kind === 1 ? [1, 0.5, 0.7] : e.kind === 2 ? [1, 0.9, 0.3] : [0.5, 0.9, 1];
-          for (let k = 0; k < 3; k++) this.parts.add(P.x, P.y + 0.8, P.z, rnd(-2, 2), rnd(1, 3), rnd(-2, 2), 0.3, 0.2, c);
-          break;
-        }
         case 'levelUp':
           for (let k = 0; k < 24; k++) { const a = rnd(0, TAU); this.px.spawn('star', P.x + Math.cos(a) * 0.8, P.y + 0.2, P.z + Math.sin(a) * 0.8, Math.cos(a) * 1.5, rnd(3, 7), Math.sin(a) * 1.5, 0.9, 1, 2, rnd(-4, 4)); }
           this.rings.push({ x: P.x, z: P.z, r: 3, c: [1, 0.95, 0.5], life: 0.5, max: 0.5, kind: 1, grow: true });
@@ -1097,8 +1092,6 @@ export class Renderer {
     { const gy = W.height(px, pz, ref), f = ctx.player.facing, OWN = [0.55, 0.95, 1];
       put(D, px, pz, 0.72, OWN, 0.95, 1, 0.2, 0, 0, gy);
       put(D, px + Math.sin(f) * 0.86, pz + Math.cos(f) * 0.86, 0.13, OWN, 1, 4, 0, 0, 0, gy); }
-    // pickup radius hint
-    put(D, px, pz, ctx.player.derived.magnet, [0.6, 0.85, 1], 0.1, 1, 0.03, 0, 0, W.height(px, pz, ref));
     // Phase 2B: the sim's spatial aim (ctx.aim), when the primary is a direct shot through the chase crosshair: a marker
     // where the shot will actually stop (red, on the cover) or arrive (white, on the aim point), and three dots along its
     // real line from the muzzle. Drawn from sim state only; nothing here feeds back
@@ -1161,7 +1154,7 @@ export class Renderer {
     void py;
   }
 
-  /** projectiles and pickups as crisp element sprites */
+  /** projectiles and item balls as crisp element sprites */
   private queuePixelFx(ctx: SimContext, alpha: number) {
     // bodies: boulders, rocks and rubble; they rock side to side as they roll
     const B = ctx.bodies;
@@ -1203,13 +1196,6 @@ export class Renderer {
       const dx = c.x - ctx.player.x, dz = c.z - ctx.player.z;
       if (dx * dx + dz * dz > 40 * 40) continue;
       this.px.sprite('itemball', c.x, ctx.world.height(c.x, c.z) + 0.3 + Math.abs(Math.sin(this.time * 2.2)) * 0.06, c.z, 1, 0, 1, 0);
-    }
-    const Pk = ctx.pickups;
-    for (let i = 0; i < Pk.hi; i++) {
-      if (!Pk.alive[i]) continue;
-      const k = Pk.kind[i], v = Pk.value[i];
-      const kind = k === 1 ? 'oran' : k === 2 ? 'star' : 'xp';
-      this.px.sprite(kind, Pk.x[i], Pk.y[i] + 0.35 + Math.sin(this.time * 4 + i) * 0.08, Pk.z[i], k === 0 && v >= 12 ? 2 : 1, 0, 1, k === 0 && v >= 3 && Math.floor(this.time * 6 + i) % 4 === 0 ? 0.5 : 0);
     }
   }
 

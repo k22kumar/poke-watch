@@ -18,13 +18,13 @@ import { directorSystem, freshBeat } from './director';
 import { objectiveSystem } from './objectives';
 import { movesSystem } from './moves';
 import { playerSystem } from './player';
-import { EnemyPool, PickupPool, ProjectilePool, ZonePool } from './pools';
+import { EnemyPool, ProjectilePool, ZonePool } from './pools';
 import { BodyPool, bodySystem, seedBodies } from './bodies';
 import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { addLoadoutMember, reviveFainted, squadSystem } from './squad';
-import { learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
+import { learnMove, makePlayer, progressionSystem, recompute } from './progression';
 import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
@@ -53,7 +53,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, pickupSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];
@@ -81,14 +81,13 @@ export function createRun(opts: RunOptions): SimContext {
     enemies: new EnemyPool(rules.enemy.cap),
     projectiles: new ProjectilePool(3000),
     zones: new ZonePool(400),
-    pickups: new PickupPool(rules.pickups.cap),
     bodies: new BodyPool(rules.bodies.cap),
     events: [], hooks, systems,
     director: freshDirector(rules),
     beat: freshBeat(), objective: null,
     recruit: { offered: 0, pending: null, variants: [] },
     weather: { element: null, t: 0 },
-    stats: { kills: 0, damageDealt: 0, damageTaken: 0, xp: 0, bosses: 0, maxHit: 0 },
+    stats: { kills: 0, damageDealt: 0, damageTaken: 0, bosses: 0, maxHit: 0 },
     input: NO_INPUT,
     aim: freshAimState(),
     speciesIndex: SPECIES,
@@ -122,7 +121,7 @@ function freshDirector(rules: Rules) {
  *  World's navigation species list. */
 export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number, species: string[]) {
   ctx.world = new World(ctx.rules, biome, seed, species);
-  ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.pickups.clear(); ctx.bodies.clear();
+  ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
   const P = ctx.player;
   const [sx, sz] = ctx.world.spawn;
@@ -183,7 +182,7 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   ctx.time += dt;
   ctx.stageTime += dt;
   for (const s of ctx.systems) {
-    if (ctx.state === 'dead' && (s.name === 'player' || s.name === 'squad' || s.name === 'moves' || s.name === 'pickups' || s.name === 'progression')) continue;
+    if (ctx.state === 'dead' && (s.name === 'player' || s.name === 'squad' || s.name === 'moves' || s.name === 'progression')) continue;
     s.update(ctx, dt);
   }
   for (const h of ctx.hooks.onTick) h(ctx);

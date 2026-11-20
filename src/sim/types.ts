@@ -179,8 +179,6 @@ export class Player {
   animT = 0;
   /** squad level and XP (one bar for the whole squad) */
   level = 1;
-  xp = 0;
-  xpNext = 0;
   iframes = 0;
   hurtFlash = 0;
   dashT = 0; dashCd = 0; dashDx = 0; dashDz = 1;
@@ -260,7 +258,6 @@ export interface Derived {
   haste: number; // cooldown divisor
   area: number;
   crit: number;
-  magnet: number;
 }
 
 export interface Hit {
@@ -303,7 +300,6 @@ export type SimEvent =
   | { t: 'telegraph'; x: number; z: number; r: number; life: number; hostile: boolean }
   | { t: 'line'; x1: number; z1: number; x2: number; z2: number; width: number; life: number }
   | { t: 'smite'; x: number; z: number; element: Element }
-  | { t: 'pickup'; value: number; kind: number }
   | { t: 'playerHurt'; amount: number; x: number; z: number }
   | { t: 'heal'; amount: number }
   | { t: 'levelUp'; level: number }
@@ -447,7 +443,6 @@ export interface SimContext {
   enemies: import('./pools').EnemyPool;
   projectiles: import('./pools').ProjectilePool;
   zones: import('./pools').ZonePool;
-  pickups: import('./pools').PickupPool;
   bodies: import('./bodies').BodyPool;
   events: SimEvent[];
   hooks: HookRunner;
@@ -458,7 +453,7 @@ export interface SimContext {
   /** recruits offered so far, a pending recruit choice (species ids), and members waiting to pick a Tag variant */
   recruit: { offered: number; pending: string[] | null; variants: number[] };
   weather: { element: Element | null; t: number };
-  stats: { kills: number; damageDealt: number; damageTaken: number; xp: number; bosses: number; maxHit: number };
+  stats: { kills: number; damageDealt: number; damageTaken: number; bosses: number; maxHit: number };
   input: InputFrame;
   /** the spatial aim resolved this tick, for presentation (sim/aim.ts) */
   aim: AimState;

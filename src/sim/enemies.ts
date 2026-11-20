@@ -65,10 +65,10 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   const R = ctx.rules.enemy;
   const diff = ctx.rules.mode.difficulty;
   const b = bst(sp.stats);
-  let hpRole = 1, dmgRole = 1, size = 1, xpRole = 1;
-  if (roles & ROLE.boss) { hpRole = R.roles.boss.hp; dmgRole = R.roles.boss.dmg; size = R.roles.boss.size; xpRole = R.roles.boss.xp; }
-  else if (roles & ROLE.alpha) { hpRole = R.roles.alpha.hp; dmgRole = R.roles.alpha.dmg; size = R.roles.alpha.size; xpRole = R.roles.alpha.xp; }
-  else if (roles & ROLE.elite) { hpRole = R.roles.elite.hp; dmgRole = R.roles.elite.dmg; size = R.roles.elite.size; xpRole = R.roles.elite.xp; }
+  let hpRole = 1, dmgRole = 1, size = 1;
+  if (roles & ROLE.boss) { hpRole = R.roles.boss.hp; dmgRole = R.roles.boss.dmg; size = R.roles.boss.size; }
+  else if (roles & ROLE.alpha) { hpRole = R.roles.alpha.hp; dmgRole = R.roles.alpha.dmg; size = R.roles.alpha.size; }
+  else if (roles & ROLE.elite) { hpRole = R.roles.elite.hp; dmgRole = R.roles.elite.dmg; size = R.roles.elite.size; }
   const beh = sp.behaviour ?? 'chase';
   if (beh === 'ranged') roles |= ROLE.ranged;
   if (beh === 'healer') roles |= ROLE.healer;
@@ -99,7 +99,6 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   E.species[i] = ctx.speciesIndex.indexOf(sp);
   { const ab = abilityOf(sp); E.ability[i] = ab ? ABILITY_IDS.indexOf(ab) + 1 : 0; }
   E.roles[i] = roles;
-  E.xp[i] = (ctx.rules.xp.gemBase + b * ctx.rules.xp.gemPerBst) * xpRole;
   E.attackCd[i] = ctx.rng.ai.range(0.5, 2);
   E.facing[i] = datan2(ctx.player.x - x, ctx.player.z - z);
   if (roles & ROLE.boss) { E.state[i] = 0; E.stateT[i] = 1.6; E.attackCd[i] = 2.5; }

@@ -52,7 +52,6 @@ function spawnTarget(ctx: SimContext, k: number) {
   E.hp[i] = E.maxHp[i] = heroHealth(sp.stats.hp, ctx.rules) * TR.hp[d.kind];
   E.speed[i] = d.kind === 'dummy' ? 0 : Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe) * (d.kind === 'strafe' ? 0.85 : 1);
   E.dmg[i] = d.kind === 'strafe' ? E.dmg[i] * TR.strafeDamage : 0;
-  E.xp[i] = 0;
 }
 
 /** a patrol's next waypoint (world metres), or null for any other enemy (it falls back to its behaviour) */

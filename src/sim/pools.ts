@@ -1,4 +1,4 @@
-// Struct-of-arrays pools with free lists (PokéBonk keeps enemies, projectiles, pickups
+// Struct-of-arrays pools with free lists (PokéBonk keeps enemies, projectiles
 // and particles this way; enemy capacity 2,200). Allocation-free during play.
 
 class FreeList {
@@ -50,7 +50,7 @@ export class EnemyPool {
   state: Uint8Array; stateT: Float32Array; tx: Float32Array; tz: Float32Array;
   burn: Float32Array; poison: Float32Array; sleep: Float32Array; root: Float32Array;
   confuse: Float32Array; chill: Float32Array; stun: Float32Array; dot: Float32Array;
-  facing: Float32Array; animT: Float32Array; xp: Float32Array; hover: Float32Array; spawnT: Float32Array;
+  facing: Float32Array; animT: Float32Array; hover: Float32Array; spawnT: Float32Array;
   bossPhase: Uint8Array;
   sx: Float32Array; sz: Float32Array;
   /** index into ABILITY_IDS (+1; 0 = none) and per-enemy ability state (Flash Fire armed, Sturdy spent) */
@@ -83,7 +83,7 @@ export class EnemyPool {
     this.state = new Uint8Array(cap); this.stateT = F(); this.tx = F(); this.tz = F();
     this.burn = F(); this.poison = F(); this.sleep = F(); this.root = F();
     this.confuse = F(); this.chill = F(); this.stun = F(); this.dot = F();
-    this.facing = F(); this.animT = F(); this.xp = F(); this.hover = F(); this.spawnT = F();
+    this.facing = F(); this.animT = F(); this.hover = F(); this.spawnT = F();
     this.bossPhase = new Uint8Array(cap);
     this.sx = F(); this.sz = F();
     this.ability = new Uint8Array(cap); this.abilityFlag = new Uint8Array(cap);
@@ -266,37 +266,3 @@ export class ZonePool {
   }
 }
 
-export class PickupPool {
-  readonly cap: number;
-  private fl: FreeList;
-  count = 0;
-  hi = 0;
-  alive: Uint8Array;
-  x: Float32Array; y: Float32Array; z: Float32Array; value: Float32Array; kind: Uint8Array; magnet: Uint8Array; t: Float32Array;
-  constructor(cap: number) {
-    this.cap = cap;
-    this.fl = new FreeList(cap);
-    this.alive = new Uint8Array(cap);
-    this.x = new Float32Array(cap); this.y = new Float32Array(cap); this.z = new Float32Array(cap);
-    this.value = new Float32Array(cap); this.kind = new Uint8Array(cap); this.magnet = new Uint8Array(cap); this.t = new Float32Array(cap);
-  }
-  spawn(): number {
-    const i = this.fl.take();
-    if (i < 0) return -1;
-    this.alive[i] = 1;
-    this.count++;
-    if (i >= this.hi) this.hi = i + 1;
-    this.magnet[i] = 0;
-    this.t[i] = 0;
-    return i;
-  }
-  kill(i: number) {
-    if (!this.alive[i]) return;
-    this.alive[i] = 0;
-    this.count--;
-    this.fl.give(i);
-  }
-  clear() {
-    for (let i = 0; i < this.hi; i++) if (this.alive[i]) this.kill(i);
-  }
-}

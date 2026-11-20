@@ -16,7 +16,6 @@ import { writeFileSync } from 'node:fs';
 import { createRun, startStage, step } from '../src/sim/run';
 import { startObjective } from '../src/sim/objectives';
 import { addMember } from '../src/sim/squad';
-import { gainXp } from '../src/sim/progression';
 import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
 import { STAGES } from '../src/rules/stages';
@@ -168,8 +167,6 @@ export function playHold(o: TacOpts): TacResult {
   const locations: Record<string, string> = map === 'classic' ? { meadow: '', dusk: '', badlands: '', frost: '' } : { meadow: map, dusk: map, badlands: map, frost: map };
   const ctx = createRun({ mode: horde ? undefined : RANGE, mods: [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { objectives: { firstAfter: 1e9, secondAfter: 1e9 }, worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
   if (stage) startStage(ctx, stage);
-  const level = o.level ?? 10;
-  for (let i = 1; i < level; i++) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01);
   for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addMember(ctx, id);
   ctx.player.hp = ctx.player.maxHp;
   for (const m of ctx.player.squad) m.hp = m.maxHp;

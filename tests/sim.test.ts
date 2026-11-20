@@ -9,7 +9,6 @@ import { SPECIES } from '../src/rules/species';
 import { MODES, vampiric } from '../src/mods';
 import { classify, compileMove } from '../src/sim/moves';
 import { botInput } from '../src/sim/bot';
-import { xpNext } from '../src/sim/progression';
 import { createRun, step } from '../src/sim/run';
 import { hpMultiplier, speedFactor, toughness } from '../src/sim/enemies';
 import type { SimContext } from '../src/sim/types';
@@ -36,12 +35,6 @@ test('mulberry32 stream is stable', () => {
   const r2 = new Rng(12345);
   assert.deepEqual(a, [r2.next(), r2.next(), r2.next()]);
   assert.ok(a.every((v) => v >= 0 && v < 1));
-});
-
-test('XP curve matches PokéBonk: round(8 + 5.5L + L^1.8)', () => {
-  for (let L = 1; L <= 40; L++) assert.equal(xpNext(defaultRules, L), Math.round(8 + 5.5 * L + Math.pow(L, 1.8)));
-  assert.equal(xpNext(defaultRules, 1), 15);
-  assert.equal(xpNext(defaultRules, 10), 126);
 });
 
 test('director curves match the confirmed formulas', () => {

@@ -16,7 +16,6 @@ import { spawnEnemy } from './sim/enemies';
 import { ROLE } from './sim/pools';
 import { spawnBody } from './sim/bodies';
 import { applyAgent } from './sim/cells';
-import { gainXp, xpNext } from './sim/progression';
 import { startEvolution } from './sim/evolution';
 import { HABITAT_TARGETS, RANGE_TARGETS } from './rules/targets';
 import { controlRoster, type ReadinessCheck } from './sim/playability';
@@ -102,7 +101,6 @@ const ui = new UI({
     rules: ctx?.rules ?? {},
     ctx,
     spawnBoss: () => { if (!ctx) return; const t = ctx.spawnTable; const P = ctx.player; const b = spawnEnemy(ctx, t.boss, P.x + 18, P.z, ROLE.boss); ctx.director.bossIndex = b; ctx.director.bossSpawned = true; ui.banner(SPECIES_BY_ID[t.boss].name, 'appears!', 2); audio.boss(); },
-    addLevel: () => { if (ctx) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01); },
     god: (on) => { god = on; },
     killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i] && !(E.roles[i] & ROLE.boss)) killEnemy(ctx, i); },
   }),
@@ -271,7 +269,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'cast': audio.release(e.key, e.archetype, e.element); break;
       case 'hit': audio.impact(e.element, e.crit, e.eff); break;
       case 'kill': audio.kill(); break;
-      case 'pickup': audio.pickup(); break;
       case 'levelUp': audio.levelUp(); audio.cry(c.player.species.id, { volume: 0.35, gate: 2 }); break;
       case 'playerHurt':
         ui.hurt(); audio.hurt();
@@ -545,7 +542,7 @@ async function boot() {
     debug: (what = 'caps') => { debugCaps = what === 'caps' ? !debugCaps : false; return debugCaps; },
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
-    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
+    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
     objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species
@@ -589,7 +586,6 @@ async function boot() {
     if (params.has('stageTime') && ctx) { const t = Number(params.get('stageTime')); (ctx as SimContext).stageTime = t; (ctx as SimContext).time = t; }
     if (params.has('tp') && ctx) { const [tx, ty] = params.get('tp')!.split(',').map(Number); const c = ctx as SimContext; const h = c.world.half; c.player.x = c.player.px = tx - h + 0.5; c.player.z = c.player.pz = ty - h + 0.5; c.player.y = c.player.py = c.world.height(c.player.x, c.player.z); renderer.setStage(c); }
     if (params.has('calm') && ctx) (ctx as SimContext).rules.director.spawnBase = -99;
-    if (params.has('level') && ctx) { const L = Number(params.get('level')); for (let i = 1; i < L; i++) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01); }
     // squad=mareep,geodude: recruits join at once, at squad level (testing)
     if (params.has('squad') && ctx) { for (const id of params.get('squad')!.split(',')) addMember(ctx, id); }
   } else { ui.title(); audio.titleMusic(); }

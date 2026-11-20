@@ -12,8 +12,8 @@ import type { SimContext } from '../src/sim/types';
 function legacyHash(ctx: SimContext) {
   const h = new StateHasher();
   const P = ctx.player;
-  h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken).num(ctx.stats.xp);
-  h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.xp).num(P.hp).num(P.maxHp);
+  h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken);
+  h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.hp).num(P.maxHp);
   for (const s of P.moves) h.num(s.cd).num(s.level);
   const E = ctx.enemies;
   for (let i = 0; i < E.hi; i++) if (E.alive[i]) h.num(i).num(E.x[i]).num(E.z[i]).num(E.hp[i]);

@@ -17,9 +17,9 @@ export class StateHasher {
 
 export function stateHash(ctx: SimContext): number {
   const h = new StateHasher();
-  h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken).num(ctx.stats.xp);
+  h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken);
   for (const P of ctx.players) {
-    h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.xp);
+    h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level);
     // R6c jump acceptance (a buffered press, coyote time, the airborne press spent) is play state; only edge-sending
     // input writes it, so legacy input (the bot, every checksum set) hashes as before
     const c = P.ctl;

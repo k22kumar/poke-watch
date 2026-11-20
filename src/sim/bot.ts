@@ -52,19 +52,12 @@ export function botFor(ctx: SimContext): Bot {
 }
 export function botInput(ctx: SimContext): InputFrame { return botFor(ctx).input(ctx); }
 
-/** The survivor loop's pull on the bot: the nearest XP gem, else (when the bot engages them) the objective's pad,
+/** The survivor loop's pull on the bot: (when the bot engages them) the objective's pad,
  *  Hunt target, egg or goal, else the open portal. Returns the offset to it, its distance (1e9 = nothing to drift to,
  *  0 = must go) and the objective's pull weight. Goes with the survivor loop (docs/hero-shooter-pivot.md §6). */
 function survivorPull(bot: Bot, ctx: SimContext): [number, number, number, number] {
   const P = ctx.player;
-  // gems
-  const Pk = ctx.pickups;
   let gx = 0, gz = 0, gd = 1e9;
-  for (let i = 0; i < Pk.hi; i++) {
-    if (!Pk.alive[i]) continue;
-    const d = Math.abs(Pk.x[i] - P.x) + Math.abs(Pk.z[i] - P.z);
-    if (d < gd) { gd = d; gx = Pk.x[i] - P.x; gz = Pk.z[i] - P.z; }
-  }
   // objectives (when the bot engages them): the pad, the Hunt target, the egg and then its goal
   let objPull = 0;
   const O = ctx.objective;
@@ -92,7 +85,7 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
     const w = 1 / Math.max(1, d2);
     ax += dx * w; az += dz * w;
   }
-  // the survivor pulls: a target to drift to (gems, an objective, the portal) and how hard
+  // the survivor pulls: a target to drift to (an objective, the portal) and how hard
   const [gx, gz, gd, objPull] = survivorPull(bot, ctx);
   // orbit the centre so the bot does not pin itself on the map edge. Authored arenas are built around the map centre;
   // a generated region's open centre is its hub (the spawn clearing), which can sit anywhere

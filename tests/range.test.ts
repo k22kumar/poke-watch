@@ -29,7 +29,6 @@ test('the range arena carries its target set: canon health, no survivor curves, 
     assert.ok(i >= 0 && E.alive[i], `${d.species} is up`);
     const want = heroHealth(SPECIES_BY_ID[d.species].stats.hp, ctx.rules) * ctx.rules.targets.hp[d.kind];
     assert.ok(Math.abs(E.maxHp[i] - want) < 1e-3, `${d.species}: canon health ${E.maxHp[i]} (float32) vs ${want}`);
-    assert.equal(E.xp[i], 0);
     if (d.kind !== 'strafe') assert.equal(E.dmg[i], 0, `${d.species}: harmless`);
   }
   // stand beside the Geodude dummy for 3 s: it does not move and does not hurt

@@ -129,7 +129,6 @@ export const defaultRules = {
     dashSpeed: 24, // [B]
     dashTime: 0.17, // [B]
     dashCooldown: 1.5, // [B] legacy; Dash now spends a Reflex charge (combat.reflexRecharge)
-    magnetRadius: 4, // [B]
     pickupRadius: 1.1, // [B]
     moveSlots: 3, // [C] (4 later)
     moveSlotsLate: 3, // [C] 4 in PokéBonk; 3 here, because the squad carries three Pokémon (blueprint section 5)
@@ -172,11 +171,6 @@ export const defaultRules = {
     height: 0.6, // [B] look-at point above the player's feet
     shakeDecay: 1.8,
   },
-  xp: {
-    base: 8, linear: 5.5, exponent: 1.8, // [C] xpNext(L) = round(8 + 5.5L + L^1.8)
-    endlessMult: 1.15, // [I]
-    gemBase: 0.85, gemPerBst: 1 / 180, // [B]
-  },
   enemy: {
     cap: 2200, // [C] pool capacity
     liveCap: 900, // [C] quality presets 500 / 900 / 1400
@@ -194,9 +188,9 @@ export const defaultRules = {
     navHold: 0.4, // [B] s a ground walker keeps to the flow field after its way ahead was last blocked (size geometry on; sim/enemies.ts)
     spawnRadius: [21, 27], // [B] just outside the fixed view (±15 m wide, ±11 m deep)
     roles: {
-      elite: { hp: 4.5, dmg: 1.5, size: 2, xp: 5 }, // [C] hp; size [B] whole-number scales only, so texels stay square (1.5x doubled every other texel and shimmered)
-      alpha: { hp: 22, dmg: 2, size: 3, xp: 20 }, // [C] hp; size [B] whole-number scale
-      boss: { hp: 70, dmg: 2.2, size: 1, xp: 60 }, // [C] hp
+      elite: { hp: 4.5, dmg: 1.5, size: 2 }, // [C] hp; size [B] whole-number scales only, so texels stay square (1.5x doubled every other texel and shimmered)
+      alpha: { hp: 22, dmg: 2, size: 3 }, // [C] hp; size [B] whole-number scale
+      boss: { hp: 70, dmg: 2.2, size: 1 }, // [C] hp
     },
     rangedRange: 13, rangedCooldown: 2.6, rangedShotSpeed: 11, // [B]
     chargeWindup: 0.6, chargeSpeedMult: 2.8, chargeTime: 0.7, chargeCooldown: 3.5, // [B]
@@ -359,12 +353,6 @@ export const defaultRules = {
     buff: T({ dmg: 0, cd: 9, duration: 5 }),
     weather: T({ dmg: 0, cd: 14, duration: 8 }),
   } as Record<string, ArchetypeTemplate>,
-  pickups: {
-    cap: 4000,
-    mergeThreshold: 260, // [C]
-    magnetSpeed: 20, // [B]
-    healChance: 0.004, // [B]
-  },
   stage: {
     count: 4, // [I] stages per region
     bossAt: 300, // [B] s

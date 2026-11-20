@@ -6,7 +6,7 @@ The match foundation the hero shooter's replay baseline is built on (`docs/hero-
 
 | Mode | Systems | Rules |
 |---|---|---|
-| `range` (`RANGE`) | no survivor loop (`noSurvivorLoop`: director, pickups, progression), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
+| `range` (`RANGE`) | no survivor loop (`noSurvivorLoop`: director, progression), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
 | `range-swap` (`RANGE_SWAP`) | the range plus the opt-in `swap` Mod | `hero.loadout` 3 |
 | `hold` (`HOLD`) | no survivor loop, solo, `holdMod` (opens a Hold on the first tick of a habitat map) | — |
 
@@ -29,7 +29,7 @@ A target set is data: per target a species, a kind, an anchor (`spawn`, or a hab
 | strafe | the ranged behaviour: keeps its distance, shoots | `rules.targets.strafeDamage` 0.3 of its own |
 
 - **Health:** the canon curve, `heroHealth(HP) × rules.targets.hp[kind]`, so a target and a future hero bot take the same time to kill. Incoming damage is divided by the target's guard (docs/HEROES.md).
-- **No survivor curves:** a target's speed is its base speed (no stage-time curve), it carries no XP, and with no pickup system nothing drops on a kill (`dropXp` returns at once). Deleting the survivor loop therefore cannot move a range replay.
+- **No survivor curves:** a target's speed is its base speed (no stage-time curve), and nothing drops on a kill (XP and pickups were deleted at pivot step 9).
 - **Placement:** `src/sim/placement.ts allowedAt` (habitat restrictions and wide-field reach), else the nearest walkable tile, then `spawnEnemy`'s footprint fit.
 - **Pinned:** the far-behind relocation (`rules.enemy.despawnDistance`) never moves a target.
 - **Respawn:** a fixed tick count, `round(rules.targets.respawn / dt)` (3 s), at its anchor; no RNG.
