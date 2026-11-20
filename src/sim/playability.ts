@@ -2,7 +2,7 @@
 // data with no hand-kept list. Every species in SPECIES (src/content/pokedex.ts, generated from content/roster.json)
 // is graded by the checks below; a newly generated Pokémon is graded the same way the next time the game starts.
 //
-// `playable` on a SpeciesDef still means "offered as a starter" (rules/species.ts starterChoices); this module is
+// `playable` on a SpeciesDef marks the partner lines (the old starter offer went at pivot step 9); this module is
 // about whether a species *works* under player control, which is what the developer roster lists.
 //
 // Tiers: `ready` (every check passes), `partial` (it runs, but a warn check failed: selectable with a warning) and

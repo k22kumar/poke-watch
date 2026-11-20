@@ -58,7 +58,6 @@ export interface SpeciesDef {
   boss?: { attacks: BossAttack[]; phaseHp: number[]; summon?: string; title: string };
 }
 
-import { Rng, streamSeed } from '../core/rng';
 
 export const bst = (s: Stats) => s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
 
@@ -98,16 +97,6 @@ export function starterEligibleSpecies(): SpeciesDef[] {
     out.push(sp);
   }
   return out;
-}
-
-/** Deterministic random offer of starter candidates for a run, with one mulligan available in the menu. */
-export function starterChoices(seed: number, count = 3): string[] {
-  const pool = starterEligibleSpecies();
-  if (!pool.length) return [];
-  const rng = new Rng(streamSeed(seed, 'starter-pick'));
-  const shuffled = [...pool];
-  rng.shuffle(shuffled);
-  return shuffled.slice(0, Math.min(count, shuffled.length)).map((sp) => sp.id);
 }
 
 /** Weight class 0-4 from PokéAPI kilograms: Weightless < 1 kg, Light < 10, Medium < 50, Heavy < 200, Massive.

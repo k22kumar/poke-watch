@@ -104,9 +104,9 @@ pins the pre-R6c tables).
 
 | Device | Defaults |
 |---|---|
-| Keyboard | W A S D / arrows move, Space jump, **V descend**, Shift dash, J attack, K Move A, R Move B, Q Signature / Tag, E / L Guard, 1–4 pick, F reroll, X skip, Z banish, **C cursor / camera (`cardPointer`, kept)**, Esc / P pause, M mute, \` tuning |
+| Keyboard | W A S D / arrows move, Space jump, **V descend**, Shift dash, J attack, K Move A, R Move B, Q Signature / Tag, E / L Guard, F Touch (hold: Breakthrough), Esc / P pause, M mute, \` tuning (the card picks, reroll, skip, banish and the C cursor toggle went with the cards at hero-shooter pivot step 9) |
 | Mouse (fixed) | left attack, right Move A; captured mouse looks and aims |
-| Gamepad | A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**, d-pad ← ↑ → pick and ↓ reroll while the card tray is open; left stick moves, right stick looks (axes, fixed). X, Back and right-stick click are free |
+| Gamepad | A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**; left stick moves, right stick looks (axes, fixed). X, Back and right-stick click are free |
 | Touch | Atk, A, B, Sig, Guard, Jump, Dash; Descend (hidden until R6d) |
 
 Ctrl is not a default anywhere: Ctrl + W / S / D are browser shortcuts while moving, and Ctrl + W cannot be intercepted.

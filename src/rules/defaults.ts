@@ -323,9 +323,6 @@ export const defaultRules = {
     buff: T({ dmg: 0, cd: 9, duration: 5 }),
     weather: T({ dmg: 0, cd: 14, duration: 8 }),
   } as Record<string, ArchetypeTemplate>,
-  stage: {
-    count: 4, // [I] stages per region
-  },
   // Aimed combat (blueprint section 4). Every slot casts while its button is held (hold repeats on cooldown):
   // slot 0, the basic attack, is primary fire; slots 1-3 are Move A, Move B and the Signature. Dash and Guard share
   // Reflex charges.

@@ -27,14 +27,14 @@ Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Ch
 |---|---|
 | Move | WASD / arrows / left stick |
 | Aim | Mouse / right stick |
-| Basic attack (primary fire; hold to repeat) | Left mouse (J) · RT |
-| Move A / Move B (hold to repeat) | Right mouse (K) / R · LT / RB |
+| Primary (hold to repeat) | Left mouse (J) · RT |
+| Ability 1 / Ability 2 (hold to repeat) | Right mouse (K) / R · LT / RB |
 | Tag (tap: swap to the last Pokémon; hold + LMB / RMB: pick the first / second reserve) | Q · Y (hold + RT / LT) |
 | Guard (tap: deflect or parry; hold: brace) | E (L) · LB |
 | Dash (brief invulnerability) | Shift / B |
 | Jump (onto rocks, logs, bushes; flyers glide while holding). A press jumps once (buffered just before landing, still allowed just after walking off a ledge); holding does not jump again | Space / A |
 | Descend (reserved for flight, which arrives later; does nothing yet) | V · left-stick click (provisional; X can be bound instead) |
-| Level-up cards (compact top tray; the run keeps going): Kit, Technique, Wildcard | 1–3 pick (4 when discarding a technique) · F reroll · X skip · Z banish · d-pad ← ↑ → pick, ↓ reroll · C toggle cursor/camera control |
+| Breakthrough (evolve on the spot, training range) | hold F |
 | Menus | Arrows / Tab to move, Enter / Space to choose, Esc / Backspace to go back; gamepad d-pad, A, B, Start |
 | Pause | Esc / P |
 | Tuning panel | ` (backtick) |

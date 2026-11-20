@@ -13,7 +13,7 @@ Any species in the game can lead a run. The developer roster lists all of them, 
 
 Switching restarts the run instead of swapping in place. A restart goes through the same `startRun` as a new game (state, camera, HUD and audio all reset), so switching cannot leave stale state behind. Use `?level=` or **+1 level** to get back to a later point quickly.
 
-Without `?dev`, the partner screen is unchanged: three seeded starters from the partner lines and one mulligan. `playable` on a species still means "offered as a starter" (`starterChoices`, `rules/species.ts`). It is not the same as "can be played as", and the developer roster never reads it as a gate.
+Without `?dev`, the hero screen shows the prototype list (`PROTOTYPE`, `FEATURED` first; `src/rules/heroes.ts`); the starter offer and mulligan were deleted at hero-shooter pivot step 9. `playable` on a species marks the partner lines. It is not the same as "can be played as", and the developer roster never reads it as a gate.
 
 ## Readiness
 

@@ -448,7 +448,7 @@ function onEnd(c: SimContext) {
   ended = true;
   input.releaseLock();
 
-  endTimer = setTimeout(() => { ended = false; if (c === ctx) ui.end(c, false); }, 600) as unknown as number;
+  endTimer = setTimeout(() => { ended = false; if (c === ctx) ui.end(c); }, 600) as unknown as number;
 }
 
 let attract: SimContext | null = null;
