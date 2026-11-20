@@ -14,6 +14,7 @@ import type { Mod, Mode } from '../mods/types';
 import { projectileSystem, zoneSystem } from './effects';
 import { enemySystem } from './enemies';
 import { directorSystem, freshBeat } from './director';
+import { weatherSystem } from './weather';
 import { objectiveSystem } from './objectives';
 import { movesSystem } from './moves';
 import { playerSystem } from './player';
@@ -52,7 +53,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];

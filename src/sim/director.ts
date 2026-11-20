@@ -127,23 +127,6 @@ function beats(ctx: SimContext, dt: number): number {
   return B.phase === 'peak' ? R.rate.peak : R.rate.relax;
 }
 
-/** Rain soaks open ground near you; Sun now and then lights the tall grass (moves can set the weather too) */
-function weatherTick(ctx: SimContext) {
-  const el = ctx.weather.element;
-  if (!el || ctx.tick % 30 !== 0) return;
-  const P = ctx.player, W = ctx.world, C = W.cells;
-  const tries = el === 'tide' ? 10 : el === 'blaze' ? 4 : el === 'frost' ? 8 : 0;
-  for (let k = 0; k < tries; k++) {
-    const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(1, 14);
-    const x = P.x + dsin(a) * r, z = P.z + dcos(a) * r;
-    const t = C.tile(x, z);
-    if (t < 0) continue;
-    if (el === 'tide') { if (W.walkable(x, z)) applyAgent(ctx, 'wet', x, z, 1.2); }
-    else if (el === 'blaze' && C.isGrass(t) && ctx.rng.world.next() < 0.35) applyAgent(ctx, 'heat', x, z, 0.6);
-    else if (el === 'frost' && (C.isWater(t) || C.state[t] === CS.wet)) applyAgent(ctx, 'cold', x, z, 0.8);
-  }
-}
-
 /**
  * One ordinary spawn: selection (weight × habitat preference), location (the spawn ring) and compatibility (the
  * species' hard restrictions, src/rules/profiles.ts) kept apart. Generated maps pick the spot first so the local
@@ -209,7 +192,6 @@ export const directorSystem = {
     let rate = D.spawnBase + D.spawnPerMin * t + D.spawnPerStage * s;
     if (dir.finalSwarm) rate *= 2.5;
     rate *= beats(ctx, dt);
-    weatherTick(ctx);
     dir.spawnAcc += rate * dt;
     while (dir.spawnAcc >= 1) {
       dir.spawnAcc -= 1;
