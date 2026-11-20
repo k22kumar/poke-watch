@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { FEATURED, HERO_KITS, KIT_TUNING, NEEDS_ABILITY_RULE, NEEDS_ABILITY_RULE_REASON, PROTOTYPE, heroKit } from '../src/rules/heroes';
 import { SPECIES_BY_ID } from '../src/rules/species';
+import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES_OVERRIDES, isRecruitable } from '../src/rules/profiles';
 import { controlReadiness } from '../src/sim/playability';
 
@@ -61,4 +62,16 @@ test('the kit-tuning log names prototype heroes still on the rule, with the prim
     const k = heroKit(SPECIES_BY_ID[id], { fillE: true });
     assert.ok(note.toLowerCase().startsWith('primary ' + k.primary!.replace(/_/g, ' ')), `${id}: the note records primary ${k.primary}`);
   }
+});
+
+test('no PROTOTYPE kit carries a power-0 damaging move unless HERO_KITS overrides that slot or KIT_TUNING logs the hero', () => {
+  const bad: string[] = [];
+  for (const id of PROTOTYPE) {
+    const k = heroKit(SPECIES_BY_ID[id], { fillE: true }), o = HERO_KITS[id] ?? {};
+    for (const slot of ['primary', 'q', 'e'] as const) {
+      const m = k[slot] ? MOVE_BY_KEY[k[slot]!] : undefined;
+      if (m && m.cls !== 'status' && !m.power && !o[slot] && !(id in KIT_TUNING)) bad.push(`${id} ${slot} ${m.key}`);
+    }
+  }
+  assert.deepEqual(bad, [], 'log the hero in KIT_TUNING or fix the slot in HERO_KITS');
 });

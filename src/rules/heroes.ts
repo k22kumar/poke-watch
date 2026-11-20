@@ -98,6 +98,9 @@ export const KIT_TUNING: Record<string, string> = {
   bagon: 'primary Ember (Fire, special 40), Q Rage, E Bite: a Fire primary on a Dragon (its first level-up move), while Shelgon opens on Bite',
   graveler: 'primary Bide (Normal, power 0), Q Defense Curl, E Rock Polish: a power-0 primary, and Q and E are both status',
   golem: 'primary Bide (Normal, power 0), Q Defense Curl, E Heavy Slam (power 0, weight-based in canon): two power-0 damage slots',
+  magneton: 'primary Tri Attack, Q Magnet Bomb, E Sonic Boom (power 0: fixed 20 damage in canon, no rule here)',
+  magnezone: 'primary Magnet Bomb, Q Barrier, E Mirror Coat (power 0: returns special damage in canon, no rule here)',
+  diglett: 'primary Scratch, Q Astonish, E Magnitude (power 0: a random power in canon, no rule here)',
 };
 
 /** a species' level-up moves in canonical order (its official level-up list, earliest level first, status moves

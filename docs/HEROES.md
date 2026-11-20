@@ -42,7 +42,7 @@ The old formula gave 6.6–9.7 m/s (Spe 80: 8.04). The band exposed two footprin
 - **E** (Ability 2): empty. The `range` mode sets `rules.hero.fillE`, which fills it with the next canonical move for testing.
 - **Ultimate** (R): unbound until it exists.
 - `HERO_KITS` overrides any field per species (the featured heroes' tuning). Every slot sits at `rules.hero.moveLevel` 1, the move as authored.
-- `KIT_TUNING` logs the kits the rule gets wrong, for the kit-tuning pass: Bagon (an Ember primary on a Dragon), Graveler and Golem (a power-0 Bide primary). Each is fixed later by a `HERO_KITS` entry; `tests/heroes.test.ts` refuses a logged species that already has one.
+- `KIT_TUNING` logs the kits the rule gets wrong, for the kit-tuning pass: Bagon (an Ember primary on a Dragon), Graveler and Golem (a power-0 Bide primary), and the power-0 E slots of Magneton (Sonic Boom), Magnezone (Mirror Coat) and Diglett (Magnitude). Each is fixed later by a `HERO_KITS` entry; `tests/heroes.test.ts` refuses a logged species that already has one, and fails on any power-0 damaging move in a `PROTOTYPE` kit (E filled, as in range mode) that is neither overridden nor logged.
 
 ## Which species are heroes
 
