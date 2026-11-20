@@ -81,12 +81,6 @@ function respawn(ctx: SimContext) {
   ctx.events.push({ t: 'respawn', species: P.m.species.id });
 }
 
-/** at the next region's portal, fainted Pokémon come back */
-export function reviveFainted(ctx: SimContext) {
-  const P = ctx.player, R = ctx.rules.squad;
-  for (const m of P.squad) if (m.fainted) { m.fainted = false; m.hp = m.maxHp * R.reviveHp; m.grey = 0; }
-}
-
 /** a loadout member (docs/hero-shooter-pivot.md Q10): a Pokémon the player brings into the match, with its hero kit at
  *  the fixed move level (src/rules/heroes.ts heroKit). Not a recruit: no event, no squad-level moves */
 export function addLoadoutMember(ctx: SimContext, id: string): Member | null {

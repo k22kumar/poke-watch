@@ -79,7 +79,7 @@ export const swap: Mod = {
 export const RANGE: Mode = {
   id: 'range', name: 'Training range',
   description: 'No waves, no levels: move, aim and fight on any map.',
-  rules: { mode: { id: 'range', endless: false, difficulty: 1 }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
+  rules: { mode: { id: 'range', difficulty: 1 }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
   mods: [noSurvivorLoop, solo],
 };
 
@@ -100,7 +100,7 @@ export const holdMod: Mod = {
 export const HOLD: Mode = {
   id: 'hold', name: 'Hold',
   description: 'Take the point on a habitat map and hold it against the raid party.',
-  rules: { mode: { id: 'hold', endless: false, difficulty: 1 } },
+  rules: { mode: { id: 'hold', difficulty: 1 } },
   mods: [noSurvivorLoop, solo, holdMod],
 };
 
@@ -121,18 +121,18 @@ export const MODES: Mode[] = [
   {
     id: 'survival', name: 'Survival',
     description: 'Endless. Regions loop with steeper enemies every lap. How long can you last?',
-    rules: { mode: { id: 'survival', endless: true, difficulty: 1 } },
+    rules: { mode: { id: 'survival', difficulty: 1 } },
   },
   {
     id: 'glass-cannon', name: 'Glass Cannon',
     description: 'You hit much harder, so do they. Crits heal a little.',
-    rules: { mode: { id: 'glass-cannon', endless: false, difficulty: 1.6 }, damage: { stab: 1.8, critChance: 0.15 } },
+    rules: { mode: { id: 'glass-cannon', difficulty: 1.6 }, damage: { stab: 1.8, critChance: 0.15 } },
     mods: [vampiric],
   },
   {
     id: 'boss-rush', name: 'Boss Rush',
     description: 'Bosses arrive at 1:30. Short stages.',
-    rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, director: { alphaAt: 60, eliteEvery: 20 } },
+    rules: { stage: { finalSwarmAt: 240 }, director: { alphaAt: 60, eliteEvery: 20 } },
   },
   RANGE,
   HOLD,

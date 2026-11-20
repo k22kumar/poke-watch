@@ -9,7 +9,7 @@ import type { World } from './world';
 import type { JumpControl, LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
 
-export type RunState = 'play' | 'dead' | 'over' | 'victory' | 'transition';
+export type RunState = 'play' | 'dead' | 'over';
 
 export interface InputFrame {
   mx: number; // desired world-space move direction (unnormalised ok, length <= 1)
@@ -306,7 +306,6 @@ export type SimEvent =
   | { t: 'evolveEnd'; species: string }
   | { t: 'respawn'; species: string }
   | { t: 'learn'; key: string }
-  | { t: 'portal'; x: number; z: number }
   | { t: 'stageStart'; stage: number; biome: string }
   | { t: 'spawnSkipped'; species: string; reason: string; x: number; z: number }
   | { t: 'finalSwarm' }
@@ -315,7 +314,6 @@ export type SimEvent =
   | { t: 'jump' }
   | { t: 'dash' }
   | { t: 'death' }
-  | { t: 'victory' }
   | { t: 'hitstop'; dur: number }
   | { t: 'shake'; amount: number; x: number; z: number }
   | { t: 'enemyShot'; x: number; z: number; element: Element }
@@ -416,7 +414,6 @@ export interface SimContext {
   stage: number;
   /** the current region's resolved spawn pool (src/rules/spawning.ts): region preset + map pool + rules override */
   spawnTable: StageDef;
-  loop: number; // endless loops completed
   state: RunState;
   stateTimer: number;
   rng: { spawn: Rng; combat: Rng; world: Rng; ai: Rng };
@@ -442,7 +439,6 @@ export interface SimContext {
   /** the spatial aim resolved this tick, for presentation (sim/aim.ts) */
   aim: AimState;
   speciesIndex: SpeciesDef[];
-  portal: { active: boolean; x: number; z: number };
   /** training targets (src/sim/targets.ts), null when the run has none */
   targets: import('./targets').TargetState | null;
   /** Phase 8a: the capability event log (death recap, pokewatch.debug('caps')) and the recap written when the run ends */

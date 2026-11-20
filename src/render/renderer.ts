@@ -1132,10 +1132,6 @@ export class Renderer {
       const rad = r.grow ? r.r * (0.3 + 0.7 * Math.sqrt(f)) : r.r;
       put(D, r.x, r.z, rad, r.c, 1 - f, 1, 0.12);
     }
-    // portal
-    if (ctx.portal.active) {
-      put(D, ctx.portal.x, ctx.portal.z, ctx.rules.stage.portalRadius * 1.4, [0.6, 0.85, 1], 1, 3, 0.2, this.time * 2, this.time);
-    }
     void py;
   }
 
@@ -1203,15 +1199,6 @@ export class Renderer {
       const o = G.push();
       const f = Pa.life[i] / Pa.max[i];
       G.data.set([Pa.x[i], Pa.y[i], Pa.z[i], Pa.size[i] * (0.4 + 0.6 * f), Pa.r[i], Pa.g[i], Pa.b[i], Math.min(1, f * 1.5)], o);
-    }
-    // portal column
-    if (ctx.portal.active) {
-      const y = ctx.world.height(ctx.portal.x, ctx.portal.z);
-      for (let k = 0; k < 6; k++) {
-        const o = G.push();
-        G.data.set([ctx.portal.x, y + 0.5 + k * 0.9 + Math.sin(this.time * 3 + k) * 0.2, ctx.portal.z, 1.4 - k * 0.12, 0.5, 0.8, 1, 0.7], o);
-      }
-      if (Math.random() < 0.6) { const a = rnd(0, TAU); this.parts.add(ctx.portal.x + Math.cos(a) * 2.5, y, ctx.portal.z + Math.sin(a) * 2.5, -Math.cos(a), rnd(2, 5), -Math.sin(a), 1, 0.3, [0.6, 0.85, 1]); }
     }
     // chest sparkle
     if (Math.random() < 0.3) for (const c of ctx.world.chests) if (!c.open && Math.hypot(c.x - ctx.player.x, c.z - ctx.player.z) < 60) this.parts.add(c.x + rnd(-0.6, 0.6), ctx.world.height(c.x, c.z) + 1.2, c.z + rnd(-0.6, 0.6), 0, rnd(0.5, 1.5), 0, 0.8, 0.2, [1, 0.9, 0.4]);

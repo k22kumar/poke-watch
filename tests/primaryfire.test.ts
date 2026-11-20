@@ -214,7 +214,7 @@ test('a modal state that outlasts the bound expires the queued press; a pause (n
     const { ctx, aim, G } = fired('cyndaquil');
     const at = G - 1 - 6;
     run(ctx, [...idle(aim, at), tap(aim)]);
-    ctx.state = 'transition'; ctx.stateTimer = 99; // a modal state (evolution is no longer one: a Breakthrough is per player)
+    ctx.state = 'dead'; ctx.stateTimer = 99; // a modal state: the moves system does not tick (evolution is no longer one)
     run(ctx, idle(aim, 40)); // the sim's tick runs, the moves do not
     ctx.state = 'play';
     const log = run(ctx, idle(aim, 60));

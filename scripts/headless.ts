@@ -16,7 +16,7 @@ const t0 = performance.now();
 let lastReport = 0;
 let maxEnemies = 0;
 const log: string[] = [];
-while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
+while (ctx.time < seconds && ctx.state !== 'over') {
   const ev = step(ctx, botInput(ctx));
   maxEnemies = Math.max(maxEnemies, ctx.enemies.count);
   for (const e of ev) {

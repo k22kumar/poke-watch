@@ -59,7 +59,7 @@ class Host {
   /** one animation frame of `real` seconds with this frame's look gesture (rad) and buttons / movement */
   frame(real: number, look: [number, number] | null = null, btn = 0, walk: 'fwd' | 'right' | null = null): FrameOut {
     const c = this.ctx, P = c.player, aims: [number, number][] = [];
-    const simulate = !this.paused && c.state !== 'over' && c.state !== 'victory';
+    const simulate = !this.paused && c.state !== 'over';
     if (simulate) {
       let scale = 1;
       if (this.hitstop > 0) { this.hitstop -= real; scale *= c.rules.sim.hitstopScale; }

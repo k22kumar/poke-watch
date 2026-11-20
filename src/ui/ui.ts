@@ -524,7 +524,7 @@ export class UI {
     el.className = 'plaque-' + b.id;
     el.innerHTML = '';
     const hab = ctx.world.hab;
-    const where = ctx.loop ? `Region ${ctx.stage + 1} · Lap ${ctx.loop + 1}` : `Region ${ctx.stage + 1} of ${ctx.rules.stage.count}`;
+    const where = `Region ${ctx.stage + 1} of ${ctx.rules.stage.count}`;
     // habitat maps: the map seed, so a layout can be replayed (Settings → World → Map seed, or ?mapseed=)
     el.append(h('span', { class: 'pname' }, ctx.world.map.gen?.loc ? ctx.world.map.name : b.name), h('small', {}, hab ? `${where} · ${loadInfo(hab).label}` : where));
     requestAnimationFrame(() => el.classList.add('show'));
@@ -567,8 +567,7 @@ export class UI {
     H.hpText.textContent = `${Math.ceil(P.hp)}/${Math.round(P.maxHp)}`;
     H.timer.textContent = fmtTime(ctx.stageTime);
     const biome = BIOMES[STAGES[ctx.stage % STAGES.length].biome];
-    const bossIn = ctx.rules.stage.bossAt - ctx.stageTime;
-    H.stage.textContent = ctx.portal.active ? 'Portal open!' : bossIn > 0 ? `Boss in ${fmtTime(bossIn)}` : ctx.director.finalSwarm ? 'Final swarm' : ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
+    H.stage.textContent = ctx.director.finalSwarm ? 'Final swarm' : ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
     H.kills.textContent = `${ctx.stats.kills.toLocaleString()} KOs`;
     H.live.textContent = `${ctx.enemies.count} wild`;
 
@@ -724,7 +723,7 @@ export class UI {
   private statRows(ctx: SimContext) {
     const s = ctx.stats;
     const rows: [string, string][] = [
-      ['Time', fmtTime(ctx.time)], ['Region', `${ctx.stage + 1}${ctx.loop ? ` (lap ${ctx.loop + 1})` : ''}`], ['Level', String(ctx.player.level)],
+      ['Time', fmtTime(ctx.time)], ['Region', `${ctx.stage + 1}`], ['Level', String(ctx.player.level)],
       ['KOs', s.kills.toLocaleString()], ['Damage dealt', Math.round(s.damageDealt).toLocaleString()], ['Damage taken', Math.round(s.damageTaken).toLocaleString()],
       ['Biggest hit', Math.round(s.maxHit).toLocaleString()], ['Seed', String(ctx.seed)],
     ];

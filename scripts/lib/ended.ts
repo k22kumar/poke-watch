@@ -1,10 +1,10 @@
-// A run that has ended (a knockout out of Pokémon, or a win) no longer advances time: step() returns at once in 'over'
-// and 'victory'. A harness loop that waits on ctx.time would then spin forever (navwalk did, 2026-11-20, when its
+// A run that has ended (a knockout out of Pokémon) no longer advances time: step() returns at once in 'over'.
+// A harness loop that waits on ctx.time would then spin forever (navwalk did, 2026-11-20, when its
 // driven trainer fell into a chasm). Every such loop checks runEnded and fails fast: loops that return a verdict report
 // the end as a failure with its reason; the others throw assertRunning's error.
 import type { SimContext } from '../../src/sim/types';
 
-export const runEnded = (ctx: SimContext): boolean => ctx.state === 'over' || ctx.state === 'victory';
+export const runEnded = (ctx: SimContext): boolean => ctx.state === 'over';
 
 /** a one-line reason: which state, when and where */
 export const endedNote = (ctx: SimContext): string =>

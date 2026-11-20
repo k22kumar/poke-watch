@@ -25,7 +25,7 @@ function hashRun(ctx: SimContext) {
 
 function run(seed: number, species: string, seconds: number, opts: Parameters<typeof createRun>[0] extends infer O ? Partial<O> : never = {}) {
   const ctx = createRun({ seed, species, ...opts });
-  while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') step(ctx, botInput(ctx));
+  while (ctx.time < seconds && ctx.state !== 'over') step(ctx, botInput(ctx));
   return ctx;
 }
 

@@ -505,7 +505,7 @@ test('regression: with the capability layer off, replay hashes equal the v10 bui
     // attack cast only at a target
     const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, spawning: { regions: CLASSIC_REGIONS }, combat: { basicNeedsTarget: true } } as never });
     const got: string[] = [];
-    while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
+    while (ctx.time < seconds && ctx.state !== 'over') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
     assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);
   }
 });

@@ -153,7 +153,7 @@ for (const caps of which === 'all' ? Object.keys(SETS) : [which]) {
   for (const [species, seed, mode, seconds] of SET_CONFIGS[caps] ?? CONFIGS) {
     const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: SETS[caps] as never });
     const marks: string[] = [];
-    while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
+    while (ctx.time < seconds && ctx.state !== 'over') {
       step(ctx, AIMED.has(caps) ? withAim(ctx, botInput(ctx)) : botInput(ctx));
       if (ctx.tick % 3600 === 0) marks.push(legacyHash(ctx).toString(16));
     }

@@ -1,7 +1,6 @@
 // Run construction and the fixed-step tick. The sim never imports render/ui/audio,
 // so it runs headless in Node (tests, balance bots, replays).
 
-import { dhypot } from '../core/detmath';
 import { Grid } from '../core/grid';
 import { Rng, streamSeed } from '../core/rng';
 import { deepMerge } from '../core/util';
@@ -23,7 +22,7 @@ import { BodyPool, bodySystem, seedBodies } from './bodies';
 import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
-import { addLoadoutMember, reviveFainted, squadSystem } from './squad';
+import { addLoadoutMember, squadSystem } from './squad';
 import { learnMove, makePlayer, progressionSystem, recompute } from './progression';
 import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
@@ -68,7 +67,7 @@ export function createRun(opts: RunOptions): SimContext {
   const seed = opts.seed >>> 0;
   const ctx: SimContext = {
     rules, chart: buildTypeChart(rules.damage.immuneMult), seed,
-    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0, spawnTable: STAGES[0], loop: 0,
+    tick: 0, dt: 1 / rules.sim.hz, time: 0, stageTime: 0, stage: 0, spawnTable: STAGES[0],
     state: 'play', stateTimer: 0,
     rng: {
       spawn: new Rng(streamSeed(seed, 'spawn')), combat: new Rng(streamSeed(seed, 'combat')),
@@ -90,7 +89,6 @@ export function createRun(opts: RunOptions): SimContext {
     input: NO_INPUT,
     aim: freshAimState(),
     speciesIndex: SPECIES,
-    portal: { active: false, x: 0, z: 0 },
     caplog: new CapLog(rules.caps.logSize),
     recap: null,
     targets: null,
@@ -136,14 +134,13 @@ export function startStage(ctx: SimContext, stage: number) {
   const def = spawnTableFor(ctx.rules, stage, mapSpawnPool(ctx.rules.worldgen as WorldgenRules, STAGES[stage % STAGES.length].biome), ctx.rules.spawning.override ?? undefined);
   ctx.spawnTable = def;
   const biome = BIOMES[def.biome];
-  enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919 + ctx.loop * 104729) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
+  enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0, [...def.spawns.map((s) => s[0]), ...def.elites]);
   const liveCap = ctx.director.liveCap;
   ctx.director = freshDirector(ctx.rules);
   ctx.director.liveCap = liveCap;
   ctx.stageTime = 0;
   { const seen = ctx.stats.damageTaken; ctx.beat = freshBeat(); ctx.beat.dmgSeen = seen; }
   ctx.objective = null;
-  ctx.portal = { active: false, x: 0, z: 0 };
   for (const m of ctx.player.squad) m.sturdyUsed = false;
   ctx.events.push({ t: 'stageStart', stage, biome: biome.id });
   for (const h of ctx.hooks.onStageStart) h(ctx);
@@ -157,12 +154,7 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   ctx.tick++;
 
   switch (ctx.state) {
-    case 'transition':
-      ctx.stateTimer -= dt;
-      if (ctx.stateTimer <= 0) nextStage(ctx);
-      return ctx.events;
     case 'over':
-    case 'victory':
       return ctx.events;
     case 'dead': {
       ctx.stateTimer -= dt;
@@ -185,33 +177,7 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
     s.update(ctx, dt);
   }
   for (const h of ctx.hooks.onTick) h(ctx);
-
-  // portal
-  if (ctx.state === 'play' && ctx.portal.active) {
-    const P = ctx.player;
-    if (dhypot(P.x - ctx.portal.x, P.z - ctx.portal.z) < ctx.rules.stage.portalRadius) {
-      ctx.state = 'transition';
-      ctx.stateTimer = 1.2;
-    }
-  }
   return ctx.events;
 }
 
-function nextStage(ctx: SimContext) {
-  let next = ctx.stage + 1;
-  if (next >= ctx.rules.stage.count) {
-    if (!ctx.rules.mode.endless) {
-      ctx.state = 'victory';
-      ctx.events.push({ t: 'victory' });
-      return;
-    }
-    ctx.loop++;
-    next = 0;
-  }
-  ctx.state = 'play';
-  const P = ctx.player;
-  reviveFainted(ctx);
-  P.hp = Math.min(P.maxHp, P.hp + P.maxHp * 0.3);
-  startStage(ctx, next);
-}
 

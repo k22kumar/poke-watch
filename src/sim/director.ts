@@ -47,7 +47,7 @@ export function spawnComposition(ctx: SimContext, def: CompositionDef, near?: [n
       const b = ctx.world.bound;
       const x = clamp(cx + ux * front + dsin(a) * r, -b, b), z = clamp(cz + uz * front + dcos(a) * r, -b, b);
       // the first region's Bulwark is a plain tank with a shield; from the second region on it is an elite
-      const roles = ctx.stage === 0 && ctx.loop === 0 ? m.roles & ~ROLE.elite : m.roles;
+      const roles = ctx.stage === 0 ? m.roles & ~ROLE.elite : m.roles;
       // compatibility: a member that may not stand here is left out (the group still comes)
       if (!allowedAt(ctx, sp.id, x, z, roles & ROLE.elite ? ctx.rules.enemy.roles.elite.size : 1)) { ctx.events.push({ t: 'spawnSkipped', species: sp.id, reason: 'restricted habitat', x, z }); continue; }
       const i = spawnEnemy(ctx, sp.id, x, z, roles);

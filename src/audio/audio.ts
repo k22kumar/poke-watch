@@ -121,6 +121,8 @@ export class Audio {
   cast(_arch: string) {}
   hit(_crit: boolean) {}
   kill() {}
+  /** the overworld's warp (src/overworld/game.ts): a silent hook since the SFX cut */
+  portal() {}
   pickup() {}
   levelUp() {}
   hurt() {}
@@ -136,7 +138,6 @@ export class Audio {
   dash() {}
   jump() {}
   chest() { this.stingerPlay('item'); }
-  portal() {}
   death() {}
   guard() {}
   deflect() {}

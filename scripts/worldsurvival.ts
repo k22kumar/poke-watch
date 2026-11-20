@@ -11,7 +11,7 @@ const PARTNERS = ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil
 
 function play(species: string, seed: number, seconds: number, over: object) {
   const ctx = createRun({ seed, species, ruleOverrides: over as never });
-  while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory' && ctx.stage === 0) step(ctx, botInput(ctx));
+  while (ctx.time < seconds && ctx.state !== 'over' && ctx.stage === 0) step(ctx, botInput(ctx));
   return { t: ctx.time, survived: ctx.time >= seconds - 0.01 && ctx.state !== 'over', dmg: ctx.stats.damageTaken, kills: ctx.stats.kills, lost: ctx.world.propField?.lost ?? 0 };
 }
 

@@ -37,7 +37,6 @@ export function hpMultiplier(ctx: SimContext): number {
   const s = stageIndex(ctx);
   const t = ctx.stageTime / 60;
   let m = (1 + D.hpLinear * t + Math.max(0, t - D.hpKnee) ** 2 * D.hpR[s]) * D.hpN[s];
-  m *= 1 + ctx.loop * 2;
   if (ctx.director.finalSwarm) {
     const since = Math.max(0, ctx.stageTime - ctx.rules.stage.finalSwarmAt) / 60;
     m *= dpow(D.finalSwarmBase, since);

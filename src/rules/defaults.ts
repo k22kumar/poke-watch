@@ -355,9 +355,7 @@ export const defaultRules = {
   } as Record<string, ArchetypeTemplate>,
   stage: {
     count: 4, // [I] stages per region
-    bossAt: 300, // [B] s
     finalSwarmAt: 480, // [B] s (if the boss is still alive the swarm begins)
-    portalRadius: 2.2,
   },
   // Aimed combat (blueprint section 4). Every slot casts while its button is held (hold repeats on cooldown):
   // slot 0, the basic attack, is primary fire; slots 1-3 are Move A, Move B and the Signature. Dash and Guard share
@@ -434,7 +432,6 @@ export const defaultRules = {
     greyHalfLife: 2.8, // s: grey health on the field drains toward permanent loss (mostly gone in 8 s)
     benchRefill: 0.03, // share of max HP per second refilled from grey health while benched
     faintDelay: 1, // s before the next Pokémon comes in after a faint
-    reviveHp: 0.3, // fainted Pokémon return at this share of max HP at the next region's portal
     tagDmgMult: 1.8, tagKnockMult: 1.5, // a Tag Action hits like a strong manual move
   },
   // [B] creature coats and reactions (blueprint section 8): the four tile agents also coat creatures.
@@ -594,7 +591,6 @@ export const defaultRules = {
   },
   mode: {
     id: 'classic',
-    endless: false,
     difficulty: 1, // multiplies enemy hp, dmg, speed
   },
 };

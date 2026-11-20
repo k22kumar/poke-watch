@@ -21,7 +21,7 @@ function run(squad: [string, string, string], seed: number, policy: BotTagPolicy
   setBotTagPolicy(policy);
   const ctx = createRun({ seed, species: squad[0], ruleOverrides });
   let tags = 0, joined = false;
-  while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'dead' && ctx.state !== 'victory') {
+  while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'dead') {
     if (!joined && ctx.time >= JOIN_AT) {
       // a mid-run squad (levels add nothing since the canon curve, docs/HEROES.md)
       addMember(ctx, squad[1]); addMember(ctx, squad[2]); joined = true;

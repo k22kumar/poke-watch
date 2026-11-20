@@ -125,7 +125,7 @@ applyMix();
 input.onAction = (a) => {
   audio.unlock();
   if (!ctx) return;
-  if (a === 'pause' && ctx.state !== 'over' && ctx.state !== 'victory') setPaused(!paused);
+  if (a === 'pause' && ctx.state !== 'over') setPaused(!paused);
   if (a === 'tuning') ui.toggleTuning();
   if (a === 'mute') { settings.muted = !settings.muted; applyMix(); }
   // Menus own their controls.
@@ -290,7 +290,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'cell': audio.impact(e.change === 'ignite' ? 'blaze' : e.change === 'freeze' || e.change === 'crack' ? 'frost' : e.change === 'charge' ? 'volt' : 'tide', e.change === 'charge', 1); break;
       case 'spark': audio.enemyShot(); break;
       case 'enemyShot': audio.enemyShot(); break;
-      case 'portal': audio.portal(); break;
       case 'stageStart':
         if (c.tick > 1) { ui.stageBanner(c); audio.setBiome(BIOMES[e.biome]); }
         break;
@@ -378,7 +377,7 @@ function frame(now: number) {
   // input context: menus own the keyboard/gamepad while open; gameplay keys apply only in play
   { const next = ui.menuOpen() ? 'menu' : 'play'; if (next === 'menu' && input.context === 'play') input.clearButtons(); input.context = next; }
   ui.padTick(1 / 60);
-  { const st = input.padHeld('pause'); if (st && !startPrev && ctx && ctx.state !== 'over' && ctx.state !== 'victory' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
+  { const st = input.padHeld('pause'); if (st && !startPrev && ctx && ctx.state !== 'over' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
   if (capture) return;
   let real = Math.min(0.25, (now - lastFrame) / 1000);
   lastFrame = now;
@@ -402,7 +401,7 @@ function frame(now: number) {
   updateLockHint(c);
   const tSim0 = performance.now();
   let simDt = 0;
-  const simulate = !paused && c.state !== 'over' && c.state !== 'victory';
+  const simulate = !paused && c.state !== 'over';
   if (simulate) {
     let scale = speed;
     if (hitstop > 0) { hitstop -= real; scale *= c.rules.sim.hitstopScale; }
@@ -415,7 +414,7 @@ function frame(now: number) {
   if (simulate && input.context === 'play') input.pollPad();
   // look, then one view sample, then the due ticks (render/hostframe.ts); the render below advances the camera once
   const fr = runFrame<ViewSample | null>({
-    look: () => { if (renderer.chase) lookInput(real, !paused && input.context === 'play' && c.state !== 'over' && c.state !== 'victory'); },
+    look: () => { if (renderer.chase) lookInput(real, !paused && input.context === 'play' && c.state !== 'over'); },
     view: () => renderer.viewSample(),
     tick: (view) => {
       const inp = autoplay ? botInput(c) : sampleInput(c, view);
@@ -424,7 +423,7 @@ function frame(now: number) {
       if (evolveAt >= 0 && c.time >= evolveAt) { evolveAt = -1; startEvolution(c); }
       try { ev = step(c, inp); } catch (e) { if (e instanceof HabitatError) { failMap(e); return 'abort'; } throw e; }
       onEvents(c, ev);
-      if ((c.state as string) === 'over' || (c.state as string) === 'victory') { onEnd(c); return 'end'; }
+      if ((c.state as string) === 'over') { onEnd(c); return 'end'; }
       return 'go';
     },
   }, acc, c.dt, Math.max(5, Math.ceil(speed * 5)), simulate);
@@ -457,7 +456,7 @@ function frame(now: number) {
 let nearT = 0, enemiesNear = 0;
 function audioTick(dt: number) {
   const c = ctx;
-  if (c && c.state !== 'over' && c.state !== 'victory') {
+  if (c && c.state !== 'over') {
     nearT -= dt;
     if (nearT <= 0) {
       nearT = 0.25;
@@ -480,8 +479,7 @@ function onEnd(c: SimContext) {
   ended = true;
   input.releaseLock();
 
-  if (c.state === 'victory') audio.onVictory();
-  endTimer = setTimeout(() => { ended = false; if (c === ctx) ui.end(c, c.state === 'victory'); }, 600) as unknown as number;
+  endTimer = setTimeout(() => { ended = false; if (c === ctx) ui.end(c, false); }, 600) as unknown as number;
 }
 
 let attract: SimContext | null = null;
@@ -497,7 +495,7 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
     if (ctx) {
       // like frame(): one view sample per drawn frame, shared by its ticks
       const view = renderer.viewSample();
-      while (n-- > 0 && c.state !== 'over' && c.state !== 'victory') {
+      while (n-- > 0 && c.state !== 'over') {
         const inp: InputFrame = opts.bot ? botInput(c) : { ...sampleInput(c, view), ...(opts.input ?? {}) } as InputFrame;
         onEvents(c, step(c, inp));
       }

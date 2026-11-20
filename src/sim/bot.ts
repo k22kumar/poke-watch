@@ -2,7 +2,7 @@
 //
 // The movement core (docs/hero-shooter-pivot.md §6) kites away from the local enemy centroid, orbits the map centre,
 // heads for the shore when it is in a liquid, turns its footprint around walls and lips, and brakes at a hazard edge.
-// The survivor pulls on top of it (XP gems, objectives, the portal, Tag) are separate and go with the survivor
+// The survivor pulls on top of it (objectives, Tag) are separate and go with the survivor
 // loop. Each run gets its own Bot (botInput keys one per SimContext), so no policy or random state leaks between runs.
 import { dcos, dhypot, dsin } from '../core/detmath';
 import { BTN, type InputFrame, type SimContext } from './types';
@@ -52,8 +52,7 @@ export function botFor(ctx: SimContext): Bot {
 }
 export function botInput(ctx: SimContext): InputFrame { return botFor(ctx).input(ctx); }
 
-/** The survivor loop's pull on the bot: (when the bot engages them) the objective's pad,
- *  Hunt target, egg or goal, else the open portal. Returns the offset to it, its distance (1e9 = nothing to drift to,
+/** The survivor loop's pull on the bot: (when the bot engages them) the Hold's pad. Returns the offset to it, its distance (1e9 = nothing to drift to,
  *  0 = must go) and the objective's pull weight. Goes with the survivor loop (docs/hero-shooter-pivot.md §6). */
 function survivorPull(bot: Bot, ctx: SimContext): [number, number, number, number] {
   const P = ctx.player;
@@ -65,8 +64,6 @@ function survivorPull(bot: Bot, ctx: SimContext): [number, number, number, numbe
     const d = Math.hypot(O.x - P.x, O.z - P.z);
     if (d > 2.5) { gx = O.x - P.x; gz = O.z - P.z; gd = 0; objPull = 1.6; }
   }
-  // portal
-  if (ctx.portal.active) { gx = ctx.portal.x - P.x; gz = ctx.portal.z - P.z; gd = 0; }
   return [gx, gz, gd, objPull];
 }
 
@@ -82,7 +79,7 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
     const w = 1 / Math.max(1, d2);
     ax += dx * w; az += dz * w;
   }
-  // the survivor pulls: a target to drift to (an objective, the portal) and how hard
+  // the survivor pulls: a target to drift to (an objective) and how hard
   const [gx, gz, gd, objPull] = survivorPull(bot, ctx);
   // orbit the centre so the bot does not pin itself on the map edge. Authored arenas are built around the map centre;
   // a generated region's open centre is its hub (the spawn clearing), which can sit anywhere
