@@ -127,7 +127,7 @@ test('gamepad: a press only a frame saw (shorter than a tick, a display above 60
 
 // ------------------------------------------------------------------ vertical intent and descend
 
-test('my = ascend − descend from buttons: V descends, Space ascends, both cancel; C stays the card pointer', async () => {
+test('my = ascend − descend from buttons: V descends, Space ascends, both cancel; C is not descend', async () => {
   const { input, key } = await stubInput();
   const actions: string[] = [];
   input.onAction = (a) => actions.push(a);
@@ -270,6 +270,34 @@ test('saved bindings: anything saved is cut down to known actions and valid code
   const fresh = loadSettings({});
   assert.notEqual(fresh.keys, SETTINGS_DEFAULT.keys, 'never the default object (Reset must not see edits)');
   assert.deepEqual(fresh.keys, {}); assert.deepEqual(fresh.pad, {});
+});
+
+test('a survivor build\'s saved settings load: the card keys and the C toggle drop, live overrides stay, F is Touch', async () => {
+  // what survivor-final (the card build) wrote to localStorage: the whole settings object, with overrides of the card
+  // actions (picks, reroll, skip, banish, cardPointer: the C cursor / camera toggle) beside overrides that still exist
+  const saved = JSON.parse(JSON.stringify({
+    ...SETTINGS_DEFAULT, camera: 'chase', camV: 2, worldV: 2,
+    keys: { pick1: ['Digit5'], pick2: ['Digit6'], pick3: ['Digit7'], pick4: ['Digit8'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'], cardPointer: ['KeyC'], basic: ['KeyH'] },
+    pad: { pick1: [PAD.left], pick2: [PAD.up], pick3: [PAD.right], reroll: [PAD.down], jump: [PAD.a] },
+  }));
+  const s = loadSettings(saved);
+  assert.deepEqual(s.keys, { basic: ['KeyH'] }, 'only the actions that still exist');
+  assert.deepEqual(s.pad, { jump: [PAD.a] });
+  const { input, key } = await stubInput();
+  input.setBindings(s.keys, s.pad);
+  assert.deepEqual(bindingConflicts(input.bindings), []);
+  assert.deepEqual(bindingConflicts(input.padBindings), []);
+  assert.deepEqual(input.bindings.touch, ['KeyF'], 'the old reroll key did not take F from Touch');
+  assert.deepEqual(input.bindings.basic, ['KeyH']);
+  assert.ok(!Object.values(input.bindings).flat().includes('KeyC'), 'C is bound to nothing');
+  key('KeyF');
+  assert.equal((input.sample(0).btn ?? 0) & BTN.touch, BTN.touch, 'F holds Touch');
+  key('KeyF', false);
+  key('KeyC');
+  const f = input.sample(0);
+  assert.equal(f.btn ?? 0, 0, 'C presses nothing'); assert.equal(f.mx, 0); assert.equal(f.mz, 0);
+  // saving it back writes the clean copy, and it loads to the same settings
+  assert.deepEqual(loadSettings(JSON.parse(JSON.stringify(s))), s);
 });
 
 test('names for the bindings screen', () => {
