@@ -1,48 +1,54 @@
-// Independent runs in one process stay independent (docs/HAZARDS.md "Shore target"). The balance bot steers a partner
+// Independent runs in one process stay independent (docs/HAZARDS.md "Shore target"). A driver steers a partner
 // that is in a liquid toward the shore `shoreFor` gives it; that answer is cached per tile. The cache was one slot for
 // the whole process, keyed by tile index alone, so a run on a map with the same layout (the authored meadow) could be
 // handed the shore another run had computed for the same tile index, from another position and partner. The sim itself
 // was never affected (replaying recorded frames in any order reproduces every run); bot-driven runs, harnesses and
-// browser autoplay restarts were. The cache is now per World.
+// browser autoplay restarts were. The cache is now per World. The first test drives a scripted input track (no bot), so
+// it holds whatever the bot's steering becomes.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
-import { botInput } from '../src/sim/bot';
 import { playerLiquid, shoreFor } from '../src/sim/hazards';
 import { stateHash } from '../src/sim/checksum';
 import { partnerRadius } from '../src/rules/sizing';
 import { MODES } from '../src/mods';
 import { T } from '../src/world/tiles';
-import type { SimContext } from '../src/sim/types';
+import { NO_INPUT, type SimContext } from '../src/sim/types';
+import { RANGE } from '../src/mods';
+import { runEnded } from '../scripts/lib/ended';
 
 const mode = (id: string) => MODES.find((m) => m.id === id);
 
-/** a bot-driven run with Jump held 25 of every 70 ticks (the jumps carry the partner over a lip into the water, where
- *  the bot asks for a shore); per tick, the bot's input and the resulting state */
-function botRun(species: string, seed: number, modeId: string, seconds: number, jumps: boolean) {
-  const ctx = createRun({ seed, species, mode: mode(modeId) });
+/** a scripted run (no bot): head for a water tile, and once in the liquid swim to the shore shoreFor gives (the cached
+ *  answer the leak was in), then walk back toward the spawn for 2 s and go again. Per tick, the input and the state */
+function trackRun(species: string, seed: number, seconds: number) {
+  const ctx = createRun({ mode: RANGE, seed, species });
+  const [wx, wz] = waterTile(ctx), [sx, sz] = ctx.world.spawn;
   const trace: string[] = [];
-  let wet = 0;
-  while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
-    let inp = botInput(ctx);
-    if (jumps && ctx.tick % 70 < 25) inp = { ...inp, jump: true };
+  let wet = 0, backUntil = -1;
+  while (ctx.time < seconds && !runEnded(ctx)) {
+    const P = ctx.player, inLiquid = playerLiquid(ctx) > 0;
+    let tx = wx, tz = wz;
+    if (inLiquid) { const s = shoreFor(ctx); if (s) { tx = s[0]; tz = s[1]; } backUntil = ctx.tick + 120; }
+    else if (ctx.tick < backUntil) { tx = sx; tz = sz; }
+    const dx = tx - P.x, dz = tz - P.z, L = Math.hypot(dx, dz) || 1;
+    const inp = { ...NO_INPUT, mx: dx / L, mz: dz / L };
     step(ctx, inp);
-    const P = ctx.player;
     if (playerLiquid(ctx)) wet++;
-    trace.push(`${inp.mx},${inp.mz},${inp.dash},${inp.btn}|${stateHash(ctx)},${P.y},${P.vy},${P.grounded}`);
+    trace.push(`${inp.mx},${inp.mz}|${stateHash(ctx)},${P.y},${P.vy},${P.grounded}`);
   }
   return { trace, wet };
 }
 
-// first in this file: the fresh run must be the first bot run of the process
-test('a bot-driven run is the same fresh and after another run on the same map layout (the demonstrated case)', () => {
-  const fresh = botRun('gastly', 4, 'classic', 55, true);
-  const other = botRun('bulbasaur', 3, 'boss-rush', 47, false); // leaves the partner's last shore at a tile index B reaches
-  const again = botRun('gastly', 4, 'classic', 55, true);
+// first in this file: the fresh run must be the first run of the process
+test('a scripted run is the same fresh and after another run on the same map layout (the demonstrated case)', () => {
+  const fresh = trackRun('cyndaquil', 4, 30);
+  const other = trackRun('bulbasaur', 3, 25); // leaves its last shore at a tile index the first run reaches
+  const again = trackRun('cyndaquil', 4, 30);
   assert.ok(fresh.wet > 0 && other.wet > 0, `both runs put the partner in a liquid (${fresh.wet}, ${other.wet} ticks): the shore path is exercised`);
   assert.equal(again.trace.length, fresh.trace.length);
   const first = fresh.trace.findIndex((t, i) => t !== again.trace[i]);
-  assert.equal(first, -1, `the second gastly run diverges from the fresh one at tick ${first} (before the fix: tick 3261)`);
+  assert.equal(first, -1, `the second run diverges from the fresh one at tick ${first}`);
 });
 
 /** a water tile of this run's map that the trainer can stand in (open water, no deck, no ice) */
