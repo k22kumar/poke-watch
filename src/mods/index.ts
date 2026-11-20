@@ -63,7 +63,7 @@ export const noSurvivorLoop: Mod = {
 export const RANGE: Mode = {
   id: 'range', name: 'Training range',
   description: 'No waves, no levels: move, aim and fight on any map.',
-  rules: { mode: { id: 'range', endless: false, difficulty: 1 } },
+  rules: { mode: { id: 'range', endless: false, difficulty: 1 }, hero: { fillE: true } },
   mods: [noSurvivorLoop],
 };
 

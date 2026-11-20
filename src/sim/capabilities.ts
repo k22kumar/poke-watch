@@ -14,6 +14,7 @@
 // first, then the highest Power wins; every pool is walked in index order.
 
 import { datan2, dhypot, dsin, dcos } from '../core/detmath';
+import { channelOf } from '../rules/stats';
 import { type CapVerb, type Cap } from '../rules/capabilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { AGENT_NAMES, type AgentName } from '../rules/reactions';
@@ -228,10 +229,14 @@ export function launchShot(ctx: SimContext, i: number, ux: number, uz: number) {
   const sp = Math.max(10, dhypot(Pr.vx[i], Pr.vz[i])) * G.deflectSpeed;
   Pr.kind[i] = PK.straight; Pr.traj[i] = 0; // a launched (deflected, released) shot is planar again
   Pr.vx[i] = ux * sp; Pr.vz[i] = uz * sp; Pr.speed[i] = sp;
-  Pr.dmg[i] = G.deflectDmg * (1 + 0.04 * (P.level - 1));
+  // damage: the deflector is now the attacker, on the deflected shot's channel (the shooter's), so the player damage
+  // pipeline scales it by the deflector's m of that channel (docs/hero-shooter-pivot.md Q40). A shot with no shooter
+  // (the player's own, held and released) keeps its own channel.
+  Pr.dmg[i] = G.deflectDmg;
   Pr.pierce[i] = 1; Pr.radius[i] = Math.max(Pr.radius[i], 0.5);
   Pr.life[i] = Pr.maxLife[i] = 1.4; Pr.t[i] = 0;
-  Pr.cls[i] = 1; Pr.knock[i] = 4; Pr.chance[i] = 0; Pr.drain[i] = 0; Pr.move[i] = -1;
+  if (Pr.src[i] >= 0) Pr.cls[i] = channelOf(ctx.speciesIndex[Pr.src[i]]) === 'special' ? 1 : 0;
+  Pr.knock[i] = 4; Pr.chance[i] = 0; Pr.drain[i] = 0; Pr.move[i] = -1;
   Pr.ox[i] = Pr.x[i]; Pr.oz[i] = Pr.z[i];
   Pr.depth[i] = 255; Pr.fx[i] = 0; Pr.extra[i] = 0; // a deflected shot coats deep, as before
 }

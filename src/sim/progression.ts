@@ -7,6 +7,7 @@ import { MOVE_BY_KEY, MOVES } from '../rules/moves';
 import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { defaultRules, type Rules } from '../rules/defaults';
 import { learnsetOf, lineage } from '../rules/heroes';
+import { heroHealth, statMult, topSpeed } from '../rules/stats';
 import { healPlayer } from './combat';
 import { compileMove } from './moves';
 import { addMember, queueVariant, recruitCards, variantCards, variantDue } from './squad';
@@ -24,18 +25,19 @@ export function recompute(ctx: SimContext) {
   for (const m of ctx.player.squad) recomputeMember(ctx, m);
 }
 
+/** derived stats from the canon curve (src/rules/stats.ts): levels add nothing (docs/hero-shooter-pivot.md Q12, Q25).
+ *  Vitamins still multiply on top until the survivor items go. */
 export function recomputeMember(ctx: SimContext, P: Member) {
-  const level = ctx.player.level;
-  const R = ctx.rules.player;
+  const R = ctx.rules.player, rules = ctx.rules;
   const s = P.species.stats;
-  const grow = 1 + R.growthPerLevel * (level - 1);
   const v = (k: string) => (P.vitamins[k] ?? 0);
   const d: Derived = {
-    maxHp: (R.hpBase + s.hp * R.hpPerStat * grow + level * R.hpPerLevel) * (1 + v('hp')),
-    atk: ((s.atk * grow) / R.statRef) * (1 + v('atk')),
-    spa: ((s.spa * grow) / R.statRef) * (1 + v('spa')),
-    def: s.def * grow * (1 + v('def')),
-    speed: R.baseSpeed * (0.85 + s.spe / 300) * (1 + v('spe')),
+    maxHp: heroHealth(s.hp, rules) * (1 + v('hp')),
+    atk: statMult(s.atk, rules) * (1 + v('atk')),
+    spa: statMult(s.spa, rules) * (1 + v('spa')),
+    def: statMult(s.def, rules) * (1 + v('def')),
+    spd: statMult(s.spd, rules) * (1 + v('spd')),
+    speed: topSpeed(s.spe, rules) * (1 + v('spe')),
     haste: 1 + v('haste'),
     area: 1 + v('area'),
     crit: ctx.rules.damage.critChance + v('crit'),
@@ -148,7 +150,7 @@ function learnCard(ctx: SimContext, key: string): Card {
 
 export function learnMove(ctx: SimContext, key: string) {
   const P = ctx.player;
-  P.moves.push(masteryOn(ctx) ? { key, level: masteryLevel(ctx), cd: 0.3, spec: compileMove(ctx.rules, key), uses: 0 } : { key, level: 1, cd: 0.3, spec: compileMove(ctx.rules, key) });
+  P.moves.push(masteryOn(ctx) ? { key, level: masteryLevel(ctx), cd: 0.3, spec: compileMove(ctx.rules, key), uses: 0 } : { key, level: ctx.rules.hero.moveLevel, cd: 0.3, spec: compileMove(ctx.rules, key) });
   P.learned.add(key);
   ctx.events.push({ t: 'learn', key });
 }
@@ -415,7 +417,7 @@ export function makeMember(species: SpeciesDef): Member {
   return {
     species, hp: 1, maxHp: 0, grey: 0, moves: [], vitamins: {}, buffT: 0, buffAtk: 0, buffSpe: 0, paraT: 0,
     trailT: 0, trailSpec: null, trailLevel: 0, trailAcc: 0, regenAcc: 0,
-    derived: { maxHp: 1, atk: 1, spa: 1, def: 1, speed: 7, haste: 1, area: 1, crit: 0.05, magnet: 4 },
+    derived: { maxHp: 1, atk: 1, spa: 1, def: 1, spd: 1, speed: 6, haste: 1, area: 1, crit: 0.05, magnet: 4 },
     learned: new Set(), coat: 0, coatDeep: 0, coatT: 0, fainted: false, tagVariant: 0, flashT: 0, sturdyUsed: false,
   };
 }

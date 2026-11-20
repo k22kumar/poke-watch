@@ -310,7 +310,7 @@ export const cellSystem = {
       const k = C.tile(E.x[e], E.z[e]);
       if (k < 0) continue;
       const els = ctx.speciesIndex[E.species[e]].elements;
-      if (C.state[k] === CS.burning && !els.includes('blaze') && E.burn[e] <= 0) applyAilment(ctx, e, 'burn', 6 + P.level * 0.8);
+      if (C.state[k] === CS.burning && !els.includes('blaze') && E.burn[e] <= 0) applyAilment(ctx, e, 'burn', ctx.rules.reactions.tileBurn);
       // Electric types ignore the flood, and so do Ground types (Electric does nothing to Ground)
       const charged = C.charge[k] > 0 && !els.includes('volt') && !els.includes('quake') && E.y[e] - W.height(E.x[e], E.z[e]) < 0.4;
       if (charged) { const t = ccApply(ctx, e, E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.2 : 0.6); if (t > 0) E.stun[e] = Math.max(E.stun[e], t); }

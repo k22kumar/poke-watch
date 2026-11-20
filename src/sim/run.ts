@@ -25,7 +25,7 @@ import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { reviveFainted, squadSystem } from './squad';
 import { finishEvolution, handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
-import { openingMove } from '../rules/heroes';
+import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
 import { CapLog } from './caplog';
@@ -94,9 +94,10 @@ export function createRun(opts: RunOptions): SimContext {
   ctx.players.push(ctx.player);
   recompute(ctx);
   ctx.player.hp = ctx.player.maxHp;
-  // the opening move: the curated starter, else the line's or the species' first attack (any species can lead a run)
-  const opening = openingMove(species);
-  if (opening) learnMove(ctx, opening);
+  // the hero kit (src/rules/heroes.ts heroKit): the primary (the curated starter, else the line's or the species' first
+  // attack, so any species can lead), Ability 1, and in range mode Ability 2
+  const kit = heroKit(species, { fillE: rules.hero.fillE });
+  for (const key of [kit.primary, kit.q, kit.e]) if (key && !ctx.player.learned.has(key)) learnMove(ctx, key);
   startStage(ctx, 0);
   return ctx;
 }

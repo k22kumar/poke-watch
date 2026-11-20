@@ -86,7 +86,7 @@ test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode 
 test('a generated region plays two minutes for each archetype: no errors, enemies never inside walls or water', () => {
   const seen = new Set<string>();
   for (const seed of [1, 3, 9, 4, 2, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, player: { hpBase: 4000 } } as never });
+    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, hero: { health: 4000 } } as never });
     const arch = ctx.world.map.gen!.archetype;
     if (seen.has(arch)) continue;
     seen.add(arch);

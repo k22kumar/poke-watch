@@ -75,7 +75,7 @@ test('the player climbs the bluff stairs and cannot walk up a cliff face', () =>
 });
 
 test('ground enemies never finish a tick inside a wall, and are in water only when knocked in (the exposure rule has them)', () => {
-  const ctx = createRun({ seed: 11, species: 'bulbasaur', ruleOverrides: { player: { hpBase: 5000 }, director: { spawnBase: 6 } } });
+  const ctx = createRun({ seed: 11, species: 'bulbasaur', ruleOverrides: { hero: { health: 5000 }, director: { spawnBase: 6 } } });
   let checked = 0;
   while (ctx.time < 90) {
     step(ctx, botInput(ctx));
@@ -111,7 +111,7 @@ test('flow field routes around obstacles and is deterministic', () => {
 
 test('every region loads and plays a minute without errors', () => {
   for (let s = 0; s < 4; s++) {
-    const ctx = createRun({ seed: 2, species: 'squirtle', ruleOverrides: { player: { hpBase: 4000 } } });
+    const ctx = createRun({ seed: 2, species: 'squirtle', ruleOverrides: { hero: { health: 4000 } } });
     if (s) startStage(ctx, s);
     let casts = 0;
     while (ctx.stageTime < 60 && ctx.state !== 'over') casts += step(ctx, botInput(ctx)).filter((e) => e.t === 'cast').length;

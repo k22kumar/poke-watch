@@ -124,7 +124,6 @@ export const defaultRules = {
     // (6 ticks). 0 = pure edges. Input without the edge field (the bot, replays) keeps the held rule and ignores both
     jumpBuffer: 0.12,
     coyote: 0.1,
-    baseSpeed: 7.2, // [B]
     iframes: 0.55, // [B]
     knockback: 9, // [B]
     crowdPush: 3, // [B]
@@ -137,11 +136,20 @@ export const defaultRules = {
     moveSlotsLate: 3, // [C] 4 in PokéBonk; 3 here, because the squad carries three Pokémon (blueprint section 5)
     lateSlotLevel: 20, // [I]
     vitaminSlots: 3, // [C]
-    hpBase: 50, hpPerStat: 1.4, hpPerLevel: 4, // [B] maxHp = hpBase + hp*hpPerStat + level*hpPerLevel
-    statRef: 60, // [B]
-    growthPerLevel: 0.04, // [B] stats x (1 + 0.04*(L-1)) attack/spa multiplier = stat / statRef
-    defenseRef: 90, // [B] damage taken * defenseRef/(defenseRef+def)
     regenPerSec: 0.25, // [B]
+  },
+  // [D] Hero stats (docs/STATS_GROWTH_TARGET.md "Stats", src/rules/stats.ts). Level-50 Canon Curve, k = 0.6, no Upkeep:
+  // a stat's multiplier m = ((base + statOffset) / statRef) ^ k; health = health × ((HP + hpOffset) / hpRef) ^ k. Base 80
+  // is ×1.0 and 250 health. Levels add nothing.
+  hero: {
+    k: 0.6, statOffset: 20, statRef: 100,
+    health: 250, hpOffset: 75, hpRef: 155,
+    /** top speed (m/s): a logistic band in Spe, `speedBand` wide (5.6–6.4), centred on `topSpeed` at Spe `speedMid` */
+    topSpeed: 6.0, speedBand: 0.8, speedMid: 80, speedScale: 25,
+    /** every move slot's level (sim/moves.ts level scaling; 1 = the move as authored). Mastery is survivor-only */
+    moveLevel: 1,
+    /** range mode fills Ability 2 (E) with the next learnset move, for testing (docs/hero-shooter-pivot.md Q27) */
+    fillE: false,
   },
   camera: {
     // DS-style fixed three-quarter view (see docs/ART_BIBLE.md). PokéBonk used an orbit camera
@@ -435,6 +443,8 @@ export const defaultRules = {
   // (recently lost) health refills, coats wear off twice as fast. A run ends when all three have fainted.
   squad: {
     max: 3,
+    /** the Tag Action's move level, flat since the pivot (Q26): the old squad-level-10 value (1 + floor(10 / 5)) */
+    tagActionLevel: 3,
     tagCooldown: 4, // s, squad-wide
     tagInvuln: 0.15, // s of invulnerability on arrival
     tagDelay: 0.2, // s from arrival to the Tag Action's release
@@ -459,8 +469,12 @@ export const defaultRules = {
     freeze: { light: 1, deep: 3, shatter: 2 }, // s frozen; the next physical hit or push deals x2
     conduct: { light: { r: 2, stun: 0.3, mult: 0.5 }, deep: { r: 6, stun: 1, mult: 1 }, maxTargets: 12 },
     overload: { light: { r: 1.5, mult: 0.6, knock: 6 }, deep: { r: 3, mult: 1.2, knock: 12 } },
-    /** base damage of a reaction that a tile starts (no hit to scale from): base + perLevel x squad level */
-    tileBase: 10, tilePerLevel: 2,
+    /** base damage of a reaction that a tile starts (no hit to scale from): flat since the pivot (Q26), the old
+     *  squad-level-10 value (10 + 2 × 10) */
+    tileStrength: 30,
+    /** burn strength a burning tile gives a creature standing on it (no attacker to scale from; Q40): the old
+     *  squad-level-10 value (6 + 0.8 × 10) */
+    tileBurn: 14,
     soakedFire: 0.5, // Fire damage into a Soaked creature
     /** crowd-control meter: after `limit` s of stun / freeze / root inside the decay window, immune for `immune` s */
     cc: { limit: 2, decay: 1 / 3, immune: 4, bossMult: 2 },

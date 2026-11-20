@@ -156,7 +156,7 @@ export function cases(): Case[] {
 
   // max HP, healing, cadence
   {
-    const lo = inAndOut(gm, gs, 'rattata', 2, 8), hi = inAndOut(gm, gs, 'charmander', 2, 8, { extra: { player: { hpBase: 400 } } });
+    const lo = inAndOut(gm, gs, 'rattata', 2, 8), hi = inAndOut(gm, gs, 'charmander', 2, 8, { extra: { hero: { health: 1000 } } });
     add('water.maxhp', gm, gs, tileName(lo.ctx, lo.sh.k), lo.w.koAt !== null && hi.w.koAt !== null && Math.abs(lo.w.koAt - hi.w.koAt) <= lo.ctx.dt + 1e-6 && hi.max > 3 * lo.max,
       `max HP ${lo.max.toFixed(0)} and ${hi.max.toFixed(0)}: knocked out after ${lo.w.koAt?.toFixed(3)} s and ${hi.w.koAt?.toFixed(3)} s (20 % of max HP per second each)`);
     const heal = inAndOut(gm, gs, 'rattata', 2, 8, { heal: 0.3 });

@@ -48,3 +48,29 @@ export function firstAttacks(sp: SpeciesDef, level: number, count = 2): string[]
 export function openingMove(sp: SpeciesDef): string | undefined {
   return sp.starter ?? lineage(sp)[0].starter ?? firstAttacks(sp, 1, 1)[0];
 }
+
+/** A hero's kit (docs/STATS_GROWTH_TARGET.md "Kit and gating", docs/hero-shooter-pivot.md Q27): the primary (left
+ *  click, fixed by species), Ability 1 (Q) and Ability 2 (E). The Ultimate (R) is unbound until it exists. */
+export interface HeroKit { primary?: string; q?: string; e?: string }
+
+/** Hand-authored kits that override the rule, field by field (the featured heroes' tuning lives here). */
+export const HERO_KITS: Record<string, Partial<HeroKit>> = {};
+
+/** a species' level-up moves in canonical order (its official level-up list, earliest level first, status moves
+ *  included), else its game learnset */
+export function canonicalLearnset(sp: SpeciesDef): string[] {
+  const rows = sp.canon?.levelUp?.length ? sp.canon.levelUp : learnsetOf(sp);
+  const sorted = rows.map((r, i) => [r[0], i, r[1]] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  return [...new Set(sorted.map((r) => r[2]).filter((k) => MOVE_BY_KEY[k]))];
+}
+
+/** The kit rule: primary = openingMove; Q = the first other move of the canonical learnset; E empty, or (range mode,
+ *  for testing) the next one. HERO_KITS overrides any field. */
+export function heroKit(sp: SpeciesDef, opts: { fillE?: boolean } = {}): HeroKit {
+  const o = HERO_KITS[sp.id] ?? {};
+  const primary = o.primary ?? openingMove(sp);
+  const rest = canonicalLearnset(sp).filter((k) => k !== primary);
+  const q = o.q ?? rest[0];
+  const e = o.e ?? (opts.fillE ? rest.find((k) => k !== q) : undefined);
+  return { primary, q, e };
+}

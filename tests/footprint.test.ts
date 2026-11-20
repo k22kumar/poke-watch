@@ -50,8 +50,10 @@ test('classes: a one-tile passage fits Tiny, Small and Medium bodies, not Large 
   assert.equal(partnerFootprint(SPECIES_BY_ID.feraligatr, off), 0);
 });
 
-test('a diagonal pinhole (two walls touching at a corner) stops the trainer; with point collision it slipped through', () => {
-  for (const geometry of [true, false]) {
+// The point-collision half (size.geometry off, where the trainer slipped through) went with the hero speed band: its
+// slip depended on the old 8 m/s run-up, and the off-path itself is retired (docs/hero-shooter-pivot.md Q18).
+test('a diagonal pinhole (two walls touching at a corner) stops the trainer', () => {
+  for (const geometry of [true]) {
     const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { size: { geometry } } as never });
     const W = ctx.world, P = ctx.player, [I, J] = openSquare(W, 10);
     const i = I + 5, j = J + 5;

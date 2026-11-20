@@ -1,5 +1,6 @@
 // Projectile and zone systems.
 import { partnerHeight, partnerRadius } from '../rules/sizing';
+import { channelOf } from '../rules/stats';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { ELEMENTS } from '../rules/elements';
 import { AILMENTS, damageEnemy, damagePlayer, type DamageSpec } from './combat';
@@ -206,7 +207,7 @@ export const projectileSystem = {
         if (dx * dx + dz * dz < reach * reach && Math.abs(P.y + ph * 0.5 - Pr.y[i]) < 1.0 + ph * 0.5) {
           if (canDeflect) { deflectShot(ctx, i); continue; }
           if (dx * dx + dz * dz < rr * rr) {
-            const res = damagePlayer(ctx, Pr.dmg[i], Pr.x[i], Pr.z[i], 0.5, lightBodies ? Pr.weight[i] : 0, ELEMENTS[Pr.element[i]], { kind: 'shot', name: Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : '' });
+            const res = damagePlayer(ctx, Pr.dmg[i], Pr.x[i], Pr.z[i], 0.5, lightBodies ? Pr.weight[i] : 0, ELEMENTS[Pr.element[i]], { kind: 'shot', name: Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : '' }, Pr.src[i] >= 0 ? channelOf(ctx.speciesIndex[Pr.src[i]]) : 'physical');
             // an enemy shot of Fire, Water, Ice or Electric coats the Pokémon it hits (light)
             if (res === 'hit') coatMember(ctx, P.m, agentIndex(ELEMENTS[Pr.element[i]]), 1);
             Pr.kill(i);
@@ -343,7 +344,7 @@ export const zoneSystem = {
         }
         if (kind === ZK.hostileSlam) {
           const dx = P.x - Z.x[i], dz = P.z - Z.z[i];
-          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - ctx.world.height(P.x, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' });
+          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - ctx.world.height(P.x, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' }, Z.src[i] >= 0 ? channelOf(ctx.speciesIndex[Z.src[i]]) : 'physical');
           ctx.events.push({ t: 'ring', x: Z.x[i], z: Z.z[i], r: Z.radius[i], element: ELEMENTS[Z.element[i]], life: 0.5 });
           ctx.events.push({ t: 'shake', amount: 0.5, x: Z.x[i], z: Z.z[i] });
           Z.kill(i);

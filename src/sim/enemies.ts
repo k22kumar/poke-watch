@@ -3,6 +3,7 @@
 // min(1, 10*dt); knockback decays by exp(-7*dt); neighbours within 2r + 1 push apart via the grid.
 
 import { datan2, dcos, dexp, dhypot, dpow, dsin } from '../core/detmath';
+import { channelOf } from '../rules/stats';
 import { clamp } from '../core/util';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { ELEMENTS, type Element } from '../rules/elements';
@@ -482,7 +483,7 @@ export const enemySystem = {
         if (E.contactCd[i] <= 0 && !frozen) {
           E.contactCd[i] = R.contactCooldown;
           const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);
-          const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp, (roles & ROLE.boss) !== 0), sp.elements[0], { kind: 'creature', name: sp.name });
+          const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp, (roles & ROLE.boss) !== 0), sp.elements[0], { kind: 'creature', name: sp.name }, channelOf(sp));
           // your Pokémon's Static or Effect Spore: 30% to stun whatever touched it
           if (res === 'hit' && (playerAbility(ctx) === AB_STATIC || playerAbility(ctx) === AB_SPORE) && ctx.rng.combat.next() < 0.3) {
             E.stun[i] = Math.max(E.stun[i], roles & ROLE.boss ? 0.3 : 1.2);

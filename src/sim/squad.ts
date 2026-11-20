@@ -36,13 +36,13 @@ export function tagDefOf(m: Member): TagDef | null {
   return m.tagVariant ? line.variant : line.base;
 }
 
-/** the Tag Action as a cast spec: scaled with squad level and hitting like a strong manual move */
+/** the Tag Action as a cast spec: at the flat rules.squad.tagActionLevel (Q26), hitting like a strong manual move */
 export function tagSpec(ctx: SimContext, m: Member): MoveSpec | null {
   const def = tagDefOf(m);
   if (!def || !MOVE_BY_KEY[def.move]) return null;
   const s = compileMove(ctx.rules, def.move);
   const R = ctx.rules.squad, M = ctx.rules.moves;
-  const L = Math.min(M.maxLevel, 1 + Math.floor(ctx.player.level / 5)) - 1;
+  const L = Math.min(M.maxLevel, R.tagActionLevel) - 1;
   const caps = def.create ? [...(s.caps ?? []), { verb: 'create' as const, template: def.create }] : s.caps;
   return techSpec(ctx, { ...s, dmg: s.dmg * (1 + M.levelDmg * L) * R.tagDmgMult, knock: s.knock * R.tagKnockMult, cd: 0, caps });
 }

@@ -237,8 +237,9 @@ export interface Derived {
   maxHp: number;
   atk: number; // multiplier for physical
   spa: number; // multiplier for special
-  def: number;
-  speed: number;
+  def: number; // m(Def): divides incoming physical damage
+  spd: number; // m(SpD): divides incoming special damage
+  speed: number; // top planar speed, m/s (the Spe band, src/rules/stats.ts)
   haste: number; // cooldown divisor
   area: number;
   crit: number;

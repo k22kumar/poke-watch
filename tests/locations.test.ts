@@ -199,7 +199,7 @@ test('every location plays two minutes with the bot: enemies spawn from anchors,
     // The seed was 6 until Joltik and Onix joined the roster: the spawn stream moved, and on seed 6 the bot now walks
     // off a Chargestone Cave edge at 1:55 (a bot-pathing limit on chasm maps, not a map defect — the fall recap is the
     // hazard rule working). Seed 3 passes every assertion below on all three locations.
-    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: id } }, player: { hpBase: 4000 }, combat: { basicNeedsTarget: true } } as never });
+    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: id } }, hero: { health: 4000 }, combat: { basicNeedsTarget: true } } as never });
     assert.equal(ctx.world.map.gen!.loc!.id, id);
     let checked = 0, near = 0, stuck = 0;
     while (ctx.time < 120 && ctx.state !== 'over') {

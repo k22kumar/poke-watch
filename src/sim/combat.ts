@@ -12,6 +12,7 @@ import { applyAfterHit, creatureForce } from './capabilities';
 import { rec, setSrc, type LogKind } from './caplog';
 import { TB } from '../rules/build';
 import { guardWeight, onGuardDeflect } from './techniques';
+import { guardOf, type Channel } from '../rules/stats';
 
 const AB = (id: string) => ABILITY_IDS.indexOf(id) + 1;
 const A = { levitate: AB('levitate'), flash: AB('flash_fire'), wabsorb: AB('water_absorb'), dry: AB('dry_skin'), sturdy: AB('sturdy'), magma: AB('magma_armor'), early: AB('early_bird'), vital: AB('vital_spirit'), guts: AB('guts'), swarm: AB('swarm'), stat: AB('static'), spore: AB('effect_spore') };
@@ -115,6 +116,8 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   }
   const eff = effectiveness(ctx.chart, spec.element, enemyElements(ctx, e));
   amount *= eff;
+  // the target's guard on the hit's channel: m(Def) or m(SpD) (src/rules/stats.ts; docs/hero-shooter-pivot.md Q37)
+  amount /= Math.max(0.05, guardOf(ctx.speciesIndex[E.species[e]], spec.cls === 'special' ? 'special' : 'physical', ctx.rules));
   // coats: Fire into a Soaked creature is damped; a physical hit shatters a frozen one
   if (E.coat[e] === AG.wet && spec.element === 'blaze') amount *= ctx.rules.reactions.soakedFire;
   if (spec.cls === 'physical' && E.frozen[e] > 0) amount *= shatter(ctx, e);
@@ -255,7 +258,9 @@ export function dropXp(ctx: SimContext, x: number, z: number, value: number, rol
 /** Damage to the player from enemies / hostile projectiles / boss attacks.
  *  `weight` is the attacker's weight class: a Guard deflect window parries attacks no heavier than the
  *  player's own class; Brace halves damage and cancels knockback. Returns 'parry' | 'brace' | 'hit' | 'none'. */
-export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ: number, knockMult = 1, weight = 1, element?: Element, src?: HurtSrc): 'parry' | 'brace' | 'hit' | 'none' {
+/** A hit on the player. `cls` is the attack's channel (src/rules/stats.ts): the damage is divided by m(Def) for
+ *  physical and m(SpD) for special. */
+export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ: number, knockMult = 1, weight = 1, element?: Element, src?: HurtSrc, cls: Channel = 'physical'): 'parry' | 'brace' | 'hit' | 'none' {
   const P = ctx.player;
   if (P.iframes > 0 || P.dashT > 0 || ctx.state !== 'play') return 'none';
   let eff = 1;
@@ -293,7 +298,7 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
     ctx.events.push({ t: 'brace', x: P.x, z: P.z, amount: raw });
   }
   const R = ctx.rules.player;
-  let amt = raw * ctx.rules.mode.difficulty * (R.defenseRef / (R.defenseRef + P.derived.def));
+  let amt = (raw * ctx.rules.mode.difficulty) / Math.max(0.05, cls === 'special' ? P.derived.spd : P.derived.def);
   // Sturdy: once per region, a hit from full health leaves it at 1 HP
   if (pa === A.sturdy && !P.m.sturdyUsed && P.hp >= P.maxHp - 0.01 && amt >= P.hp) { amt = P.hp - 1; P.m.sturdyUsed = true; abilityPop(ctx, 'Sturdy'); }
   logHurt(ctx, P.guardT >= 0 ? 'brace' : 'hit', amt, eff, weight, element, src, fromX, fromZ);

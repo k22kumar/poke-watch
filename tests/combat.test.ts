@@ -189,6 +189,7 @@ test('primary fire: the same scripted presses give the same state', () => {
 test('manual moves wait for their button', () => {
   const ctx = calm('totodile');
   const P = ctx.player;
+  P.moves.length = 1; // the range kit fills Q and E (heroKit); this test teaches its own Move A
   learnMove(ctx, 'bite'); // Move A
   assert.equal(P.moves[1].key, 'bite');
   const [ex, ez] = spot(ctx, 1, 0, 2.5);

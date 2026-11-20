@@ -1266,7 +1266,7 @@ export class UI {
     el.innerHTML = '';
     el.append(h('div', { style: 'font-weight:700;font-size:15px' }, 'Tuning (live rules)'), h('div', { class: 'sub2' }, 'Edits apply to this run immediately. Defaults live in src/rules/defaults.ts.'));
     const groups: [string, [string, number, number, number][]][] = [
-      ['Player', [['player.baseSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.magnetRadius', 1, 20, 0.5], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
+      ['Player', [['hero.topSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.magnetRadius', 1, 20, 0.5], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
       ['Enemies', [['enemy.liveCap', 50, 2200, 10], ['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5], ['mode.difficulty', 0.2, 4, 0.05]]],
       ['Director', [['director.spawnBase', 0, 10, 0.1], ['director.spawnPerMin', 0, 6, 0.1], ['director.eliteEvery', 5, 120, 1], ['stage.bossAt', 10, 900, 5]]],
       ['Progression', [['xp.base', 1, 40, 0.5], ['xp.linear', 0, 15, 0.1], ['xp.exponent', 1, 2.6, 0.02], ['damage.critChance', 0, 1, 0.01], ['damage.stab', 1, 3, 0.05]]],

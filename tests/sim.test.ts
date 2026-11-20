@@ -90,7 +90,7 @@ test('a classic run spawns a boss at 5:00 and can clear a region', () => {
   // run alive at 5:00 meets its boss on time, and at least one clears the region.
   let bosses = 0, clears = 0;
   for (const seed of [3, 2, 4, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { player: { hpBase: 4000 } } });
+    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { hero: { health: 4000 } } });
     let boss = false, cleared = false;
     while (ctx.time < 900 && ctx.state !== 'over') {
       for (const e of step(ctx, botInput(ctx))) {

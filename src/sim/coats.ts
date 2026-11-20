@@ -63,7 +63,7 @@ function clearCoat(ctx: SimContext, e: number) {
 /** base for a reaction started by a tile rather than a hit */
 export function tileReactionBase(ctx: SimContext) {
   const R = ctx.rules.reactions;
-  return R.tileBase + R.tilePerLevel * ctx.player.level;
+  return R.tileStrength;
 }
 
 /**
