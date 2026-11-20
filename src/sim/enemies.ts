@@ -2,12 +2,12 @@
 // Steering [C]: desired direction straight at the player; velocity eases toward it by
 // min(1, 10*dt); knockback decays by exp(-7*dt); neighbours within 2r + 1 push apart via the grid.
 
-import { datan2, dcos, dexp, dhypot, dpow, dsin } from '../core/detmath';
-import { channelOf } from '../rules/stats';
+import { datan2, dcos, dexp, dhypot, dsin } from '../core/detmath';
+import { channelOf, heroHealth } from '../rules/stats';
 import { clamp } from '../core/util';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { ELEMENTS, type Element } from '../rules/elements';
-import { SPECIES_BY_ID, bst, weightClass, type SpeciesDef } from '../rules/species';
+import { SPECIES_BY_ID, weightClass, type SpeciesDef } from '../rules/species';
 import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
 import { clearLanding } from './locomotion';
@@ -28,33 +28,6 @@ import { tickHeldEnemy } from './capabilities';
 import { avoidsStep } from './hazards';
 
 import { targetGoal } from './targets';
-export function stageIndex(ctx: SimContext) {
-  return Math.min(ctx.stage, ctx.rules.director.hpN.length - 1);
-}
-
-export function hpMultiplier(ctx: SimContext): number {
-  const D = ctx.rules.director;
-  const s = stageIndex(ctx);
-  const t = ctx.stageTime / 60;
-  let m = (1 + D.hpLinear * t + Math.max(0, t - D.hpKnee) ** 2 * D.hpR[s]) * D.hpN[s];
-  if (ctx.director.finalSwarm) {
-    const since = Math.max(0, ctx.stageTime - ctx.rules.stage.finalSwarmAt) / 60;
-    m *= dpow(D.finalSwarmBase, since);
-  }
-  return m;
-}
-
-export function toughness(ctx: SimContext): number {
-  const D = ctx.rules.director;
-  return D.toughnessBase + D.toughnessEarly * Math.max(0, 1 - ctx.time / D.toughnessWindow);
-}
-
-export function speedFactor(ctx: SimContext): number {
-  const D = ctx.rules.director;
-  const t = ctx.stageTime / 60;
-  return Math.min(D.speedCap, 1 + D.speedPerMin * t + D.speedPerStage * stageIndex(ctx));
-}
-
 export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, roles = 0): number {
   const sp = SPECIES_BY_ID[id];
   if (!sp) throw new Error('unknown species ' + id);
@@ -63,7 +36,6 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (i < 0) return -1;
   const R = ctx.rules.enemy;
   const diff = ctx.rules.mode.difficulty;
-  const b = bst(sp.stats);
   let hpRole = 1, dmgRole = 1, size = 1;
   if (roles & ROLE.boss) { hpRole = R.roles.boss.hp; dmgRole = R.roles.boss.dmg; size = R.roles.boss.size; }
   else if (roles & ROLE.alpha) { hpRole = R.roles.alpha.hp; dmgRole = R.roles.alpha.dmg; size = R.roles.alpha.size; }
@@ -75,8 +47,10 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   // traversal (rules/traversal.ts): a hovering wild body floats over the terrain with no footprint or ground placement
   const tv = traversalOf(sp, ctx.rules), hv = tv.hover;
   if (hv) roles |= ROLE.flying;
-  const hp = (R.hpBase + b * R.hpPerBst) * hpMultiplier(ctx) * toughness(ctx) * hpRole * diff;
-  let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe) * speedFactor(ctx) * Math.sqrt(diff);
+  // health on the hero canon curve × the behaviour's multiplier; base speed keeps its own formula until the co-op wave
+  // step puts enemies on the hero speed band (docs/hero-shooter-pivot.md Q20, Q36). No growth with match time or region.
+  const hp = heroHealth(sp.stats.hp, ctx.rules) * R.behaviourHp[beh] * hpRole * diff;
+  let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe) * Math.sqrt(diff);
   if (beh === 'tank') speed *= 0.72;
   if (beh === 'swarm') speed *= 1.12;
   if (beh === 'ranged') speed *= 0.85;

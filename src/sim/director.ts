@@ -15,7 +15,7 @@ import { clamp } from '../core/util';
 import { COMPOSITIONS, REGION_WEATHER, resolve, type CompositionDef } from '../rules/compositions';
 import { SPECIES_BY_ID } from '../rules/species';
 import { applyAgent, CS } from './cells';
-import { ringPoint, spawnEnemy, stageIndex } from './enemies';
+import { ringPoint, spawnEnemy } from './enemies';
 import { objectiveDue, startObjective } from './objectives';
 import { ROLE } from './pools';
 import type { Beat, SimContext } from './types';
@@ -197,7 +197,7 @@ export const directorSystem = {
     const E = ctx.enemies;
     const table = ctx.spawnTable;
     const S = ctx.rules.stage;
-    const s = stageIndex(ctx);
+    const s = Math.min(ctx.stage, 3);
     const t = ctx.stageTime / 60;
     const [rMin, rMax] = ctx.rules.enemy.spawnRadius;
 

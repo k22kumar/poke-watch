@@ -30,6 +30,7 @@ A target set is data: per target a species, a kind, an anchor (`spawn`, or a hab
 
 - **Health:** the canon curve, `heroHealth(HP) × rules.targets.hp[kind]`, so a target and a future hero bot take the same time to kill. Incoming damage is divided by the target's guard (docs/HEROES.md).
 - **No survivor curves:** a target's speed is its base speed (no stage-time curve), and nothing drops on a kill (XP and pickups were deleted at pivot step 9).
+- **Every other enemy** (the Hold Raid party, `pokewatch.spawn` in the dev console) takes the same canon curve, `heroHealth(HP) × rules.enemy.behaviourHp[behaviour]` × its role's `hp` (Raiders also `rules.roles.raiderHp`). Health never grows with match time or region. Base speed keeps its own formula (`rules.enemy.speedBase + Spe × speedPerSpe`, capped at `speedMax`, × the behaviour's factor) until the co-op wave puts enemies on the hero speed band (pivot Q36).
 - **Placement:** `src/sim/placement.ts allowedAt` (habitat restrictions and wide-field reach), else the nearest walkable tile, then `spawnEnemy`'s footprint fit.
 - **Pinned:** the far-behind relocation (`rules.enemy.despawnDistance`) never moves a target.
 - **Respawn:** a fixed tick count, `round(rules.targets.respawn / dt)` (3 s), at its anchor; no RNG.

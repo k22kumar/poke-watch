@@ -5,12 +5,13 @@ import { Rng } from '../src/core/rng';
 import { Hasher } from '../src/core/util';
 import { defaultRules } from '../src/rules/defaults';
 import { MOVES } from '../src/rules/moves';
-import { SPECIES } from '../src/rules/species';
+import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
 import { MODES, vampiric } from '../src/mods';
 import { classify, compileMove } from '../src/sim/moves';
 import { botInput } from '../src/sim/bot';
 import { createRun, step } from '../src/sim/run';
-import { hpMultiplier, speedFactor, toughness } from '../src/sim/enemies';
+import { spawnEnemy } from '../src/sim/enemies';
+import { heroHealth } from '../src/rules/stats';
 import type { SimContext } from '../src/sim/types';
 
 import { runEnded as ended } from '../scripts/lib/ended';
@@ -37,13 +38,17 @@ test('mulberry32 stream is stable', () => {
   assert.ok(a.every((v) => v >= 0 && v < 1));
 });
 
-test('director curves match the confirmed formulas', () => {
+test('enemy health is the canon curve x the behaviour multiplier and does not grow with match time', () => {
   const ctx = createRun({ seed: 1, species: 'charmander' });
+  const sp = SPECIES_BY_ID.rattata;
+  const e0 = spawnEnemy(ctx, 'rattata', ctx.player.x + 6, ctx.player.z);
+  const want = heroHealth(sp.stats.hp, ctx.rules) * ctx.rules.enemy.behaviourHp[sp.behaviour ?? 'chase'];
+  assert.ok(Math.abs(ctx.enemies.maxHp[e0] - Math.fround(want)) < 1e-9);
+  const s0 = ctx.enemies.speed[e0];
   ctx.stageTime = 240; ctx.time = 240; ctx.stage = 1;
-  const t = 4;
-  assert.ok(Math.abs(hpMultiplier(ctx) - (1 + 0.3 * t + Math.max(0, t - 1.5) ** 2 * 0.07) * 5.5) < 1e-9);
-  assert.ok(Math.abs(speedFactor(ctx) - Math.min(1.3, 1 + 0.02 * t + 0.06)) < 1e-9);
-  assert.ok(Math.abs(toughness(ctx) - (1.35 + 1.05 * (1 - 240 / 480))) < 1e-9);
+  const e1 = spawnEnemy(ctx, 'rattata', ctx.player.x - 6, ctx.player.z);
+  assert.equal(ctx.enemies.maxHp[e1], ctx.enemies.maxHp[e0]);
+  assert.equal(ctx.enemies.speed[e1], s0);
 });
 
 test('every move classifies to a defined archetype and scales within the clamps', () => {

@@ -215,7 +215,8 @@ test('every location plays two minutes with the bot: enemies spawn from anchors,
       }
     }
     assert.notEqual(ctx.state, 'over', id);
-    assert.ok(ctx.stats.kills > 20 && checked > 200, `${id}: spawning and fighting (${ctx.stats.kills} KOs)`);
+    // no KO floor since enemies took canon-curve health (pivot step 9): the bot's ~4x slower kills say nothing about the map
+    assert.ok(checked > 200, `${id}: spawning (${checked} enemy samples, ${ctx.stats.kills} KOs)`);
     assert.ok(near > 20, `${id}: ground enemies reach the player`);
     assert.ok(stuck / checked < 0.05, `${id}: enemies with no path ${stuck}/${checked}`);
   }

@@ -175,7 +175,9 @@ export const defaultRules = {
     cap: 2200, // [C] pool capacity
     liveCap: 900, // [C] quality presets 500 / 900 / 1400
     governor: { window: 2, dropTo: 0.82, raiseBy: 50, targetFps: 50 }, // [C]
-    hpBase: 12, hpPerBst: 0.055, // [C] hp = (12 + BST*0.055) * hpMult * toughness * roleMult
+    /** [D] health = heroHealth(HP) (the canon curve, rules/stats.ts) × this behaviour's multiplier × role (Q20). All 1
+     *  until the kit-tuning pass: the survivor formula had no behaviour term either */
+    behaviourHp: { chase: 1, charger: 1, ranged: 1, tank: 1, healer: 1, swarm: 1 } as Record<string, number>,
     speedBase: 3, speedPerSpe: 1 / 55, speedMax: 6.2, // [C]
     dmgBase: 5, dmgPerAtk: 1 / 16, dmgPerSpa: 1 / 24, // [C]
     steerRate: 10, // [C] velocity eases toward desired by min(1, 10*dt)
@@ -290,12 +292,6 @@ export const defaultRules = {
     xlTall: true,
   },
   director: {
-    hpN: [1, 5.5, 13, 20], // [C] per stage
-    hpR: [0.15, 0.07, 0.05, 0.05], // [C] per stage
-    hpLinear: 0.3, hpKnee: 1.5, // [C] (1 + 0.3t + max(0, t-1.5)^2 r) * n, t = stage minutes
-    toughnessBase: 1.35, toughnessEarly: 1.05, toughnessWindow: 480, // [C] 1.35 + 1.05*max(0, 1 - t/480s)
-    speedPerMin: 0.02, speedPerStage: 0.06, speedCap: 1.3, // [C]
-    finalSwarmBase: 4, // [C] HP x 4^(minutes since swarm start)
     spawnBase: 1.0, spawnPerMin: 0.9, spawnPerStage: 0.6, // [B] spawns per second
     capBase: 120, capPerMin: 130, // [B] live-enemy cap ramps up over the stage (min with enemy.liveCap)
     eliteEvery: 40, // [B] s
