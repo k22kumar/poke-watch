@@ -6,7 +6,7 @@ import { World } from '../src/sim/world';
 import { createRun, step } from '../src/sim/run';
 import { NO_INPUT } from '../src/sim/types';
 import { SPECIES_BY_ID } from '../src/rules/species';
-import { footprintOf, partnerFootprint } from '../src/rules/sizing';
+import { footprintOf, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { blockMask, wideBlock, type NavGrid } from '../src/world/navblocks';
 import { generateLocation } from '../src/world/locgen';
 import { wideCore } from '../src/world/locgen/nav';
@@ -15,6 +15,7 @@ import { playHabitat } from '../scripts/habplay';
 import { escapeOf, TRAP_ROOM } from '../scripts/stuckwatch';
 
 import { RANGE } from '../src/mods';
+import { T } from '../src/world/tiles';
 // Movement footprints (docs/SIZING.md "Footprint", "Navigation classes"): every body collides with walls as a circle of
 // its class `body` (World.moveBody), wide bodies route on 2 × 2 blocks (world/navblocks.ts), and navigation and collision
 // agree on what fits. One test per defect this pass confirmed.
@@ -206,5 +207,73 @@ test('stuckwatch tells a trapped partner from a bot that missed a narrow way out
       assert.equal(r.trapped, true, `${species}: boxed in (${r.free} free, ${r.room} tiles)`);
       if (species === 'feraligatr') assert.equal(r.free, 0, 'an Extra Large footprint has no room to move in one tile');
     });
+  }
+});
+
+// Regression (navwalk location seed 4, 2026-11-20): a grounded body whose centre grazes the corner of a chasm tile was
+// treated as stepping off a ledge, its faces measured from the chasm floor 7.5 m down, and the summed push shoved it
+// 0.91 m in one tick, out over the chasm, where it fell. The ledge-landing push is for drops the map's step rule allows
+// (World.dropNav); a deeper drop is not a landing. The state is the driven trainer's at tick 724.
+test('a body grazing a chasm corner is not shoved into the chasm (no single-tick teleport)', () => {
+  const id = 'viridian-forest';
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 4, locations: { meadow: id, dusk: id, badlands: id, frost: id } } } as never });
+  for (let e = 0; e < ctx.enemies.hi; e++) if (ctx.enemies.alive[e]) ctx.enemies.kill(e);
+  const P = ctx.player, W = ctx.world;
+  Object.assign(P, { x: -10.908977569192976, y: 3, z: -25.9621700945348, px: -10.818413622140175, py: 3, pz: -25.931924002584438, vx: -5.433836823168054, vz: -1.814765517021755, vy: 0, grounded: true, pgrounded: true, facing: 4.384438911119424, iframes: 1 });
+  assert.ok(W.dropNav > 0 && W.dropNav < 7.5, `a drop rule shallower than the chasm (${W.dropNav} m)`);
+  const x0 = P.x, z0 = P.z;
+  step(ctx, { ...NO_INPUT, mx: -0.9791285336399216, mz: -0.20324200995890876 });
+  const moved = Math.hypot(P.x - x0, P.z - z0);
+  assert.ok(moved < 0.2, `moved ${moved.toFixed(3)} m in one tick (top speed ${P.m.derived.speed.toFixed(2)} m/s)`);
+  assert.ok(P.y > 2.9, `still at the bank's height after the tick (y ${P.y.toFixed(2)})`);
+});
+
+// Regression (navwalk location seed 3, 2026-11-20): a falling footprint's faces are measured from its feet, and once
+// they come within a step of the floor below, the ledge it is dropping past becomes a face. The planar move had been
+// resolved at the tick's starting feet, so the Extra Large trainer ended the tick 0.13 m inside that ledge until the
+// next tick's move pushed it off. An airborne footprint is now pushed clear at its new feet within the same tick.
+test('a falling Extra Large body never ends a tick inside the ledge it drops past', () => {
+  const id = 'chargestone-cave';
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'feraligatr', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 3, locations: { meadow: id, dusk: id, badlands: id, frost: id } } } as never });
+  for (let e = 0; e < ctx.enemies.hi; e++) if (ctx.enemies.alive[e]) ctx.enemies.kill(e);
+  const P = ctx.player, W = ctx.world, r = partnerFootprint(P.species, ctx.rules), tall = partnerHeight(P.species, ctx.rules);
+  Object.assign(P, { x: 6.946839973873295, y: 0.6388938546180725, z: -14.682334779532557, px: 6.897190240296599, py: 0.7055605212847391, pz: -14.605096622799236, vx: 2.9789840146017434, vz: -4.634289403999246, vy: -4, grounded: false, pgrounded: false, facing: 2.3501207993960995, iframes: 1 });
+  assert.ok(W.fits(P.x, P.z, P.y, r, 0.6, tall), 'clear before the tick');
+  step(ctx, { ...NO_INPUT, mx: 0.957395563461738, mz: -0.28877973451019984 });
+  assert.ok(W.fits(P.x, P.z, P.y, r - 2e-3, 0.6 + 1e-3, tall), `clear after the tick at ${P.x.toFixed(3)},${P.z.toFixed(3)} feet ${P.y.toFixed(3)}`);
+});
+
+// stuckwatch's escape check counts the jump (the real apex) and swimming as ways out (2026-11-20). The lagoon rock: a
+// Pokémon knocked off the 2.5 m bank onto the 1.1 m rock below it is ringed by sealed ground, and the only way out is
+// the 1.4 m jump back up, inside the 1.84 m apex. With a jump too weak to reach the bank it is a trap.
+test('escapeOf: a jump back up the bank is a way out, and too weak a jump leaves it a trap', () => {
+  const map = 'tropical-lagoon';
+  const mk = (jumpVelocity?: number) => createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 1, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...(jumpVelocity ? { player: { jumpVelocity } } : {}) } as never });
+  for (const [jv, trapped] of [[undefined, false], [3, true]] as const) {
+    const ctx = mk(jv), P = ctx.player;
+    P.x = P.px = -27.5; P.z = P.pz = 2.4; P.y = P.py = ctx.world.height(P.x, P.z, 1.2);
+    const r = escapeOf(ctx);
+    assert.equal(r.trapped, trapped, `jump velocity ${jv ?? 'default'}: ${r.free} free, ${r.room} tiles`);
+  }
+});
+
+// Swimming: in deep water a Water type swims to the bank; a non-swimmer there has no safe move (hazards.safeIn).
+test('escapeOf: a swimmer in deep water is not trapped; a non-swimmer there is', () => {
+  const map = 'river-gorge';
+  for (const [species, trapped] of [['totodile', false], ['cyndaquil', true]] as const) {
+    const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: 3, locations: { meadow: map, dusk: map, badlands: map, frost: map } } } as never });
+    const W = ctx.world, P = ctx.player, m = W.map;
+    // a river tile with water all round it: deep in the river, not at its bank
+    let k = -1;
+    for (let j = 2; j < m.h - 2 && k < 0; j++) for (let i = 2; i < m.w - 2 && k < 0; i++) {
+      let all = true;
+      for (let dj = -1; dj <= 1 && all; dj++) for (let di = -1; di <= 1 && all; di++) all = m.terrain[(j + dj) * m.w + i + di] === T.water;
+      if (all) k = j * m.w + i;
+    }
+    assert.ok(k >= 0, 'the river has a tile with water all round it');
+    P.x = P.px = (k % m.w) - W.half + 0.5; P.z = P.pz = Math.floor(k / m.w) - W.half + 0.5; P.y = P.py = W.height(P.x, P.z);
+    assert.ok(W.liquidAt(P.x, P.z, P.y, ctx.rules.hazards.contact), 'that tile is water');
+    const r = escapeOf(ctx);
+    assert.equal(r.trapped, trapped, `${species}: ${r.free} free, ${r.room} tiles`);
   }
 });

@@ -1193,9 +1193,12 @@ export class World {
         if (this.collides(nx, nz, feet, step, tall, over) || (stop && stop(nx, nz))) continue;
         if (r > 0) {
           // a grounded body stepping off a ledge (a drop the step rule allows on location maps) lands clear of the lip it
-          // left: the push is measured from the surface it lands on, not from its feet still level with the lip
+          // left: the push is measured from the surface it lands on, not from its feet still level with the lip. Only a
+          // drop within the map's drop rule (dropNav) is a landing: from the floor of a chasm the whole bank reads as a
+          // wall, and a centre grazing the chasm's corner was shoved 0.9 m out over it in one tick (navwalk location
+          // seed 4). Maps with no drop rule keep the older reading
           const s0 = this.height(cx, cz, feet), s1 = this.height(nx, nz, feet);
-          const land = feet - s0 <= step && s0 - s1 > step ? s1 : undefined;
+          const land = feet - s0 <= step && s0 - s1 > step && (this.dropNav <= 0 || s0 - s1 <= this.dropNav) ? s1 : undefined;
           for (let it = 0; it < 2; it++) {
             const before = this.overlap(nx, nz, feet, step, r, P, land, tall, over);
             if (before <= 1e-4) break;

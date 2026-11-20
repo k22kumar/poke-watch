@@ -22,6 +22,7 @@ import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { DIAG_R } from '../src/world/navblocks';
 import { stateHash } from '../src/sim/checksum';
 import { safeIn } from '../src/sim/hazards';
+import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
@@ -34,32 +35,53 @@ export const TRAP_ROOM = 48;
 /** Can the partner get out from where it stands? Both answers move its own footprint with World.moveBody, as the player
  *  system does, so a one-tile exit counts for a Small partner and not for an Extra Large one.
  *    free  of 16 headings, those along which a 0.3 m move goes at least 0.2 m onto ground it may stand on
- *    room  ground it can walk to, in tiles: a flood over the world's 0.5 m lattice from where it stands, each step a 0.5 m
- *          move that arrives (faces it cannot step up stop it; it may drop off a ledge), never into open air or a liquid it is not
- *          safe in (hazards.safeIn); it stops at TRAP_ROOM
+ *    room  ground it can get to, in tiles: a flood over the world's 0.5 m lattice from where it stands, each step a 0.5 m
+ *          move that arrives, walking (faces it cannot step up stop it; it may drop off a ledge) or jumping (a face up to
+ *          the real jump apex, rules.player jumpVelocity² / 2 gravity, plus the step: the trainer-jump climb the habitat
+ *          profiles use), never into open air or a liquid it is not safe in (hazards.safeIn). A liquid it is safe in is a
+ *          way through: a swimmer floats at its surface. It stops at TRAP_ROOM
  *  Reads the world only: moveBody and support write nothing, and the wide field (which a query could rebuild early, and
  *  so change later steering) is never touched. */
 export function escapeOf(ctx: SimContext): { free: number; room: number; trapped: boolean } {
-  const W = ctx.world, P = ctx.player, r = partnerFootprint(P.species, ctx.rules), st = ctx.rules.player.stepHeight, tall = partnerHeight(P.species, ctx.rules);
+  const W = ctx.world, P = ctx.player, R = ctx.rules.player, r = partnerFootprint(P.species, ctx.rules), st = R.stepHeight, tall = partnerHeight(P.species, ctx.rules);
+  const climb = st + (R.jumpVelocity * R.jumpVelocity) / (2 * R.gravity);
+  const contact = ctx.rules.hazards.contact;
   const standable = (x: number, z: number, feet: number) => {
     const g = W.support(x, z, feet);
-    if (g === -Infinity) return -Infinity;
-    const kind = W.liquidAt(x, z, g, ctx.rules.hazards.contact);
-    return kind && !safeIn(ctx, kind, P.species) ? -Infinity : g;
+    const kind = W.liquidAt(x, z, g === -Infinity ? feet : g, contact);
+    if (kind) {
+      if (!safeIn(ctx, kind, P.species)) return -Infinity;
+      // swimming: a liquid it is safe in carries it at the surface, floor or none
+      const k = W.tile(x, z), top = W.map.wlevel ? W.map.wlevel[k] : WATER_Y;
+      return g === -Infinity ? top : Math.max(g, top);
+    }
+    return g;
+  };
+  // a move of (dx, dz) from (x, z) at `feet` that arrives within `tol` of its target: walking first, then jumping
+  const arrives = (x: number, z: number, feet: number, dx: number, dz: number, tol: number) => {
+    for (const up of [st, climb]) {
+      W.moveBody(x, z, dx, dz, feet, up, r, OUT, undefined, tall);
+      if (Math.hypot(OUT[0] - (x + dx), OUT[1] - (z + dz)) <= tol) return true;
+    }
+    return false;
   };
   let free = 0;
   for (let h = 0; h < 16; h++) {
-    const a = (h * Math.PI) / 8;
-    W.moveBody(P.x, P.z, Math.sin(a) * 0.3, Math.cos(a) * 0.3, P.y, st, r, OUT, undefined, tall);
-    if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], P.y) > -Infinity) free++;
+    const a = (h * Math.PI) / 8, dx = Math.sin(a) * 0.3, dz = Math.cos(a) * 0.3;
+    // as before, a heading is free when a 0.3 m move goes at least 0.2 m (sliding along a face counts), walking or jumping
+    for (const up of [st, climb]) {
+      W.moveBody(P.x, P.z, dx, dz, P.y, up, r, OUT, undefined, tall);
+      if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], up === st ? P.y : P.y + climb) > -Infinity) { free++; break; }
+    }
   }
   // the lattice is the world's 0.5 m points (tile centres and corners: the middle of a one-tile and of a two-tile passage,
   // where a footprint with little room to spare fits), seeded with those within 0.75 m the partner reaches from where it is
   const key = (i: number, j: number) => (i + 2048) * 4096 + (j + 2048);
   const cap = TRAP_ROOM * 4, seen = new Map<number, number>(), Q: number[] = [];
   const reach = (x: number, z: number, feet: number, tx: number, tz: number) => {
-    W.moveBody(x, z, tx - x, tz - z, feet, st, r, OUT, undefined, tall);
-    return Math.hypot(OUT[0] - tx, OUT[1] - tz) <= 0.05 ? standable(tx, tz, feet) : -Infinity;
+    if (!arrives(x, z, feet, tx - x, tz - z, 0.05)) return -Infinity;
+    // walked or jumped: it stands on whatever is under it there, up to a jump's height above its feet
+    return standable(tx, tz, feet + climb);
   };
   const i0 = Math.round(P.x * 2), j0 = Math.round(P.z * 2);
   for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {

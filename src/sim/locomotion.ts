@@ -208,8 +208,8 @@ export function driveScripted(b: LocoBody, dx: number, dz: number, speed: number
 
 /** a body that dropped onto the ground at `ground` may stand in the lip (faces were measured from its feet on the way
  *  down): push its footprint clear (World.moveBody's push). Shared by the player and the enemy pool */
-export function clearLanding(W: World, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number]) {
-  W.moveBody(x, z, 0, 0, ground, step, foot, out, undefined, tall);
+export function clearLanding(W: World, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number], over?: boolean) {
+  W.moveBody(x, z, 0, 0, ground, step, foot, out, undefined, tall, over);
 }
 
 /** the planar move with the terrain step rule, axis-separated sliding. Only solid geometry stops it (World.collides):
@@ -284,6 +284,11 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
     b.y = g; b.vy = 0; // stick to slopes going down
   } else {
     b.grounded = false;
+    // still airborne: faces are measured from the feet as they fall (World.overlap), so the ledge a body is dropping past
+    // becomes a face during the tick its feet come within a step of the floor below. The planar move was resolved at the
+    // tick's starting feet, so push the footprint clear at its new feet now, not on the next tick's move (navwalk
+    // location seed 3: an Extra Large body ended a tick 0.13 m inside the ledge)
+    if (t.foot > 0) { clearLanding(W, b.x, b.z, b.y, t.stepUp, t.foot, tall, MOVE, t.over); b.x = MOVE[0]; b.z = MOVE[1]; }
   }
 }
 

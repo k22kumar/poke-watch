@@ -31,7 +31,7 @@ physics does not.
 
 All three run the same body step after their drive (`advanceBody`): knockback decay, the planar move (step rule,
 footprint through `World.moveBody`, the centre-point look-ahead with size geometry off), take-off, gravity and the lift
-row, headroom, the support (landing with the footprint clear, slope stick, leaving the support), and the rock recovery on
+row, headroom, the support (landing with the footprint clear, an airborne footprint cleared at its new feet, slope stick, leaving the support), and the rock recovery on
 location maps. A scripted tick keeps gravity and support under it: a dash off a ledge falls, a grounded dash can jump.
 
 **Crossing above wall tops (R1b, docs/SIZING.md "Wall tops").** `LocoTick.over` is an explicit permission to cross above
