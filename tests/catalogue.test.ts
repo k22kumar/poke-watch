@@ -241,18 +241,18 @@ const SKIPPED = ['amoonguss', 'carkol', 'coalossal', 'crustle', 'gimmighoul', 's
 const WAVE_IN = WAVE.filter((id) => !SKIPPED.includes(id));
 
 test('isolation: catalogue records are not game species and move nothing in the sim', () => {
-  // the active registry holds the roster's 234 species, the same ids, and no catalogue leak.
+  // the active registry holds the roster's 239 species, the same ids, and no catalogue leak.
   // 38 predate the catalogue lane; Joltik and Onix and then the 2026-11 wave of 32 (docs/SPECIES.md) were added
   // deliberately through content/roster.json as wild encounters, and then the catalogue wave of 162 (169 less the 7
   // skipped), so they are role records that coincide with catalogue records, not a catalogue leak. A catalogue record
   // still never becomes a species on its own.
   assert.equal(WAVE.length, 169);
   assert.equal(WAVE_IN.length, 162);
-  assert.equal(POKEDEX_SPECIES.length, 234);
-  assert.equal(SPECIES.length, 234);
+  assert.equal(POKEDEX_SPECIES.length, 239);
+  assert.equal(SPECIES.length, 239);
   assert.equal(SPECIES, POKEDEX_SPECIES);
   assert.deepEqual(STAGES.map((s) => s.biome), ['meadow', 'badlands', 'frost', 'dusk']);
-  assert.equal(POKEDEX_MOVES.length, 396, 'the catalogue adds no move rows; every row is a role species\' level-up move');
+  assert.equal(POKEDEX_MOVES.length, 399, 'the catalogue adds no move rows; every row is a role species\' level-up move (+ Psystrike, Raging Bull, Work Up from the hero test lines)');
   const report = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/report.json'), 'utf8'));
   assert.deepEqual(report.skipped.map((k: { id: string }) => k.id).sort(), SKIPPED, 'the species skipped for want of art, reported');
   for (const id of SKIPPED) assert.equal(SPECIES_BY_ID[id], undefined, `${id} has no art yet: catalogue-only`);
@@ -270,20 +270,21 @@ test('isolation: catalogue records are not game species and move nothing in the 
   // navigation profiles no longer read it, src/world/habitat/mode.ts `VALIDATED_PROFILES`). The pre-wave roster by
   // name, then the wave.
   assert.deepEqual(SPECIES.filter((s) => !s.wave).map((s) => s.id).sort(), [
-    'articuno', 'bayleef', 'bergmite', 'blastoise', 'budew', 'bulbasaur', 'cetoddle', 'charizard', 'charmander', 'charmeleon',
-    'chikorita', 'croconaw', 'cutiefly', 'cyndaquil', 'delibird', 'diglett', 'doduo', 'dreepy', 'ekans', 'feraligatr', 'furret',
-    'gastly', 'gengar', 'geodude', 'hariyama', 'haunter', 'heracross', 'honedge', 'houndoom', 'houndour', 'impidimp', 'ivysaur',
-    'joltik', 'koffing', 'lapras', 'ledyba', 'litwick', 'magcargo', 'makuhita', 'mareep', 'meganium', 'murkrow', 'noibat',
-    'oddish', 'onix', 'paras', 'pichu', 'pikachu', 'poliwag', 'quilava', 'rattata', 'rolycoly', 'sandshrew', 'sentret',
-    'silicobra', 'sizzlipede', 'slugma', 'sneasel', 'snom', 'snorlax', 'snorunt', 'squirtle', 'sudowoodo', 'swinub', 'togepi',
-    'totodile', 'turtwig', 'typhlosion', 'venusaur', 'vulpix', 'wartortle', 'zubat',
+    'articuno', 'bayleef', 'bergmite', 'blastoise', 'budew', 'bulbasaur', 'butterfree', 'caterpie', 'cetoddle',
+    'charizard', 'charmander', 'charmeleon', 'chikorita', 'croconaw', 'cutiefly', 'cyndaquil', 'delibird', 'diglett',
+    'doduo', 'dreepy', 'ekans', 'feraligatr', 'furret', 'gastly', 'gengar', 'geodude', 'hariyama', 'haunter',
+    'heracross', 'honedge', 'houndoom', 'houndour', 'impidimp', 'ivysaur', 'joltik', 'koffing', 'lapras', 'ledyba',
+    'litwick', 'magcargo', 'makuhita', 'mareep', 'meganium', 'metapod', 'mewtwo', 'murkrow', 'noibat', 'oddish', 'onix',
+    'paras', 'pichu', 'pikachu', 'poliwag', 'quilava', 'rattata', 'rolycoly', 'sandshrew', 'sentret', 'silicobra',
+    'sizzlipede', 'slugma', 'sneasel', 'snom', 'snorlax', 'snorunt', 'squirtle', 'sudowoodo', 'swinub', 'tauros',
+    'togepi', 'totodile', 'turtwig', 'typhlosion', 'venusaur', 'vulpix', 'wartortle', 'zubat',
   ]);
   assert.deepEqual(SPECIES.filter((s) => s.wave).map((s) => s.id).sort(), [...WAVE_IN].sort());
-  // the wave follows every older species in the registry, so their indices are unchanged
-  assert.ok(SPECIES.findIndex((s) => s.wave) === 72 && SPECIES.slice(72).every((s) => s.wave === 'catalogue'));
+  // the wave follows every older species in the registry (72, plus the five hero test-line species since the pivot)
+  assert.ok(SPECIES.findIndex((s) => s.wave) === 77 && SPECIES.slice(77).every((s) => s.wave === 'catalogue'));
   const wild = SPECIES.filter((s) => !s.boss && !s.flying);
   const bosses = SPECIES.filter((s) => s.boss && !s.flying);
-  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 234);
+  assert.equal(wild.length + bosses.length + SPECIES.filter((s) => s.flying).length, 239);
   assert.equal(Math.max(...SPECIES.map((s) => s.height)), 4.5, 'the overall height extremes are unchanged');
   assert.equal(Math.min(...SPECIES.map((s) => s.height)), 0.9);
   // Sim bodies come from the size classes (rules/sizing.ts): the widest non-flying body is an Extra Large at the top of
@@ -348,7 +349,7 @@ test('the records with a game role agree with the catalogue and keep their role'
   // the catalogue's own records never carry in-run pacing, and the 10 non-Charmander starter
   // edges in SPECIES are outside the catalogue's 102 and stay untouched
   const inRun = SPECIES.filter((s) => s.evolvesTo).map((s) => `${s.id}>${s.evolvesTo}`);
-  assert.equal(inRun.length, 12, 'the six starter lines, unchanged');
+  assert.equal(inRun.length, 14, 'the six starter lines and the Caterpie test line (docs/hero-shooter-pivot.md Q33)');
   const canonical = new Set(FAMILIES.flatMap((f) => f.edges.map(([p, c]) => `${p}>${c}`)));
   assert.deepEqual(inRun.filter((e) => canonical.has(e)), ['charmander>charmeleon', 'charmeleon>charizard']);
 });
@@ -362,7 +363,7 @@ test('provenance: the generated module records the pinned source revision', () =
   assert.deepEqual(report.catalogue.totals, { ...CATALOGUE_TOTALS });
   assert.equal(report.catalogue.source.files.length, authored.source.csv.length);
   for (const f of report.catalogue.source.files) assert.match(f.sha256, /^[0-9a-f]{64}$/, `${f.file} checksum`);
-  assert.equal(report.species.length, 234, 'the role lane\'s provenance is preserved');
+  assert.equal(report.species.length, 239, 'the role lane\'s provenance is preserved');
 });
 
 test('shape: every record and every runtime species carries its official shape from the pinned snapshot', () => {

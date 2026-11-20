@@ -2113,6 +2113,206 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   }
  },
  {
+  "id": "caterpie",
+  "name": "Caterpie",
+  "dex": 10,
+  "types": [
+   "bug"
+  ],
+  "elements": [
+   "hive"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 30,
+   "def": 35,
+   "spa": 20,
+   "spd": 20,
+   "spe": 45
+  },
+  "height": 1.12,
+  "art": "pokemon:caterpie",
+  "playable": true,
+  "blurb": "Bug type. Evolves at Lv 7. Imported from PokéAPI and PMD SpriteCollab.",
+  "starter": "bug_bite",
+  "learnset": [
+   [
+    3,
+    "tackle"
+   ]
+  ],
+  "evolvesTo": "metapod",
+  "evolveLevel": 7,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     9,
+     "bug_bite"
+    ]
+   ],
+   "levelUpOther": [
+    "string_shot"
+   ],
+   "abilities": [
+    "shield_dust",
+    "run_away"
+   ],
+   "heightM": 0.3,
+   "weightKg": 2.9,
+   "evolveLevel": 7,
+   "evolveTrigger": "level-up",
+   "shape": "armor"
+  }
+ },
+ {
+  "id": "metapod",
+  "name": "Metapod",
+  "dex": 11,
+  "types": [
+   "bug"
+  ],
+  "elements": [
+   "hive"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 20,
+   "def": 55,
+   "spa": 25,
+   "spd": 25,
+   "spe": 30
+  },
+  "height": 1.12,
+  "art": "pokemon:metapod",
+  "blurb": "Bug type. Evolves at Lv 10. Imported from PokéAPI and PMD SpriteCollab.",
+  "learnset": [],
+  "evolvesTo": "butterfree",
+  "evolveLevel": 10,
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "harden"
+    ]
+   ],
+   "levelUpOther": [],
+   "abilities": [
+    "shed_skin"
+   ],
+   "heightM": 0.7,
+   "weightKg": 9.9,
+   "evolveLevel": 10,
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
+  }
+ },
+ {
+  "id": "butterfree",
+  "name": "Butterfree",
+  "dex": 12,
+  "types": [
+   "bug",
+   "flying"
+  ],
+  "elements": [
+   "hive",
+   "gale"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 45,
+   "def": 50,
+   "spa": 90,
+   "spd": 80,
+   "spe": 70
+  },
+  "height": 1.71,
+  "art": "pokemon:butterfree",
+  "flying": true,
+  "blurb": "Bug/Flying type. Imported from PokéAPI and PMD SpriteCollab.",
+  "learnset": [
+   [
+    20,
+    "psybeam"
+   ],
+   [
+    26,
+    "silver_wind"
+   ],
+   [
+    32,
+    "air_slash"
+   ]
+  ],
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "gust"
+    ],
+    [
+     1,
+     "bug_bite"
+    ],
+    [
+     1,
+     "confusion"
+    ],
+    [
+     1,
+     "harden"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     16,
+     "psybeam"
+    ],
+    [
+     19,
+     "silver_wind"
+    ],
+    [
+     22,
+     "quiver_dance"
+    ],
+    [
+     24,
+     "air_slash"
+    ],
+    [
+     31,
+     "bug_buzz"
+    ]
+   ],
+   "levelUpOther": [
+    "captivate",
+    "poison_powder",
+    "rage_powder",
+    "safeguard",
+    "sleep_powder",
+    "string_shot",
+    "stun_spore",
+    "supersonic",
+    "tailwind",
+    "whirlwind"
+   ],
+   "abilities": [
+    "compound_eyes",
+    "tinted_lens"
+   ],
+   "heightM": 1.1,
+   "weightKg": 32,
+   "shape": "bug-wings"
+  }
+ },
+ {
   "id": "rattata",
   "name": "Rattata",
   "dex": 19,
@@ -6927,6 +7127,213 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "evolveLevel": 50,
    "evolveTrigger": "level-up",
    "shape": "squiggle"
+  }
+ },
+ {
+  "id": "tauros",
+  "name": "Tauros",
+  "dex": 128,
+  "types": [
+   "normal"
+  ],
+  "elements": [
+   "plain"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 100,
+   "def": 95,
+   "spa": 40,
+   "spd": 70,
+   "spe": 110
+  },
+  "height": 1.51,
+  "art": "pokemon:tauros",
+  "wild": true,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "rage"
+    ],
+    [
+     5,
+     "work_up"
+    ],
+    [
+     8,
+     "horn_attack"
+    ],
+    [
+     10,
+     "payback"
+    ],
+    [
+     15,
+     "assurance"
+    ],
+    [
+     15,
+     "pursuit"
+    ],
+    [
+     21,
+     "stomp"
+    ],
+    [
+     29,
+     "zen_headbutt"
+    ],
+    [
+     34,
+     "take_down"
+    ],
+    [
+     35,
+     "raging_bull"
+    ],
+    [
+     42,
+     "thrash"
+    ],
+    [
+     46,
+     "double_edge"
+    ],
+    [
+     50,
+     "outrage"
+    ],
+    [
+     55,
+     "giga_impact"
+    ]
+   ],
+   "levelUpOther": [
+    "focus_energy",
+    "leer",
+    "rest",
+    "scary_face",
+    "swagger",
+    "tail_whip"
+   ],
+   "abilities": [
+    "intimidate",
+    "anger_point",
+    "sheer_force"
+   ],
+   "heightM": 1.4,
+   "weightKg": 88.4,
+   "shape": "quadruped"
+  }
+ },
+ {
+  "id": "mewtwo",
+  "name": "Mewtwo",
+  "dex": 150,
+  "types": [
+   "psychic"
+  ],
+  "elements": [
+   "mind"
+  ],
+  "stats": {
+   "hp": 106,
+   "atk": 110,
+   "def": 90,
+   "spa": 154,
+   "spd": 90,
+   "spe": 130
+  },
+  "height": 1.71,
+  "art": "pokemon:mewtwo",
+  "wild": true,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "barrier"
+    ],
+    [
+     1,
+     "confusion"
+    ],
+    [
+     1,
+     "psychic"
+    ],
+    [
+     1,
+     "psywave"
+    ],
+    [
+     1,
+     "swift"
+    ],
+    [
+     8,
+     "ancient_power"
+    ],
+    [
+     15,
+     "future_sight"
+    ],
+    [
+     16,
+     "psycho_cut"
+    ],
+    [
+     22,
+     "psybeam"
+    ],
+    [
+     32,
+     "amnesia"
+    ],
+    [
+     40,
+     "aura_sphere"
+    ],
+    [
+     72,
+     "psystrike"
+    ],
+    [
+     88,
+     "agility"
+    ],
+    [
+     99,
+     "calm_mind"
+    ]
+   ],
+   "levelUpOther": [
+    "confuse_ray",
+    "disable",
+    "guard_swap",
+    "laser_focus",
+    "life_dew",
+    "me_first",
+    "miracle_eye",
+    "mist",
+    "power_swap",
+    "psych_up",
+    "recover",
+    "safeguard",
+    "teleport"
+   ],
+   "abilities": [
+    "pressure",
+    "unnerve"
+   ],
+   "heightM": 2,
+   "weightKg": 122,
+   "shape": "upright",
+   "special": "legendary"
   }
  },
  {
@@ -22927,6 +23334,82 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/agility"
  },
  {
+  "key": "bug_bite",
+  "name": "Bug Bite",
+  "element": "hive",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-bite"
+ },
+ {
+  "key": "harden",
+  "name": "Harden",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/harden"
+ },
+ {
+  "key": "gust",
+  "name": "Gust",
+  "element": "gale",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/gust"
+ },
+ {
+  "key": "confusion",
+  "name": "Confusion",
+  "element": "mind",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/confusion",
+  "ailment": "confuse",
+  "ailmentChance": 10
+ },
+ {
+  "key": "psybeam",
+  "name": "Psybeam",
+  "element": "mind",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/psybeam",
+  "ailment": "confuse",
+  "ailmentChance": 10
+ },
+ {
+  "key": "silver_wind",
+  "name": "Silver Wind",
+  "element": "hive",
+  "cls": "special",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/silver-wind"
+ },
+ {
+  "key": "quiver_dance",
+  "name": "Quiver Dance",
+  "element": "hive",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/quiver-dance"
+ },
+ {
+  "key": "bug_buzz",
+  "name": "Bug Buzz",
+  "element": "hive",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-buzz"
+ },
+ {
   "key": "hyper_fang",
   "name": "Hyper Fang",
   "element": "plain",
@@ -23031,15 +23514,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "harden",
-  "name": "Harden",
-  "element": "plain",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/harden"
- },
- {
   "key": "magnitude",
   "name": "Magnitude",
   "element": "quake",
@@ -23138,15 +23612,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "dash"
  },
  {
-  "key": "silver_wind",
-  "name": "Silver Wind",
-  "element": "hive",
-  "cls": "special",
-  "power": 60,
-  "accuracy": 100,
-  "source": "pokeapi move/silver-wind"
- },
- {
   "key": "struggle_bug",
   "name": "Struggle Bug",
   "element": "hive",
@@ -23155,15 +23620,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 100,
   "source": "pokeapi move/struggle-bug",
   "archetype": "nova"
- },
- {
-  "key": "bug_buzz",
-  "name": "Bug Buzz",
-  "element": "hive",
-  "cls": "special",
-  "power": 90,
-  "accuracy": 100,
-  "source": "pokeapi move/bug-buzz"
  },
  {
   "key": "poison_sting",
@@ -23585,15 +24041,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "gust",
-  "name": "Gust",
-  "element": "gale",
-  "cls": "special",
-  "power": 40,
-  "accuracy": 100,
-  "source": "pokeapi move/gust"
- },
- {
   "key": "leech_life",
   "name": "Leech Life",
   "element": "hive",
@@ -23899,15 +24346,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "bug_bite",
-  "name": "Bug Bite",
-  "element": "hive",
-  "cls": "physical",
-  "power": 60,
-  "accuracy": 100,
-  "source": "pokeapi move/bug-bite"
- },
- {
   "key": "bind",
   "name": "Bind",
   "element": "plain",
@@ -24081,15 +24519,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/covet"
- },
- {
-  "key": "quiver_dance",
-  "name": "Quiver Dance",
-  "element": "hive",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/quiver-dance"
  },
  {
   "key": "leafage",
@@ -24687,6 +25116,105 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 100
  },
  {
+  "key": "work_up",
+  "name": "Work Up",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/work-up"
+ },
+ {
+  "key": "stomp",
+  "name": "Stomp",
+  "element": "plain",
+  "cls": "physical",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/stomp"
+ },
+ {
+  "key": "raging_bull",
+  "name": "Raging Bull",
+  "element": "plain",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/raging-bull"
+ },
+ {
+  "key": "outrage",
+  "name": "Outrage",
+  "element": "wyrm",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/outrage"
+ },
+ {
+  "key": "barrier",
+  "name": "Barrier",
+  "element": "mind",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/barrier"
+ },
+ {
+  "key": "psychic",
+  "name": "Psychic",
+  "element": "mind",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/psychic"
+ },
+ {
+  "key": "psywave",
+  "name": "Psywave",
+  "element": "mind",
+  "cls": "special",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/psywave"
+ },
+ {
+  "key": "future_sight",
+  "name": "Future Sight",
+  "element": "mind",
+  "cls": "special",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/future-sight"
+ },
+ {
+  "key": "psycho_cut",
+  "name": "Psycho Cut",
+  "element": "mind",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/psycho-cut"
+ },
+ {
+  "key": "aura_sphere",
+  "name": "Aura Sphere",
+  "element": "brawl",
+  "cls": "special",
+  "power": 80,
+  "accuracy": null,
+  "source": "pokeapi move/aura-sphere"
+ },
+ {
+  "key": "psystrike",
+  "name": "Psystrike",
+  "element": "mind",
+  "cls": "special",
+  "power": 100,
+  "accuracy": 100,
+  "source": "pokeapi move/psystrike"
+ },
+ {
   "key": "wood_hammer",
   "name": "Wood Hammer",
   "element": "bloom",
@@ -24766,15 +25294,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/constrict"
  },
  {
-  "key": "barrier",
-  "name": "Barrier",
-  "element": "mind",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/barrier"
- },
- {
   "key": "acid_armor",
   "name": "Acid Armor",
   "element": "venom",
@@ -24851,46 +25370,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 85,
   "source": "pokeapi move/barrage",
   "hits": 4
- },
- {
-  "key": "confusion",
-  "name": "Confusion",
-  "element": "mind",
-  "cls": "special",
-  "power": 50,
-  "accuracy": 100,
-  "source": "pokeapi move/confusion",
-  "ailment": "confuse",
-  "ailmentChance": 10
- },
- {
-  "key": "psybeam",
-  "name": "Psybeam",
-  "element": "mind",
-  "cls": "special",
-  "power": 65,
-  "accuracy": 100,
-  "source": "pokeapi move/psybeam",
-  "ailment": "confuse",
-  "ailmentChance": 10
- },
- {
-  "key": "psychic",
-  "name": "Psychic",
-  "element": "mind",
-  "cls": "special",
-  "power": 90,
-  "accuracy": 100,
-  "source": "pokeapi move/psychic"
- },
- {
-  "key": "stomp",
-  "name": "Stomp",
-  "element": "plain",
-  "cls": "physical",
-  "power": 65,
-  "accuracy": 100,
-  "source": "pokeapi move/stomp"
  },
  {
   "key": "egg_bomb",
@@ -25115,15 +25594,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/dragon-rush"
  },
  {
-  "key": "outrage",
-  "name": "Outrage",
-  "element": "wyrm",
-  "cls": "physical",
-  "power": 120,
-  "accuracy": 100,
-  "source": "pokeapi move/outrage"
- },
- {
   "key": "dragon_dance",
   "name": "Dragon Dance",
   "element": "wyrm",
@@ -25160,15 +25630,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/ominous-wind"
- },
- {
-  "key": "future_sight",
-  "name": "Future Sight",
-  "element": "mind",
-  "cls": "special",
-  "power": 120,
-  "accuracy": 100,
-  "source": "pokeapi move/future-sight"
  },
  {
   "key": "hidden_power",
@@ -25340,15 +25801,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/fly"
  },
  {
-  "key": "aura_sphere",
-  "name": "Aura Sphere",
-  "element": "brawl",
-  "cls": "special",
-  "power": 80,
-  "accuracy": null,
-  "source": "pokeapi move/aura-sphere"
- },
- {
   "key": "shock_wave",
   "name": "Shock Wave",
   "element": "volt",
@@ -25420,24 +25872,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 0,
   "accuracy": 100,
   "source": "pokeapi move/grass-knot"
- },
- {
-  "key": "psywave",
-  "name": "Psywave",
-  "element": "mind",
-  "cls": "special",
-  "power": 0,
-  "accuracy": 100,
-  "source": "pokeapi move/psywave"
- },
- {
-  "key": "psycho_cut",
-  "name": "Psycho Cut",
-  "element": "mind",
-  "cls": "physical",
-  "power": 70,
-  "accuracy": 100,
-  "source": "pokeapi move/psycho-cut"
  },
  {
   "key": "boomburst",

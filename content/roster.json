@@ -8,7 +8,8 @@
     "squirtle",
     "chikorita",
     "cyndaquil",
-    "totodile"
+    "totodile",
+    "caterpie"
   ],
   "learnsets": {
     "bulbasaur": {
@@ -424,6 +425,8 @@
       "behaviour": "swarm",
       "flying": true
     },
+    "tauros": {},
+    "mewtwo": {},
     "raticate": {
       "wave": "catalogue"
     },

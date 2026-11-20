@@ -123,7 +123,7 @@ test('all-wild makes every wild species eligible, so a new Pokémon needs no map
   // ...except a legendary or mythical one (canon.special, rules.spawning.everyWildSkips): it appears only where named
   assert.deepEqual(new Set(ids(all)), new Set(SPECIES.filter((s) => isWild(s) && !s.canon?.special).map((s) => s.id)));
   const special = SPECIES.filter((s) => isWild(s) && s.canon?.special).map((s) => s.id);
-  assert.equal(special.length, 23, 'the legendary and mythical wild species (catalogue wave)');
+  assert.equal(special.length, 24, 'the legendary and mythical wild species (the catalogue wave, and Mewtwo from the hero test lines)');
   assert.ok(ids(resolveSpawnTable(2, undefined, { preset: 'all-wild', include: ['lugia'] })).includes('lugia'), 'a pool that names one fields it');
   assert.deepEqual(new Set(ids(spawnTableFor(merge({ spawning: { everyWildSkips: [] } }), 2, { preset: 'all-wild' }))), new Set(SPECIES.filter(isWild).map((s) => s.id)), 'with no skips, every wild species');
   // the catalogue wave off (older replay layers) leaves every pool, even one naming its species

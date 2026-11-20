@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-19T05:09:11.762Z",
+ "generated": "2026-11-20T04:36:31.375Z",
  "sources": "git checkouts",
  "species": [
   {
@@ -929,6 +929,126 @@
     "frames": 480,
     "uniqueFrames": 74,
     "atlas": "1011x103",
+    "heightPx": 26
+   },
+   "warnings": []
+  },
+  {
+   "id": "caterpie",
+   "dex": 10,
+   "role": "starter",
+   "levelUpMoves": 3,
+   "usableMoves": 2,
+   "sprite": {
+    "folder": "sprite/0010",
+    "available": [
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Twirl",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 456,
+    "uniqueFrames": 58,
+    "atlas": "1004x46",
+    "heightPx": 17
+   },
+   "warnings": []
+  },
+  {
+   "id": "metapod",
+   "dex": 11,
+   "role": "evolution",
+   "levelUpMoves": 1,
+   "usableMoves": 1,
+   "sprite": {
+    "folder": "sprite/0011",
+    "available": [
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "SpAttack",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 488,
+    "uniqueFrames": 58,
+    "atlas": "1017x54",
+    "heightPx": 17
+   },
+   "warnings": []
+  },
+  {
+   "id": "butterfree",
+   "dex": 12,
+   "role": "evolution",
+   "levelUpMoves": 20,
+   "usableMoves": 10,
+   "sprite": {
+    "folder": "sprite/0012",
+    "available": [
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "FlapAround",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Strike",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 592,
+    "uniqueFrames": 50,
+    "atlas": "1010x57",
     "heightPx": 26
    },
    "warnings": []
@@ -3425,6 +3545,109 @@
     "uniqueFrames": 34,
     "atlas": "809x30",
     "heightPx": 18
+   },
+   "warnings": []
+  },
+  {
+   "id": "tauros",
+   "dex": 128,
+   "role": "starter",
+   "levelUpMoves": 21,
+   "usableMoves": 15,
+   "sprite": {
+    "folder": "sprite/0128",
+    "available": [
+     "Walk",
+     "Attack",
+     "Stomp",
+     "Shoot",
+     "Twirl",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Sleep"
+    ],
+    "frames": 384,
+    "uniqueFrames": 66,
+    "atlas": "1017x61",
+    "heightPx": 23
+   },
+   "warnings": []
+  },
+  {
+   "id": "mewtwo",
+   "dex": 150,
+   "role": "starter",
+   "levelUpMoves": 27,
+   "usableMoves": 14,
+   "sprite": {
+    "folder": "sprite/0150",
+    "available": [
+     "Walk",
+     "Attack",
+     "Punch",
+     "Shoot",
+     "SpAttack",
+     "Appeal",
+     "Hover",
+     "Sleep",
+     "Hurt",
+     "Idle",
+     "Swing",
+     "Double",
+     "Hop",
+     "Charge",
+     "Rotate",
+     "EventSleep",
+     "Wake",
+     "Eat",
+     "Tumble",
+     "Pose",
+     "Pull",
+     "Pain",
+     "Float",
+     "DeepBreath",
+     "Nod",
+     "Sit",
+     "LookUp",
+     "Sink",
+     "Trip",
+     "Laying",
+     "LeapForth",
+     "Head",
+     "Cringe",
+     "LostBalance",
+     "TumbleBack",
+     "Faint",
+     "HitGround"
+    ],
+    "used": [
+     "Idle",
+     "Walk",
+     "Attack",
+     "Shoot",
+     "Charge",
+     "Hurt",
+     "Faint",
+     "Sleep"
+    ],
+    "frames": 448,
+    "uniqueFrames": 86,
+    "atlas": "1015x98",
+    "heightPx": 26
    },
    "warnings": []
   },
@@ -13650,6 +13873,510 @@
    "sha256": "1d1d4c2f1a37e53f0a358377a6de5a8963b6dba24e643a48ef9e4fc8361d48c3"
   },
   {
+   "url": "https://pokeapi.co/api/v2/pokemon/caterpie",
+   "from": "git checkout",
+   "bytes": 58389,
+   "sha256": "e102bf5777c47ff947948351c31bf22b5268142c264803c13257aec91e3ac6ef"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/10/",
+   "from": "git checkout",
+   "bytes": 55412,
+   "sha256": "3336a452ea4c02265f38b348331efeb310ba2ae34813a5310149c92d0253b5b4"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/AnimData.xml",
+   "from": "git checkout",
+   "bytes": 4736,
+   "sha256": "67fe60fcdf8f43033107aa2c0d6679cb6dfc527333758dae35eccff612cc00b7"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Idle-Anim.png",
+   "from": "git checkout",
+   "bytes": 8598,
+   "sha256": "2d89d59aa7f7112381a9e1fdc62f4317e35410b093eabc048a66364610ac24bd"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Idle-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1173,
+   "sha256": "9b066d9341360ad43393d2d380fa11d93ebb1ee78ba0136d91b88211bca6767c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Walk-Anim.png",
+   "from": "git checkout",
+   "bytes": 5123,
+   "sha256": "7f19cdd3ec4c88795243999b3f090aa2192c87f5c4399d491ac473908ca09a06"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Walk-Shadow.png",
+   "from": "git checkout",
+   "bytes": 476,
+   "sha256": "d60f07a9139c46af087100fcab8dba3793b6def22c777f0e9d09208916123796"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 17170,
+   "sha256": "e2200282620c1b5daf15b3415cd62aab94c0e68805592caac76684daaa267e47"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 4850,
+   "sha256": "adb208195267040584be818895b1fd3264b8125cae3e366495465a5c77505dd4"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 17170,
+   "sha256": "e2200282620c1b5daf15b3415cd62aab94c0e68805592caac76684daaa267e47"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 4850,
+   "sha256": "adb208195267040584be818895b1fd3264b8125cae3e366495465a5c77505dd4"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Shoot-Anim.png",
+   "from": "git checkout",
+   "bytes": 9261,
+   "sha256": "4317a0caf33333c99ed8f2947848a930ec6a60362c0b0621264bb2621ab4b5c1"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Shoot-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2402,
+   "sha256": "3f5a07d3af6fb5839bf8c74ff0a18e9e74236642d4accb892f1d4c6e9eacbb2d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 5421,
+   "sha256": "0c0e4778c19f1ccaacda6c16ba49f2de971b59a951f85cfc397706268906c97b"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1732,
+   "sha256": "c5b0fdd49a0b35c0b56227ce2b07a413c0b7e420e2d7e1510085705ed293bdff"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Hurt-Anim.png",
+   "from": "git checkout",
+   "bytes": 4585,
+   "sha256": "8377dd1c8bcfcdcd8b5cea709fca7fb547ea17e3fe5db518692428ef157e10f3"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Hurt-Shadow.png",
+   "from": "git checkout",
+   "bytes": 815,
+   "sha256": "df7815c9541ff2a2416b89ee31260fb0bb23e9f9c037457468f59cf976f1d0bb"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Sleep-Anim.png",
+   "from": "git checkout",
+   "bytes": 534,
+   "sha256": "8b3a4ae3b42ec6a44759852d30be1bb9d0fb44e5ebb5df66966f3bea0e859f4f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/Sleep-Shadow.png",
+   "from": "git checkout",
+   "bytes": 167,
+   "sha256": "d39e5710df164756cfd3bf0d5c5cf1b005c9655ee3904f2e4b1807cf2ac21330"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0010/Normal.png",
+   "from": "git checkout",
+   "bytes": 1897,
+   "sha256": "3078de23c30421fb8751f5705531604310ce56aff446627b9682b3374ffe8098"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0010/credits.txt",
+   "from": "git checkout",
+   "bytes": 130,
+   "sha256": "cef72539781e8f44564f1ffcdca300821f37094f9fcc4bf5ea59009f7a4cdfba"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/4/",
+   "from": "git checkout",
+   "bytes": 3455,
+   "sha256": "b7397b1d09695fb0b23182beee3874c02830db35938cc8ffa4f27bdc1125ed83"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/81/",
+   "from": "git checkout",
+   "bytes": 34079,
+   "sha256": "b5b1fc186dcca7e8d3ce596b24fc67efd0cd37e7cfa45352dd47d512204c8364"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/450/",
+   "from": "git checkout",
+   "bytes": 37538,
+   "sha256": "f0af46c774d3a8aa5e692d9ac655dbfed717ace36d45d86661a9d97181321833"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/10.ogg",
+   "from": "git checkout",
+   "bytes": 9944,
+   "sha256": "759a0def7b76f0ee879ba789d1747bca485942dc8d0cda89174666444cbf2569"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon/metapod",
+   "from": "git checkout",
+   "bytes": 54133,
+   "sha256": "9331fce39af8d34f3910f2cb1028b26d0d928496a486aa94a4e8a83a3cd0094a"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/11/",
+   "from": "git checkout",
+   "bytes": 56978,
+   "sha256": "0dea6fac6e19d0c6b27356e728b077717c3901d15a8fcc1444beed5e58794dd5"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/AnimData.xml",
+   "from": "git checkout",
+   "bytes": 4873,
+   "sha256": "9b88de1540c77530ef121a0241aaeff5c66c9328adc21a33d154427a307f2231"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Idle-Anim.png",
+   "from": "git checkout",
+   "bytes": 7351,
+   "sha256": "d3b3a68e8952a73ab7b76a370a02da4e405e44842fe3c90eade0d3cbe16ef423"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Idle-Shadow.png",
+   "from": "git checkout",
+   "bytes": 767,
+   "sha256": "35c31d159d33461690460fcc5e108045e45af2588a6edf8ca33459ec779b11af"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Walk-Anim.png",
+   "from": "git checkout",
+   "bytes": 13136,
+   "sha256": "4345551b61fdc6e7b3c881fbc983e49c6ca2e69a01f4083b8d7d7d8735857a34"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Walk-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1381,
+   "sha256": "33ce45a8c3210aaa7e019823d76e0e1b224b6285461cba4d3ad668c137337a66"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 20502,
+   "sha256": "548f7810a9df87af7446fd071eef096471f12f227147982bf88bef724e84ac7a"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 5123,
+   "sha256": "8157020939567fe437fc3cc610dfdd8b9e3427f32d73d5f2a4d5df0d5cbeb53c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 20502,
+   "sha256": "548f7810a9df87af7446fd071eef096471f12f227147982bf88bef724e84ac7a"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 5123,
+   "sha256": "8157020939567fe437fc3cc610dfdd8b9e3427f32d73d5f2a4d5df0d5cbeb53c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Shoot-Anim.png",
+   "from": "git checkout",
+   "bytes": 14874,
+   "sha256": "d7c21ced8a198618965085152b5e87c8a72f54f7321dede6d6102ee5fdc2627e"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Shoot-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2370,
+   "sha256": "5e71815fe6c940742dbc7a7cc7b768657f729462c24f71cb1249b2b9b8af13b9"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 5969,
+   "sha256": "cacc597ba93aa21fcbf861475c6d24588fc3f15c9f4ed8cd53843e500f3c9202"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1732,
+   "sha256": "c5b0fdd49a0b35c0b56227ce2b07a413c0b7e420e2d7e1510085705ed293bdff"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Hurt-Anim.png",
+   "from": "git checkout",
+   "bytes": 5141,
+   "sha256": "12d4eed10a81bd7767b9e3e5582778864ce98d9c294a795034211154d6b1edea"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Hurt-Shadow.png",
+   "from": "git checkout",
+   "bytes": 844,
+   "sha256": "ac6de71c1c2d68f7b57c3628d73cabee468c84be9da37305bcf53ed6999365a5"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Sleep-Anim.png",
+   "from": "git checkout",
+   "bytes": 609,
+   "sha256": "43a5d64575754b94738589f512d06a912f0ad0f4d67b89ca9d1523d5261c76a1"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/Sleep-Shadow.png",
+   "from": "git checkout",
+   "bytes": 167,
+   "sha256": "d39e5710df164756cfd3bf0d5c5cf1b005c9655ee3904f2e4b1807cf2ac21330"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0011/Normal.png",
+   "from": "git checkout",
+   "bytes": 1484,
+   "sha256": "2df60c5f0f2114131e502aec7a8ccd2d36ea7efa7ffef5a54c1dbb5bf6a9b6dc"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0011/credits.txt",
+   "from": "git checkout",
+   "bytes": 133,
+   "sha256": "ce7ff557dcf4204f93401b3e2d2d05d400c25de4b502c9b02a1d67325d04661b"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/4/",
+   "from": "git checkout",
+   "bytes": 3455,
+   "sha256": "b7397b1d09695fb0b23182beee3874c02830db35938cc8ffa4f27bdc1125ed83"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/106/",
+   "from": "git checkout",
+   "bytes": 35120,
+   "sha256": "63b56742614f25dcff5d106da84f4eea4489b06c3c28c1987e25bdbc86321817"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/11.ogg",
+   "from": "git checkout",
+   "bytes": 15843,
+   "sha256": "876f4039b177ec5e28a6c8b8c5b8e7ef20e4ae1f8a627e688dd8fd491d100411"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon/butterfree",
+   "from": "git checkout",
+   "bytes": 380573,
+   "sha256": "6a15268f7649f73cb5a1aed1424c1a7f8eabb30d159e6dcf48e98975ae2ae57f"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/12/",
+   "from": "git checkout",
+   "bytes": 56148,
+   "sha256": "faa17fa71786520d8e01a82e99d8256b255eb54594f18e46b4fc632bdcc6d6a9"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/AnimData.xml",
+   "from": "git checkout",
+   "bytes": 5859,
+   "sha256": "1996c162997730ee183fa53d5d3ac0305395a5fcaa99010cb02ad57ee83238c6"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Idle-Anim.png",
+   "from": "git checkout",
+   "bytes": 10914,
+   "sha256": "936ff1e2ef4d01aa3a30dc8436465bc179dea60142f5c34461091011bf934aea"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Idle-Shadow.png",
+   "from": "git checkout",
+   "bytes": 991,
+   "sha256": "090430950c8c4cdb45a93bd3cc038858fe937ddf268af6c1a0c4037ca55ac460"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Walk-Anim.png",
+   "from": "git checkout",
+   "bytes": 19861,
+   "sha256": "36da453a32e920275d475f669d3e58ece66f5dffda5f95c998b0aac660819ad5"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Walk-Shadow.png",
+   "from": "git checkout",
+   "bytes": 3057,
+   "sha256": "d6fa8ebab912ef8e4fa7d1b869ad8b29994dd756a81ba145aef29a77b1ce5640"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 34388,
+   "sha256": "5ce2c76805199f27dd95d25657327cdad276194af026dc3e25ef83516ae7f092"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 6333,
+   "sha256": "8725afc3e8c1040862b1cc8ad231a83a05075990a9ba4fca27d217a9e0405d68"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 34388,
+   "sha256": "5ce2c76805199f27dd95d25657327cdad276194af026dc3e25ef83516ae7f092"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 6333,
+   "sha256": "8725afc3e8c1040862b1cc8ad231a83a05075990a9ba4fca27d217a9e0405d68"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Shoot-Anim.png",
+   "from": "git checkout",
+   "bytes": 39503,
+   "sha256": "f3e83c07e5eeacd84515eb519e1dd472f0154e7eaeec3e9214346c23b41bcec4"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Shoot-Shadow.png",
+   "from": "git checkout",
+   "bytes": 4199,
+   "sha256": "5ddc9ff1fccd893623b08e01395bca270974f849a76481d9544f3113c80b9d04"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 8196,
+   "sha256": "b85dd6d61db48bab524c1f3cf3232218bb1db08f38e94e1a585a112ec55f618f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2251,
+   "sha256": "90b40e54a62aff579b6d17b41bc726bab37c28df7ef82ebb8a4f56d9041c0333"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Hurt-Anim.png",
+   "from": "git checkout",
+   "bytes": 7432,
+   "sha256": "b614de88bd704c0c448586a1a41b29752619b1cf073869703dad9a795f3ae8cb"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Hurt-Shadow.png",
+   "from": "git checkout",
+   "bytes": 969,
+   "sha256": "db7d3db4e87983e7d724483082216d1420e2c793fda34cedf6420eb36144d721"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Sleep-Anim.png",
+   "from": "git checkout",
+   "bytes": 870,
+   "sha256": "b16d0d7bc4cc4e009e1b511b218b7c4b87ab6a8009d466352c54402a3cfa46cd"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/Sleep-Shadow.png",
+   "from": "git checkout",
+   "bytes": 176,
+   "sha256": "b2717e641b16bbe84e3e955b50d5aa6cbbdb4b8e5df997e84ffa25645632f63d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0012/Normal.png",
+   "from": "git checkout",
+   "bytes": 767,
+   "sha256": "ef86a8ae098fb1c51b11950567e5add10d6db919e87c9f795f5b52495dc3c4af"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0012/credits.txt",
+   "from": "git checkout",
+   "bytes": 135,
+   "sha256": "8bf440ca74ce2ddb7f907216f15d8e73638fe3d18890b3fa670683380bac0717"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/4/",
+   "from": "git checkout",
+   "bytes": 3455,
+   "sha256": "b7397b1d09695fb0b23182beee3874c02830db35938cc8ffa4f27bdc1125ed83"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/16/",
+   "from": "git checkout",
+   "bytes": 33295,
+   "sha256": "77afd1e050bd5a11bcd134a197403daf03c937a496515923bdec1e0f3aaee2f8"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/93/",
+   "from": "git checkout",
+   "bytes": 38010,
+   "sha256": "5dabd06b8f5b1d3f849361d5a16bd4ca2b060ca0276a4edf693cf442581b3bd9"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/48/",
+   "from": "git checkout",
+   "bytes": 32498,
+   "sha256": "3423c92f5ae353bb31b33aaf2b43580cab59567918490488e91f60c491da0f59"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/78/",
+   "from": "git checkout",
+   "bytes": 30454,
+   "sha256": "f112e0af2d30843354feb9edc936ee93d80842e43d457aa6a9ea34d72d68c6e8"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/60/",
+   "from": "git checkout",
+   "bytes": 38389,
+   "sha256": "7d7b8676f652ed8875fa42b85bc0c60fd3af32b51af4d6255cef7cf1dd4ad171"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/318/",
+   "from": "git checkout",
+   "bytes": 33264,
+   "sha256": "5511c07a75602296e49f36b110abba590ba0e883339e16ce9656f23871d19ca8"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/18/",
+   "from": "git checkout",
+   "bytes": 36421,
+   "sha256": "47b9c4018b91dc5d82ff4e4c52a2afe590c5c664a3c52525cc780ddf6d925a68"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/483/",
+   "from": "git checkout",
+   "bytes": 28988,
+   "sha256": "550fafb8d9247874add14cb71cdf47e355fbf7a4651a37485f358dfa6fd24591"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/366/",
+   "from": "git checkout",
+   "bytes": 41706,
+   "sha256": "f002344b9de4f58eaaf40c0c16e8dbec08745ea183f85bb52878724584c3f842"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/405/",
+   "from": "git checkout",
+   "bytes": 34943,
+   "sha256": "e320d0c51b7bd619e7e10d6f43bcc9adb3b36041d7c733452a86d911eb3db4e4"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/476/",
+   "from": "git checkout",
+   "bytes": 30278,
+   "sha256": "7628ad611ed20d876bb4323ac624c7d9083daad35d07da301c6aa08f8eced043"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/445/",
+   "from": "git checkout",
+   "bytes": 61774,
+   "sha256": "0af5498f70b50283394e23d991ee70e56281d5afce656a645ab0223595486882"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/12.ogg",
+   "from": "git checkout",
+   "bytes": 12316,
+   "sha256": "a761dc3185c3063b835dcfd21999b0bed78e20957f9226b5918056fac0d014a5"
+  },
+  {
    "url": "https://pokeapi.co/api/v2/pokemon/rattata",
    "from": "git checkout",
    "bytes": 388970,
@@ -22740,6 +23467,384 @@
    "sha256": "9fdb8f8719a033a5ebe6b98a7745e566740cfd0f2164d62d1e306a048f03a5d5"
   },
   {
+   "url": "https://pokeapi.co/api/v2/pokemon/tauros",
+   "from": "git checkout",
+   "bytes": 444265,
+   "sha256": "f0eb9d56287ed1cb4a004edb1dc99a1d385dacd5c4fbbf28db0ece208ef60de9"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/128/",
+   "from": "git checkout",
+   "bytes": 57216,
+   "sha256": "1d147e23b1c68469828efd32aa40d58daf80a31c3dc9866d73765ee7449214fd"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/AnimData.xml",
+   "from": "git checkout",
+   "bytes": 4867,
+   "sha256": "a59d0068d2f3249ecd7c8b9b8638b9e7a75c0af5eaa9d29037341698d27c7517"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Idle-Anim.png",
+   "from": "git checkout",
+   "bytes": 11880,
+   "sha256": "e7273153dd23e640ff4cb8a0819c1fb31c0a705de2c6d60c9e8375fb4ab9dd58"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Idle-Shadow.png",
+   "from": "git checkout",
+   "bytes": 944,
+   "sha256": "9b8aa4b7fcf5ffba0620236cb4a48171cc5c14cd6173e541b4c88abef1c2aae6"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Walk-Anim.png",
+   "from": "git checkout",
+   "bytes": 18536,
+   "sha256": "3f72c1f7d4bb63f6a4a455b9b98d882652c201c81e71ec893bdd46e97c476c8c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Walk-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2367,
+   "sha256": "01390b2f96c8adcbf69dbffde9e22a2ed6176766c40d434f7639cac46fcc363f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 30187,
+   "sha256": "e30dfad0c4dafd9a22a5e359c45b51129ff21adb5580f92f369ab394bfdb47f6"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 5975,
+   "sha256": "7ec8cf981f82a2f1d7fe175c7ca8dd36ee75a806ca3b929748cf1c15073f1be0"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 12622,
+   "sha256": "7c9d30eca4aff7fd79f34948bb92fd788c74b2d8a50d23d013975b5c7f04b4a3"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2541,
+   "sha256": "e6f88b64b34e0824d0548fa1b98f9952b0bc614dd47ed310f859b075227f35c2"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 12622,
+   "sha256": "7c9d30eca4aff7fd79f34948bb92fd788c74b2d8a50d23d013975b5c7f04b4a3"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 2541,
+   "sha256": "e6f88b64b34e0824d0548fa1b98f9952b0bc614dd47ed310f859b075227f35c2"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Hurt-Anim.png",
+   "from": "git checkout",
+   "bytes": 8042,
+   "sha256": "ff72ef7b0f585e2e63f1ae3d1dc2a9c51dafbdd0f293bfd0681f6e8bda7ae93d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Hurt-Shadow.png",
+   "from": "git checkout",
+   "bytes": 851,
+   "sha256": "737198ec693340ec6a7560fcad447d3c6616b95f350dc019384301d2a450677b"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Sleep-Anim.png",
+   "from": "git checkout",
+   "bytes": 1075,
+   "sha256": "75a751e563cdc629e075319f05d47cd4a03e16f528839cd9c36de23339b797e6"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/Sleep-Shadow.png",
+   "from": "git checkout",
+   "bytes": 176,
+   "sha256": "b2717e641b16bbe84e3e955b50d5aa6cbbdb4b8e5df997e84ffa25645632f63d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0128/Normal.png",
+   "from": "git checkout",
+   "bytes": 1759,
+   "sha256": "4338a14a82b83441e47a6d62d610c4757969b30cde9ccdd1b5c69e3e5b72081f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0128/credits.txt",
+   "from": "git checkout",
+   "bytes": 129,
+   "sha256": "8f8954febe90e9bb2045a01925cd84a0bdfa00620005c465346c6ee7ecfc6dec"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/63/",
+   "from": "git checkout",
+   "bytes": 225,
+   "sha256": "a71efd5eb45a24aa9a255eb1966a6728450062ef2053147283bc82871996400b"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/526/",
+   "from": "git checkout",
+   "bytes": 51574,
+   "sha256": "1a95a0b6d89435a81f45c08ddc895475d9b69b03a816d7f1864d394da73cf107"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/184/",
+   "from": "git checkout",
+   "bytes": 64167,
+   "sha256": "25acf5311cf824738eef50061183fb81d1771f32cadbb7135feb4745c437f16f"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/23/",
+   "from": "git checkout",
+   "bytes": 33238,
+   "sha256": "1c5f8b7e44b969058206d16b2a4e724253f3c9a141e53785929e991b728cc8b8"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/873/",
+   "from": "git checkout",
+   "bytes": 3392,
+   "sha256": "e7d152d4a74092d4d6611949fb4dff3b226e41b35bc86961febbdfcb4d0f7a22"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/200/",
+   "from": "git checkout",
+   "bytes": 47299,
+   "sha256": "6c057a42fc88fd4a931ad24259c271294d74a107ff0d4b87a1fa66de6d09bfab"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/128.ogg",
+   "from": "git checkout",
+   "bytes": 13753,
+   "sha256": "e1e9708af7a6870d84748aabd521215dcfa7ff973b0638845f5222e17bc08933"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon/mewtwo",
+   "from": "git checkout",
+   "bytes": 641461,
+   "sha256": "9061fef126d57334b69ff53bc108dd10e95264cd444d32ee465d5edd196e6549"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/pokemon-species/150/",
+   "from": "git checkout",
+   "bytes": 33686,
+   "sha256": "c33b840ac853af2b4eb63a8c36c9a813752eb39e01bdef205c433ffc42de3a7f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/AnimData.xml",
+   "from": "git checkout",
+   "bytes": 14981,
+   "sha256": "8bfec63ab9b01cf64f831232849ddf0aa5ca7fcddf51e5af3b8f5aad12cce935"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Idle-Anim.png",
+   "from": "git checkout",
+   "bytes": 12621,
+   "sha256": "b6c1a0062cf569db60ddd40066a061cb29d3e80e19619f66a2a1d36a5e8c6dfb"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Idle-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1213,
+   "sha256": "5d4d27ba83e6a2ee3c5f8febcbebe41f102bc6b546c94b291d3f17ed78e49483"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Walk-Anim.png",
+   "from": "git checkout",
+   "bytes": 9331,
+   "sha256": "80fe3d8d560ac468a16e6dbdcf259681ccb2a3bd78af7b3355da8646ec36108f"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Walk-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1409,
+   "sha256": "188ab29be4fc428bdd009b087a2c3b2dd17e5e4e040b3485c74a54e8eb12ffdd"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Attack-Anim.png",
+   "from": "git checkout",
+   "bytes": 20635,
+   "sha256": "cb8e0e74f200bdfd001b3c82c08062128fa19ce3fcfb441868bd1a9bacfd66ce"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Attack-Shadow.png",
+   "from": "git checkout",
+   "bytes": 5966,
+   "sha256": "511785954d07f5305aee91c6186e42c3a7f1183681f63f5e2bc88ee229b84aac"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Shoot-Anim.png",
+   "from": "git checkout",
+   "bytes": 21091,
+   "sha256": "852c91998d8074e78eb4361a502cab5f92bcbcf68846843cc1b94c03d238ab2d"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Shoot-Shadow.png",
+   "from": "git checkout",
+   "bytes": 4061,
+   "sha256": "ac7d360eed0f5bd3d516e0eeea699e5a3252e96ddbcdf3ba9a564b30677a9659"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Charge-Anim.png",
+   "from": "git checkout",
+   "bytes": 7806,
+   "sha256": "e67d43bfe858bf36587b6bf985e4085a11d3ed1529cbfa9f65c3e142d283b621"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Charge-Shadow.png",
+   "from": "git checkout",
+   "bytes": 1676,
+   "sha256": "5baa55c1e3e4e2d11784646aa5938b1cecee71a4f13d80ff5564effc2689085c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Hurt-Anim.png",
+   "from": "git checkout",
+   "bytes": 6044,
+   "sha256": "0b5e5705b1d8db9752727e6094418096e793c7f5a57dc92018f0cb91cf5a6d97"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Hurt-Shadow.png",
+   "from": "git checkout",
+   "bytes": 894,
+   "sha256": "d2fc7c38935d85670d0f758cd960d7a48ad4ee943fd68e93501036d926b9ae7e"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Faint-Anim.png",
+   "from": "git checkout",
+   "bytes": 5530,
+   "sha256": "9f1db70c185abbbe127506f81ad275d30b7c85f88b27a87c86e50ff5c34dd508"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Faint-Shadow.png",
+   "from": "git checkout",
+   "bytes": 675,
+   "sha256": "671311df7daf3867dfc1a5f254552684d033122934178f1980684860c8477d09"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Sleep-Anim.png",
+   "from": "git checkout",
+   "bytes": 740,
+   "sha256": "89d950d6581dd9b131d7cbdc5644ed4ea2e8ba0472ee1efc5d8c1e0456c9c3c1"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/Sleep-Shadow.png",
+   "from": "git checkout",
+   "bytes": 172,
+   "sha256": "963c523e22fdba59c22a5ee30b45a7c0611f39a0df719b7e645b04d3de2f062c"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/portrait/0150/Normal.png",
+   "from": "git checkout",
+   "bytes": 1446,
+   "sha256": "56bd149a8de98441de858b69caf604fc1ef8a2dfd9d813a80e42ea48dfb38aba"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/sprite/0150/credits.txt",
+   "from": "git checkout",
+   "bytes": 424,
+   "sha256": "fb1d1fc3a5759e211ff1c2c371ce9941869d4dec9401b5c45cf384158c41cef4"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/evolution-chain/77/",
+   "from": "git checkout",
+   "bytes": 225,
+   "sha256": "3f242e0f09121fc2e721812dc616be9d40fbc3afd50197352acfe00f4a460820"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/112/",
+   "from": "git checkout",
+   "bytes": 28823,
+   "sha256": "e3db1e8c491101c8377adc4ccdeda2feba5e636654d0d1feb32dc95b1bb1371f"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/93/",
+   "from": "git checkout",
+   "bytes": 38010,
+   "sha256": "5dabd06b8f5b1d3f849361d5a16bd4ca2b060ca0276a4edf693cf442581b3bd9"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/94/",
+   "from": "git checkout",
+   "bytes": 59601,
+   "sha256": "498033ac4fb4971b6adc81a2549eebd2583dc0401f4856ac3c881e504815f9c3"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/149/",
+   "from": "git checkout",
+   "bytes": 33497,
+   "sha256": "5ca0afd3f0c09139f700e33062644df2dd099f463e547ce3412e580e169976f3"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/100/",
+   "from": "git checkout",
+   "bytes": 33833,
+   "sha256": "7127fcc61b1d1d4905c5721ba46f0e5bf1f9133ce6aea8912cd50c119f525e4d"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/248/",
+   "from": "git checkout",
+   "bytes": 41588,
+   "sha256": "66f5515058d20534c6e85c12dbd6f0f47309dc6d427e79f3256359eea6c896b2"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/427/",
+   "from": "git checkout",
+   "bytes": 32565,
+   "sha256": "7e90dfd36b7da5a9777479a8dc3e2ebe74bfaee0f0df79678dc4d13b7cbc23c0"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/60/",
+   "from": "git checkout",
+   "bytes": 38389,
+   "sha256": "7d7b8676f652ed8875fa42b85bc0c60fd3af32b51af4d6255cef7cf1dd4ad171"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/244/",
+   "from": "git checkout",
+   "bytes": 61131,
+   "sha256": "d084d2f6224f672b89f94ef57424d2a59c902c940aa5951ec8ec5a344ca78930"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/357/",
+   "from": "git checkout",
+   "bytes": 29468,
+   "sha256": "4969154b2e62571c624a721970c59905af44c3b7ba0956a45462f569437ecb11"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/396/",
+   "from": "git checkout",
+   "bytes": 33076,
+   "sha256": "518c5d7552cc733df1bf218d25fba830d33cd43fef02f9c299b119ebf5f6ae5d"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/385/",
+   "from": "git checkout",
+   "bytes": 33934,
+   "sha256": "a48a9707e76d7313f40684d380b8596ede50f0c05276d4f2c7d5706c1b3043f5"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/384/",
+   "from": "git checkout",
+   "bytes": 33675,
+   "sha256": "257d633f8dbeb18bda26ba469267c745032b47b35720dfc0dc0f3d0f6a886e94"
+  },
+  {
+   "url": "https://pokeapi.co/api/v2/move/540/",
+   "from": "git checkout",
+   "bytes": 26070,
+   "sha256": "a006d95e00f9a46e2c825925e2e5594d14f6552ce60ae73c43f6c47bd099b5b1"
+  },
+  {
+   "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/150.ogg",
+   "from": "git checkout",
+   "bytes": 19108,
+   "sha256": "84b90df6aff3484ba3eab06a57a5108c84f636b59e8f1a284a5e410ac01f2bbe"
+  },
+  {
    "url": "https://pokeapi.co/api/v2/pokemon/sudowoodo",
    "from": "git checkout",
    "bytes": 416604,
@@ -23478,12 +24583,6 @@
    "sha256": "09e27d4ebe40d1fd2acd1583dd5333774c4bff1766005e53fd73f401df8ded85"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/184/",
-   "from": "git checkout",
-   "bytes": 64167,
-   "sha256": "25acf5311cf824738eef50061183fb81d1771f32cadbb7135feb4745c437f16f"
-  },
-  {
    "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/20.ogg",
    "from": "git checkout",
    "bytes": 8935,
@@ -24058,12 +25157,6 @@
    "from": "git checkout",
    "bytes": 37814,
    "sha256": "e3f63433775415592e732f0a7fc877c6e3b140f5cb15db84cb1b562d2242785d"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/112/",
-   "from": "git checkout",
-   "bytes": 28823,
-   "sha256": "e3db1e8c491101c8377adc4ccdeda2feba5e636654d0d1feb32dc95b1bb1371f"
   },
   {
    "url": "https://pokeapi.co/api/v2/move/151/",
@@ -24822,24 +25915,6 @@
    "sha256": "9852e659ec7a1e619321e7d49169f1caa47064a58a39d1a8234af016c61de566"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/93/",
-   "from": "git checkout",
-   "bytes": 38010,
-   "sha256": "5dabd06b8f5b1d3f849361d5a16bd4ca2b060ca0276a4edf693cf442581b3bd9"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/60/",
-   "from": "git checkout",
-   "bytes": 38389,
-   "sha256": "7d7b8676f652ed8875fa42b85bc0c60fd3af32b51af4d6255cef7cf1dd4ad171"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/94/",
-   "from": "git checkout",
-   "bytes": 59601,
-   "sha256": "498033ac4fb4971b6adc81a2549eebd2583dc0401f4856ac3c881e504815f9c3"
-  },
-  {
    "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/102.ogg",
    "from": "git checkout",
    "bytes": 15236,
@@ -24976,12 +26051,6 @@
    "from": "git checkout",
    "bytes": 3403,
    "sha256": "6ae77d6034966a9b828571e0bf2e45d20ed09fa69d145343b96e74bd50fa3b6b"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/23/",
-   "from": "git checkout",
-   "bytes": 33238,
-   "sha256": "1c5f8b7e44b969058206d16b2a4e724253f3c9a141e53785929e991b728cc8b8"
   },
   {
    "url": "https://pokeapi.co/api/v2/move/121/",
@@ -25842,12 +26911,6 @@
    "sha256": "1b9163943d0bf89140d42a1045ecad47fc4954323cfc55f7016cdeaa18b120e9"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/200/",
-   "from": "git checkout",
-   "bytes": 47299,
-   "sha256": "6c057a42fc88fd4a931ad24259c271294d74a107ff0d4b87a1fa66de6d09bfab"
-  },
-  {
    "url": "https://pokeapi.co/api/v2/move/349/",
    "from": "git checkout",
    "bytes": 35697,
@@ -26418,18 +27481,6 @@
    "sha256": "e99cd5fbed191962ffa8a32058e3290eeb574d71743fb35e72ede79e1a28c71d"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/100/",
-   "from": "git checkout",
-   "bytes": 33833,
-   "sha256": "7127fcc61b1d1d4905c5721ba46f0e5bf1f9133ce6aea8912cd50c119f525e4d"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/357/",
-   "from": "git checkout",
-   "bytes": 29468,
-   "sha256": "4969154b2e62571c624a721970c59905af44c3b7ba0956a45462f569437ecb11"
-  },
-  {
    "url": "https://pokeapi.co/api/v2/move/466/",
    "from": "git checkout",
    "bytes": 35965,
@@ -26440,24 +27491,6 @@
    "from": "git checkout",
    "bytes": 28213,
    "sha256": "6e4464ef7a17abf173dfb859a7802b44c7bdeaa93c33ab9c5f0146596b8caf17"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/248/",
-   "from": "git checkout",
-   "bytes": 41588,
-   "sha256": "66f5515058d20534c6e85c12dbd6f0f47309dc6d427e79f3256359eea6c896b2"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/384/",
-   "from": "git checkout",
-   "bytes": 33675,
-   "sha256": "257d633f8dbeb18bda26ba469267c745032b47b35720dfc0dc0f3d0f6a886e94"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/385/",
-   "from": "git checkout",
-   "bytes": 33934,
-   "sha256": "a48a9707e76d7313f40684d380b8596ede50f0c05276d4f2c7d5706c1b3043f5"
   },
   {
    "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/177.ogg",
@@ -31128,12 +32161,6 @@
    "sha256": "a70f1c7e4df0205254579de8fde6d78d99fe625129aaf3135b5a615cfb6fc2c6"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/396/",
-   "from": "git checkout",
-   "bytes": 33076,
-   "sha256": "518c5d7552cc733df1bf218d25fba830d33cd43fef02f9c299b119ebf5f6ae5d"
-  },
-  {
    "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/468.ogg",
    "from": "git checkout",
    "bytes": 24436,
@@ -34134,22 +35161,10 @@
    "sha256": "43a34089e64fbad0035a0f0a37a4f06f70539975d4fec2722afaa27b681528bc"
   },
   {
-   "url": "https://pokeapi.co/api/v2/move/149/",
-   "from": "git checkout",
-   "bytes": 33497,
-   "sha256": "5ca0afd3f0c09139f700e33062644df2dd099f463e547ce3412e580e169976f3"
-  },
-  {
    "url": "https://pokeapi.co/api/v2/move/576/",
    "from": "git checkout",
    "bytes": 23988,
    "sha256": "8b31364186e2505a6fb89827a2aba9aa0fde9c1bf2864b84fabd45b33db8965c"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/427/",
-   "from": "git checkout",
-   "bytes": 32565,
-   "sha256": "7e90dfd36b7da5a9777479a8dc3e2ebe74bfaee0f0df79678dc4d13b7cbc23c0"
   },
   {
    "url": "https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/686.ogg",
@@ -35032,12 +36047,6 @@
    "from": "git checkout",
    "bytes": 26711,
    "sha256": "a4ee12831c37b74b1e8fc35e36d82fa17a7b1c56ac9de52f0bfc8403e571521e"
-  },
-  {
-   "url": "https://pokeapi.co/api/v2/move/244/",
-   "from": "git checkout",
-   "bytes": 61131,
-   "sha256": "d084d2f6224f672b89f94ef57424d2a59c902c940aa5951ec8ec5a344ca78930"
   },
   {
    "url": "https://pokeapi.co/api/v2/move/532/",

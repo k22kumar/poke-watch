@@ -87,6 +87,6 @@ test('host checks extend the grading: a failing block check makes a species unav
   assert.equal(controlReadiness(SPECIES_BY_ID.totodile, undefined, [noArt]).tier, 'ready');
 });
 
-test('the production starter offer is still the six partner lines (the dev roster does not touch `playable`)', () => {
-  assert.deepEqual(starterEligibleSpecies().map((s) => s.id), ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil', 'totodile']);
+test('the production starter offer is the six partner lines and the Caterpie test line (the dev roster does not touch `playable`)', () => {
+  assert.deepEqual(starterEligibleSpecies().map((s) => s.id), ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil', 'totodile', 'caterpie']);
 });
