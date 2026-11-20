@@ -35,7 +35,6 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   const i = E.spawn();
   if (i < 0) return -1;
   const R = ctx.rules.enemy;
-  const diff = ctx.rules.mode.difficulty;
   let hpRole = 1, dmgRole = 1, size = 1;
   if (roles & ROLE.boss) { hpRole = R.roles.boss.hp; dmgRole = R.roles.boss.dmg; size = R.roles.boss.size; }
   else if (roles & ROLE.alpha) { hpRole = R.roles.alpha.hp; dmgRole = R.roles.alpha.dmg; size = R.roles.alpha.size; }
@@ -49,8 +48,8 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (hv) roles |= ROLE.flying;
   // health on the hero canon curve × the behaviour's multiplier; base speed keeps its own formula until the co-op wave
   // step puts enemies on the hero speed band (docs/hero-shooter-pivot.md Q20, Q36). No growth with match time or region.
-  const hp = heroHealth(sp.stats.hp, ctx.rules) * R.behaviourHp[beh] * hpRole * diff;
-  let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe) * Math.sqrt(diff);
+  const hp = heroHealth(sp.stats.hp, ctx.rules) * R.behaviourHp[beh] * hpRole;
+  let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe);
   if (beh === 'tank') speed *= 0.72;
   if (beh === 'swarm') speed *= 1.12;
   if (beh === 'ranged') speed *= 0.85;

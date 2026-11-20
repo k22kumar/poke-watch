@@ -175,7 +175,7 @@ export const defaultRules = {
     cap: 2200, // [C] pool capacity
     liveCap: 900, // [C] quality presets 500 / 900 / 1400
     governor: { window: 2, dropTo: 0.82, raiseBy: 50, targetFps: 50 }, // [C]
-    /** [D] health = heroHealth(HP) (the canon curve, rules/stats.ts) × this behaviour's multiplier × role (Q20). All 1
+    /** [D] health = heroHealth(HP) (the canon curve, rules/stats.ts) × this behaviour's multiplier × role (Q20); no difficulty term (the survivor modes that set one go, Q48). All 1
      *  until the kit-tuning pass: the survivor formula had no behaviour term either */
     behaviourHp: { chase: 1, charger: 1, ranged: 1, tank: 1, healer: 1, swarm: 1 } as Record<string, number>,
     speedBase: 3, speedPerSpe: 1 / 55, speedMax: 6.2, // [C]
