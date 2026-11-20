@@ -100,10 +100,9 @@ export function starterEligibleSpecies(): SpeciesDef[] {
 }
 
 /** Weight class 0-4 from PokéAPI kilograms: Weightless < 1 kg, Light < 10, Medium < 50, Heavy < 200, Massive.
- *  Bosses count one class heavier. It decides what a Pokémon can Guard against and what can move it. */
-export function weightClass(sp: SpeciesDef, boss = false): number {
+ *  It decides what a Pokémon can Guard against and what can move it. */
+export function weightClass(sp: SpeciesDef): number {
   const kg = sp.canon?.weightKg ?? 20;
-  const c = kg < 1 ? 0 : kg < 10 ? 1 : kg < 50 ? 2 : kg < 200 ? 3 : 4;
-  return Math.min(4, c + (boss ? 1 : 0));
+  return kg < 1 ? 0 : kg < 10 ? 1 : kg < 50 ? 2 : kg < 200 ? 3 : 4;
 }
 export const WEIGHT_NAMES = ['Weightless', 'Light', 'Medium', 'Heavy', 'Massive'] as const;

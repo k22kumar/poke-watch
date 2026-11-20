@@ -133,7 +133,7 @@ export function partnerHeight(sp: SpeciesDef, rules: Rules = defaultRules): numb
   return bodyOf(sp, rules.size).height;
 }
 
-/** An enemy's collision radius at a role size multiplier (elite ×2, alpha ×3). */
+/** An enemy's collision radius at a body size multiplier (E.size; 1 since the elite and alpha roles went). */
 export function enemyRadius(sp: SpeciesDef, roleSize: number, rules: Rules = defaultRules): number {
   return bodyOf(sp, rules.size).radius * roleSize;
 }

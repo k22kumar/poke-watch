@@ -41,7 +41,6 @@ export function enemyAttackMult(ctx: SimContext, e: number): number {
   if (a === A.flash && E.abilityFlag[e]) m *= 1.5;
   return m;
 }
-import { ROLE } from './pools';
 import type { Hit, SimContext } from './types';
 
 export const AILMENTS: Ailment[] = ['knock', 'burn', 'poison', 'sleep', 'root', 'confuse', 'chill', 'stun'];
@@ -165,15 +164,14 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
 export function applyAilment(ctx: SimContext, e: number, a: Ailment, hitAmount: number, rootT?: number) {
   const E = ctx.enemies;
   const T = ctx.rules.damage.statusTime;
-  const bossy = E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.3 : 1;
   switch (a) {
     case 'burn': E.burn[e] = T.burn; E.dot[e] = Math.max(E.dot[e], hitAmount * ctx.rules.damage.burnDps * 10); break;
     case 'poison': E.poison[e] = T.poison; E.dot[e] = Math.max(E.dot[e], hitAmount * ctx.rules.damage.poisonDps * 10); break;
-    case 'sleep': if (E.ability[e] === A.vital) break; E.sleep[e] = T.sleep * bossy * (E.ability[e] === A.early ? 0.5 : 1); break;
-    case 'root': E.root[e] = Math.max(E.root[e], ccApply(ctx, e, (rootT ?? T.root) * bossy)); break;
-    case 'confuse': E.confuse[e] = T.confuse * bossy; break;
+    case 'sleep': if (E.ability[e] === A.vital) break; E.sleep[e] = T.sleep * (E.ability[e] === A.early ? 0.5 : 1); break;
+    case 'root': E.root[e] = Math.max(E.root[e], ccApply(ctx, e, rootT ?? T.root)); break;
+    case 'confuse': E.confuse[e] = T.confuse; break;
     case 'chill': if (E.ability[e] === A.magma) break; E.chill[e] = T.chill; break;
-    case 'stun': E.stun[e] = Math.max(E.stun[e], ccApply(ctx, e, T.stun * bossy)); break;
+    case 'stun': E.stun[e] = Math.max(E.stun[e], ccApply(ctx, e, T.stun)); break;
   }
 }
 
@@ -191,9 +189,6 @@ export function killEnemy(ctx: SimContext, e: number) {
   ctx.stats.kills++;
   ctx.events.push({ t: 'kill', x: E.x[e], y: E.y[e], z: E.z[e], species: E.species[e], roles: E.roles[e], element: sp.elements[0] });
   for (const h of ctx.hooks.onKill) h(ctx, e);
-  if (E.roles[e] & (ROLE.elite | ROLE.alpha)) {
-    ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopKillBig });
-  }
   E.kill(e);
 }
 

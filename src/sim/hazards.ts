@@ -9,13 +9,12 @@
 // Exposure is one rule for every actor: a creature whose centre is in the field, on the ground (flyers and anything in
 // the air pass over: 3D contact), loses `vent.pct` of its maximum HP per damage tick, Fire types excepted (as for a burning
 // tile). It does not read the trainer's attack, buffs, crits, hooks or the combat RNG stream (the environment is not a
-// move), it is not skipped by hit i-frames (a dash still is), and bosses and alphas take `vent.bossMult` of it.
+// move), it is not skipped by hit i-frames (a dash still is).
 // Damage ticks fall on the onset step and every `tick` s after it, so an actor still in the field when the eruption
 // begins takes the first tick, and the last tick lands `tick` s before the field goes quiet.
 import { navWide, partnerRadius } from '../rules/sizing';
 import { applyAgent, hurtPlayer, steamAt } from './cells';
 import { killEnemy } from './combat';
-import { ROLE } from './pools';
 import type { Member, SimContext, System } from './types';
 import type { World } from './world';
 import { faint, onHpLoss } from './squad';
@@ -75,7 +74,7 @@ export const hazardSystem: System = {
       if (!E.alive[e] || E.spawnT[e] < 0.25 || !W.hazardAt(E.x[e], E.z[e])) continue;
       if (E.y[e] > W.height(E.x[e], E.z[e]) + 0.3) continue; // flyers and anything in the air pass over
       if (ctx.speciesIndex[E.species[e]].elements.includes('blaze')) continue;
-      const amount = E.maxHp[e] * V.pct * (E.roles[e] & (ROLE.boss | ROLE.alpha) ? V.bossMult : 1);
+      const amount = E.maxHp[e] * V.pct;
       E.hp[e] -= amount;
       E.flash[e] = 0.12;
       ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount, crit: false, eff: 1, element: 'blaze', enemy: e });

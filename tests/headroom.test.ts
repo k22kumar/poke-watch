@@ -123,13 +123,13 @@ test('headroom: wide routing and placement use the body height (a gap is left ou
 test('headroom: every narrow body the sim can field fits under the lowest deck gap the generators allow (the narrow field has no height classes)', () => {
   // the ordinary (tile-centre) flow field is not height-aware: that is sound only while no narrow body is taller than
   // the gap. The generators keep every deck CLEARANCE (2.9 m) above the ground under it, so the gap is ≥ 2.3 m
-  const gap = CLEARANCE - DECK_SLAB, R = defaultRules, roles = R.enemy.roles;
+  const gap = CLEARANCE - DECK_SLAB, R = defaultRules;
   const bad: string[] = [];
   for (const sp of SPECIES) {
     if (sp.flying) continue;
-    for (const size of sp.boss ? [roles.boss.size] : [1, roles.elite.size, roles.alpha.size]) {
-      const f = footprintOf(sp, size, R);
-      if (!navWide(f, R) && enemyHeight(sp, size, R) > gap) bad.push(`${sp.id} ×${size}: ${enemyHeight(sp, size, R).toFixed(2)} m, footprint ${f.toFixed(2)}`);
+    {
+      const f = footprintOf(sp, 1, R);
+      if (!navWide(f, R) && enemyHeight(sp, 1, R) > gap) bad.push(`${sp.id}: ${enemyHeight(sp, 1, R).toFixed(2)} m, footprint ${f.toFixed(2)}`);
     }
   }
   assert.deepEqual(bad, []);
@@ -171,14 +171,12 @@ test('headroom (tall giants): at a 2.7 m gap Onix, as tall as drawn, stops at th
 test('headroom: no narrow body is taller than the lowest deck gap (S1, tall giants)', () => {
   const gap = CLEARANCE - DECK_SLAB;
   {
-    const R = defaultRules, roles = R.enemy.roles;
+    const R = defaultRules;
     const bad: string[] = [];
     for (const sp of SPECIES) {
       if (sp.flying) continue;
-      for (const size of sp.boss ? [roles.boss.size] : [1, roles.elite.size, roles.alpha.size]) {
-        const f = footprintOf(sp, size, R);
-        if (!navWide(f, R) && enemyHeight(sp, size, R) > gap) bad.push(`${sp.id} ×${size}: ${enemyHeight(sp, size, R).toFixed(2)} m, footprint ${f.toFixed(2)}`);
-      }
+      const f = footprintOf(sp, 1, R);
+      if (!navWide(f, R) && enemyHeight(sp, 1, R) > gap) bad.push(`${sp.id}: ${enemyHeight(sp, 1, R).toFixed(2)} m, footprint ${f.toFixed(2)}`);
       const pf = partnerFootprint(sp, R);
       if (!navWide(pf, R) && partnerHeight(sp, R) > gap) bad.push(`${sp.id} as partner: ${partnerHeight(sp, R).toFixed(2)} m`);
     }

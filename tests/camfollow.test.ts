@@ -16,7 +16,6 @@ import { World } from '../src/sim/world';
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { botInput } from '../src/sim/bot';
-import { ROLE } from '../src/sim/pools';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { CHASE_CONFIG, ChaseRig, chaseArm, type ViewSample } from '../src/render/camera';
 /** the back distance the framing law gives a subject with no measured art (the fallback outline of its size class) */
@@ -163,7 +162,7 @@ test('other Pokémon never move the camera: a crowd and a boss arriving around a
     const busy = drive(ctx, 60, 6, look, (t) => {
       // one Pokémon walks in 15 m ahead (the old rig's Combat state), then a crowd of 24 at 9 m and a boss at 12 m (Pressure)
       if (!a && t >= 2) { a = true; put('rattata', 0.5, -14.5); }
-      if (!b && t >= 4) { b = true; for (let k = 0; k < 24; k++) { const g = (k / 24) * Math.PI * 2; put('rattata', 0.5 + Math.cos(g) * 9, 0.5 + Math.sin(g) * 9); } put('sudowoodo', 12.5, 0.5, ROLE.boss); }
+      if (!b && t >= 4) { b = true; for (let k = 0; k < 24; k++) { const g = (k / 24) * Math.PI * 2; put('rattata', 0.5 + Math.cos(g) * 9, 0.5 + Math.sin(g) * 9); } put('sudowoodo', 12.5, 0.5); }
     });
     assert.ok(ctx.enemies.count >= 26, `${sp}: they are there (${ctx.enemies.count})`);
     for (let i = 0; i < quiet.length; i++) assert.deepEqual(busy[i].sample, quiet[i].sample, `${sp}: frame ${i} (t ${busy[i].t.toFixed(2)} s) differs`);

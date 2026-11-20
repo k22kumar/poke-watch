@@ -32,10 +32,7 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   const i = E.spawn();
   if (i < 0) return -1;
   const R = ctx.rules.enemy;
-  let hpRole = 1, dmgRole = 1, size = 1;
-  if (roles & ROLE.boss) { hpRole = R.roles.boss.hp; dmgRole = R.roles.boss.dmg; size = R.roles.boss.size; }
-  else if (roles & ROLE.alpha) { hpRole = R.roles.alpha.hp; dmgRole = R.roles.alpha.dmg; size = R.roles.alpha.size; }
-  else if (roles & ROLE.elite) { hpRole = R.roles.elite.hp; dmgRole = R.roles.elite.dmg; size = R.roles.elite.size; }
+  const size = 1; // a body scale (E.size); the elite, alpha and boss roles that set it went at pivot step 10
   const beh = sp.behaviour ?? 'chase';
   if (beh === 'ranged') roles |= ROLE.ranged;
   if (beh === 'healer') roles |= ROLE.healer;
@@ -45,12 +42,11 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (hv) roles |= ROLE.flying;
   // health on the hero canon curve × the behaviour's multiplier; base speed keeps its own formula until the co-op wave
   // step puts enemies on the hero speed band (docs/hero-shooter-pivot.md Q20, Q36). No growth with match time or region.
-  const hp = heroHealth(sp.stats.hp, ctx.rules) * R.behaviourHp[beh] * hpRole;
+  const hp = heroHealth(sp.stats.hp, ctx.rules) * R.behaviourHp[beh];
   let speed = Math.min(R.speedMax, R.speedBase + sp.stats.spe * R.speedPerSpe);
   if (beh === 'tank') speed *= 0.72;
   if (beh === 'swarm') speed *= 1.12;
   if (beh === 'ranged') speed *= 0.85;
-  if (roles & ROLE.boss) speed *= 0.8;
   // a ground body with a footprint is put down where it fits: a tile centre, or a wide block's centre
   const foot = tv.groundNav ? footprintOf(sp, size, ctx.rules) : 0;
   if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
@@ -60,7 +56,7 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   E.y[i] = ctx.world.height(x, z) + E.hover[i]; E.py[i] = E.y[i];
   E.hp[i] = E.maxHp[i] = hp;
   E.speed[i] = speed;
-  E.dmg[i] = (R.dmgBase + sp.stats.atk * R.dmgPerAtk + sp.stats.spa * R.dmgPerSpa) * dmgRole;
+  E.dmg[i] = R.dmgBase + sp.stats.atk * R.dmgPerAtk + sp.stats.spa * R.dmgPerSpa;
   E.size[i] = size;
   E.radius[i] = enemyRadius(sp, size, ctx.rules);
   E.tall[i] = enemyHeight(sp, size, ctx.rules);
@@ -188,7 +184,7 @@ export const enemySystem = {
       // a wide body with no wide route to the player (it holds: see the pursuit below) is moved the same way after
       // rules.enemy.holdRelocate seconds, onto ground the wide field reaches, rather than standing idle for good
       const far = dist > R.despawnDistance;
-      if ((far || E.holdT[i] > R.holdRelocate) && !(roles & ROLE.boss) && !pinned) {
+      if ((far || E.holdT[i] > R.holdRelocate) && !pinned) {
         E.holdT[i] = 0;
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
@@ -308,7 +304,7 @@ export const enemySystem = {
 
       // in a liquid it is not safe in (sim/hazards.ts): head for the shore picked on entry, wading slowly; over open air
       // (falling) it has nothing to push against
-      if (E.hzKind[i] && ground && !(roles & ROLE.boss)) {
+      if (E.hzKind[i] && ground) {
         const gx = E.hzX[i] - E.x[i], gz = E.hzZ[i] - E.z[i], gl = dhypot(gx, gz) || 1;
         ux = gx / gl; uz = gz / gl;
         speed *= E.hzKind[i] === 2 ? ctx.rules.hazards.lava.speed : ctx.rules.hazards.water.speed;
@@ -317,7 +313,7 @@ export const enemySystem = {
       // any enemy started on a throw (src/sim/actions.ts) stands and winds up
       if (E.state[i] === THROWING) { E.stateT[i] -= dt; speed = 0; throwTick(ctx, i, 0); }
       if (frozen) speed = 0;
-      if (!(roles & ROLE.boss)) {
+      {
         const [fs, grip] = E.hover[i] > 0 ? [1, 1] : footing(ctx, E.x[i], E.z[i], sp.elements, true);
         E.vx[i] += (ux * speed * fs - E.vx[i]) * steer * grip;
         E.vz[i] += (uz * speed * fs - E.vz[i]) * steer * grip;
@@ -339,7 +335,7 @@ export const enemySystem = {
           sx += (ox / d) * push; sz += (oz / d) * push;
         }
       }
-      const sepK = roles & ROLE.boss ? 0.2 : R.separationForce;
+      const sepK = R.separationForce;
       const ox = E.x[i], oz = E.z[i];
       // positions are stored as float32: round before the wall test so the stored point is the tested one
       let nx = Math.fround(clamp(ox + (E.vx[i] + E.kx[i] + sx * sepK) * dt, -W.bound, W.bound));
@@ -400,27 +396,26 @@ export const enemySystem = {
       const cr = E.radius[i] + pr;
       if (dist < cr && Math.abs(E.y[i] - E.hover[i] - P.y) < 1.4 + E.radius[i]) {
         const push = (cr - dist) / cr;
-        const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
-        const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt * (roles & ROLE.boss ? 3 : 1);
+        const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt;
+        const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt;
         const ph = partnerHeight(P.species, ctx.rules); // headroom: the partner's height meets deck slabs
         if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
         else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen && E.dmg[i] > 0) {
           E.contactCd[i] = R.contactCooldown;
           const charging = sp.behaviour === 'charger' && E.state[i] === 2;
-          const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp, (roles & ROLE.boss) !== 0), sp.elements[0], { kind: 'creature', name: sp.name }, channelOf(sp));
+          const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp), sp.elements[0], { kind: 'creature', name: sp.name }, channelOf(sp));
           // your Pokémon's Static or Effect Spore: 30% to stun whatever touched it
           if (res === 'hit' && (playerAbility(ctx) === AB_STATIC || playerAbility(ctx) === AB_SPORE) && ctx.rng.combat.next() < 0.3) {
-            E.stun[i] = Math.max(E.stun[i], roles & ROLE.boss ? 0.3 : 1.2);
+            E.stun[i] = Math.max(E.stun[i], 1.2);
             ctx.events.push({ t: 'ability', name: playerAbility(ctx) === AB_STATIC ? 'Static' : 'Effect Spore', x: E.x[i], z: E.z[i], enemy: i });
           }
           if (res === 'parry') {
             // a timed Guard against something no heavier than you: it bounces off, stunned
             const G = ctx.rules.combat;
             const kx = E.x[i] - P.x, kz = E.z[i] - P.z, kl = dhypot(kx, kz) || 1;
-            const resist = roles & ROLE.boss ? 0.15 : roles & ROLE.alpha ? 0.4 : roles & ROLE.elite ? 0.7 : 1;
-            E.kx[i] += (kx / kl) * G.parryKnock * resist; E.kz[i] += (kz / kl) * G.parryKnock * resist;
-            E.stun[i] = Math.max(E.stun[i], G.parryStun * resist);
+            E.kx[i] += (kx / kl) * G.parryKnock; E.kz[i] += (kz / kl) * G.parryKnock;
+            E.stun[i] = Math.max(E.stun[i], G.parryStun);
             if (E.state[i] === 2) E.state[i] = 0; // a parried charge ends
             E.contactCd[i] = Math.max(E.contactCd[i], 0.6);
             ctx.events.push({ t: 'parry', x: E.x[i], z: E.z[i], enemy: i });

@@ -16,11 +16,10 @@ import { dhypot } from '../core/detmath';
 import { ELEMENTS, effectiveness, type Element } from '../rules/elements';
 import { AG, REACT, coatImmune } from '../rules/reactions';
 import { killEnemy } from './combat';
-import { ROLE, ZK } from './pools';
+import { ZK } from './pools';
 import type { Member, SimContext } from './types';
 import { onHpLoss } from './squad';
 
-const BIG = ROLE.elite | ROLE.alpha | ROLE.boss;
 const AGENT_EL: Element[] = ['plain', 'blaze', 'tide', 'frost', 'volt'];
 
 export type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel';
@@ -29,8 +28,7 @@ export type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overlo
 export function ccApply(ctx: SimContext, e: number, dur: number): number {
   const E = ctx.enemies, C = ctx.rules.reactions.cc;
   if (dur <= 0 || E.ccImmune[e] > 0) return 0;
-  const mult = E.roles[e] & ROLE.boss ? C.bossMult : 1;
-  E.ccAcc[e] += dur * mult;
+  E.ccAcc[e] += dur;
   if (E.ccAcc[e] >= C.limit) { E.ccAcc[e] = 0; E.ccImmune[e] = C.immune; }
   return dur;
 }
@@ -45,10 +43,9 @@ function reactHit(ctx: SimContext, e: number, amount: number, el: Element, kx = 
   E.hp[e] -= dmg;
   E.flash[e] = 0.12;
   ctx.stats.damageDealt += dmg;
-  if (knock > 0 && !(E.roles[e] & ROLE.boss)) {
+  if (knock > 0) {
     const L = dhypot(kx, kz) || 1;
-    const resist = E.roles[e] & ROLE.alpha ? 0.3 : E.roles[e] & ROLE.elite ? 0.6 : 1;
-    E.kx[e] += (kx / L) * knock * resist; E.kz[e] += (kz / L) * knock * resist;
+    E.kx[e] += (kx / L) * knock; E.kz[e] += (kz / L) * knock;
   }
   ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount: dmg, crit: false, eff, element: el, enemy: e });
   if (E.hp[e] <= 0) killEnemy(ctx, e);
@@ -72,8 +69,6 @@ export function tileReactionBase(ctx: SimContext) {
 export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: number, amount: number) {
   const E = ctx.enemies, R = ctx.rules.reactions;
   if (!agent || depth <= 0 || !E.alive[e]) return;
-  const big = (E.roles[e] & BIG) !== 0;
-  if (depth === 1 && big) return; // light coats stick only to fodder
   if (coatImmune(ctx.speciesIndex[E.species[e]].elements, agent)) return;
   if (depth === 1) { if (E.coatIcd[e] > 0) return; E.coatIcd[e] = R.lightIcd; }
   const cur = E.coat[e];

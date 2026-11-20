@@ -13,7 +13,6 @@
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
-import { ROLE } from '../src/sim/pools';
 import { LOCATIONS } from '../src/world/locations';
 import { HABITATS } from '../src/world/habitat';
 import { navGrid, wideCore, pathBetween, enemyCore } from '../src/world/locgen/nav';
@@ -24,9 +23,9 @@ import { bodyTiles } from './habplay';
 
 import { RANGE } from '../src/mods';
 import { assertRunning, endedNote, runEnded } from './lib/ended';
-/** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m), an Extra Large (0.88 m) and
- *  a Large elite (×2, capped at 0.95 m) */
-const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0], ['elite', 'heracross', ROLE.elite]];
+/** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m) and an Extra Large (0.88 m).
+ *  The Large elite (×2, capped at 0.95 m) went with the elite role (pivot step 10) */
+const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0]];
 const TRAINERS: [string, string][] = [['small', 'totodile'], ['xl', 'feraligatr']];
 
 export interface WalkResult { map: string; seed: number; target: string; walker: string; expect: 'arrive' | 'refuse'; ok: boolean; t: number; note: string }

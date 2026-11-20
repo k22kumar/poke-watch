@@ -12,7 +12,6 @@ import type { ViewSample } from './render/camera';
 import { botInput } from './sim/bot';
 import { damagePlayer, killEnemy } from './sim/combat';
 import { spawnEnemy } from './sim/enemies';
-import { ROLE } from './sim/pools';
 import { spawnBody } from './sim/bodies';
 import { applyAgent } from './sim/cells';
 import { startEvolution } from './sim/evolution';
@@ -98,7 +97,7 @@ const ui = new UI({
     rules: ctx?.rules ?? {},
     ctx,
     god: (on) => { god = on; },
-    killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i] && !(E.roles[i] & ROLE.boss)) killEnemy(ctx, i); },
+    killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i]) killEnemy(ctx, i); },
   }),
   dev: params.has('dev'),
   roster: () => playRoster(),
@@ -256,7 +255,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
-      case 'swarm': ui.banner('Stampede!', '', 1.2); break;
       case 'chest': audio.chest(); break;
       case 'dash': audio.dash(); break;
       case 'jump': audio.jump(); break;

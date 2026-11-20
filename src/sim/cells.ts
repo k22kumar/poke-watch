@@ -18,7 +18,6 @@ import { applyAilment } from './combat';
 import { AG } from '../rules/reactions';
 import { ccApply, coatEnemy, coatMember } from './coats';
 import { onHpLoss } from './squad';
-import { ROLE } from './pools';
 import type { SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { propAgent, propPass } from './props';
@@ -189,7 +188,7 @@ function freezeCreatures(ctx: SimContext, k: number) {
     const e = ctx.grid.result[q];
     if (!E.alive[e] || E.hover[e] > 0 || C.tile(E.x[e], E.z[e]) !== k) continue;
     if (ctx.speciesIndex[E.species[e]].elements.includes('frost')) continue;
-    const t = ccApply(ctx, e, E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.3 : 1.2);
+    const t = ccApply(ctx, e, 1.2);
     if (t > 0) { E.stun[e] = Math.max(E.stun[e], t); E.frozen[e] = Math.max(E.frozen[e], t); }
   }
 }
@@ -313,7 +312,7 @@ export const cellSystem = {
       if (C.state[k] === CS.burning && !els.includes('blaze') && E.burn[e] <= 0) applyAilment(ctx, e, 'burn', ctx.rules.reactions.tileBurn);
       // Electric types ignore the flood, and so do Ground types (Electric does nothing to Ground)
       const charged = C.charge[k] > 0 && !els.includes('volt') && !els.includes('quake') && E.y[e] - W.height(E.x[e], E.z[e]) < 0.4;
-      if (charged) { const t = ccApply(ctx, e, E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.2 : 0.6); if (t > 0) E.stun[e] = Math.max(E.stun[e], t); }
+      if (charged) { const t = ccApply(ctx, e, 0.6); if (t > 0) E.stun[e] = Math.max(E.stun[e], t); }
       // tiles coat what stands on them (deep), once a second per creature
       if ((passN + e) % 10 === 0) {
         const ag = tileAgent(C, k, charged);

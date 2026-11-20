@@ -113,7 +113,7 @@ void main(){
   o = vec4(mix(uHor, uZen, q), 1.0);
 }`;
 
-/** sprite tint per coat (rules/reactions.ts AG index) and the ring colour under coated elites, bosses and you */
+/** sprite tint per coat (rules/reactions.ts AG index) and the ring colour under you when coated */
 const COAT_TINT: [number, number, number][] = [[1, 1, 1], [1.3, 0.85, 0.6], [0.72, 0.9, 1.35], [0.8, 1.15, 1.3], [1.3, 1.25, 0.6]];
 const COAT_RING: [number, number, number][] = [[1, 1, 1], [1, 0.45, 0.15], [0.3, 0.6, 1], [0.6, 0.95, 1], [1, 0.9, 0.2]];
 const ELC: Record<string, [number, number, number]> = Object.fromEntries(ELEMENTS.map((e) => [e, hexToRgb(ELEMENT_DEFS[e].color)]));
@@ -353,8 +353,7 @@ export class Renderer {
       const p = this.project(E.x[i], E.y[i] + 0.5, E.z[i]);
       if (p && p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H) continue; // in frame: it is already seen
       const [ang, d] = bearingOf(this.rig.yaw, P.x, P.z, E.x[i], E.z[i]);
-      const r = E.roles[i];
-      ringAdd(ring, ang, d, r & ROLE.boss ? 8 : r & ROLE.alpha ? 4 : r & ROLE.elite ? 3 : 1);
+      ringAdd(ring, ang, d, 1);
     }
     return ring;
   }
@@ -410,8 +409,7 @@ export class Renderer {
         case 'kill': {
           const sp = SPECIES[e.species];
           const set = this.sheets.get(sp.id);
-          const scale = e.roles & ROLE.boss ? 1 : e.roles & ROLE.alpha ? ctx.rules.enemy.roles.alpha.size : e.roles & ROLE.elite ? ctx.rules.enemy.roles.elite.size : 1;
-          if (set && this.dying.length < 120) this.dying.push({ sp: sp.id, x: e.x, y: e.y, z: e.z, dir: 0, frame: 0, t: 0, scale: scale * (sp.scale ?? 1) });
+          if (set && this.dying.length < 120) this.dying.push({ sp: sp.id, x: e.x, y: e.y, z: e.z, dir: 0, frame: 0, t: 0, scale: sp.scale ?? 1 });
           const fx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain;
           for (let k = 0; k < 5; k++) this.px.spawn('dust', e.x + rnd(-0.4, 0.4), e.y + 0.3, e.z + rnd(-0.4, 0.4), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), rnd(0.3, 0.5), 1, 2);
           for (let k = 0; k < 3; k++) this.px.spawn(fx[1], e.x, e.y + 0.5, e.z, rnd(-3, 3), rnd(3, 6), rnd(-3, 3), rnd(0.35, 0.6), 1, 12, rnd(-6, 6));
@@ -839,20 +837,13 @@ export class Renderer {
       if (E.frozen[i] > 0) tint = [0.62, 0.9, 1.45];
       else if (E.coat[i]) { const ct = COAT_TINT[E.coat[i]]; const k = E.coatDeep[i] === 2 ? 1 : 0.6; tint = [tint[0] * (1 + (ct[0] - 1) * k), tint[1] * (1 + (ct[1] - 1) * k), tint[2] * (1 + (ct[2] - 1) * k)]; }
       if (E.blind[i] > 0) tint = [tint[0] * 0.8, tint[1] * 0.8, tint[2] * 0.85];
-      if (roles & ROLE.alpha) tint = [tint[0] * 1.15, tint[1] * 0.75, tint[2] * 0.75];
-      else if (roles & ROLE.elite) tint = [tint[0] * 1.1, tint[1] * 1.0, tint[2] * 0.7];
       const spawnFade = E.spawnT[i] < 0.25 ? 1 - E.spawnT[i] / 0.25 : 0;
       let flash = E.flash[i] > 0 ? 0.85 : 0;
       // animation state from the sim's state
       let state: AnimState = 'walk', t = E.animT[i] * set.walkRate;
-      if (E.flash[i] > 0 && !(roles & ROLE.boss)) { state = 'hurt'; t = 0.12 - E.flash[i]; }
+      if (E.flash[i] > 0) { state = 'hurt'; t = 0.12 - E.flash[i]; }
       if (E.sleep[i] > 0) { state = 'sleep'; t = this.time; }
-      if (roles & ROLE.boss) {
-        const s = E.state[i];
-        if (s === 3) { state = 'charge'; t = 0.8 - E.stateT[i]; flash = Math.max(flash, 0.35 + 0.35 * Math.sin(this.time * 30)); }
-        else if (s === 2 || s === 5) { state = 'attack'; t = 0.15; }
-        else if (s === 6 || s === 4) { state = 'shoot'; t = Math.max(0, 1.1 - E.stateT[i]); }
-      } else if (sp.behaviour === 'charger' && E.state[i] === 1) { state = 'charge'; t = ctx.rules.enemy.chargeWindup - E.stateT[i]; flash = Math.max(flash, 0.4 + 0.4 * Math.sin(this.time * 30)); }
+      if (sp.behaviour === 'charger' && E.state[i] === 1) { state = 'charge'; t = ctx.rules.enemy.chargeWindup - E.stateT[i]; flash = Math.max(flash, 0.4 + 0.4 * Math.sin(this.time * 30)); }
       else if (sp.behaviour === 'charger' && E.state[i] === 2) { state = 'attack'; t = 0.1; }
       const inGrass = E.hover[i] === 0 && ctx.world.inTallGrass(x, z);
       push(sp.id, x, y, z, E.size[i] * (sp.scale ?? 1), E.facing[i], state, t, flash, spawnFade * 0.9, tint, inGrass ? -0.12 : 0);
@@ -1038,11 +1029,8 @@ export class Renderer {
       ref = W.over ? E.y[i] - E.hover[i] : undefined;
       put(D, x, z, E.radius[i] * 1.25, [0, 0, 0], 1, 0);
       if (hideO) continue;
-      if (E.roles[i] & (ROLE.elite | ROLE.alpha)) put(D, x, z, E.radius[i] * 1.6, E.roles[i] & ROLE.alpha ? [1, 0.3, 0.2] : [1, 0.8, 0.2], 0.8, 1, 0.12, 0, 0);
-      // a deep coat on anything, or any coat on an elite or boss: a coloured ring that says what it carries
-      // a coat ring only where it carries a decision (elites, alphas, bosses); fodder shows its coat as a tint, so a
-      // soaked swarm does not turn the ground into rings (art direction: signals stay scarce)
-      if (E.coat[i] && E.roles[i] & (ROLE.elite | ROLE.alpha | ROLE.boss)) put(T, x, z, E.radius[i] * 1.35 + 0.15, COAT_RING[E.coat[i]], 0.85, 1, 0.16, 0, 0);
+      // coats show as a tint, not a ring, so a soaked crowd does not turn the ground into rings (art direction: signals
+      // stay scarce; the ring went with the elite, alpha and boss roles at pivot step 10)
     }
     { const B = ctx.bodies;
       for (let b = 0; b < B.hi; b++) {

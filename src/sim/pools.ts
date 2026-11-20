@@ -22,7 +22,11 @@ class FreeList {
 
 /** role bits: healer = the healer behaviour (heals what is near it), raider goes for the objective, target = a training
  *  target. 64 and 128 were the Bulwark and the Hexer, 2048 the Hunt target (deleted at pivot step 9, Q20) */
-export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, raider: 256, swarm: 512, stampede: 1024, target: 4096 } as const; // 2048 was the Hunt target (deleted)
+/** role bits on EnemyPool.roles. ranged, healer and swarm are the behaviour's own flags (spawnEnemy sets them from the
+ *  species' behaviour); flying from its traversal; raider and target from the spawner. Free bits: 1, 2, 4 (the elite,
+ *  alpha and boss roles), 64, 128 (Shielder, Hexer), 1024 (the stampede), 2048 (the Hunt target), all deleted at the
+ *  pivot (docs/hero-shooter-pivot.md) */
+export const ROLE = { ranged: 8, flying: 16, healer: 32, raider: 256, swarm: 512, target: 4096 } as const;
 
 export class EnemyPool {
   readonly cap: number;

@@ -20,7 +20,6 @@ import { weightClass } from '../rules/species';
 import { damageEnemy, damagePlayer } from './combat';
 import { deflecting, guardWeight } from './player';
 import { CS, rubbleAt } from './cells';
-import { ROLE } from './pools';
 import type { MoveSpec, SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { currentCastSlot, holdAim, holdButton } from './capabilities';
@@ -390,7 +389,7 @@ export const bodySystem = {
           const dx = E.x[e] - x, dz = E.z[e] - z, rr = R + E.radius[e];
           if (dx * dx + dz * dz > rr * rr || B.recentlyHit(b, e, ctx.time)) continue;
           B.markHit(b, e, ctx.time + 0.5);
-          const ew = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
+          const ew = weightClass(ctx.speciesIndex[E.species[e]]);
           const dealt = (B.dmg[b] * sp) / 10;
           damageEnemy(ctx, e, dealt, { element: T.type, cls: 'physical', ailment: 'knock', chance: 0, knock: wgt >= ew ? 9 : 2, kx: B.vx[b], kz: B.vz[b], drain: 0, source: 'impact' });
           if (ew >= wgt) { B.vx[b] *= -0.3; B.vz[b] *= -0.3; } // stopped by something as heavy

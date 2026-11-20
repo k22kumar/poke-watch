@@ -18,7 +18,7 @@ export function standAt(ctx: SimContext, id: string, x: number, z: number): [num
   return W.nearestWalkable(x, z);
 }
 
-/** may `id` appear at (x, z) at this role size (elite ×2, alpha ×3)? Its habitat restrictions, and
+/** may `id` appear at (x, z) at this body size (E.size)? Its habitat restrictions, and
  *  room for a ground footprint that routes on the wide field: not in a one-tile pocket, not at an entrance only small
  *  bodies fit. A body taller than a deck's gap is judged on its own height's field. */
 export function allowedAt(ctx: SimContext, id: string, x: number, z: number, roleSize = 1): boolean {

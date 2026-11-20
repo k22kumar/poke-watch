@@ -171,11 +171,6 @@ export const defaultRules = {
     holdRelocate: 6, // [B] s a wide body may hold with no wide route to the player before it is moved like a far one (sim/enemies.ts)
     navHold: 0.4, // [B] s a ground walker keeps to the flow field after its way ahead was last blocked (sim/enemies.ts)
     spawnRadius: [21, 27], // [B] just outside the fixed view (±15 m wide, ±11 m deep)
-    roles: {
-      elite: { hp: 4.5, dmg: 1.5, size: 2 }, // [C] hp; size [B] whole-number scales only, so texels stay square (1.5x doubled every other texel and shimmered)
-      alpha: { hp: 22, dmg: 2, size: 3 }, // [C] hp; size [B] whole-number scale
-      boss: { hp: 70, dmg: 2.2, size: 1 }, // [C] hp
-    },
     rangedRange: 13, rangedCooldown: 2.6, rangedShotSpeed: 11, // [B]
     chargeWindup: 0.6, chargeSpeedMult: 2.8, chargeTime: 0.7, chargeCooldown: 3.5, // [B]
   },
@@ -223,7 +218,7 @@ export const defaultRules = {
     wideRatio: 1.5, // [B] an idle frame at least this much wider than tall is normalised on width / wideRatio
     playerRadius: [0.48, 0.72] as [number, number], // [B] partner hurtbox clamp around the old shared 0.55 m (0.42 floor: +17 % bot survival, 0.48: +10 %)
     heavyRadius: 0.5, // [B] a footprint (`body`) at or above this routes on the wide (2 × 2 block) navigation field (sim/world.ts)
-    // [B] role-scaled footprints (elite ×2, alpha ×3, bosses) stop here: pursuers must fit the two-tile routes the
+    // [B] footprints scaled by a body size (E.size) stop here: pursuers must fit the two-tile routes the
     // location and habitat gates guarantee to every essential space (a body ≥ 1 m needs three tiles; docs/SIZING.md)
     bodyCap: 0.95,
     wideSeed: 4, // [B] tiles (ordinary-field steps) around the player that seed the wide field when the player stands where a wide body does not fit
@@ -374,7 +369,7 @@ export const defaultRules = {
     tileBurn: 14,
     soakedFire: 0.5, // Fire damage into a Soaked creature
     /** crowd-control meter: after `limit` s of stun / freeze / root inside the decay window, immune for `immune` s */
-    cc: { limit: 2, decay: 1 / 3, immune: 4, bossMult: 2 },
+    cc: { limit: 2, decay: 1 / 3, immune: 4 },
   },
   // [I] Procedural world (docs/WORLDGEN.md, Procedural Pokémon World Blueprint). `mode: 'authored'` keeps the
   // handcrafted arenas exactly (replay checksums unchanged); 'generated' builds each listed biome's region from the
@@ -398,11 +393,11 @@ export const defaultRules = {
   // hazard state is a pure function of time (the validator checks the dormant and venting states; the warning is the
   // escape window for anyone already in the field: 1.5 s at a walk covers more than the 4-tile exit bound).
   // `pct` is the share of an actor's maximum HP one damage tick takes (5 ticks per eruption = 10 %), the same for the
-  // trainer and every creature; `bossMult` scales it for bosses and alphas. `ice` is the lifecycle of a frozen water
+  // trainer and every creature. `ice` is the lifecycle of a frozen water
   // tile (docs/HABITAT_STATES.md): it cracks `crack` s before it thaws (a cue), and an actor still on it when it opens
   // is put on the nearest dry shore and loses `dunk` of its maximum HP (never its last HP).
   habitat: {
-    vent: { period: 10, warn: 1.5, active: 2.5, pct: 0.02, bossMult: 0.3, tick: 0.5 },
+    vent: { period: 10, warn: 1.5, active: 2.5, pct: 0.02, tick: 0.5 },
     ice: { crack: 2, dunk: 0.1 },
     // a tidal map (HabMeta.tide, docs/HABITATS.md "Tide"): one cycle of `period` s of stage time, low water for the first
     // `low` s, then `warn` s of rising-water warning (still dry), then high water to the end of the cycle (the tidal floor is
@@ -498,8 +493,8 @@ export const defaultRules = {
     throw: { windup: 0.6, speed: 11, dmg: 1.5, again: 1.5, offset: 1.3, lineLength: 26, lineWidth: 2.2, template: 'boulder' },
   },
   feel: {
-    hitstopKillBig: 0.06, hitstopBossHit: 0.0, hitstopBossKill: 0.5, hitstopPlayerHurt: 0.08, // [C] range 0.06..0.5
-    shakePlayerHurt: 0.35, shakeBoss: 0.6, shakeNova: 0.15,
+    hitstopPlayerHurt: 0.08, // [C] range 0.06..0.5
+    shakePlayerHurt: 0.35, shakeNova: 0.15,
     damageNumbers: true,
     // [B] attack timeline: seconds between a move coming off cooldown (pose starts, Pokémon turns to
     // the target) and the release, so the PMD HitFrame lines up with the projectile/impact. The

@@ -21,7 +21,6 @@ import { MOVE_BY_KEY } from '../rules/moves';
 import { ABILITIES, abilityOf } from '../rules/abilities';
 import { MODES } from '../mods';
 import type { Mode } from '../mods/types';
-import { ROLE } from '../sim/pools';
 import { compileMove, levelled, slotSpec } from '../sim/moves';
 import { pinchActive } from '../sim/combat';
 import { FEATURED, PROTOTYPE, heroKit, lineage } from '../rules/heroes';
@@ -1119,7 +1118,7 @@ export class UI {
     for (let e = 0; e < E.hi; e++) {
       if (!E.alive[e] || Math.abs(E.x[e] - P.x) > 9 || Math.abs(E.z[e] - P.z) > 7) continue;
       const sp = ctx.speciesIndex[E.species[e]];
-      label(`W${weightClass(sp, (E.roles[e] & ROLE.boss) !== 0)}`, E.x[e], E.y[e] + E.tall[e] + 0.5, E.z[e], '#ffb0a0');
+      label(`W${weightClass(sp)}`, E.x[e], E.y[e] + E.tall[e] + 0.5, E.z[e], '#ffb0a0');
     }
     label(`W${weightClass(P.species)} guard`, P.x, P.y + P.species.height + 0.9, P.z, '#7fd0ff');
     // recent capability events where they happened, rising as they age
