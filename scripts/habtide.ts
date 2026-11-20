@@ -43,7 +43,7 @@ import { enemyCore, pathBetween } from '../src/world/locgen/nav';
 import { T } from '../src/world/tiles';
 import { drive, playHabitat, routeTo } from './habplay';
 
-import { RANGE } from '../src/mods';
+import { RANGE, swap } from '../src/mods';
 import { assertRunning, runEnded } from './lib/ended';
 export const RECIPE = 'tidal-cave';
 export interface Check { id: string; seed: number; coverage: 'static' | 'live'; ok: boolean; detail: string }
@@ -57,7 +57,7 @@ export function mkTide(seed: number, species = 'cyndaquil', tide?: Tide): SimCon
   return ctx;
 }
 function mkRaw(seed: number, species: string, tide?: Tide): SimContext {
-  return createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, ...(tide ? { habitat: { tide } } : {}) } as never });
+  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, ...(tide ? { habitat: { tide } } : {}) } as never });
 }
 const ALWAYS_HIGH: Tide = { low: 0, warn: 0 };
 const ALWAYS_LOW: Tide = { low: 1e6 };

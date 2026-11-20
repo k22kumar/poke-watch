@@ -23,12 +23,15 @@ import { BodyPool, bodySystem, seedBodies } from './bodies';
 import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
-import { reviveFainted, squadSystem } from './squad';
-import { finishEvolution, handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
+import { addLoadoutMember, reviveFainted, squadSystem } from './squad';
+import { handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
 import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
 import { CapLog } from './caplog';
+import { evolutionSystem } from './evolution';
+import { swapSystem } from './swap';
+import { startTargets, targetSystem } from './targets';
 
 export interface RunOptions {
   seed: number;
@@ -36,6 +39,10 @@ export interface RunOptions {
   mode?: Mode;
   mods?: Mod[];
   ruleOverrides?: import('../core/util').DeepPartial<Rules>;
+  /** the rest of the loadout after `species`, up to rules.hero.loadout (a mode with swapping; docs/hero-shooter-pivot.md Q10) */
+  loadout?: string[];
+  /** a training target set (src/rules/targets.ts) put down when the run starts */
+  targets?: import('../rules/targets').TargetSet;
 }
 
 const gridSystem: System = {
@@ -46,7 +53,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, directorSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, pickupSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, directorSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, pickupSystem, progressionSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];
@@ -90,6 +97,7 @@ export function createRun(opts: RunOptions): SimContext {
     caplog: new CapLog(rules.caps.logSize),
     recap: null,
     build: { picks: 0, sinceTech: 0, lastShown: new Set(), swap: null, history: [] },
+    targets: null,
   };
   ctx.players.push(ctx.player);
   recompute(ctx);
@@ -98,7 +106,9 @@ export function createRun(opts: RunOptions): SimContext {
   // attack, so any species can lead), Ability 1, and in range mode Ability 2
   const kit = heroKit(species, { fillE: rules.hero.fillE });
   for (const key of [kit.primary, kit.q, kit.e]) if (key && !ctx.player.learned.has(key)) learnMove(ctx, key);
+  for (const id of opts.loadout ?? []) addLoadoutMember(ctx, id);
   startStage(ctx, 0);
+  if (opts.targets) startTargets(ctx, opts.targets);
   return ctx;
 }
 
@@ -146,10 +156,6 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   ctx.tick++;
 
   switch (ctx.state) {
-    case 'evolving':
-      ctx.stateTimer -= dt;
-      if (ctx.stateTimer <= 0) finishEvolution(ctx);
-      return ctx.events;
     case 'transition':
       ctx.stateTimer -= dt;
       if (ctx.stateTimer <= 0) nextStage(ctx);
@@ -179,7 +185,6 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   for (const s of ctx.systems) {
     if (ctx.state === 'dead' && (s.name === 'player' || s.name === 'squad' || s.name === 'moves' || s.name === 'pickups' || s.name === 'progression')) continue;
     s.update(ctx, dt);
-    if (isModal(ctx)) break; // modal opened mid-tick
   }
   for (const h of ctx.hooks.onTick) h(ctx);
 
@@ -212,6 +217,3 @@ function nextStage(ctx: SimContext) {
   startStage(ctx, next);
 }
 
-function isModal(ctx: SimContext) {
-  return ctx.state === 'evolving';
-}

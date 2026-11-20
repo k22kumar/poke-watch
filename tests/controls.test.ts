@@ -193,7 +193,9 @@ const PRE_R6C_KEYS: Record<string, string[]> = {
 const PRE_R6C_PAD: Record<string, number[]> = { jump: [0], dash: [1], sig: [3], guard: [4], moveB: [5], moveA: [6], basic: [7], pause: [9], pick1: [14], pick2: [12], pick3: [15], reroll: [13] };
 
 test('defaults: every earlier binding unchanged; descend is V and left-stick click; no Ctrl; no conflicts', () => {
-  for (const [a, cs] of Object.entries(PRE_R6C_KEYS)) assert.deepEqual(DEFAULT_KEYS[a], cs, a);
+  // the one move since: Touch took F (hold: a Breakthrough, docs/hero-shooter-pivot.md Q39) and the card reroll went to G
+  for (const [a, cs] of Object.entries(PRE_R6C_KEYS)) assert.deepEqual(DEFAULT_KEYS[a], a === 'reroll' ? ['KeyG'] : cs, a);
+  assert.deepEqual(DEFAULT_KEYS.touch, ['KeyF']);
   for (const [a, cs] of Object.entries(PRE_R6C_PAD)) assert.deepEqual(DEFAULT_PAD[a], cs, a);
   assert.deepEqual(DEFAULT_KEYS.descend, ['KeyV']);
   assert.deepEqual(DEFAULT_PAD.descend, [PAD.ls]);

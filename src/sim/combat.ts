@@ -219,6 +219,9 @@ export function killEnemy(ctx: SimContext, e: number) {
 }
 
 export function dropXp(ctx: SimContext, x: number, z: number, value: number, roles: number) {
+  // XP is the survivor loop's: with no pickup system (a hero mode) nothing drops, and nothing draws from rng.combat, so
+  // deleting XP later cannot move a hero-mode replay
+  if (!ctx.systems.some((s) => s.name === 'pickups')) return;
   const Pk = ctx.pickups;
   const big = roles & (ROLE.elite | ROLE.alpha | ROLE.boss);
   const pieces = roles & ROLE.boss ? 12 : roles & ROLE.alpha ? 6 : big ? 3 : 1;

@@ -15,7 +15,7 @@
 /** the actions players can bind, in the order the bindings screen lists them */
 export const ACTIONS = [
   { id: 'up', label: 'Move forward' }, { id: 'down', label: 'Move back' }, { id: 'left', label: 'Move left' }, { id: 'right', label: 'Move right' },
-  { id: 'jump', label: 'Jump / ascend' }, { id: 'descend', label: 'Descend (flight)' }, { id: 'dash', label: 'Dash' },
+  { id: 'jump', label: 'Jump / ascend' }, { id: 'descend', label: 'Descend (flight)' }, { id: 'dash', label: 'Dash' }, { id: 'touch', label: 'Touch (hold: Breakthrough)' },
   { id: 'basic', label: 'Attack' }, { id: 'moveA', label: 'Move A' }, { id: 'moveB', label: 'Move B' }, { id: 'sig', label: 'Signature / Tag' }, { id: 'guard', label: 'Guard' },
   { id: 'pick1', label: 'Pick card 1' }, { id: 'pick2', label: 'Pick card 2' }, { id: 'pick3', label: 'Pick card 3' }, { id: 'pick4', label: 'Pick card 4' },
   { id: 'reroll', label: 'Reroll cards' }, { id: 'skip', label: 'Skip cards' }, { id: 'banish', label: 'Banish a card' }, { id: 'cardPointer', label: 'Cursor / camera toggle' },
@@ -37,7 +37,9 @@ export const DEFAULT_KEYS: KeyBindings = {
   // hero-shooter combat: the basic attack is primary fire (left mouse, J), Move A secondary (right mouse, K),
   // Move B R, Q the Signature / Tag, E Guard
   basic: ['KeyJ'], moveA: ['KeyK'], moveB: ['KeyR'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
-  pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
+  // Touch (docs/CONTROL_SCHEME_TARGET.md): F; held, a Breakthrough (evolution) where the mode allows one
+  touch: ['KeyF'],
+  pause: ['Escape', 'KeyP'], reroll: ['KeyG'], skip: ['KeyX'], banish: ['KeyZ'],
   pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
 };
 

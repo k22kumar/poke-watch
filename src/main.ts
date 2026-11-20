@@ -17,6 +17,8 @@ import { ROLE } from './sim/pools';
 import { spawnBody } from './sim/bodies';
 import { applyAgent } from './sim/cells';
 import { gainXp, xpNext } from './sim/progression';
+import { startEvolution } from './sim/evolution';
+import { HABITAT_TARGETS, RANGE_TARGETS } from './rules/targets';
 import { controlRoster, type ReadinessCheck } from './sim/playability';
 import { defaultRules } from './rules/defaults';
 import { runSizeRules } from './rules/sizing';
@@ -43,6 +45,8 @@ import type { ArtBundle } from './assets/builtin';
 import ART from './content/art.json';
 
 const params = new URLSearchParams(location.search);
+/** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
+let evolveAt = params.has('evolve') ? Math.max(0, Number(params.get('evolve')) || 1) : -1;
 const DEFAULT_SPECIES = 'charmander';
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 const audio = new Audio();
@@ -222,8 +226,13 @@ function startRun(mode: Mode, species: string, seed: number) {
   // saved Map (Settings → World → Map) applies only when the URL says neither
   const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
   const world = loc ? 'locations' : params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
+  // the range Mode plays the training range arena with its target set (docs/hero-shooter-pivot.md Q16); a map named in
+  // the URL (?loc=, ?world=) keeps that map, with the habitat target set anchored on a habitat map's contest
+  const range = mode.id === 'range' || mode.id === 'range-swap';
+  const named = !!loc || params.has('world');
+  const wg = range && !named ? { ...worldgenOverrides(world, loc), arena: 'range' } : worldgenOverrides(world, loc);
   try {
-    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: worldgenOverrides(world, loc), ...poolOverride() } });
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg, ...poolOverride() } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
   } catch (e) {
     // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
     failMap(e);
@@ -450,6 +459,8 @@ function frame(now: number) {
       const inp = autoplay ? botInput(c) : sampleInput(c, view);
       if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
       let ev: SimEvent[];
+      // dev trigger (docs/hero-shooter-pivot.md Q23): ?evolve=<seconds> starts a Breakthrough that far into the run
+      if (evolveAt >= 0 && c.time >= evolveAt) { evolveAt = -1; startEvolution(c); }
       try { ev = step(c, inp); } catch (e) { if (e instanceof HabitatError) { failMap(e); return 'abort'; } throw e; }
       onEvents(c, ev);
       if ((c.state as string) === 'over' || (c.state as string) === 'victory') { onEnd(c); return 'end'; }
@@ -468,7 +479,7 @@ function frame(now: number) {
       else if (++govGood >= 3) c.director.liveCap = Math.min(c.rules.enemy.liveCap, c.director.liveCap + G.raiseBy);
     }
   }
-  if (c.state !== 'evolving') ui.show('overlay-evolve', false);
+  if (c.player.breakT <= 0) ui.show('overlay-evolve', false);
   const tSim1 = performance.now();
   const alpha = Math.max(0, Math.min(1, acc / c.dt));
   audio.intensity = Math.min(1, c.enemies.count / 500 + (c.director.bossIndex >= 0 ? 0.5 : 0));
@@ -565,7 +576,7 @@ async function boot() {
     debug: (what = 'caps') => { debugCaps = what === 'caps' ? !debugCaps : false; return debugCaps; },
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
-    cries, advance, damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
+    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, addLevel: () => ctx && gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01), agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, xpNext, MODES,
     objective: (kind: 'hold' | 'hunt' | 'transport') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species

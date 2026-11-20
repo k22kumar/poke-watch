@@ -28,7 +28,6 @@ export const defaultRules = {
     hitstopScale: 0.08, // [C] time scale while hit-stop is active
     deathTimeScale: 0.25, // [C] slow motion on death
     deathSlowmoSeconds: 1.6, // [B]
-    evolveSeconds: 2.4, // [B] world frozen during evolution cinematic
   },
   world: {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
@@ -138,6 +137,13 @@ export const defaultRules = {
     vitaminSlots: 3, // [C]
     regenPerSec: 0.25, // [B]
   },
+  // [D] Training targets (src/rules/targets.ts, src/sim/targets.ts; docs/hero-shooter-pivot.md Q17, Q20): health from the
+  // canon curve × the kind's multiplier, a strafer's damage scaled down, a fixed respawn (seconds, as ticks: no RNG)
+  targets: { hp: { dummy: 1, patrol: 1, strafe: 1 }, strafeDamage: 0.3, respawn: 3 },
+  // [D] Breakthrough (evolution; src/sim/evolution.ts, docs/STATS_GROWTH_TARGET.md "Breakthroughs"): rooted and
+  // invulnerable for breakSeconds, then the next form at full health. freeTrigger (the range Mode): holding Touch for
+  // holdTime starts one for free, until Candy prices exist
+  evolution: { breakSeconds: 2, holdTime: 0.4, freeTrigger: false },
   // [D] Hero stats (docs/STATS_GROWTH_TARGET.md "Stats", src/rules/stats.ts). Level-50 Canon Curve, k = 0.6, no Upkeep:
   // a stat's multiplier m = ((base + statOffset) / statRef) ^ k; health = health × ((HP + hpOffset) / hpRef) ^ k. Base 80
   // is ×1.0 and 250 health. Levels add nothing.
@@ -150,6 +156,12 @@ export const defaultRules = {
     moveLevel: 1,
     /** range mode fills Ability 2 (E) with the next learnset move, for testing (docs/hero-shooter-pivot.md Q27) */
     fillE: false,
+    /** how many Pokémon a player brings (Q10): 1, one Pokémon per player; a mode that registers swapping raises it and
+     *  names the others in RunOptions.loadout */
+    loadout: 1,
+    /** seconds a player who faints with no Pokémon left waits before coming back at the spawn at full health; 0 = the
+     *  run ends instead (the survivor loop). The range Mode has no fail state (docs/hero-shooter-pivot.md Q17) */
+    respawn: 0,
   },
   camera: {
     // DS-style fixed three-quarter view (see docs/ART_BIBLE.md). PokéBonk used an orbit camera
@@ -488,6 +500,8 @@ export const defaultRules = {
     size: 128, // tiles (m) per side of a generated region
     version: 2, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
     regionSeed: -1, // ≥ 0: use this region seed for every stage instead of the run's (experiments: hold the map, vary the run)
+    /** an authored arena that replaces every stage's map: 'range' is the training range (src/world/arenas.ts) */
+    arena: '',
     /** Pokémon locations (src/world/locations, docs/LOCATIONS.md): a stage biome listed here is built by the location
      *  generator (src/world/locgen) from that location's data instead of the classic generator. '' = classic. Chosen
      *  where the stage's spawn table fits the place's canonical ecology; any location can be forced with ?loc=. */

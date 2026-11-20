@@ -32,10 +32,40 @@ const NAMES: Record<string, string> = { meadow: 'Sunpetal Meadow', badlands: 'Ci
 const cache = new Map<string, ArenaMap>();
 
 export function getArena(biome: string): ArenaMap {
+  if (biome === 'range') { let r = cache.get('range'); if (!r) { r = buildRange(); cache.set('range', r); } return r; }
   const key = DRESS[biome] ? biome : 'meadow';
   let m = cache.get(key);
   if (!m) { m = buildArena(key); cache.set(key, m); }
   return m;
+}
+
+/** The training range (docs/hero-shooter-pivot.md Q16): one authored arena for the hero core, on the meadow's palette.
+ *  An open firing ground north of the spawn where the range targets stand (src/rules/targets.ts RANGE_TARGETS), a 2 m
+ *  terrace with stairs on the west (walk off its edge, climb back by the stairs), a 1.5 m block on the east that a jump
+ *  reaches (the 1.84 m apex), rocks for cover, and a pond in the south-east to swim or wade. */
+function buildRange(): ArenaMap {
+  const S = ARENA_SIZE, seed = 7;
+  const b = new ArenaBuilder('range', 'Training Range', S, S);
+  const C: [number, number] = [56, 66];
+  // the firing lane: north from the spawn to the targets
+  b.path([[56, 96], [56, 40]], 3, T.path);
+  b.path([[34, 58], [78, 58]], 2, T.dirt);
+  // west terrace (2 m) with a stair flight cut into its south face
+  b.elevRect(22, 34, 16, 18, 2);
+  cutStairs(b, 28, 2);
+  // east jump block (1.5 m): within a jump from the ground, above the 0.6 m step
+  b.elevRect(76, 40, 10, 8, 1.5);
+  // cover near the targets
+  for (const [x, y] of [[50, 52], [62, 50], [46, 60], [66, 60]] as [number, number][]) b.prop('rock', x, y, { allowPath: true });
+  // the pond
+  b.blob(82, 82, 8, 6, T.water, 1.2, seed);
+  b.banks(T.sand, 1);
+  b.landmark(56, 50, 'Target Field');
+  b.border(4, 4, ['tree', 'tree2', 'tree', 'round'], seed);
+  b.ledgeLips();
+  b.m.spawn = C;
+  b.sealPockets();
+  return b.m;
 }
 
 function buildArena(biome: string): ArenaMap {

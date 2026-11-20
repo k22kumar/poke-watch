@@ -82,7 +82,10 @@ export const READINESS_CHECKS: ReadinessCheck[] = [
   },
   {
     id: 'tagAction', severity: 'warn',
-    test: (sp) => {
+    // Tag Actions belong to the opt-in swap system (src/sim/swap.ts): the check counts only where a player brings more
+    // than one Pokémon (rules.hero.loadout > 1, a mode that registers swapping; docs/hero-shooter-pivot.md Q11)
+    test: (sp, rules) => {
+      if (rules.hero.loadout <= 1) return null;
       const line = tagLineOf(lineage(sp)[0].id) ?? tagLineOf(sp.id);
       if (!line) return 'no Tag Action (tagging it in fires nothing)';
       if (!MOVE_BY_KEY[line.base.move] || !MOVE_BY_KEY[line.variant.move]) return 'Tag Action move missing from the move database';

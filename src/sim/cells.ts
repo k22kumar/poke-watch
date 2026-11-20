@@ -392,7 +392,7 @@ function settleMelted(ctx: SimContext) {
 /** environmental damage to the player: no Guard, no knockback; it still respects dash i-frames */
 export function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
   const P = ctx.player;
-  if (P.dashT > 0 || P.m.fainted || P.faintT >= 0) return;
+  if (P.dashT > 0 || P.m.fainted || P.faintT >= 0 || P.breakT > 0) return; // a Breakthrough is invulnerable (sim/evolution.ts)
   setSrc('tile', kind);
   const r = rec(ctx, 'tile', 'hit', true);
   if (r) { r.amount = amount * ctx.rules.mode.difficulty; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }

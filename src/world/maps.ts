@@ -10,7 +10,7 @@ import { HAB_VERSION, HABITATS, findHabitat, generateHabitat } from './habitat';
 import type { ArenaMap } from './tiles';
 import type { SpawnPoolDef } from '../rules/spawning';
 
-export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string> }
+export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string>; arena?: string }
 
 /** the Pokémon location or habitat recipe (`id` or `id:variant`, src/world/habitat) a stage biome is built from in
  *  generated mode, or '' for the classic generator */
@@ -58,6 +58,8 @@ export function regionKey(biome: string, seed: number, wg: WorldgenRules) {
 }
 
 export function regionMap(wg: WorldgenRules | undefined, biome: string, seed: number, species: string[] = []): ArenaMap {
+  // an authored arena named outright (the training range: rules.worldgen.arena 'range') wins over the stage's biome
+  if (wg?.arena) return getArena(wg.arena);
   if (!usesGenerator(wg, biome)) return getArena(biome);
   const loc = locationFor(wg, biome);
   if (!loc && wg!.version !== GEN_VERSION) throw new Error(`worldgen version ${wg!.version} requested; this build generates version ${GEN_VERSION}`);

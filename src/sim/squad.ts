@@ -20,97 +20,17 @@ import { resolve, setCastSlot } from './capabilities';
 import { buildRecap, rec, setSrc } from './caplog';
 import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './moves';
 import { makeMember, recomputeMember } from './progression';
-import { firstAttacks, lineage } from '../rules/heroes';
+import { firstAttacks, heroKit, lineage } from '../rules/heroes';
 import { BTN, type Card, type Member, type MoveSpec, type SimContext } from './types';
 import { TB } from '../rules/build';
 import { logTech, techSpec } from './techniques';
 import { applyMastery } from './build';
 
-/** move slot index stamped on a Tag Action's projectiles and zones (any slot other than 0 coats deep) */
-export const TAG_SLOT = 9;
-
-/** the Tag Action a member fires: its line's base or variant move */
-export function tagDefOf(m: Member): TagDef | null {
-  const line = tagLineOf(lineage(m.species)[0].id) ?? tagLineOf(m.species.id);
-  if (!line) return null;
-  return m.tagVariant ? line.variant : line.base;
-}
-
-/** the Tag Action as a cast spec: at the flat rules.squad.tagActionLevel (Q26), hitting like a strong manual move */
-export function tagSpec(ctx: SimContext, m: Member): MoveSpec | null {
-  const def = tagDefOf(m);
-  if (!def || !MOVE_BY_KEY[def.move]) return null;
-  const s = compileMove(ctx.rules, def.move);
-  const R = ctx.rules.squad, M = ctx.rules.moves;
-  const L = Math.min(M.maxLevel, R.tagActionLevel) - 1;
-  const caps = def.create ? [...(s.caps ?? []), { verb: 'create' as const, template: def.create }] : s.caps;
-  return techSpec(ctx, { ...s, dmg: s.dmg * (1 + M.levelDmg * L) * R.tagDmgMult, knock: s.knock * R.tagKnockMult, cd: 0, caps });
-}
-
-/** reserves in squad order (not the field Pokémon), fainted ones included */
-export function reserves(ctx: SimContext): number[] {
-  const P = ctx.player;
-  const out: number[] = [];
-  for (let k = 0; k < P.squad.length; k++) if (k !== P.active) out.push(k);
-  return out;
-}
-
-function firstAlive(ctx: SimContext, except: number): number {
+/** the first member other than `except` that has not fainted, -1 if none */
+export function firstAlive(ctx: SimContext, except: number): number {
   const P = ctx.player;
   for (let k = 0; k < P.squad.length; k++) if (k !== except && !P.squad[k].fainted) return k;
   return -1;
-}
-
-export function canTag(ctx: SimContext, to: number): boolean {
-  const P = ctx.player;
-  return ctx.state === 'play' && to >= 0 && to < P.squad.length && to !== P.active && !P.squad[to].fainted
-    && P.tagCd <= 0 && P.guardLock <= 0 && P.faintT < 0 && P.dashT <= 0;
-}
-
-/** swap the field Pokémon; a free tag (after a faint) skips the cooldown check and does not start it */
-export function tagTo(ctx: SimContext, to: number, free = false) {
-  const P = ctx.player, R = ctx.rules.squad;
-  if (!free && !canTag(ctx, to)) return false;
-  const from = P.m;
-  if (P.guardT >= 0) P.guardT = -1; // Guard ends with the Pokémon that raised it
-  P.lastActive = P.active;
-  P.active = to;
-  P.fieldT = 0;
-  P.iframes = Math.max(P.iframes, R.tagInvuln);
-  const secondWind = (P.techMask & TB.secondWind) !== 0;
-  if (!free) P.tagCd = secondWind ? ctx.rules.build.tech.secondWind.tagCooldown : R.tagCooldown;
-  // Second Wind: the incoming Pokémon arrives clean
-  if (secondWind && P.m.coat) { P.m.coat = 0; P.m.coatDeep = 0; P.m.coatT = 0; logTech(ctx, 'second_wind', 'coat cleared', P.x, P.z); }
-  P.tagPending = R.tagDelay;
-  for (const s of P.m.moves) s.windup = undefined;
-  ctx.events.push({ t: 'tag', from: from.species.id, to: P.m.species.id, free });
-  return true;
-}
-
-/** release the incoming Pokémon's Tag Action toward the aim (or the nearest enemy without aim) */
-export function castTagAction(ctx: SimContext) {
-  const P = ctx.player;
-  const m = P.m;
-  if (m.fainted) return;
-  const spec = tagSpec(ctx, m);
-  if (!spec) return;
-  const impl = ARCHETYPES[spec.archetype];
-  if (!impl) return;
-  setCastDepth(2);
-  setCastSlot(TAG_SLOT);
-  const aimed = resolveAim(ctx, spec, true, false);
-  if (aimed) impl.cast(ctx, spec, TAG_SLOT);
-  setCastDepth(1);
-  setCastSlot(-1);
-  const [ax, az] = aimPoint();
-  const def = tagDefOf(m)!;
-  if (def.create === 'rock') {
-    const [x, z] = ctx.world.walkable(ax, az) ? [ax, az] : ctx.world.nearestWalkable(ax, az);
-    // Create goes through the resolver (Phase 8a: capped per player, logged); v10 spawned the rock directly
-    if (ctx.rules.caps.enabled) resolve(ctx, { verb: 'create', power: 0, type: spec.element, owner: TEAM.player, x, z, dx: 0, dz: 0, source: { kind: 'tag', id: TAG_SLOT, name: spec.name }, target: { kind: 'tile', id: -1 }, template: def.create });
-    else spawnBody(ctx, 'rock', x, z, 0, 0, TEAM.neutral);
-  }
-  ctx.events.push({ t: 'tagAction', species: m.species.id, key: spec.key, element: spec.element, x: ax, z: az });
 }
 
 /** health lost by the field Pokémon: part of it becomes grey; at zero it faints. Returns true if the run ended. */
@@ -129,6 +49,14 @@ export function faint(ctx: SimContext): boolean {
   setSrc('player', m.species.name);
   const r = rec(ctx, 'faint', 'none', true);
   if (r) { r.tgt = 'player'; r.tgtName = m.species.name; r.x = P.x; r.z = P.z; }
+  if (next < 0 && ctx.rules.hero.respawn > 0) {
+    // no fail state (the range): down for rules.hero.respawn, then back at the spawn (squadSystem)
+    ctx.events.push({ t: 'faint', species: m.species.id, out: false });
+    P.respawnT = ctx.rules.hero.respawn;
+    P.iframes = Math.max(P.iframes, P.respawnT + 0.5);
+    P.tagPending = -1;
+    return false;
+  }
   if (next < 0) {
     // the death recap: which rules decided the last few seconds (blueprint section 10)
     if (ctx.rules.caps.enabled) ctx.recap = buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds);
@@ -145,10 +73,35 @@ export function faint(ctx: SimContext): boolean {
   return false;
 }
 
+/** back at the spawn with every member at full health (the range's no-fail rule) */
+function respawn(ctx: SimContext) {
+  const P = ctx.player, W = ctx.world, [sx, sz] = W.spawn;
+  P.respawnT = 0;
+  for (const m of P.squad) { m.fainted = false; m.hp = m.maxHp; m.grey = 0; m.coat = 0; m.coatDeep = 0; m.coatT = 0; m.paraT = 0; }
+  P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = W.height(sx, sz); P.vx = P.vz = P.vy = 0; P.kx = P.kz = 0; P.grounded = true;
+  P.safeX = sx; P.safeY = P.y; P.safeZ = sz; P.hzKind = 0; P.hzT = 0; P.hzAcc = 0;
+  P.iframes = Math.max(P.iframes, 1);
+  ctx.events.push({ t: 'respawn', species: P.m.species.id });
+}
+
 /** at the next region's portal, fainted Pokémon come back */
 export function reviveFainted(ctx: SimContext) {
   const P = ctx.player, R = ctx.rules.squad;
   for (const m of P.squad) if (m.fainted) { m.fainted = false; m.hp = m.maxHp * R.reviveHp; m.grey = 0; }
+}
+
+/** a loadout member (docs/hero-shooter-pivot.md Q10): a Pokémon the player brings into the match, with its hero kit at
+ *  the fixed move level (src/rules/heroes.ts heroKit). Not a recruit: no event, no squad-level moves */
+export function addLoadoutMember(ctx: SimContext, id: string): Member | null {
+  const P = ctx.player, sp = SPECIES_BY_ID[id];
+  if (!sp || P.squad.length >= Math.max(1, ctx.rules.hero.loadout)) return null;
+  const m = makeMember(sp);
+  P.squad.push(m);
+  recomputeMember(ctx, m);
+  m.hp = m.maxHp;
+  const kit = heroKit(sp, { fillE: ctx.rules.hero.fillE });
+  for (const k of [kit.primary, kit.q, kit.e]) if (k && !m.learned.has(k)) { m.moves.push({ key: k, level: ctx.rules.hero.moveLevel, cd: 0.3, spec: compileMove(ctx.rules, k) }); m.learned.add(k); }
+  return m;
 }
 
 // ------------------------------------------------------------------ recruiting
@@ -218,53 +171,18 @@ export function variantDue(ctx: SimContext, m: Member, sp: SpeciesDef) {
 }
 
 // ------------------------------------------------------------------ the system
+/** the squad's core, any size: the field timer and each member's Flash Fire timer. Swapping (Tag input, Tag Actions,
+ *  the faint replacement, grey health and the bench) is the opt-in swap system (src/sim/swap.ts). */
 export const squadSystem = {
   name: 'squad',
   update(ctx: SimContext, dt: number) {
-    const P = ctx.player, R = ctx.rules.squad;
-    if (P.tagCd > 0) P.tagCd -= dt;
+    const P = ctx.player;
     P.fieldT += dt;
-
-    // a fainted field Pokémon is replaced after a moment, with a free Tag Action
-    if (P.faintT >= 0) {
-      P.faintT -= dt;
-      if (P.faintT < 0) { const next = firstAlive(ctx, P.active); if (next >= 0) tagTo(ctx, next, true); }
-    }
-
-    // Tag input: tap swaps to the last Pokémon; hold + primary / secondary fire picks the first / second reserve
-    const btn = ctx.input.btn ?? 0;
-    const down = (btn & BTN.sig) !== 0;
-    if (down && P.squad.length > 1) {
-      if (P.tagDownT < 0) { P.tagDownT = 0; P.tagPicked = false; } else P.tagDownT += dt;
-      const res = reserves(ctx);
-      const edgeA = (btn & BTN.basic) && !(P.tagBtnPrev & BTN.basic), edgeB = (btn & BTN.a) && !(P.tagBtnPrev & BTN.a);
-      if (edgeA || edgeB) { P.tagPicked = true; const to = edgeA ? res[0] : res[1]; if (to !== undefined) tagTo(ctx, to); }
-    } else if (P.tagDownT >= 0) {
-      if (!P.tagPicked && P.tagDownT < R.holdPick) {
-        const back = P.lastActive >= 0 && P.lastActive < P.squad.length && !P.squad[P.lastActive].fainted && P.lastActive !== P.active ? P.lastActive : firstAlive(ctx, P.active);
-        tagTo(ctx, back);
-      }
-      P.tagDownT = -1;
-    }
-    P.tagBtnPrev = btn;
-
-    // the Tag Action releases a moment after the Pokémon arrives
-    if (P.tagPending >= 0) {
-      P.tagPending -= dt;
-      if (P.tagPending < 0) castTagAction(ctx);
-    }
-
-    // grey health and resting on the bench
-    const drain = dexp((-dt * Math.LN2) / R.greyHalfLife);
-    for (let k = 0; k < P.squad.length; k++) {
-      const m = P.squad[k];
-      if (m.flashT > 0) m.flashT -= dt;
-      if (m.fainted) continue;
-      if (k === P.active) { m.grey *= drain; continue; }
-      if (m.grey > 0) { const r = Math.min(m.grey, m.maxHp * R.benchRefill * dt); m.hp = Math.min(m.maxHp, m.hp + r); m.grey -= r; }
-      for (const s of m.moves) if (s.cd > 0) s.cd -= dt * R.benchCdRate;
-      if (m.paraT > 0) m.paraT -= dt * 2;
-      if (m.buffT > 0) m.buffT -= dt;
+    for (const m of P.squad) if (m.flashT > 0) m.flashT -= dt;
+    // a respawn (rules.hero.respawn): rooted while down, then every member back at full health on the spawn
+    if (P.respawnT > 0) {
+      P.respawnT -= dt; P.rootT = Math.max(P.rootT, dt * 2); P.vx = 0; P.vz = 0;
+      if (P.respawnT <= 0) respawn(ctx);
     }
   },
 };

@@ -10,7 +10,7 @@ import type { JumpControl, LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
 import type { MoveFlags } from '../rules/build';
 
-export type RunState = 'play' | 'evolving' | 'dead' | 'over' | 'victory' | 'transition';
+export type RunState = 'play' | 'dead' | 'over' | 'victory' | 'transition';
 
 export interface InputFrame {
   mx: number; // desired world-space move direction (unnormalised ok, length <= 1)
@@ -72,7 +72,7 @@ export function freshAimState(): AimState {
   return { on: false, ox: 0, oy: 0, oz: 0, tx: 0, ty: 0, tz: 0, hitKind: 0, hitId: -1, ux: 0, uy: 0, uz: 1, blocked: false, blockKind: 0, bx: 0, by: 0, bz: 0, reach: 0, dist: 0 };
 }
 /** held-button bits in InputFrame.btn: Move A, Move B, Signature, Guard, and the basic attack (slot 0) */
-export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16 } as const;
+export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16, touch: 32 } as const;
 export const NO_INPUT: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
 export interface MoveSpec extends MoveFlags {
@@ -136,6 +136,10 @@ export interface Member {
  * the active member, so systems written for one Pokémon keep working unchanged.
  */
 export class Player {
+  /** a Breakthrough in progress (sim/evolution.ts): seconds left, the member evolving, how long Touch has been held */
+  breakT = 0; breakMember = -1; touchT = 0;
+  /** knocked out with a respawn coming (rules.hero.respawn): seconds left; 0 = up */
+  respawnT = 0;
   x = 0; y = 0; z = 0;
   px = 0; py = 0; pz = 0;
   vx = 0; vz = 0; vy = 0;
@@ -316,6 +320,7 @@ export type SimEvent =
   | { t: 'cardPicked'; card: Card | null }
   | { t: 'evolveStart'; from: string; to: string }
   | { t: 'evolveEnd'; species: string }
+  | { t: 'respawn'; species: string }
   | { t: 'learn'; key: string }
   | { t: 'bossSpawn'; species: string; enemy: number }
   | { t: 'bossPhase'; phase: number }
@@ -475,6 +480,8 @@ export interface SimContext {
   aim: AimState;
   speciesIndex: SpeciesDef[];
   portal: { active: boolean; x: number; z: number };
+  /** training targets (src/sim/targets.ts), null when the run has none */
+  targets: import('./targets').TargetState | null;
   /** Phase 8a: the capability event log (death recap, pokewatch.debug('caps')) and the recap written when the run ends */
   caplog: import('./caplog').CapLog;
   recap: string[] | null;

@@ -9,7 +9,7 @@ import { breakBody, holdBody, holdPower, moveOnBody, pushBody, pushPower, spawnB
 import { createBody, forceOnShots, interceptPass, resolve } from '../src/sim/capabilities';
 import { shootHostile, spawnEnemy } from '../src/sim/enemies';
 import { compileMove } from '../src/sim/moves';
-import { tagSpec } from '../src/sim/squad';
+import { tagSpec } from '../src/sim/swap';
 import { addMember } from '../src/sim/squad';
 import { CS } from '../src/sim/cells';
 import { PK } from '../src/sim/pools';
@@ -22,12 +22,13 @@ import { BODY_TEMPLATES } from '../src/rules/materials';
 import { defaultRules } from '../src/rules/defaults';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
-import { RANGE } from '../src/mods';
+import { RANGE, swap } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
-const QUIET = { bodies: { looseRocks: 0 } };
+// hero.respawn 0: a knockout ends the run, as these death-recap tests need (the range otherwise respawns)
+const QUIET = { bodies: { looseRocks: 0 }, hero: { respawn: 0 } };
 
 function calm(species = 'totodile', extra: object = {}): SimContext {
-  const ctx = createRun({ mode: RANGE, seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
+  const ctx = createRun({ mode: RANGE, mods: [swap], seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
   for (let i = 0; i < 20; i++) step(ctx, NONE);
   return ctx;
 }

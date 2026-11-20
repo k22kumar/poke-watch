@@ -27,6 +27,7 @@ import { openOffer, recomputeMember } from './progression';
 import { lineage } from '../rules/heroes';
 import { queueVariant } from './squad';
 import type { Objective, ObjectiveKind, SimContext } from './types';
+import { holdOfferTime, holdPoint, holdTick, spawnRaidParty } from './modes/hold';
 
 const SCHEDULE: ObjectiveKind[][] = [['hold', 'hunt'], ['transport', 'hunt']];
 
@@ -75,10 +76,8 @@ export function startObjective(ctx: SimContext, kind: ObjectiveKind): boolean {
   const O = ctx.rules.objectives;
   let obj: Objective;
   if (kind === 'hold') {
-    const H = ctx.world.hab;
-    // habitat maps: the generated contest floor (tile coords → world)
-    const [x, z] = H ? [H.contest.x - ctx.world.half, H.contest.y - ctx.world.half] : site(ctx, 12, 20);
-    obj = blank('hold', x, z, H ? O.offerTime + 30 : O.offerTime);
+    const [x, z] = holdPoint(ctx, () => site(ctx, 12, 20));
+    obj = blank('hold', x, z, holdOfferTime(ctx));
   } else if (kind === 'hunt') {
     const pool = recruitables(ctx);
     if (!pool.length) return false;
@@ -119,14 +118,8 @@ function activate(ctx: SimContext, O: Objective) {
   O.phase = 'active';
   O.t = O.kind === 'hold' ? R.hold.limit : O.kind === 'hunt' ? R.hunt.limit : R.transport.limit;
   ctx.events.push({ t: 'objective', kind: O.kind, phase: 'active', x: O.x, z: O.z });
-  // a raid party comes for it (Hunts bring their own escort)
-  if (O.kind !== 'hunt') {
-    const opts = compositionsFor(ctx, 'objective');
-    // habitat maps: the raid party leaves team B's staging and takes its approaches to the point
-    const H = ctx.world.hab;
-    const near: [number, number] | undefined = H ? [H.stage.B[0] - ctx.world.half, H.stage.B[1] - ctx.world.half] : undefined;
-    if (opts.length) spawnComposition(ctx, ctx.rng.spawn.weighted(opts, (c) => c.weight), near);
-  }
+  // a raid party comes for it (Hunts bring their own escort): src/sim/modes/hold.ts
+  if (O.kind !== 'hunt') spawnRaidParty(ctx);
 }
 
 function finish(ctx: SimContext, O: Objective, ok: boolean, reward = '') {
@@ -141,7 +134,8 @@ function finish(ctx: SimContext, O: Objective, ok: boolean, reward = '') {
 /** the reward: Hold an item ball, Hunt a recruit, Transport an evolution (or a full heal) */
 function reward(ctx: SimContext, O: Objective): string {
   const P = ctx.player;
-  const itemBall = () => { if (ctx.cards.offer) ctx.cards.chestsQueued++; else openOffer(ctx, true); return 'item'; };
+  // the item ball is the survivor loop's (cards); a hero mode has no progression system and no reward
+  const itemBall = () => { if (!ctx.systems.some((s) => s.name === 'progression')) return ''; if (ctx.cards.offer) ctx.cards.chestsQueued++; else openOffer(ctx, true); return 'item'; };
   if (O.kind === 'hold') return itemBall();
   if (O.kind === 'hunt') {
     if (P.squad.length >= ctx.rules.squad.max || ctx.recruit.pending) return itemBall();
@@ -181,15 +175,9 @@ export const objectiveSystem = {
     const dP = dhypot(P.x - O.x, P.z - O.z);
 
     if (O.kind === 'hold') {
-      if (O.phase === 'offer' && dP < R.hold.radius) activate(ctx, O);
-      if (O.phase === 'active') {
-        if (dP < R.hold.radius && P.faintT < 0) O.charge += dt / R.hold.time;
-        // Raiders standing on the pad drain it
-        const n = ctx.grid.query(O.x, O.z, 2);
-        for (let k = 0; k < n; k++) { const e = ctx.grid.result[k]; if (E.alive[e] && E.roles[e] & ROLE.raider) O.charge -= R.hold.drain * dt; }
-        O.charge = clamp(O.charge, 0, 1);
-        if (O.charge >= 1) { finish(ctx, O, true, reward(ctx, O)); return; }
-      }
+      // src/sim/modes/hold.ts
+      if (holdTick(ctx, O, 0, dP) === 'activate') activate(ctx, O);
+      if (O.phase === 'active' && holdTick(ctx, O, dt, dP) === 'taken') { finish(ctx, O, true, reward(ctx, O)); return; }
     } else if (O.kind === 'hunt') {
       const alive = O.target >= 0 && E.alive[O.target] && E.gen[O.target] === O.targetGen;
       if (alive) { O.x = E.x[O.target]; O.z = E.z[O.target]; }

@@ -53,7 +53,7 @@ import type { SimContext } from './types';
 import { capsOn, forceOnShots, interceptPass, launchShot, tickHeldShot } from './capabilities';
 import { rec, setSrc } from './caplog';
 import { forceOnBody, TEAM } from './bodies';
-import { TAG_SLOT } from './squad';
+import { TAG_SLOT } from './swap';
 import { guardWeight, onGuardDeflect } from './techniques';
 import { brambleAt } from './cells';
 import { resolve } from './capabilities';

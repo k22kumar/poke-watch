@@ -2,6 +2,9 @@
 import { enemiesInRadius, hitScratch } from '../sim/moves';
 import { damageEnemy } from '../sim/combat';
 import { healPlayer } from '../sim/combat';
+import { swapSystem } from '../sim/swap';
+import { startObjective } from '../sim/objectives';
+import type { System } from '../sim/types';
 import type { Mod, Mode } from './types';
 import { deepMerge } from '../core/util';
 import { defaultRules } from '../rules/defaults';
@@ -58,13 +61,61 @@ export const noSurvivorLoop: Mod = {
   systems: (list) => list.filter((s) => !SURVIVOR_SYSTEMS.has(s.name)),
 };
 
+/** One Pokémon per player: the swap system (src/sim/swap.ts) is left out. The default for hero modes. */
+export const solo: Mod = {
+  id: 'solo',
+  name: 'Solo',
+  systems: (list) => list.filter((s) => s.name !== 'swap'),
+};
+
+/** Swapping as a mechanic a mode opts into (docs/hero-shooter-pivot.md Q10, Q11): the swap system, after the squad's
+ *  core. Pair it with a loadout above one (rules.hero.loadout, RunOptions.loadout). */
+export const swap: Mod = {
+  id: 'swap',
+  name: 'Swap',
+  systems: (list) => {
+    if (list.some((s) => s.name === 'swap')) return list;
+    const i = list.findIndex((s) => s.name === 'squad');
+    return [...list.slice(0, i + 1), swapSystem, ...list.slice(i + 1)];
+  },
+};
+
 /** The training range: the foundation with no survivor loop. Targets, respawns and the hero kit arrive in later steps
  *  of the pivot (docs/hero-shooter-pivot.md §8). */
 export const RANGE: Mode = {
   id: 'range', name: 'Training range',
   description: 'No waves, no levels: move, aim and fight on any map.',
-  rules: { mode: { id: 'range', endless: false, difficulty: 1 }, hero: { fillE: true } },
-  mods: [noSurvivorLoop],
+  rules: { mode: { id: 'range', endless: false, difficulty: 1 }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
+  mods: [noSurvivorLoop, solo],
+};
+
+/** Hold opens at the start of a habitat map (src/sim/modes/hold.ts): the point is the contest floor, the Raid party
+ *  comes from team B's staging. On a map with no habitat it does nothing. */
+const holdStart: System = {
+  name: 'holdStart',
+  update(ctx) { if (ctx.tick === 1 && !ctx.objective && ctx.world.hab) startObjective(ctx, 'hold'); },
+};
+export const holdMod: Mod = {
+  id: 'hold',
+  name: 'Hold',
+  systems: (list) => { const i = list.findIndex((s) => s.name === 'objectives'); return i < 0 ? [...list, holdStart] : [...list.slice(0, i), holdStart, ...list.slice(i)]; },
+};
+
+/** Hold the point (docs/hero-shooter-pivot.md Q14, Q48): the control point on a habitat map against the Raid party.
+ *  The 3v3's objective later; for now one hero against the raiders. */
+export const HOLD: Mode = {
+  id: 'hold', name: 'Hold',
+  description: 'Take the point on a habitat map and hold it against the raid party.',
+  rules: { mode: { id: 'hold', endless: false, difficulty: 1 } },
+  mods: [noSurvivorLoop, solo, holdMod],
+};
+
+/** The range with a three-member loadout and swapping: the opt-in swap system's own mode (and replay scenario). */
+export const RANGE_SWAP: Mode = {
+  id: 'range-swap', name: 'Training range (swap)',
+  description: 'The range with a three-Pokémon loadout you swap between.',
+  rules: { ...RANGE.rules, hero: { fillE: true, respawn: 3, loadout: 3 } },
+  mods: [noSurvivorLoop, swap],
 };
 
 // ---------------------------------------------------------------- modes
@@ -90,6 +141,7 @@ export const MODES: Mode[] = [
     rules: { stage: { bossAt: 90, finalSwarmAt: 240 }, xp: { base: 4, linear: 3 }, director: { alphaAt: 60, eliteEvery: 20 } },
   },
   RANGE,
+  HOLD,
 ];
 
 /** What validateSpawnOverride reports for a mode's own rules.spawning.override and each of its mods' (bosses named in

@@ -26,6 +26,7 @@ import { shotWeight } from '../rules/capabilities';
 import { tickHeldEnemy } from './capabilities';
 import { avoidsStep } from './hazards';
 
+import { targetGoal } from './targets';
 export function stageIndex(ctx: SimContext) {
   return Math.min(ctx.stage, ctx.rules.director.hpN.length - 1);
 }
@@ -227,7 +228,8 @@ export const enemySystem = {
       // and the relocation below would put it on a ring ahead of the trainer, skipping the approaches (and sometimes in
       // ground nothing connects to the point). It stays where it is until it is killed or the Hold ends.
       const raiding = !!W.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
-      const pinned = raiding || (O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active'));
+      // training targets are pinned too (src/sim/targets.ts): they stand, patrol or strafe where the set put them
+      const pinned = raiding || (roles & ROLE.target) !== 0 || (O !== null && (O.target === i || O.mender === i) && (O.phase === 'offer' || O.phase === 'active'));
       // a wide body with no wide route to the player (it holds: see the pursuit below) is moved the same way after
       // rules.enemy.holdRelocate seconds, onto ground the wide field reaches, rather than standing idle for good
       const far = dist > R.despawnDistance;
@@ -291,8 +293,8 @@ export const enemySystem = {
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }
 
       // the objective a Raider is after, or the Mender a hurt Hunt target runs to (blueprint section 9)
-      let goal: [number, number] | null = null;
-      if (O && (O.phase === 'offer' || O.phase === 'active')) {
+      let goal: [number, number] | null = roles & ROLE.target ? targetGoal(ctx, i) : null;
+      if (!goal && O && (O.phase === 'offer' || O.phase === 'active')) {
         if (roles & ROLE.hunt && O.kind === 'hunt' && O.target === i && E.hp[i] < E.maxHp[i] * ctx.rules.objectives.hunt.flee && O.mender >= 0 && E.alive[O.mender]) goal = [E.x[O.mender], E.z[O.mender]];
         else if (roles & ROLE.raider && O.phase === 'active') {
           if (O.kind === 'hold') goal = [O.x, O.z];
@@ -480,7 +482,7 @@ export const enemySystem = {
         const ph = partnerHeight(P.species, ctx.rules); // headroom: the partner's height meets deck slabs
         if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
         else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
-        if (E.contactCd[i] <= 0 && !frozen) {
+        if (E.contactCd[i] <= 0 && !frozen && E.dmg[i] > 0) {
           E.contactCd[i] = R.contactCooldown;
           const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);
           const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp, (roles & ROLE.boss) !== 0), sp.elements[0], { kind: 'creature', name: sp.name }, channelOf(sp));

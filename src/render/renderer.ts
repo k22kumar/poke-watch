@@ -888,7 +888,7 @@ export class Renderer {
     }
     if (this.lastHp >= 0 && P.hp < this.lastHp - 0.5 && P.hurtFlash > 0) this.pAnim = { state: 'hurt', start: this.time, until: this.time + 0.3, wind: 0, hitT: 0, postScale: 1 };
     this.lastHp = P.hp;
-    const evolving = ctx.state === 'evolving';
+    const evolving = P.breakT > 0; // a Breakthrough (sim/evolution.ts): per player, the world keeps running
     const blink = P.iframes > 0 && P.dashT <= 0 && Math.floor(this.time * 20) % 2 === 0;
     let flash = P.hurtFlash > 0 ? 0.9 : 0;
     let id = P.species.id;
@@ -899,7 +899,7 @@ export class Renderer {
     if (ctx.state === 'over' || ctx.state === 'dead') { if (this.deadAt < 0) this.deadAt = this.time; state = 'faint'; t = this.time - this.deadAt; }
     else this.deadAt = -1;
     if (evolving) {
-      const k = 1 - ctx.stateTimer / ctx.rules.sim.evolveSeconds;
+      const k = 1 - P.breakT / ctx.rules.evolution.breakSeconds;
       const rate = 2 + k * 18;
       id = Math.floor(this.time * rate) % 2 === 0 ? P.species.id : P.species.evolvesTo ?? P.species.id;
       flash = 0.5 + k * 0.5;

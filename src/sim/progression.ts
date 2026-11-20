@@ -8,6 +8,7 @@ import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { defaultRules, type Rules } from '../rules/defaults';
 import { learnsetOf, lineage } from '../rules/heroes';
 import { heroHealth, statMult, topSpeed } from '../rules/stats';
+import { startEvolution } from './evolution';
 import { healPlayer } from './combat';
 import { compileMove } from './moves';
 import { addMember, queueVariant, recruitCards, variantCards, variantDue } from './squad';
@@ -315,14 +316,10 @@ export function maybeOpenCards(ctx: SimContext) {
     if (variantDue(ctx, m, m.species)) queueVariant(ctx, k);
   }
   if (variantDue(ctx, P.m, P.species)) queueVariant(ctx, P.active);
-  // evolution first
+  // evolution first: the survivor loop's level trigger starts a Breakthrough (sim/evolution.ts); deleted with the loop
   const sp = P.species;
-  if (sp.evolvesTo && sp.evolveLevel && P.level >= sp.evolveLevel) {
-    ctx.state = 'evolving';
-    ctx.stateTimer = ctx.rules.sim.evolveSeconds;
-    ctx.events.push({ t: 'evolveStart', from: sp.id, to: sp.evolvesTo });
-    return;
-  }
+  if (P.breakT > 0) return;
+  if (sp.evolvesTo && sp.evolveLevel && P.level >= sp.evolveLevel && startEvolution(ctx)) return;
   // squad choices come before level-up cards: a Tag variant, then a recruit
   if (!ctx.cards.offer) {
     while (ctx.recruit.variants.length) {
@@ -332,18 +329,6 @@ export function maybeOpenCards(ctx: SimContext) {
     if (ctx.recruit.pending && openSpecial(ctx, 'recruit', recruitCards(ctx))) return;
   }
   if (P.pendingLevels > 0 && !ctx.cards.offer) openOffer(ctx, false);
-}
-
-export function finishEvolution(ctx: SimContext) {
-  const P = ctx.player;
-  if (lineage(P.species).length === 1) queueVariant(ctx, P.active); // first evolution: Tag variant choice
-  const next = SPECIES_BY_ID[P.species.evolvesTo!];
-  P.species = next;
-  recompute(ctx);
-  P.hp = P.maxHp; // [C] evolution heals
-  ctx.state = 'play';
-  ctx.events.push({ t: 'evolveEnd', species: next.id });
-  maybeOpenCards(ctx);
 }
 
 export function gainXp(ctx: SimContext, v: number) {

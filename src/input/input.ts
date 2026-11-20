@@ -9,7 +9,7 @@ import { shapeStick } from './stick';
 export const DEFAULT_BINDINGS = DEFAULT_KEYS;
 
 /** the InputFrame.btn bit each combat action sets */
-const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard };
+const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard, touch: BTN.touch };
 /** mouse buttons as InputFrame.btn bits: left is primary fire (the basic attack), right is Move A */
 const mouseBits = (button: number) => (button === 0 ? BTN.basic : button === 2 ? BTN.a : 0);
 

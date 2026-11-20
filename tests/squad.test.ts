@@ -2,7 +2,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
-import { addMember, maybeOfferRecruit, onHpLoss, tagDefOf, tagSpec } from '../src/sim/squad';
+import { addMember, maybeOfferRecruit, onHpLoss } from '../src/sim/squad';
+import { tagDefOf, tagSpec } from '../src/sim/swap';
 import { damagePlayer } from '../src/sim/combat';
 import { gainXp } from '../src/sim/progression';
 import { lineage } from '../src/rules/heroes';
@@ -122,7 +123,7 @@ test('without objectives (v8 pacing), recruits are offered after an elite once e
   assert.ok(m.maxHp > 0 && m.hp === m.maxHp);
 });
 
-test('the first evolution offers the Tag variant', () => {
+test('the first evolution offers the Tag variant', { skip: 'survivor Tag variants: deleted with recruiting and Tag variants in docs/hero-shooter-pivot.md §8 step 9 (a Breakthrough no longer queues one, Q30)' }, () => {
   const ctx = calm('cyndaquil');
   const P = ctx.player;
   while (P.level < 15) gainXp(ctx, P.xpNext - P.xp + 0.01);
