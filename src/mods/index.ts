@@ -22,12 +22,6 @@ export const vampiric: Mod = {
   },
 };
 
-export const noHealCards: Mod = {
-  id: 'no-heal-cards',
-  name: 'No heal cards',
-  hooks: { filterCards: (_ctx, cards) => cards.filter((c) => c.kind !== 'heal') },
-};
-
 export const volatile: Mod = {
   id: 'volatile',
   name: 'Volatile',
@@ -46,10 +40,10 @@ export const volatile: Mod = {
   },
 };
 
-export const ALL_MODS: Mod[] = [vampiric, noHealCards, volatile];
+export const ALL_MODS: Mod[] = [vampiric, volatile];
 
 /** The survivor loop's systems: the director (waves, elites, swarms, beats, weather, the boss and the final swarm), XP
- *  pickups, and progression (levels, cards, chests, evolution by level). Objectives stay: only the director opens one on
+ *  pickups, and progression (levels, chests, evolution by level). Objectives stay: only the director opens one on
  *  its own, so with it gone an objective runs only when something starts it (the habitat Hold gates do). */
 export const SURVIVOR_SYSTEMS: ReadonlySet<string> = new Set(['director', 'pickups', 'progression']);
 

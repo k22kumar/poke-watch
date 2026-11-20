@@ -92,6 +92,9 @@ test('a generated region plays two minutes for each archetype: no errors, enemie
     seen.add(arch);
     let checked = 0;
     while (ctx.time < 120 && ctx.state !== 'over') {
+      // the player is kept up: this checks the map and the crowd on it, not the survivor bot's odds (it has no cards
+      // or build since docs/hero-shooter-pivot.md §8 step 9)
+      ctx.player.hp = ctx.player.maxHp;
       step(ctx, botInput(ctx));
       if (ctx.tick % 60) continue;
       const E = ctx.enemies, W = ctx.world;

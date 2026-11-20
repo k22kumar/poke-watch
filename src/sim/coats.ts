@@ -19,7 +19,6 @@ import { killEnemy } from './combat';
 import { ROLE, ZK } from './pools';
 import type { Member, SimContext } from './types';
 import { onHpLoss } from './squad';
-import { onReaction } from './techniques';
 
 const BIG = ROLE.elite | ROLE.alpha | ROLE.boss;
 const AGENT_EL: Element[] = ['plain', 'blaze', 'tide', 'frost', 'volt'];
@@ -70,10 +69,9 @@ export function tileReactionBase(ctx: SimContext) {
  * Agent `agent` arrives on enemy e at `depth` (1 light, 2 deep), from a hit that dealt `amount`.
  * Coats it, refreshes its coat, or reacts with it.
  */
-export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: number, amount: number, byPlayer = false) {
+export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: number, amount: number) {
   const E = ctx.enemies, R = ctx.rules.reactions;
   if (!agent || depth <= 0 || !E.alive[e]) return;
-  reactByPlayer = byPlayer;
   const big = (E.roles[e] & BIG) !== 0;
   if (depth === 1 && big) return; // light coats stick only to fodder
   if (coatImmune(ctx.speciesIndex[E.species[e]].elements, agent)) return;
@@ -172,11 +170,8 @@ export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: numb
   }
 }
 
-/** the reaction being settled was started by the trainer's own hit (Catalyst counts only those) */
-let reactByPlayer = false;
 function react(ctx: SimContext, kind: ReactionEvent, x: number, z: number, r: number, deep: boolean, n = 1) {
   ctx.events.push({ t: 'react', kind, x, z, r, deep, n });
-  if (reactByPlayer && kind !== 'shatter') { reactByPlayer = false; onReaction(ctx, x, z); }
 }
 
 /** a physical hit or a push on a frozen creature shatters it: returns the damage multiplier */
@@ -185,7 +180,6 @@ export function shatter(ctx: SimContext, e: number): number {
   if (E.frozen[e] <= 0) return 1;
   E.frozen[e] = 0; E.stun[e] = 0;
   react(ctx, 'shatter', E.x[e], E.z[e], 1, true);
-  onReaction(ctx, E.x[e], E.z[e]); // a shatter is always the trainer's own physical hit
   return ctx.rules.reactions.freeze.shatter;
 }
 
@@ -197,7 +191,6 @@ export function shatter(ctx: SimContext, e: number): number {
  */
 export function coatMember(ctx: SimContext, m: Member, agent: number, depth: number): ReactionEvent | null {
   const R = ctx.rules.reactions;
-  reactByPlayer = false;
   if (!agent || depth <= 0 || m.fainted) return null;
   if (coatImmune(m.species.elements, agent)) return null;
   const time = depth === 2 ? R.deepTime : R.lightTime;

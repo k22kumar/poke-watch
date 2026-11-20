@@ -24,7 +24,7 @@ import { CARRIER, carryTick, release } from './carry';
 import { compositionsFor, forcePeak, spawnComposition } from './director';
 import { ringPoint, spawnEnemy } from './enemies';
 import { ROLE } from './pools';
-import { openOffer, recomputeMember } from './progression';
+import { recomputeMember } from './progression';
 import { lineage } from '../rules/heroes';
 import { queueVariant } from './squad';
 import type { Objective, ObjectiveKind, SimContext } from './types';
@@ -131,16 +131,15 @@ function finish(ctx: SimContext, O: Objective, ok: boolean, reward = '') {
   if (!ok) forcePeak(ctx);
 }
 
-/** the reward: Hold an item ball, Hunt a recruit, Transport an evolution (or a full heal) */
+/** the reward: Hunt a recruit, Transport an evolution (or a full heal). Hold's item ball was a card offer and went with
+ *  the cards (docs/hero-shooter-pivot.md §8 step 9) */
 function reward(ctx: SimContext, O: Objective): string {
   const P = ctx.player;
-  // the item ball is the survivor loop's (cards); a hero mode has no progression system and no reward
-  const itemBall = () => { if (!ctx.systems.some((s) => s.name === 'progression')) return ''; if (ctx.cards.offer) ctx.cards.chestsQueued++; else openOffer(ctx, true); return 'item'; };
-  if (O.kind === 'hold') return itemBall();
+  if (O.kind === 'hold') return '';
   if (O.kind === 'hunt') {
-    if (P.squad.length >= ctx.rules.squad.max || ctx.recruit.pending) return itemBall();
+    if (P.squad.length >= ctx.rules.squad.max || ctx.recruit.pending) return '';
     const other = recruitables(ctx).filter((id) => id !== O.species);
-    ctx.recruit.pending = other.length ? [O.species, ctx.rng.cards.pick(other)] : [O.species];
+    ctx.recruit.pending = other.length ? [O.species, ctx.rng.ai.pick(other)] : [O.species];
     ctx.recruit.offered++;
     return 'recruit';
   }

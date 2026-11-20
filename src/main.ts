@@ -23,19 +23,16 @@ import { controlRoster, type ReadinessCheck } from './sim/playability';
 import { defaultRules } from './rules/defaults';
 import { runSizeRules } from './rules/sizing';
 import { addMember } from './sim/squad';
-import { addTechnique, setTransform } from './sim/build';
 import { startObjective } from './sim/objectives';
 import { spawnComposition } from './sim/director';
 import { COMPOSITIONS } from './rules/compositions';
 import { createRun, startStage, step } from './sim/run';
-import { TRANSFORM_BY_ID } from './rules/build';
 import { artMetrics } from './render/metrics';
 import { LOCATIONS } from './world/locations';
 import { HABITATS } from './world/habitat/recipes';
 import { HabitatError } from './world/habitat';
 import { mapChecksum } from './world/maps';
 import { loadInfo, mapErrorMessage, worldgenFromQuery } from './world/replay';
-const TRANSFORM_MOVE = (id: string) => TRANSFORM_BY_ID[id]?.move;
 import type { InputFrame, SimContext, SimEvent } from './sim/types';
 import { UI } from './ui/ui';
 import { CHASE_CONFIG, RETICLE_Y, cameraPreset } from './render/camera';
@@ -64,7 +61,6 @@ let current: { mode: Mode; species: string; seed: number } | null = null;
 let paused = false;
 let acc = 0;
 let hitstop = 0;
-let pendingCard: InputFrame['card'] | undefined;
 let lastFrame = performance.now();
 let fps = 60, fpsAcc = 0, fpsN = 0, govT = 0, govGood = 0;
 let god = false;
@@ -86,10 +82,9 @@ function ui_applySettings() {
 const ui = new UI({
   // Start / Restart run inside the button's click (a user gesture): take the mouse there, so the run starts with mouse look
   start: (mode, species, seed) => { startRun(mode, species, seed); captureForPlay(); },
-  card: (action, index) => { pendingCard = { action, index }; },
   resume: (via) => resumeFromMenu(via),
   restart: () => { if (current) { startRun(current.mode, current.species, (current.seed + 1) >>> 0); captureForPlay(); } },
-  quit: () => { cancelEnd(); ctx = null; (window as any).pokewatch.ctx = null; paused = false; pendingCard = undefined; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
+  quit: () => { cancelEnd(); ctx = null; (window as any).pokewatch.ctx = null; paused = false; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
   portrait: (id) => renderer?.portrait(id),
   sound: (k) => { audio.unlock(); if (k === 'ui' || k === 'move') audio.uiMove(); else if (k === 'back') audio.uiBack(); else if (k === 'denied') audio.uiDenied(); else audio.uiConfirm(); },
   settings,
@@ -136,14 +131,7 @@ input.onAction = (a) => {
   if (a === 'pause' && ctx.state !== 'over' && ctx.state !== 'victory') setPaused(!paused);
   if (a === 'tuning') ui.toggleTuning();
   if (a === 'mute') { settings.muted = !settings.muted; applyMix(); }
-  // Upgrade shortcuts are edge-triggered and only act while an offer is pending.
-  if (ui.trayOpen() && !paused) {
-    if (a === 'pick1' || a === 'pick2' || a === 'pick3' || a === 'pick4') ui.cardClick(Number(a.slice(4)) - 1);
-    else if (a === 'reroll' || a === 'skip') ui.cardKey(a);
-    else if (a === 'banish') ui.toggleBanish();
-    else if (a === 'cardPointer') { if (input.locked) input.releaseLock(); else input.capture(); }
-  }
-  // Menus own their controls; upgrade hotkeys are routed above while gameplay stays active.
+  // Menus own their controls.
 };
 window.addEventListener('pointerdown', () => audio.unlock());
 
@@ -210,7 +198,7 @@ let mapSum = 0;
 function failMap(e: unknown) {
   console.error(e);
   cancelEnd();
-  ctx = null; current = null; paused = false; pendingCard = undefined;
+  ctx = null; current = null; paused = false;
   (window as any).pokewatch.ctx = null;
   audio.setPaused(false); input.releaseLock();
   ui.error(mapErrorMessage(e));
@@ -244,7 +232,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   renderer.setStage(ctx);
   renderer.yaw = Math.PI; // fixed views look north (-z); the third-person rig starts there too and is then turned by the player
   renderer.resetView(ctx);
-  acc = 0; hitstop = 0; paused = false; pendingCard = undefined;
+  acc = 0; hitstop = 0; paused = false;
   ui.startHud(ctx);
   audio.resetMusicRun();
   audio.setBiome(ctx.world.biome);
@@ -289,8 +277,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         ui.hurt(); audio.hurt();
         if (god) c.player.hp = Math.max(c.player.hp, c.player.maxHp * 0.5);
         break;
-      case 'cards': ui.showCards(c, e.cards, e.chest); break;
-      case 'cardPicked': ui.hideCards(e.card); if (e.card) audio.pick(); break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
       // boss cries play at their recorded pitch; see docs/AUDIO.md
@@ -376,10 +362,10 @@ const XHAIR_BLOCKED = '<svg width="28" height="28" viewBox="-14 -14 28 28" fill=
 xhair.innerHTML = XHAIR;
 document.body.appendChild(xhair);
 function updateLockHint(c: SimContext | null) {
-  const show = !!c && renderer.chase && !paused && c.state === 'play' && !ui.trayOpen() && !input.locked && input.context === 'play' && !input.pad();
+  const show = !!c && renderer.chase && !paused && c.state === 'play' && !input.locked && input.context === 'play' && !input.pad();
   const want = show ? 'block' : 'none';
   if (lockHint.style.display !== want) lockHint.style.display = want;
-  const xh = !!c && renderer.chase && renderer.aim.on && !paused && c.state === 'play' && !ui.trayOpen() && !ui.menuOpen() ? 'block' : 'none';
+  const xh = !!c && renderer.chase && renderer.aim.on && !paused && c.state === 'play' && !ui.menuOpen() ? 'block' : 'none';
   if (xhair.style.display !== xh) xhair.style.display = xh;
   // the sim's spatial aim (ctx.aim): the crosshair turns red with a cross when cover stands between the Pokémon's muzzle
   // and what the crosshair is on (the shot will stop there), and dims when that point is past the shot's reach
@@ -397,24 +383,11 @@ function drawAwareness(c: SimContext) {
 
 let startPrev = false;
 let dpadPrev = [false, false, false, false];
-/** gamepad on the banked-pick tray: the pad bindings of pick1..pick3 and reroll (default d-pad left / up / right pick
- *  cards 1 / 2 / 3, down rerolls) */
-function trayPad() {
-  const p = input.pad();
-  if (!p) return;
-  const now = ['pick1', 'pick2', 'pick3', 'reroll'].map((a) => p.held(a));
-  if (ui.trayOpen() && !paused) {
-    for (let k = 0; k < 3; k++) if (now[k] && !dpadPrev[k]) ui.cardClick(k);
-    if (now[3] && !dpadPrev[3]) ui.cardKey('reroll');
-  }
-  dpadPrev = now;
-}
 function frame(now: number) {
   requestAnimationFrame(frame);
   // input context: menus own the keyboard/gamepad while open; gameplay keys apply only in play
   { const next = ui.menuOpen() ? 'menu' : 'play'; if (next === 'menu' && input.context === 'play') input.clearButtons(); input.context = next; }
   ui.padTick(1 / 60);
-  trayPad();
   { const st = input.padHeld('pause'); if (st && !startPrev && ctx && ctx.state !== 'over' && ctx.state !== 'victory' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
   if (capture) return;
   let real = Math.min(0.25, (now - lastFrame) / 1000);
@@ -444,7 +417,6 @@ function frame(now: number) {
     let scale = speed;
     if (hitstop > 0) { hitstop -= real; scale *= c.rules.sim.hitstopScale; }
     if (c.state === 'dead') scale *= c.rules.sim.deathTimeScale;
-    if (c.cards.offer && (autoplay || params.has('autopick'))) pendingCard = { action: 'pick', index: 0 };
     acc += real * scale;
     simDt = real * scale;
   }
@@ -457,7 +429,6 @@ function frame(now: number) {
     view: () => renderer.viewSample(),
     tick: (view) => {
       const inp = autoplay ? botInput(c) : sampleInput(c, view);
-      if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
       let ev: SimEvent[];
       // dev trigger (docs/hero-shooter-pivot.md Q23): ?evolve=<seconds> starts a Breakthrough that far into the run
       if (evolveAt >= 0 && c.time >= evolveAt) { evolveAt = -1; startEvolution(c); }
@@ -518,7 +489,7 @@ function onEnd(c: SimContext) {
   if (ended && c === ctx) return;
   ended = true;
   input.releaseLock();
-  ui.hideCards(); // an open offer in the banked-pick tray must not outlive the run
+
   if (c.state === 'victory') audio.onVictory();
   endTimer = setTimeout(() => { ended = false; if (c === ctx) ui.end(c, c.state === 'victory'); }, 600) as unknown as number;
 }
@@ -538,8 +509,6 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
       const view = renderer.viewSample();
       while (n-- > 0 && c.state !== 'over' && c.state !== 'victory') {
         const inp: InputFrame = opts.bot ? botInput(c) : { ...sampleInput(c, view), ...(opts.input ?? {}) } as InputFrame;
-        if (c.cards.offer && (opts.bot || params.has('autopick'))) inp.card = { action: 'pick', index: 0 };
-        if (pendingCard) { inp.card = pendingCard; pendingCard = undefined; }
         onEvents(c, step(c, inp));
       }
     }
@@ -601,12 +570,7 @@ async function boot() {
       const L = loadInfo(H);
       return { map: ctx!.world.map.id, recipe: L.source, kind: L.kind, requestedSeed: L.requested, loadedSeed: L.loaded, version: L.version, attempts: L.attempts, checksum: mapSum.toString(16), replay: L.replay, layoutOnly: L.layout, fallback: H.fallback, gates: H.gates.map((x) => `${x.ok ? 'ok ' : 'FAIL'} ${x.id}: ${x.value}`), metrics: H.metrics, repairs: H.repairs, rejections: H.rejections, optional: H.optional, approaches: H.approaches };
     },
-    // Phase 8b: pokewatch.tech('undertow') gives the trainer a technique; pokewatch.xf('pressure_jet') transforms the field
-    // Pokémon's move that has it; pokewatch.build() lists the build (testing and playtest setups)
-    tech: (id: string) => !!ctx && addTechnique(ctx, id),
-    xf: (id: string) => { if (!ctx) return false; const s = ctx.player.moves.find((m) => TRANSFORM_MOVE(id) === m.key); return !!s && setTransform(ctx, s, id); },
     metrics: () => (ctx ? artMetrics(renderer, ctx) : null),
-    build: () => (ctx ? { techs: ctx.player.techs, transforms: ctx.player.squad.map((m) => m.moves.map((s) => s.key + (s.xf ? '>' + s.xf : ''))), picks: ctx.build.history } : null),
     composition: (id: string) => { const d = COMPOSITIONS.find((c) => c.id === id); return ctx && d ? spawnComposition(ctx, d) : []; } };
   await renderer.loadArt(ART as unknown as ArtBundle, (f) => ui.loading(f * 0.6));
   console.info(`[boot] Pokémon loaded at ${Math.round(performance.now())} ms`);
@@ -628,9 +592,6 @@ async function boot() {
     if (params.has('level') && ctx) { const L = Number(params.get('level')); for (let i = 1; i < L; i++) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01); }
     // squad=mareep,geodude: recruits join at once, at squad level (testing)
     if (params.has('squad') && ctx) { for (const id of params.get('squad')!.split(',')) addMember(ctx, id); }
-    // techs=undertow,lodestone and xf=pressure_jet: start with a build (Phase 8b playtest setups)
-    if (params.has('techs') && ctx) { for (const id of params.get('techs')!.split(',')) addTechnique(ctx, id); }
-    if (params.has('xf') && ctx) { for (const id of params.get('xf')!.split(',')) (window as any).pokewatch.xf(id); }
   } else { ui.title(); audio.titleMusic(); }
   (window as any).pokewatch.ready = true;
   document.title = 'Poke-Watch';

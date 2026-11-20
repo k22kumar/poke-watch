@@ -623,7 +623,8 @@ test('exact against dense sampling, and World.sight compared, on 10 000 segments
 
 test('live crowd: the grid broad phase never misses what a brute-force pass finds; enemies stay inside gridSlack', () => {
   const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 12, spawnPerMin: 6, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
-  const E = ctx.enemies, rng = new Rng(11), out = new Contacts(64), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
+  // a buffer past any ray's crowd: a full one would cut the sweep short of the brute-force list
+  const E = ctx.enemies, rng = new Rng(11), out = new Contacts(512), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
   let maxMove = 0, compared = 0, contacts = 0, peak = 0;
   const brute: [number, number][] = [];
   while (ctx.time < 70 && !ended(ctx)) {

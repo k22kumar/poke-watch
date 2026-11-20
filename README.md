@@ -92,15 +92,9 @@ The Pokémon-first content process is in [`docs/POKEMON_FIRST.md`](docs/POKEMON_
 - **Death recap.** The end screen lists the last 5 s as short lines naming the rule that decided each hit ("Boulder (Weight 3, Rock) hit you for 34. Only a Pokémon of Weight 3 or more can deflect it…"). In the console, `pokewatch.debug('caps')` toggles an overlay with Weight badges, Power pips, hold tethers and the last 3 s of capability events; `pokewatch.caps(s)` and `pokewatch.recap()` print them. `?debug=caps` starts with the overlay on.
 - **Flags.** `rules.caps.enabled: false` (or each feature flag) restores the v10 rules exactly; the replay checksums are unchanged.
 
-## Builds: offers, transforms and techniques (systemic combat blueprint, phase 8b)
+## Builds (deleted)
 
-`docs/BUILDS.md` has the rules, the numbers, the flags and what was measured.
-
-- **Three cards per pick.** A **Kit** card for the field Pokémon (learn a move, replace one, or transform one), a **Technique** for the trainer, and a **Wildcard** (a benched Pokémon's transform, a Tag Action you passed on, an evolution two levels early, a berry). Weighted by synergy with the kit, novelty for the squad in the first 4 picks, and a penalty for repeats; a technique at least once every 3 picks. 2 rerolls and 1 banish per region.
-- **12 transforms**, two mutually exclusive per move, on Water Gun (Pressure Jet / Scatter), Ember (Kindle / Searing), Flame Wheel (Ram / Wheel Trail), Vine Whip (Lasso / Snare), Seed Bomb (Cluster / Burrow) and Bite (Crunch Down / Lunge). Each changes a shape, a verb or a rule and states its cost; a transform can only add Push or Hold to a line that already has it.
-- **8 techniques**, at most 3 held (a fourth means discarding one): Undertow, Riposte, Lodestone, Heavy Footing, Catalyst, Slipstream, Quarry, Second Wind. Each states a gain and a cost and applies to whichever Pokémon is on the field.
-- **Raw power from levels.** Move levels follow the squad level; vitamins and move power-up cards are retired behind `rules.build.legacyNumeric` (off). `rules.build.enabled: false` restores the Phase 8a cards exactly (replay checksums unchanged).
-- Test hooks: `?techs=undertow,lodestone&xf=lasso`, `pokewatch.tech(id)`, `pokewatch.xf(id)`, `pokewatch.build()`.
+The survivor run's build layer (card offers, transforms, techniques, mastery, vitamins) was deleted at hero-shooter pivot step 9; `docs/BUILDS.md` lists what stayed. The full layer is on the `survivor-final` tag.
 
 ## Water, lava and open edges
 
@@ -153,7 +147,7 @@ src/
              (atlases, frames, portraits, cries, credits) from scripts/build-content.mjs
   rules/     ALL tunable data: defaults.ts (every number, camera), elements.ts (types and chart),
              moves.ts (move rows + classifier rules), capabilities.ts (capability tags),
-             build.ts (transforms and techniques), species.ts (the roster), stages.ts,
+             species.ts (the roster), stages.ts,
              originals.ts (Maplebrook's original creatures)
   world/     renderer-free tile vocabulary (tiles.ts), arena builder (builder.ts), the four
              handcrafted arenas (arenas.ts), the classic generator (gen/), Pokémon locations as data
@@ -163,8 +157,8 @@ src/
              body step: integrators, medium), player.ts, enemies.ts
              (director, AI, flow-field navigation, bosses), moves.ts (classifier + 23 archetypes),
              effects.ts, combat.ts, bodies.ts, capabilities.ts (the capability resolver,
-             interception), caplog.ts (capability event log, death recap), build.ts (offers, transforms,
-             mastery), techniques.ts (technique hooks), progression.ts, bot.ts
+             interception), caplog.ts (capability event log, death recap), carry.ts, actions.ts,
+             progression.ts, bot.ts
   assets/    creature asset layer: art.ts (CreatureArt, 8 states, fallback table), clips.ts,
              builtin.ts (loads art.json), pack.ts (pack format + atlas decode), cries.ts,
              registry.ts

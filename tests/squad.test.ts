@@ -105,38 +105,6 @@ test('a faint brings in the next Pokémon; the run ends only when all have faint
   assert.equal(ctx.state, 'dead');
 });
 
-test('without objectives (v8 pacing), recruits are offered after an elite once enough time has passed, and join at squad level', () => {
-  const ctx = calm();
-  ctx.rules.objectives.enabled = false;
-  maybeOfferRecruit(ctx);
-  assert.equal(ctx.recruit.pending, null, 'not in the first two minutes');
-  ctx.time = 130;
-  maybeOfferRecruit(ctx);
-  const pending = ctx.recruit.pending as string[] | null;
-  assert.ok(pending && pending.length === 2);
-  step(ctx, NO_INPUT);
-  assert.equal(ctx.cards.source, 'recruit');
-  step(ctx, { ...NO_INPUT, card: { action: 'pick', index: 0 } });
-  assert.equal(ctx.player.squad.length, 2);
-  const m = ctx.player.squad[1];
-  assert.ok(m.moves.length >= 1, 'it arrives with a move');
-  assert.ok(m.maxHp > 0 && m.hp === m.maxHp);
-});
-
-test('the first evolution offers the Tag variant', { skip: 'survivor Tag variants: deleted with recruiting and Tag variants in docs/hero-shooter-pivot.md §8 step 9 (a Breakthrough no longer queues one, Q30)' }, () => {
-  const ctx = calm('cyndaquil');
-  const P = ctx.player;
-  while (P.level < 15) gainXp(ctx, P.xpNext - P.xp + 0.01);
-  for (let i = 0; i < 400 && P.species.id === 'cyndaquil'; i++) step(ctx, { ...NO_INPUT, card: ctx.cards.source === 'level' && ctx.cards.offer ? { action: 'pick', index: 0 } : undefined });
-  assert.equal(P.species.id, 'quilava');
-  for (let i = 0; i < 400 && ctx.cards.source !== 'tag'; i++) step(ctx, { ...NO_INPUT, card: ctx.cards.offer ? { action: 'pick', index: 0 } : undefined });
-  assert.equal(ctx.cards.source, 'tag');
-  step(ctx, { ...NO_INPUT, card: { action: 'pick', index: 0 } });
-  assert.equal(P.m.tagVariant, 1);
-  assert.equal(tagDefOf(P.m)!.move, 'lava_plume');
-  assert.ok(tagSpec(ctx, P.m)!.dmg > 0);
-});
-
 test('grey health never exceeds the missing health', () => {
   const ctx = calm();
   const P = ctx.player;

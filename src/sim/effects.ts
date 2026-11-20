@@ -29,7 +29,7 @@ function effectOnBody(ctx: SimContext, b: number, slot: number, dmg: number, ele
       setSrc(slot === TAG_SLOT ? 'tag' : 'shot', slot === TAG_SLOT ? 'Tag Action' : 'deflected shot');
       forceOnBody(ctx, b, push, hold, dx, dz, slot);
     }
-    damageBody(ctx, b, dmg * ctx.rules.damage.playerMult, ELEMENTS[element], true);
+    damageBody(ctx, b, dmg * ctx.rules.damage.playerMult, ELEMENTS[element]);
   }
 }
 import { aimDir } from './moves';
@@ -45,7 +45,6 @@ function deflectShot(ctx: SimContext, i: number) {
   }
   launchShot(ctx, i, ux, uz);
   P.guardHit = true;
-  onGuardDeflect(ctx);
   P.aimFacing = datan2(ux, uz); P.aimT = 0.2;
   ctx.events.push({ t: 'deflect', x: Pr.x[i], z: Pr.z[i], element: ELEMENTS[Pr.element[i]] });
 }
@@ -54,7 +53,7 @@ import { capsOn, forceOnShots, interceptPass, launchShot, tickHeldShot } from '.
 import { rec, setSrc } from './caplog';
 import { forceOnBody, TEAM } from './bodies';
 import { TAG_SLOT } from './swap';
-import { guardWeight, onGuardDeflect } from './techniques';
+import { guardWeight } from './player';
 import { brambleAt } from './cells';
 import { resolve } from './capabilities';
 import { Contacts, MASK, SK, SK_WORLD, spatialQuery, sweep } from './spatial';

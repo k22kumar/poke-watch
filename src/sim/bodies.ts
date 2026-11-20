@@ -18,14 +18,12 @@ import { effectiveness, type Element } from '../rules/elements';
 import { forceOnProp } from './props';
 import { weightClass } from '../rules/species';
 import { damageEnemy, damagePlayer } from './combat';
-import { deflecting } from './player';
+import { deflecting, guardWeight } from './player';
 import { CS, rubbleAt } from './cells';
 import { ROLE } from './pools';
 import type { MoveSpec, SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { currentCastSlot, holdAim, holdButton } from './capabilities';
-import { TB } from '../rules/build';
-import { guardWeight, holdSeconds, logTech, onGuardDeflect } from './techniques';
 import { applyAgent } from './cells';
 
 const PUSH: [number, number] = [0, 0];
@@ -188,7 +186,7 @@ export function holdBody(ctx: SimContext, b: number, power: number, dx: number, 
   const r = rec(ctx, 'hold', P >= W ? (P > power ? 'combined' : 'ok') : 'fail');
   if (r) { r.power = P; r.weight = W; r.tgt = 'body'; r.tgtName = BODY_KINDS[B.kind[b]]; r.type = tpl(ctx, b).type; r.x = B.x[b]; r.z = B.z[b]; }
   if (P >= W) {
-    B.holdT[b] = holdSeconds(ctx); B.holdP[b] = P; B.holdBtn[b] = btn;
+    B.holdT[b] = C.holdTime; B.holdP[b] = P; B.holdBtn[b] = btn;
     B.vx[b] = 0; B.vz[b] = 0;
     changeOwner(ctx, b, team);
     ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: true, combined: P > power });
@@ -252,31 +250,20 @@ export function changeOwner(ctx: SimContext, b: number, team: number) {
   if (B.hp[b] <= 0 && tpl(ctx, b).integrity > 0) breakBody(ctx, b);
 }
 
-/** Integrity damage through the type chart; breaks it at zero. `byPlayer`: the trainer's hit (Quarry). */
-export function damageBody(ctx: SimContext, b: number, amount: number, element: Element, byPlayer = false) {
+/** Integrity damage through the type chart; breaks it at zero. */
+export function damageBody(ctx: SimContext, b: number, amount: number, element: Element) {
   const B = ctx.bodies;
   if (!B.alive[b]) return;
   const T = tpl(ctx, b);
   if (T.integrity <= 0) return;
-  const quarry = byPlayer && (ctx.player.techMask & TB.quarry) !== 0;
   const eff = effectiveness(ctx.chart, element, [T.type]);
-  const dealt = amount * eff * (quarry ? ctx.rules.build.tech.quarry.integrity : 1);
+  const dealt = amount * eff;
   B.hp[b] -= dealt;
   ctx.events.push({ t: 'bodyHit', x: B.x[b], y: B.y[b] + T.radius, z: B.z[b], amount: dealt, eff, element });
-  if (B.hp[b] <= 0) breakBody(ctx, b, quarry);
+  if (B.hp[b] <= 0) breakBody(ctx, b);
 }
 
-/** Quarry: a rock or boulder the trainer broke leaves extra rubble, owned by the player, flung outward */
-function quarryRubble(ctx: SimContext, x: number, z: number, a0: number) {
-  const Q = ctx.rules.build.tech.quarry;
-  for (let k = 0; k < Q.rubble; k++) {
-    const a = a0 + Math.PI * (0.5 + k) * (2 / Q.rubble);
-    spawnBody(ctx, 'rubble', x + dsin(a) * 0.5, z + dcos(a) * 0.5, dsin(a) * Q.speed, dcos(a) * Q.speed, TEAM.player);
-  }
-  logTech(ctx, 'quarry', `+${Q.rubble} rubble`, x, z);
-}
-
-export function breakBody(ctx: SimContext, b: number, quarry = false) {
+export function breakBody(ctx: SimContext, b: number) {
   const B = ctx.bodies;
   if (!B.alive[b]) return;
   const T = tpl(ctx, b);
@@ -290,7 +277,6 @@ export function breakBody(ctx: SimContext, b: number, quarry = false) {
   if (T.weight >= 3) rubbleAt(ctx, x, z, 1);
   const into = T.breaksInto;
   if (!into) return;
-  if (quarry && into.template === 'rubble') quarryRubble(ctx, x, z, datan2(vx, vz));
   const base = datan2(vx, vz), sp = dhypot(vx, vz) * into.speedKeep;
   for (let k = 0; k < into.count; k++) {
     // shrapnel keeps half the speed, fanned over 60°; resting rocks scatter gently
@@ -310,7 +296,7 @@ export function moveOnBody(ctx: SimContext, b: number, s: MoveSpec, dmg: number,
   const out = dmg * ctx.rules.damage.playerMult * (s.cls === 'physical' ? d.atk : d.spa);
   setSrc(slot === 9 ? 'tag' : 'move', s.name);
   forceOnBody(ctx, b, pushPower(s), holdPower(s), dirx, dirz, slot);
-  if (B.alive[b]) damageBody(ctx, b, out, s.element, true);
+  if (B.alive[b]) damageBody(ctx, b, out, s.element);
 }
 
 /** The force verbs of a player effect on body b: a Hold (pull in v10, suspend in Phase 8a), else a Push. */
@@ -323,9 +309,7 @@ export function forceOnBody(ctx: SimContext, b: number, push: number, hold: numb
     if (hold >= W) { const dx = P.x - B.x[b], dz = P.z - B.z[b], L = dhypot(dx, dz) || 1; B.vx[b] = (dx / L) * 7; B.vz[b] = (dz / L) * 7; changeOwner(ctx, b, TEAM.player); ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: true, combined: false }); }
     else ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: false, combined: false });
   } else if (push > 0) {
-    const moved = pushBody(ctx, b, push, dirx, dirz, TEAM.player);
-    // Undertow: your Pushes also Apply Wet (the ground under the rock you roll)
-    if (moved && P.techMask & TB.undertow) applyAgent(ctx, 'wet', B.x[b], B.z[b], 1.2);
+    pushBody(ctx, b, push, dirx, dirz, TEAM.player);
   }
 }
 
@@ -350,7 +334,6 @@ export function deflectBody(ctx: SimContext, b: number, ux: number, uz: number) 
   B.vx[b] = ux * sp; B.vz[b] = uz * sp;
   changeOwner(ctx, b, TEAM.player);
   ctx.player.guardHit = true;
-  onGuardDeflect(ctx);
   ctx.events.push({ t: 'deflect', x: B.x[b], z: B.z[b], element: tpl(ctx, b).type });
 }
 
@@ -476,7 +459,7 @@ function bodyImpacts(ctx: SimContext, b: number, sp: number): number {
     const r = rec(ctx, 'impact', Tj.weight <= wgt ? 'ok' : 'fail');
     if (r) { r.power = wgt; r.weight = Tj.weight; r.amount = amount; r.type = T.type; r.tgt = 'body'; r.tgtName = BODY_KINDS[B.kind[j]]; r.x = B.x[j]; r.z = B.z[j]; }
     pushBody(ctx, j, wgt, ux, uz, B.team[b]);
-    if (B.alive[j]) damageBody(ctx, j, amount, T.type, B.team[b] === TEAM.player);
+    if (B.alive[j]) damageBody(ctx, j, amount, T.type);
     if (Tj.weight >= wgt) { B.vx[b] *= -0.3; B.vz[b] *= -0.3; } else { B.vx[b] *= 0.6; B.vz[b] *= 0.6; }
     sp = dhypot(B.vx[b], B.vz[b]);
     if (sp < IMPACT_SPEED) break;

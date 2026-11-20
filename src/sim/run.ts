@@ -24,7 +24,7 @@ import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { addLoadoutMember, reviveFainted, squadSystem } from './squad';
-import { handleCardInput, learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
+import { learnMove, makePlayer, pickupSystem, progressionSystem, recompute } from './progression';
 import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
@@ -60,7 +60,7 @@ export function createRun(opts: RunOptions): SimContext {
   const rules = deepMerge(defaultRules, opts.mode?.rules, ...mods.map((m) => m.rules), opts.ruleOverrides) as Rules;
   let systems = [...DEFAULT_SYSTEMS];
   for (const m of mods) if (m.systems) systems = m.systems(systems);
-  const hooks: HookRunner = { modifyDamage: [], onKill: [], onLevelUp: [], filterCards: [], onStageStart: [], onTick: [] };
+  const hooks: HookRunner = { modifyDamage: [], onKill: [], onLevelUp: [], onStageStart: [], onTick: [] };
   for (const m of mods) for (const [k, fn] of Object.entries(m.hooks ?? {})) (hooks as any)[k].push(fn);
 
   const species = SPECIES_BY_ID[opts.species];
@@ -72,7 +72,7 @@ export function createRun(opts: RunOptions): SimContext {
     state: 'play', stateTimer: 0,
     rng: {
       spawn: new Rng(streamSeed(seed, 'spawn')), combat: new Rng(streamSeed(seed, 'combat')),
-      cards: new Rng(streamSeed(seed, 'cards')), world: new Rng(streamSeed(seed, 'world')), ai: new Rng(streamSeed(seed, 'ai')),
+      world: new Rng(streamSeed(seed, 'world')), ai: new Rng(streamSeed(seed, 'ai')),
     },
     world: null as unknown as World,
     grid: new Grid((rules.worldgen.mode === 'generated' ? Math.max(rules.world.size, rules.worldgen.size) : rules.world.size) + 40, rules.world.gridCell, rules.enemy.cap),
@@ -87,7 +87,6 @@ export function createRun(opts: RunOptions): SimContext {
     director: freshDirector(rules),
     beat: freshBeat(), objective: null,
     recruit: { offered: 0, pending: null, variants: [] },
-    cards: { offer: null, chest: false, chestsQueued: 0, source: 'level', rerolls: rules.cards.rerolls, skips: rules.cards.skips, banishes: rules.cards.banishes, banished: new Set() },
     weather: { element: null, t: 0 },
     stats: { kills: 0, damageDealt: 0, damageTaken: 0, xp: 0, bosses: 0, maxHit: 0 },
     input: NO_INPUT,
@@ -96,7 +95,6 @@ export function createRun(opts: RunOptions): SimContext {
     portal: { active: false, x: 0, z: 0 },
     caplog: new CapLog(rules.caps.logSize),
     recap: null,
-    build: { picks: 0, sinceTech: 0, lastShown: new Set(), swap: null, history: [] },
     targets: null,
   };
   ctx.players.push(ctx.player);
@@ -149,8 +147,6 @@ export function startStage(ctx: SimContext, stage: number) {
   ctx.objective = null;
   ctx.portal = { active: false, x: 0, z: 0 };
   for (const m of ctx.player.squad) m.sturdyUsed = false;
-  // Phase 8b: rerolls and banishes are per region
-  if (ctx.rules.build.enabled) { ctx.cards.rerolls = ctx.rules.build.rerolls; ctx.cards.banishes = ctx.rules.build.banishes; }
   ctx.events.push({ t: 'stageStart', stage, biome: biome.id });
   for (const h of ctx.hooks.onStageStart) h(ctx);
 }
@@ -183,9 +179,6 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
       break;
     }
   }
-
-  // banked picks: an open offer takes card input while the world keeps running
-  if (ctx.cards.offer && ctx.input.card && ctx.state === 'play') handleCardInput(ctx);
 
   ctx.time += dt;
   ctx.stageTime += dt;

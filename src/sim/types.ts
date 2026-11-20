@@ -8,7 +8,6 @@ import type { Hooks } from '../mods/types';
 import type { World } from './world';
 import type { JumpControl, LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
-import type { MoveFlags } from '../rules/build';
 
 export type RunState = 'play' | 'dead' | 'over' | 'victory' | 'transition';
 
@@ -37,7 +36,6 @@ export interface InputFrame {
    *  alone shows as "held". Absent (the bot, older replays) = no presses: only `btn` drives the slots, as before Phase 3.
    *  The fire buffer (rules.combat.fireBuffer, sim/moves.ts) reads only this field */
   press?: number;
-  card?: { action: 'pick' | 'reroll' | 'skip' | 'banish'; index: number };
   /** the third-person crosshair ray (the camera's lens and the unit direction through the crosshair, each through
    *  Math.fround: render/hostframe.ts aimRayOf), or absent (fixed views, the bot). Under rules.aim.spatial the sim traces
    *  it itself (sim/aim.ts) for the archetypes in rules.aim.archetypes (direct shots, beams); aimX/aimZ stay the planar
@@ -75,6 +73,31 @@ export function freshAimState(): AimState {
 export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16, touch: 32 } as const;
 export const NO_INPUT: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
+/** flags a move spec can carry beyond its compiled data (the sim reads them; see sim/moves.ts and sim/effects.ts). The
+ *  build layer's transforms set them until it was deleted (docs/hero-shooter-pivot.md §8 step 9); kept for the kits */
+export interface MoveFlags {
+  /** angle between projectiles of one cast (rad); straight shots only */
+  spread?: number;
+  /** coat depth this move always applies (1 light, 2 deep), whatever slot casts it */
+  coatDepth?: number;
+  /** pierce does not grow with move level */
+  fixedPierce?: boolean;
+  /** s the caster cannot walk after it fires */
+  selfRoot?: number;
+  /** a strike that hits only the target nearest its centre */
+  single?: boolean;
+  /** radius (m) of Heat put on the ground where the shot ends */
+  landHeat?: number;
+  /** radius (m) of the Grass patch (Create) a lob leaves where it lands */
+  bramble?: number;
+  /** Hold suspends Light creatures (not only bodies and shots: the Lasso, src/sim/capabilities.ts creatureForce) */
+  lasso?: boolean;
+  /** root time (s) this move's root ailment applies */
+  ccT?: number;
+  /** length (m) of the Heat trail a dash leaves behind */
+  trailHeat?: number;
+}
+
 export interface MoveSpec extends MoveFlags {
   key: string;
   name: string;
@@ -95,15 +118,12 @@ export interface MoveSlot {
   key: string;
   level: number;
   cd: number;
-  spec: MoveSpec; // compiled at level 1 (with its transform, if any)
+  spec: MoveSpec; // compiled at level 1
   /** >0 while the move winds up (pose playing, release pending) */
   windup?: number;
   /** Phase 3: ctx.tick of a press queued by the fire buffer (rules.combat.fireBuffer): the slot casts once when it
    *  becomes ready, held or not. Undefined = nothing queued. Consumed by that cast, dropped by Tag, carrying or age */
   queued?: number;
-  /** Phase 8b: the transform taken for this move (id in rules/build.ts), and casts so far ("used for a while") */
-  xf?: string;
-  uses?: number;
 }
 
 /** One Pokémon in the squad: everything that belongs to the creature rather than the trainer's body. */
@@ -114,7 +134,6 @@ export interface Member {
   /** recoverable health: refills while benched, drains to permanent loss while on the field */
   grey: number;
   moves: MoveSlot[];
-  vitamins: Record<string, number>;
   buffT: number; buffAtk: number; buffSpe: number;
   /** paralysis from Static / Effect Spore / charge: half move speed while > 0 */
   paraT: number;
@@ -162,8 +181,6 @@ export class Player {
   level = 1;
   xp = 0;
   xpNext = 0;
-  /** level-ups not yet spent (banked picks) */
-  pendingLevels = 0;
   iframes = 0;
   hurtFlash = 0;
   dashT = 0; dashCd = 0; dashDx = 0; dashDz = 1;
@@ -200,12 +217,9 @@ export class Player {
   tagDownT = -1; tagPicked = false; tagBtnPrev = 0;
   /** s until the incoming Pokémon's Tag Action releases (-1 = none pending) */
   tagPending = -1;
-  /** Phase 8b: the trainer's techniques (at most rules.build.maxTechniques) and their bits (rules/build.ts TECH_BIT) */
-  techs: string[] = [];
-  techMask = 0;
-  /** s the trainer cannot walk (Pressure Jet fires rooted) */
+  /** s the trainer cannot walk (a move's selfRoot) */
   rootT = 0;
-  /** things held this tick (counted by the systems that tick them) and last tick (Lodestone roots you while > 0) */
+  /** things held this tick (counted by the systems that tick them) and last tick */
   holdNext = 0; holding = 0;
   /** the current Dash came from the Dash input (not a dash-shaped move) */
   reflexDash = false;
@@ -223,7 +237,6 @@ export class Player {
   get hp() { return this.m.hp; } set hp(v) { this.m.hp = v; }
   get maxHp() { return this.m.maxHp; } set maxHp(v) { this.m.maxHp = v; }
   get moves() { return this.m.moves; } set moves(v) { this.m.moves = v; }
-  get vitamins() { return this.m.vitamins; } set vitamins(v) { this.m.vitamins = v; }
   get buffT() { return this.m.buffT; } set buffT(v) { this.m.buffT = v; }
   get buffAtk() { return this.m.buffAtk; } set buffAtk(v) { this.m.buffAtk = v; }
   get buffSpe() { return this.m.buffSpe; } set buffSpe(v) { this.m.buffSpe = v; }
@@ -261,28 +274,6 @@ export interface Hit {
   source: string; // move key or 'dot'
 }
 
-export interface Card {
-  id: string; // banish key
-  kind: 'learn' | 'upgrade' | 'vitamin' | 'heal' | 'recruit' | 'tag' | 'replace' | 'transform' | 'technique' | 'swap' | 'evolve';
-  /** Phase 8b: which of the three offer slots the card came from */
-  group?: 'kit' | 'technique' | 'wildcard';
-  /** move slot the card changes (replace, transform) */
-  slot?: number;
-  /** capability tags the card works with (offer weighting, UI) */
-  tags?: string[];
-  /** a technique card while 3 are held: taking it means discarding one */
-  swap?: boolean;
-  /** squad member the card is for ('tag' variant cards) */
-  member?: number;
-  key: string; // move key / vitamin key
-  rarity: 'common' | 'rare' | 'epic';
-  title: string;
-  desc: string;
-  element?: Element;
-  archetype?: string;
-  level?: number;
-}
-
 export type SimEvent =
   | { t: 'hit'; x: number; y: number; z: number; amount: number; crit: boolean; eff: number; element: Element; enemy: number }
   | { t: 'kill'; x: number; y: number; z: number; species: number; roles: number; element: Element }
@@ -316,8 +307,6 @@ export type SimEvent =
   | { t: 'playerHurt'; amount: number; x: number; z: number }
   | { t: 'heal'; amount: number }
   | { t: 'levelUp'; level: number }
-  | { t: 'cards'; cards: Card[]; chest: boolean }
-  | { t: 'cardPicked'; card: Card | null }
   | { t: 'evolveStart'; from: string; to: string }
   | { t: 'evolveEnd'; species: string }
   | { t: 'respawn'; species: string }
@@ -379,7 +368,6 @@ export interface HookRunner {
   modifyDamage: Hooks['modifyDamage'][];
   onKill: Hooks['onKill'][];
   onLevelUp: Hooks['onLevelUp'][];
-  filterCards: Hooks['filterCards'][];
   onStageStart: Hooks['onStageStart'][];
   onTick: Hooks['onTick'][];
 }
@@ -449,7 +437,7 @@ export interface SimContext {
   loop: number; // endless loops completed
   state: RunState;
   stateTimer: number;
-  rng: { spawn: Rng; combat: Rng; cards: Rng; world: Rng; ai: Rng };
+  rng: { spawn: Rng; combat: Rng; world: Rng; ai: Rng };
   world: World;
   grid: Grid;
   /** the active trainer (players[0] in solo) */
@@ -469,10 +457,6 @@ export interface SimContext {
   objective: Objective | null;
   /** recruits offered so far, a pending recruit choice (species ids), and members waiting to pick a Tag variant */
   recruit: { offered: number; pending: string[] | null; variants: number[] };
-  cards: { offer: Card[] | null; chest: boolean; chestsQueued: number; source: 'level' | 'chest' | 'recruit' | 'tag' | 'swap'; rerolls: number; skips: number; banishes: number; banished: Set<string> };
-  /** Phase 8b build state: picks resolved, picks since an offer showed a technique, the ids shown in the last offer,
-   *  a pending technique swap (the new technique and the offer to return to), and every card picked (build summary) */
-  build: { picks: number; sinceTech: number; lastShown: Set<string>; swap: { tech: string; offer: Card[]; chest: boolean; source: 'level' | 'chest' } | null; history: string[] };
   weather: { element: Element | null; t: number };
   stats: { kills: number; damageDealt: number; damageTaken: number; xp: number; bosses: number; maxHit: number };
   input: InputFrame;

@@ -7,7 +7,7 @@
 // decided each outcome) and pokewatch.debug('caps') (the last 3 s, drawn over the world).
 
 import { WEIGHT_NAMES } from '../rules/species';
-import { guardWeight } from './techniques';
+import { guardWeight } from './player';
 import type { SimContext } from './types';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import type { CapVerb } from '../rules/capabilities';

@@ -17,7 +17,7 @@ power and shape. The UI shows them on learn, upgrade and Tag cards and in the mo
 | `create:template` | Tag Action data (`rules/tags.ts`: Rock Throw's rock) |
 
 Power from base power: under 60 = 1, 60–90 = 2, over 90 = 3; a combined force can reach 4. `CAP_OVERRIDES` adds or
-removes tags per move (Phase 8b transforms compile their own edited caps instead; see `docs/BUILDS.md`). A test checks that the compiled Push and Hold Power of
+removes tags per move (the Phase 8b transforms that compiled their own edited caps were deleted with the build layer, `docs/BUILDS.md`). A test checks that the compiled Push and Hold Power of
 all 187 cross-version moves equals the v10 derivation.
 
 ## The resolver (`sim/capabilities.ts`)
@@ -71,7 +71,7 @@ cover), still in the plane; the bodies it pushes or holds are the ones it reache
 | Drops | a stunned (paralysed) or fainted holder drops it where it is; a carried Transport egg cannot be held |
 | Passes | your own shots and strikes pass a body you are holding |
 
-The holder is not rooted; the *Lodestone* technique (Phase 8b, `docs/BUILDS.md`) is where "you cannot move while holding"
+The holder is not rooted; the *Lodestone* technique (Phase 8b, deleted with the build layer: `docs/BUILDS.md`) was where "you cannot move while holding"
 belongs as a cost. `suspendHold: false` restores v10's pull (7 m/s toward you).
 
 ## Body-on-body impacts

@@ -10,8 +10,7 @@ import { ccApply, coatEnemy, shatter } from './coats';
 import { maybeOfferRecruit, onHpLoss } from './squad';
 import { applyAfterHit, creatureForce } from './capabilities';
 import { rec, setSrc, type LogKind } from './caplog';
-import { TB } from '../rules/build';
-import { guardWeight, onGuardDeflect } from './techniques';
+import { guardWeight } from './player';
 import { guardOf, type Channel } from '../rules/stats';
 
 const AB = (id: string) => ABILITY_IDS.indexOf(id) + 1;
@@ -162,9 +161,8 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount, crit, eff, element: spec.element, enemy: e });
   if (E.hp[e] <= 0) { killEnemy(ctx, e); return amount; }
   // the hit's agent coats the creature, or reacts with the coat it already carries
-  if (spec.depth) coatEnemy(ctx, e, agentIndex(spec.element), spec.depth, amount, true);
+  if (spec.depth) coatEnemy(ctx, e, agentIndex(spec.element), spec.depth, amount);
   // Phase 8b: Undertow (your Pushes also Apply Wet) and Slipstream (the next Move carries a copied coat)
-  if (spec.depth && spec.push && E.alive[e] && ctx.player.techMask & TB.undertow) applyAfterHit(ctx, e, AG.wet, spec.depth, amount, 'Undertow');
   if (spec.extra && E.alive[e]) applyAfterHit(ctx, e, spec.extra, 2, amount, 'Slipstream');
   return amount;
 }
@@ -290,7 +288,6 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
   if (P.guardT >= 0) {
     if (P.guardT <= G.guardWindow && weight <= guardWeight(ctx)) {
       P.guardHit = true;
-      onGuardDeflect(ctx);
       ctx.events.push({ t: 'parry', x: P.x, z: P.z, enemy: -1 });
       ctx.events.push({ t: 'hitstop', dur: 0.05 });
       logHurt(ctx, 'parry', 0, eff, weight, element, src, fromX, fromZ);
@@ -310,7 +307,6 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
   P.hurtFlash = 0.25;
   ctx.stats.damageTaken += amt;
   const dx = P.x - fromX, dz = P.z - fromZ, L = dhypot(dx, dz) || 1;
-  if (P.techMask & TB.heavy) knockMult *= ctx.rules.build.tech.heavyFooting.knock;
   P.kx += (dx / L) * R.knockback * knockMult;
   P.kz += (dz / L) * R.knockback * knockMult;
   ctx.events.push({ t: 'playerHurt', amount: amt, x: P.x, z: P.z });

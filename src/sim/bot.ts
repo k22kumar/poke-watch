@@ -2,7 +2,7 @@
 //
 // The movement core (docs/hero-shooter-pivot.md §6) kites away from the local enemy centroid, orbits the map centre,
 // heads for the shore when it is in a liquid, turns its footprint around walls and lips, and brakes at a hazard edge.
-// The survivor pulls on top of it (XP gems, objectives, the portal, cards, Tag) are separate and go with the survivor
+// The survivor pulls on top of it (XP gems, objectives, the portal, Tag) are separate and go with the survivor
 // loop. Each run gets its own Bot (botInput keys one per SimContext), so no policy or random state leaks between runs.
 import { dcos, dhypot, dsin } from '../core/detmath';
 import { BTN, type InputFrame, type SimContext } from './types';
@@ -21,43 +21,26 @@ function basicInReach(ctx: SimContext): boolean {
   return nearestEnemy(ctx, P.x, P.z, Math.max(s.range, s.radius * 1.5, 8)) >= 0;
 }
 
-/** how the bot picks cards (Phase 8b sweeps). 'first' takes card 1 (the v10 bot; in the build layer that is the Kit
- *  card). 'random' picks uniformly with its own generator (seeded from the run seed, so runs stay reproducible and the
- *  sim's RNG streams are untouched). 'plan' takes the techniques in `plan.techs` when offered and never others, prefers
- *  transforms, then the Kit card. Swap offers: the plan discards the first technique not in its plan. */
-export type BotCardPolicy = 'first' | 'random' | 'plan';
 /** how the bot uses Tag: 'off' never switches, 'smart' rests a hurt Pokémon, 'rotate' cycles for ready moves */
 export type BotTagPolicy = 'off' | 'smart' | 'rotate';
 
 export interface BotOptions {
-  cards?: BotCardPolicy;
-  plan?: { techs?: string[]; xfs?: string[] };
-  /** seeds the bot's own card generator ('random') */
-  seed?: number;
   /** go for objectives (Hold, Hunt, Transport) or ignore them */
   objectives?: boolean;
   tag?: BotTagPolicy;
 }
 
 /** the options a Bot made by botInput starts with; the set* functions below change them for runs created afterwards */
-const defaults: Required<Omit<BotOptions, 'plan'>> & { plan: { techs: string[]; xfs: string[] } } = { cards: 'first', plan: { techs: [], xfs: [] }, seed: 1, objectives: true, tag: 'smart' };
+const defaults: Required<BotOptions> = { objectives: true, tag: 'smart' };
 
 export class Bot {
-  readonly cards: BotCardPolicy;
-  readonly plan: { techs: string[]; xfs: string[] };
   readonly objectives: boolean;
   readonly tag: BotTagPolicy;
-  private rng: number;
   constructor(o: BotOptions = {}) {
-    this.cards = o.cards ?? 'first';
-    this.plan = { techs: [...(o.plan?.techs ?? [])], xfs: [...(o.plan?.xfs ?? [])] };
-    this.rng = ((o.seed ?? 1) * 2654435761) >>> 0 || 1;
     this.objectives = o.objectives ?? true;
     this.tag = o.tag ?? 'smart';
   }
   input(ctx: SimContext): InputFrame { return botStep(this, ctx); }
-  /** the bot's own generator (never one of the sim's streams) */
-  nextRand() { this.rng = (this.rng + 0x6d2b79f5) >>> 0; let t = this.rng; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
 }
 
 const perRun = new WeakMap<SimContext, Bot>();
@@ -157,7 +140,6 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
       if (W.blocks(hx, hz, P.y, st) && !W.collides(hx, hz, P.y, st)) { mx = -ux; mz = -uz; } }
   }
   const close = dhypot(ax, az) > 0.6;
-  const card = ctx.cards.offer ? cardAction(bot, ctx) : undefined;
   // moves are held down (they fire on cooldown at the nearest enemy, since the bot has no aim); the basic attack is
   // held only while an enemy is in its reach, so the bot does not spend it on empty ground; Tag is a tap
   let btn = (basicInReach(ctx) ? BTN.basic : 0) | BTN.a | BTN.b | (wantsTag(bot, ctx) ? BTN.sig : 0);
@@ -177,40 +159,13 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
   // or a liquid
   let dash = close && ctx.tick % 50 === 0;
   if (dash && W.hazards && !shore) for (let d = 0.5; d <= 7 && dash; d += 0.5) { const x = P.x + mx * d, z = P.z + mz * d; if (W.blocks(x, z, P.y, st) && !W.collides(x, z, P.y, st)) dash = false; }
-  return { mx, mz, jump: false, dash, btn, card };
+  return { mx, mz, jump: false, dash, btn };
 }
 
-/** survivor sweeps: the card policy for runs created afterwards (each run's Bot copies it on first use) */
-export function setBotCards(p: BotCardPolicy, plan?: { techs?: string[]; xfs?: string[] }, seed = 1) {
-  defaults.cards = p; defaults.plan = { techs: plan?.techs ?? [], xfs: plan?.xfs ?? [] }; defaults.seed = seed;
-}
 /** whether bots created afterwards go for objectives */
 export function setBotObjectives(on: boolean) { defaults.objectives = on; }
 /** the Tag policy for bots created afterwards */
 export function setBotTagPolicy(p: BotTagPolicy) { defaults.tag = p; }
-
-/** the card input: pick botCard's choice; a plan bot skips an offer holding only techniques outside its plan */
-function cardAction(bot: Bot, ctx: SimContext): NonNullable<InputFrame['card']> {
-  const i = botCard(ctx, bot);
-  const offer = ctx.cards.offer;
-  if (bot.cards === 'plan' && offer && ctx.cards.source !== 'swap' && ctx.cards.skips > 0 && offer.every((c) => c.kind === 'technique' && !bot.plan.techs.includes(c.key))) return { action: 'skip', index: 0 };
-  return { action: 'pick', index: i };
-}
-export function botCard(ctx: SimContext, bot: Bot = botFor(ctx)): number {
-  const offer = ctx.cards.offer;
-  if (!offer || !offer.length || bot.cards === 'first') return 0;
-  if (bot.cards === 'random') return Math.min(offer.length - 1, Math.floor(bot.nextRand() * offer.length));
-  if (ctx.cards.source === 'swap') {
-    const k = offer.findIndex((c) => c.key && !bot.plan.techs.includes(c.key));
-    return k >= 0 ? k : offer.length - 1;
-  }
-  const score = (c: (typeof offer)[number]) => c.kind === 'technique' ? (bot.plan.techs.includes(c.key) ? 100 : -100)
-    : c.kind === 'transform' ? (bot.plan.xfs.length ? (bot.plan.xfs.includes(c.key) ? 90 : -50) : 50)
-    : c.kind === 'learn' ? 40 : c.kind === 'evolve' ? 35 : c.kind === 'replace' ? 10 : c.kind === 'heal' ? 20 : 0;
-  let best = 0;
-  for (let k = 1; k < offer.length; k++) if (score(offer[k]) > score(offer[best])) best = k;
-  return best;
-}
 
 function wantsTag(bot: Bot, ctx: SimContext): boolean {
   const P = ctx.player;

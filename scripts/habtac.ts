@@ -191,7 +191,7 @@ export function playHold(o: TacOpts): TacResult {
   let stageB: [number, number] | null = null, contest: [number, number] | null = null, rC = 5;
   if (H) { stageB = [H.stage.B[0], H.stage.B[1]]; contest = [H.contest.x, H.contest.y]; rC = H.contest.r; }
   const dead = () => ctx.state === 'dead' || ctx.state === 'over';
-  const tick = (inp: InputFrame) => { step(ctx, inp); if (ctx.cards.offer) step(ctx, { ...NO_INPUT, card: { action: 'skip', index: 0 } }); };
+  const tick = (inp: InputFrame) => { step(ctx, inp); };
 
   // 1. warm-up: the squad holds its start, fighting what the director sends (the horde is part of the situation)
   const sx = P.x, sz = P.z, warm = o.warm ?? 100;

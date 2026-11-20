@@ -114,7 +114,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     const inp = botInput(ctx);
     step(ctx, inp);
     // player
-    if (Math.hypot(inp.mx, inp.mz) > 0.5 && P.faintT < 0 && !ctx.cards.offer) pTrying++;
+    if (Math.hypot(inp.mx, inp.mz) > 0.5 && P.faintT < 0) pTrying++;
     pPath += Math.hypot(P.x - pLx, P.z - pLz); pLx = P.x; pLz = P.z;
     if (ctx.tick % WIN === 0) {
       if (pAnchor && pTrying > WIN * 0.8 && Math.hypot(P.x - pAnchor[0], P.z - pAnchor[1]) < 0.5) { R.playerStuck++;

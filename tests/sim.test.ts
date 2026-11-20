@@ -85,7 +85,7 @@ test('same seed + same inputs = identical run (determinism)', () => {
   assert.notEqual(hashRun(a), hashRun(c));
 });
 
-test('a classic run spawns a boss at 5:00 and can clear a region', () => {
+test('a classic run spawns a boss at 5:00 and can clear a region', { skip: 'survivor run: the bot no longer clears a region without cards and build; deleted with stages, portal and timer in docs/hero-shooter-pivot.md §8 step 9' }, () => {
   // Tanky so the bot outlasts contact damage. Tile hazards (Charge, burning grass) still take a share of max HP, and
   // whether the bot wanders into a Charge flood depends on the seed, so the claim is checked over a few seeds: every
   // run alive at 5:00 meets its boss on time, and at least one clears the region.

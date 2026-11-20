@@ -172,7 +172,6 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
       if (opts.raid) { ctx.player.iframes = 1; /* raid mode */ ctx.player.hp = ctx.player.maxHp; }
       else if (!opts.enemies) for (let e = 0; e < E.alive.length; e++) if (E.alive[e]) E.kill(e);
       step(ctx, L > 1 ? { ...NO_INPUT, mx: dx / L * 0.5, mz: dz / L * 0.5 } : NO_INPUT);
-      if (ctx.cards.offer) step(ctx, { ...NO_INPUT, card: { action: 'skip', index: 0 } });
       if (res.raidAt === null) for (let e = 0; e < E.alive.length; e++) if (E.alive[e] && E.roles[e] & ROLE.raider && Math.hypot(E.x[e] - O.x, E.z[e] - O.z) < ctx.rules.objectives.hold.radius) { res.raidAt = +(ctx.time - t0).toFixed(1); break; }
     }
     res.held = O.phase === 'done';

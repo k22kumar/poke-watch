@@ -28,7 +28,6 @@ import { rec, setSrc, type LogKind } from './caplog';
 import { BTN, type SimContext } from './types';
 import type { DamageSpec } from './combat';
 import { brambleAt } from './cells';
-import { holdSeconds } from './techniques';
 import { ccApply } from './coats';
 
 export type SrcKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'guard';
@@ -109,7 +108,7 @@ function onBody(ctx: SimContext, ev: CapEvent): Outcome {
       return ok ? (combines && ev.power < bodyWeight(ctx, b) ? 'combined' : 'ok') : 'fail';
     }
     case 'hold': return holdBody(ctx, b, ev.power, ev.dx, ev.dz, ev.owner, holdButton(ctx, ev.slot ?? -1)) ? 'ok' : 'fail';
-    case 'hit': damageBody(ctx, b, ev.amount ?? 0, ev.type, ev.owner === TEAM.player); return 'ok';
+    case 'hit': damageBody(ctx, b, ev.amount ?? 0, ev.type); return 'ok';
     case 'deflect': {
       if (bodyWeight(ctx, b) > ev.power) return 'fail';
       const L = dhypot(ev.dx, ev.dz) || 1;
@@ -124,7 +123,7 @@ function onCreature(ctx: SimContext, ev: CapEvent): Outcome {
   const e = ev.target.id, E = ctx.enemies;
   if (!E.alive[e]) return 'none';
   if (ev.verb === 'apply' && ev.agent) {
-    coatEnemy(ctx, e, AGENT_NAMES.indexOf(ev.agent), ev.depth ?? 2, ev.amount ?? 0, ev.owner === TEAM.player);
+    coatEnemy(ctx, e, AGENT_NAMES.indexOf(ev.agent), ev.depth ?? 2, ev.amount ?? 0);
     const r = rec(ctx, 'apply', 'ok');
     if (r) { r.tgt = 'creature'; r.tgtName = ctx.speciesIndex[E.species[e]].name; r.x = E.x[e]; r.z = E.z[e]; }
     return 'ok';
@@ -196,7 +195,7 @@ export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec,
     const w = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
     if (w > 1 || w > spec.hold || E.heldT[e] > 0) return false;
     if (ccApply(ctx, e, ctx.rules.caps.lassoHold) <= 0) return false; // crowd-control immune: it slips the lasso
-    E.heldT[e] = Math.max(ctx.rules.caps.lassoHold, holdSeconds(ctx) - ctx.rules.caps.holdTime + ctx.rules.caps.lassoHold);
+    E.heldT[e] = ctx.rules.caps.lassoHold;
     E.heldP[e] = spec.hold; E.heldBtn[e] = holdButton(ctx, castSlot);
     E.stun[e] = Math.max(E.stun[e], E.heldT[e]);
     setSrc('move', 'Lasso');
@@ -301,7 +300,7 @@ function onShot(ctx: SimContext, ev: CapEvent): Outcome {
     case 'hold': {
       if (ev.power < w) { logShot(ctx, 'hold', 'fail', i, ev.power); return 'fail'; }
       Pr.kind[i] = PK.straight; Pr.traj[i] = 0; Pr.vx[i] = Pr.vx[i] * 0.1; Pr.vz[i] = Pr.vz[i] * 0.1;
-      Pr.heldT[i] = holdSeconds(ctx); Pr.heldBtn[i] = holdButton(ctx, ev.slot ?? -1); Pr.move[i] = -1;
+      Pr.heldT[i] = ctx.rules.caps.holdTime; Pr.heldBtn[i] = holdButton(ctx, ev.slot ?? -1); Pr.move[i] = -1;
       ctx.events.push({ t: 'push', x: Pr.x[i], z: Pr.z[i], ok: true, combined: false });
       logShot(ctx, 'hold', 'catch', i, ev.power);
       return 'caught';

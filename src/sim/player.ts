@@ -5,8 +5,7 @@
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BTN, type SimContext } from './types';
 import { footing } from './cells';
-import { TB } from '../rules/build';
-import { logTech } from './techniques';
+import { weightClass } from '../rules/species';
 import { liquidMotion, playerLiquid } from './hazards';
 import { navWide, partnerFootprint, partnerHeight } from '../rules/sizing';
 import { traversalOf } from '../rules/profiles';
@@ -30,21 +29,9 @@ export const deflecting = (ctx: SimContext) => ctx.player.guardT >= 0 && ctx.pla
 /** holding Guard past the window */
 export const bracing = (ctx: SimContext) => ctx.player.guardT > ctx.rules.combat.guardWindow;
 
-/** Slipstream: the first coated enemy within reach of the dashing trainer lends its coat to the next Move */
-function slipCopy(ctx: SimContext) {
-  const P = ctx.player, E = ctx.enemies, r = ctx.rules.build.tech.slipstream.reach;
-  const n = ctx.grid.query(P.x, P.z, r + 1);
-  let best = -1;
-  for (let k = 0; k < n; k++) {
-    const e = ctx.grid.result[k];
-    if (!E.alive[e] || !E.coat[e] || (best >= 0 && e > best)) continue;
-    const dx = E.x[e] - P.x, dz = E.z[e] - P.z, rr = r + E.radius[e];
-    if (dx * dx + dz * dz <= rr * rr) best = e;
-  }
-  if (best < 0) return;
-  P.slipAg = E.coat[best];
-  logTech(ctx, 'slipstream', ['', 'Heat', 'Wet', 'Cold', 'Charge'][P.slipAg] + ' copied', P.x, P.z);
-}
+/** the Weight the field Pokémon's Guard counts as: its weight class (src/rules/species.ts weightClass). A Guard deflects
+ *  a body or shot no heavier, and parries a hit of that Weight or less */
+export const guardWeight = (ctx: SimContext) => weightClass(ctx.player.species);
 
 export const playerSystem = {
   name: 'player',
@@ -54,11 +41,10 @@ export const playerSystem = {
     const W = ctx.world;
     const inp = ctx.input;
     P.px = P.x; P.py = P.y; P.pz = P.z; P.pgrounded = P.grounded;
-    // Phase 8b: things held last tick (Lodestone roots you while you hold), Pressure Jet's root
+    // things held last tick; a move's self-root (MoveSpec.selfRoot)
     P.holding = P.holdNext; P.holdNext = 0;
     if (P.rootT > 0) P.rootT -= dt;
-    const tm = P.techMask, BT = ctx.rules.build.tech;
-    const rooted = P.rootT > 0 || (tm & TB.lodestone && P.holding > 0);
+    const rooted = P.rootT > 0;
 
     let mx = inp.mx, mz = inp.mz;
     const ml = dhypot(mx, mz);
@@ -69,7 +55,7 @@ export const playerSystem = {
     const liquid = playerLiquid(ctx);
     const [swim, canJump] = W.hazards ? liquidMotion(ctx, liquid) : [W.waterAt(P.x, P.z) > P.y + 0.3 ? 0.8 : 1, true];
     const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * swim * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.caps.carry.speed : 1)
-      * (tm & TB.heavy ? BT.heavyFooting.speed : 1) * (rooted ? 0 : 1);
+      * (rooted ? 0 : 1);
 
     // Reflex: two charges shared by Dash and Guard
     const C = ctx.rules.combat;
@@ -84,7 +70,7 @@ export const playerSystem = {
       // holding Guard: deflect window first, then Brace (drains a charge every few seconds)
       P.guardT += dt;
       // Riposte: no Brace, Guard ends when the deflect window closes
-      if (!guardDown || (tm & TB.riposte && P.guardT > C.guardWindow)) endGuard(ctx);
+      if (!guardDown) endGuard(ctx);
       else if (P.guardT > C.guardWindow) {
         P.braceAcc += dt;
         if (P.braceAcc >= C.braceDrainEvery) {
@@ -119,17 +105,14 @@ export const playerSystem = {
     t.speed = speed;
     if (integ === LOCO.scripted) {
       P.dashT -= dt;
-      // Slipstream: dashing through a coated enemy copies its coat onto the next Move A or B
-      if (tm & TB.slipstream && P.reflexDash && !P.slipAg) slipCopy(ctx);
       stepScripted(W, P, it, P.dashDx, P.dashDz, R.dashSpeed, t, R, dt, STEP);
     } else {
-      const dashCost = tm & TB.slipstream ? BT.slipstream.dashCost : 1;
-      if (inp.dash && P.guardT < 0 && P.guardLock <= 0 && P.reflex >= dashCost) {
+      if (inp.dash && P.guardT < 0 && P.guardLock <= 0 && P.reflex >= 1) {
         const dx = P.moving ? mx : dsin(P.facing), dz = P.moving ? mz : dcos(P.facing);
         const L = dhypot(dx, dz) || 1;
-        const dashTime = R.dashTime * (tm & TB.heavy ? BT.heavyFooting.dash : 1);
+        const dashTime = R.dashTime;
         P.dashDx = dx / L; P.dashDz = dz / L;
-        P.dashT = dashTime; P.reflex -= dashCost; P.reflexDash = true;
+        P.dashT = dashTime; P.reflex -= 1; P.reflexDash = true;
         P.iframes = Math.max(P.iframes, dashTime + 0.08);
         ctx.events.push({ t: 'dash' });
       }

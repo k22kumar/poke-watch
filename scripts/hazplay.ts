@@ -116,7 +116,7 @@ const crater = (seed: number) => ['volcanic-ridge', seed] as const;
 function inAndOut(map: string, seed: number, species: string, metres: number, stay: number, opts: { surf?: boolean; hz?: number; heal?: number; extra?: Record<string, unknown>; members?: string[] } = {}) {
   const extra = { ...(opts.extra ?? {}), ...(opts.hz ? { sim: { hz: opts.hz } } : {}) };
   const ctx = mkRun(map, seed, species, extra);
-  if (opts.surf) ctx.player.m.moves.push({ key: 'surf', level: 1, cd: 9, spec: { ...compileMove(ctx.rules, ctx.player.m.moves[0].key), key: 'surf', name: 'Surf' }, uses: 0 });
+  if (opts.surf) ctx.player.m.moves.push({ key: 'surf', level: 1, cd: 9, spec: { ...compileMove(ctx.rules, ctx.player.m.moves[0].key), key: 'surf', name: 'Surf' } });
   for (const id of opts.members ?? []) addMember(ctx, id);
   const sh = findShore(ctx)!;
   const w = watch(ctx);

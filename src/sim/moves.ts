@@ -20,8 +20,6 @@ import { agentOf, applyAgent } from './cells';
 import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
 import { HEAD, assistSees, beamLength, combatFlags, launchHeading, resolveSpatial, shotReach, spatialFor } from './aim';
 import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
-import { TB } from '../rules/build';
-import { tech, techSpec } from './techniques';
 import { AG } from '../rules/reactions';
 
 export function classify(m: MoveData): string {
@@ -120,11 +118,10 @@ export function enemiesInRadius(ctx: SimContext, x: number, z: number, r: number
 }
 export const hitScratch = scratch;
 
-/** coat depth of the cast in progress: slot 0 (the basic attack) coats light, every other slot deep
- *  (Phase 8b: 0 for the basic attack under Catalyst) */
+/** coat depth of the cast in progress: slot 0 (the basic attack) coats light, every other slot deep */
 let castDepth = 1;
 export function setCastDepth(d: number) { castDepth = d; }
-/** Phase 8b: an extra agent the cast in progress carries (Slipstream's copied coat; 0 none) */
+/** an extra agent the cast in progress carries (0 none: nothing sets one since the build layer went) */
 let castExtra = 0;
 /** the coat depth a cast applies: the slot's, unless the move always coats light or deep (Scatter, Searing);
  *  a basic attack under Catalyst applies no light coat */
@@ -889,9 +886,9 @@ export function needsButton(ctx: SimContext): boolean {
 export function slotSpec(ctx: SimContext, i: number): MoveSpec {
   const slot = ctx.player.moves[i];
   const s = levelled(ctx, slot);
-  if (!isManual(ctx, i)) return techSpec(ctx, s);
+  if (!isManual(ctx, i)) return s;
   const C = ctx.rules.combat;
-  return techSpec(ctx, { ...s, cd: s.cd * C.manualCdMult, dmg: s.dmg * C.manualDmgMult });
+  return { ...s, cd: s.cd * C.manualCdMult, dmg: s.dmg * C.manualDmgMult };
 }
 
 export const movesSystem = {
@@ -910,10 +907,9 @@ export const movesSystem = {
     let pressure = 1;
     { const E = ctx.enemies, b = ctx.director.bossIndex; if (b >= 0 && E.alive[b] && E.ability[b] === AB_PRESSURE && dhypot(E.x[b] - p.x, E.z[b] - p.z) < 12) pressure = 0.85; }
     if (p.paraT > 0) p.paraT -= dt;
-    const catalyst = tech(ctx, TB.catalyst);
     for (let i = 0; i < p.moves.length; i++) {
       const slot = p.moves[i];
-      castDepth = i === 0 ? (catalyst ? 0 : 1) : 2;
+      castDepth = i === 0 ? 1 : 2;
       setCastSlot(i);
       // a slot cast by its button (every slot outside 'auto' mode) is player-aimed: it fires along the aim even with
       // no enemy there; an automatic one (or the basic attack under basicNeedsTarget) waits for a target.
@@ -1019,18 +1015,11 @@ function dropQueued(ctx: SimContext, slot: MoveSlot, i: number, why: 'cancel' | 
   ctx.events.push({ t: 'fireDropped', slot: i, why, wait: 0 });
 }
 
-/** cast slot i (Phase 8b bookkeeping around the archetype: uses, Pressure Jet's root, Slipstream's copied coat) */
+/** cast slot i, then the move's self-root (MoveSpec.selfRoot) */
 function fire(ctx: SimContext, impl: Archetype, spec: MoveSpec, i: number): boolean {
-  const p = ctx.player;
-  const slip = (i === 1 || i === 2) && p.slipAg > 0 ? p.slipAg : 0;
-  castExtra = slip;
   const ok = impl.cast(ctx, spec, i);
-  castExtra = 0;
   if (!ok) return false;
-  const slot = p.moves[i];
-  if (slot) slot.uses = (slot.uses ?? 0) + 1;
-  if (spec.selfRoot) p.rootT = Math.max(p.rootT, spec.selfRoot);
-  if (slip) p.slipAg = 0;
+  if (spec.selfRoot) ctx.player.rootT = Math.max(ctx.player.rootT, spec.selfRoot);
   return true;
 }
 void AG;

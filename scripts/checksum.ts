@@ -104,8 +104,8 @@ const DECK_XL = { ...DECK, spawning: { override: { include: [['wailord', 6]], el
 const DECK_XL_CONFIGS: Config[] = [['totodile', 3, 'classic', 240]];
 const DECK_CONFIGS: Config[] = [['totodile', 5, 'classic', 240]];
 const SETS: Record<string, object | undefined> = {
-  off: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
-  'build-off': { build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
+  off: { caps: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
+  'build-off': { surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
   'world-off': { surfaces: { enabled: false }, hazards: { enabled: false }, ...SIZE_OFF },
   'hazards-off': { hazards: { enabled: false }, ...SIZE_OFF },
   'size-off': SIZE_OFF,

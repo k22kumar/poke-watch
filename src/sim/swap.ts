@@ -11,8 +11,6 @@ import { resolve, setCastSlot } from './capabilities';
 import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './moves';
 import { firstAlive } from './squad';
 import { BTN, type Member, type MoveSpec, type SimContext, type System } from './types';
-import { TB } from '../rules/build';
-import { logTech, techSpec } from './techniques';
 
 /** move slot index stamped on a Tag Action's projectiles and zones (any slot other than 0 coats deep) */
 export const TAG_SLOT = 9;
@@ -32,7 +30,7 @@ export function tagSpec(ctx: SimContext, m: Member): MoveSpec | null {
   const R = ctx.rules.squad, M = ctx.rules.moves;
   const L = Math.min(M.maxLevel, R.tagActionLevel) - 1;
   const caps = def.create ? [...(s.caps ?? []), { verb: 'create' as const, template: def.create }] : s.caps;
-  return techSpec(ctx, { ...s, dmg: s.dmg * (1 + M.levelDmg * L) * R.tagDmgMult, knock: s.knock * R.tagKnockMult, cd: 0, caps });
+  return { ...s, dmg: s.dmg * (1 + M.levelDmg * L) * R.tagDmgMult, knock: s.knock * R.tagKnockMult, cd: 0, caps };
 }
 
 /** reserves in squad order (not the field Pokémon), fainted ones included */
@@ -60,10 +58,7 @@ export function tagTo(ctx: SimContext, to: number, free = false) {
   P.active = to;
   P.fieldT = 0;
   P.iframes = Math.max(P.iframes, R.tagInvuln);
-  const secondWind = (P.techMask & TB.secondWind) !== 0;
-  if (!free) P.tagCd = secondWind ? ctx.rules.build.tech.secondWind.tagCooldown : R.tagCooldown;
-  // Second Wind: the incoming Pokémon arrives clean
-  if (secondWind && P.m.coat) { P.m.coat = 0; P.m.coatDeep = 0; P.m.coatT = 0; logTech(ctx, 'second_wind', 'coat cleared', P.x, P.z); }
+  if (!free) P.tagCd = R.tagCooldown;
   P.tagPending = R.tagDelay;
   for (const s of P.m.moves) s.windup = undefined;
   ctx.events.push({ t: 'tag', from: from.species.id, to: P.m.species.id, free });

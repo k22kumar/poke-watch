@@ -21,10 +21,7 @@ import { buildRecap, rec, setSrc } from './caplog';
 import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './moves';
 import { makeMember, recomputeMember } from './progression';
 import { firstAttacks, heroKit, lineage } from '../rules/heroes';
-import { BTN, type Card, type Member, type MoveSpec, type SimContext } from './types';
-import { TB } from '../rules/build';
-import { logTech, techSpec } from './techniques';
-import { applyMastery } from './build';
+import { BTN, type Member, type MoveSpec, type SimContext } from './types';
 
 /** the first member other than `except` that has not fainted, -1 if none */
 export function firstAlive(ctx: SimContext, except: number): number {
@@ -115,8 +112,7 @@ export function addMember(ctx: SimContext, id: string): Member | null {
   recomputeMember(ctx, m);
   m.hp = m.maxHp;
   // its first two attacks from its cross-game level-up moves, the earliest first (it becomes the basic attack)
-  for (const k of firstAttacks(sp, P.level, 2)) { m.moves.push({ key: k, level: 1, cd: 0.3, spec: compileMove(ctx.rules, k), uses: 0 }); m.learned.add(k); }
-  applyMastery(ctx); // Phase 8b: recruits' moves follow the squad level too
+  for (const k of firstAttacks(sp, P.level, 2)) { m.moves.push({ key: k, level: ctx.rules.hero.moveLevel, cd: 0.3, spec: compileMove(ctx.rules, k) }); m.learned.add(k); }
   ctx.events.push({ t: 'recruit', species: id });
   return m;
 }
@@ -134,31 +130,9 @@ export function maybeOfferRecruit(ctx: SimContext) {
   if (!pool.length) return;
   const picks: string[] = [];
   const bag = [...pool];
-  while (picks.length < 2 && bag.length) picks.push(bag.splice(ctx.rng.cards.int(0, bag.length - 1), 1)[0]);
+  while (picks.length < 2 && bag.length) picks.push(bag.splice(ctx.rng.ai.int(0, bag.length - 1), 1)[0]);
   Q.pending = picks;
   Q.offered++;
-}
-
-export function recruitCards(ctx: SimContext): Card[] {
-  const ids = ctx.recruit.pending ?? [];
-  const cards: Card[] = ids.map((id) => {
-    const sp = SPECIES_BY_ID[id];
-    return { id: 'recruit:' + id, kind: 'recruit', key: id, rarity: 'rare', element: sp.elements[0], title: sp.name, desc: `Join your squad` };
-  });
-  cards.push({ id: 'recruit:none', kind: 'recruit', key: '', rarity: 'common', title: 'Let it go', desc: 'Keep the squad as it is' });
-  return cards;
-}
-
-/** the two Tag Action choices for member k */
-export function variantCards(ctx: SimContext, k: number): Card[] {
-  const m = ctx.player.squad[k];
-  const line = tagLineOf(lineage(m.species)[0].id);
-  if (!line) return [];
-  const mk = (def: TagDef, v: number): Card => {
-    const md = MOVE_BY_KEY[def.move];
-    return { id: `tag:${k}:${v}`, kind: 'tag', key: String(v), member: k, rarity: v ? 'epic' : 'common', element: md.element, title: md.name, desc: v ? `New Tag Action for ${m.species.name}` : `Keep ${m.species.name}'s Tag Action` };
-  };
-  return [mk(line.variant, 1), mk(line.base, 0)];
 }
 
 /** a member reached its first evolution (or the variant level): queue its Tag variant choice */

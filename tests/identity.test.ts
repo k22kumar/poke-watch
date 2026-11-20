@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { damageEnemy } from '../src/sim/combat';
-import { generateCards } from '../src/sim/progression';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { abilityOf, ABILITIES } from '../src/rules/abilities';
@@ -82,16 +81,3 @@ test('starter lines reach their final forms at canonical levels; canonical facts
   }
 });
 
-test('coverage cards only offer the line\'s own canonical moves, never a later form\'s early', () => {
-  const ctx = createRun({ seed: 5, species: 'charmander' });
-  const P = ctx.player;
-  const lineMoves = new Set(['charmander', 'charmeleon', 'charizard'].flatMap((id) => SPECIES_BY_ID[id].canon!.levelUp.map(([, k]) => k)));
-  for (let n = 0; n < 300; n++) {
-    for (const c of generateCards(ctx)) if (c.kind === 'learn') {
-      assert.ok(lineMoves.has(c.key), `${c.key} is not a Charmander-line move`);
-      assert.ok(!(SPECIES_BY_ID.charizard.coverage ?? []).some(([, k]) => k === c.key), `${c.key} belongs to Charizard`);
-      assert.ok(MOVE_BY_KEY[c.key]);
-    }
-  }
-  void P;
-});

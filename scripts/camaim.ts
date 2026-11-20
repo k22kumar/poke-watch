@@ -172,7 +172,6 @@ export function fightBlocked(species: string, stage: number, seed: number): Figh
     }
     const v = rig.sample(1280, 720), aim = RIG.chaseAim(v, P.x, P.z, v.aspect, (x, z) => ctx.world.height(x, z));
     const inp: InputFrame = { ...botInput(ctx), aim: aimRayOf(v), aimDev: 'mouse', aimX: aim[0], aimZ: aim[1] };
-    if (ctx.cards.offer) inp.card = { action: 'pick', index: 0 };
     step(ctx, inp);
     rig.update(RIG.chaseFrame(ctx, { dt: 1 / 60, x: P.x, y: P.y, z: P.z, lookPitch: 0 }));
     const a = ctx.aim;

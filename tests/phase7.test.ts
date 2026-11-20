@@ -62,7 +62,7 @@ test('a Bulwark blocks shots at its front, not from behind, and Fighting breaks 
   assert.ok(!ctx.director.bulwarks.includes(b), 'no longer shielding');
 });
 
-test('Hold: standing on the pad for 30 s pays an item ball', () => {
+test('Hold: standing on the pad for 30 s completes it', () => {
   const ctx = calm();
   assert.ok(startObjective(ctx, 'hold'));
   const O = ctx.objective!;
@@ -81,10 +81,9 @@ test('Hold: standing on the pad for 30 s pays an item ball', () => {
   teleport(ctx, O.x, O.z);
   secs(ctx, 31, { ...NO_INPUT, btn: BTN.basic }); // defend the pad with the basic attack
   assert.equal(O.phase, 'done');
-  assert.ok(ctx.cards.offer && ctx.cards.chest, 'item ball offered');
 });
 
-test('Hunt: the marked target runs to its Mender when hurt, and defeating it offers it as a recruit', () => {
+test('Hunt: the marked target runs to its Mender when hurt, and defeating it queues it as a recruit', () => {
   const ctx = calm();
   assert.ok(startObjective(ctx, 'hunt'));
   const O = ctx.objective!, E = ctx.enemies;
@@ -100,8 +99,7 @@ test('Hunt: the marked target runs to its Mender when hurt, and defeating it off
   secs(ctx, 0.1);
   assert.equal(O.phase, 'done');
   secs(ctx, 0.1);
-  assert.equal(ctx.cards.source, 'recruit');
-  assert.ok(ctx.cards.offer!.some((c) => c.key === O.species), 'the hunted species is on offer');
+  assert.ok(ctx.recruit.pending?.includes(O.species), 'the hunted species is the pending recruit');
 });
 
 test('Transport: carrying slows you and locks Move A / B; delivering the egg evolves the field Pokémon', () => {

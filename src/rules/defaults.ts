@@ -134,7 +134,6 @@ export const defaultRules = {
     moveSlots: 3, // [C] (4 later)
     moveSlotsLate: 3, // [C] 4 in PokéBonk; 3 here, because the squad carries three Pokémon (blueprint section 5)
     lateSlotLevel: 20, // [I]
-    vitaminSlots: 3, // [C]
     regenPerSec: 0.25, // [B]
   },
   // [D] Training targets (src/rules/targets.ts, src/sim/targets.ts; docs/hero-shooter-pivot.md Q17, Q20): health from the
@@ -366,23 +365,6 @@ export const defaultRules = {
     magnetSpeed: 20, // [B]
     healChance: 0.004, // [B]
   },
-  cards: {
-    choices: 3, rerolls: 2, skips: 2, banishes: 2, // [C] reroll(F) skip(X) banish(Z); counts [B]
-    weights: { learn: 3, upgrade: 4, vitamin: 2.2, heal: 0.6 },
-    rarity: { common: 1, rare: 0.28, epic: 0.07 },
-    rarityMult: { common: 1, rare: 1.6, epic: 2.4 },
-  },
-  vitamins: {
-    hp: { add: 0.12, label: 'Max HP' },
-    atk: { add: 0.1, label: 'Attack' },
-    spa: { add: 0.1, label: 'Sp. Attack' },
-    def: { add: 0.12, label: 'Defense' },
-    spe: { add: 0.07, label: 'Speed' },
-    haste: { add: 0.06, label: 'Cooldowns' },
-    area: { add: 0.1, label: 'Area' },
-    crit: { add: 0.04, label: 'Crit chance' },
-    magnet: { add: 0.3, label: 'Magnet' },
-  } as Record<string, { add: number; label: string }>,
   stage: {
     count: 4, // [I] stages per region
     bossAt: 300, // [B] s
@@ -609,48 +591,6 @@ export const defaultRules = {
     /** capability events kept for the death recap and pokewatch.debug('caps') */
     logSize: 512,
     recapSeconds: 5,
-  },
-  // [B] Phase 8b: the build layer (blueprint section 6). Every level-up (and item ball) shows three cards: a Kit card
-  // (the field Pokémon's learnset or a transform of one of its moves), a Technique (a trainer-wide rule with a cost; at
-  // most 3 held) and a Wildcard (a benched Pokémon's transform, a Tag variant, an early evolution, a heal). Raw power
-  // comes from squad level and evolution: move levels follow the squad level ("mastery") instead of power-up cards.
-  // `enabled: false` gives the Phase 8a cards exactly (replay checksums unchanged).
-  build: {
-    enabled: true,
-    /** compatibility flag, off until the replacements are verified with people: true brings back the numeric cards
-     *  (vitamins as Wildcards, move power-ups as Kit cards) and move levels come from those cards again (no mastery) */
-    legacyNumeric: false,
-    maxTechniques: 3,
-    /** a technique is offered at least once every this many picks (matters once 3 are held) */
-    techniqueEvery: 3,
-    /** once 3 are held, the Technique slot shows a replacement with this chance (else another Kit or Wildcard) */
-    techniqueWhenFull: 0.35,
-    /** per region (reset at each region's start) */
-    rerolls: 2, banishes: 1,
-    /** w = base x (1 + synergy x s) x n x f: s = the card's capability tags the kit already uses (capped), n = novelty
-     *  for a capability the squad lacks during the first noveltyPicks picks, f = repeat for a card in the last offer */
-    synergy: 0.6, synergyCap: 2, novelty: 1.5, noveltyPicks: 4, repeat: 0.5,
-    weights: { learn: 3, replace: 1, transform: 4, technique: 1, benchTransform: 2.5, tagVariant: 1.5, evolve: 1, heal: 0.6, vitamin: 2.2, upgrade: 4 },
-    /** casts before a move offers its transforms ("used for a while"): the autofired basic attack, and Move A / B */
-    transformUses: { basic: 25, move: 8 },
-    /** mastery: a move's level = 1 + floor((squad level - 1) / masteryEvery), up to moves.maxLevel */
-    masteryEvery: 5,
-    /** Kit filler: learnset moves up to this many levels early (at this weight multiplier), so the Kit slot is rarely empty */
-    learnAhead: 4, learnAheadMult: 0.5,
-    /** the Wildcard evolution is offered this many squad levels before a Pokémon's evolution level */
-    evolveWithin: 2,
-    /** the Sitrus Berry is a filler: offered below this share of HP, and when it is the only Wildcard it takes the slot
-     *  only with this chance (otherwise the slot draws a Kit or Technique card) */
-    healBelow: 0.5, healFill: 0.4,
-    tech: {
-      undertow: { pushDmg: 0.8 },
-      lodestone: { holdBonus: 1, holdTime: 1.5 },
-      heavyFooting: { weight: 1, maxGuard: 3, speed: 0.85, dash: 0.7, knock: 0.5 },
-      catalyst: { refund: 1 },
-      slipstream: { dashCost: 1.3, reach: 1.3 },
-      quarry: { rubble: 2, integrity: 0.75, speed: 6 },
-      secondWind: { tagCooldown: 5 },
-    },
   },
   /** enemy actions any behaviour can use (src/sim/actions.ts) */
   actions: {
