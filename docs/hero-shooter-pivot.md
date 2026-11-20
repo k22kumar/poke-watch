@@ -572,7 +572,8 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 | 5 Test lines | `f0b0c9b` | done |
 | 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed `d3d65b9` | done, two open findings below |
 | 7 Match foundation | `3321d90` | done (docs/RANGE.md) |
-| 8 Baseline | `9b313b5` (infrastructure), content `48268cb`, list and baseline (this commit) | done: `PROTOTYPE` approved with a Rock and a Dragon family; `tests/fixtures/replays.json` committed |
+| 8 Baseline | `9b313b5` (infrastructure), content `48268cb`, list and baseline `8be2889` | done: `PROTOTYPE` approved with a Rock and a Dragon family; `tests/fixtures/replays.json` committed |
+| 9 Survivor deletions | §8a: carry `2de2534`, lasso `3e6b00a`, enterMap `07fa253`, throw action `c98b1db`; cards and build `43df45b`, XP and pickups `46cc74b`, level trigger `58520c8`, Transport and Hunt `af7adf6`, recruiting `40543d1`, bosses `11a52f7` | in progress; every replay hash held at each commit |
 
 Step 8 closing work (owner, after the Q35 stop):
 
