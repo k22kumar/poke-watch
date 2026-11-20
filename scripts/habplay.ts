@@ -62,7 +62,9 @@ export function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<n
 }
 
 /** drive the player along a node path; returns seconds taken or null if it stalls past the budget */
-export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void): number | null {
+/** `arrived`: an extra condition on arriving (default none: within 1.2 m of the route's end); until it holds the driver
+ *  keeps walking at the end of the route (habtide's warning escape: standing on a dry tile) */
+export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void, arrived?: () => boolean): number | null {
   const W = ctx.world, n = W.w * W.h, P = ctx.player, t0 = ctx.time, Bd = ctx.bodies;
   // the straight-line test samples the trainer's footprint (0.45 m with size geometry off) and keeps clear of resting bodies
   const pf = Math.max(0.45, trainerFoot(ctx)), probes = [[0, 0], [pf, 0], [-pf, 0], [0, pf], [0, -pf]];
@@ -94,7 +96,7 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
       if (d < nd) { nd = d; near = j; }
     }
     i = near;
-    if (i >= path.length - 2 && nd < 1.2) return ctx.time - t0;
+    if (i >= path.length - 2 && nd < 1.2 && (!arrived || arrived())) return ctx.time - t0;
     // steer at the farthest of the next few nodes reachable in a straight walkable line (never cut a corner over water)
     let tk = path[Math.min(path.length - 1, i + 1)] % n;
     for (let ahead = 4; ahead >= 1; ahead--) {

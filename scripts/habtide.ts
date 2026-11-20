@@ -196,11 +196,13 @@ function walkOut(ctx: SimContext, budget: number): number | null {
   for (let v = 0; v < cl.length; v++) allow[v] = cl[v] >= 0.45 ? 1 : 0;
   const D = new Int32Array(n).fill(-1), Q = [here];
   D[here] = 0;
-  // (a tile whose neighbours are dry too: the driver stops within a metre of its goal, never on the waterline)
+  // (a tile whose neighbours are dry too, so the dry tile the driver stops on is never the waterline)
   const solid = (a: number) => !W.tide!.mask[a] && W.isOpen(a) && [1, -1, W.w, -W.w].every((o) => !W.tide!.mask[a + o] && W.isOpen(a + o));
   for (let h = 0; h < Q.length; h++) { const a = Q[h]; if (solid(a)) { best = pathBetween(m, here, a, allow); if (best) break; } const x = a % W.w, y = (a / W.w) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = (y + dy) * W.w + x + dx; if (D[b] < 0 && W.isOpen(b) && Math.abs(W.topOf(b) - W.topOf(a)) <= 0.6) { D[b] = D[a] + 1; Q.push(b); } } }
   if (!best) return null;
-  return drive(ctx, best, budget, { n: 0 });
+  // arrived only when standing on a dry tile: within 1.2 m of the goal can still be the tidal floor at a slow hero's
+  // speed (seed 7, 5.76 m/s: it stopped on a tidal tile and the flood caught it there)
+  return drive(ctx, best, budget, { n: 0 }, undefined, () => !ctx.world.tidalAt(ctx.player.x, ctx.player.z));
 }
 
 export function warningEscapeCheck(seed: number): Check {
