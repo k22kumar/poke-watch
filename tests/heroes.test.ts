@@ -49,7 +49,7 @@ test('the prototype list: featured first, every form ready and recruitable, whol
 
 test('a branching species is left unlinked by the content build (how a Breakthrough would choose a branch is open)', () => {
   for (const id of ['snorunt', 'tyrogue', 'nincada', 'applin']) if (SPECIES_BY_ID[id]) assert.equal(SPECIES_BY_ID[id].evolvesTo, undefined, id);
-  // a single-next-form wild species is linked, with no evolveLevel (the survivor level trigger never fires on it)
+  // a single-next-form wild species is linked, with no evolveLevel (only a Breakthrough evolves it)
   assert.equal(SPECIES_BY_ID.onix.evolvesTo, 'steelix');
   assert.equal(SPECIES_BY_ID.onix.evolveLevel, undefined);
 });

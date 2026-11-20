@@ -7,8 +7,8 @@
 // inside a deck slab rises no further, sim/locomotion.ts). The camera eases to the new outline on its own.
 //
 // Triggers: startEvolution is the one entry. The range Mode (rules.evolution.freeTrigger) starts one for free when Touch
-// is held for rules.evolution.holdTime; Candy prices come with growth. The survivor loop's level trigger calls it too
-// until that loop is deleted. The dev trigger is `?evolve=<seconds>` (src/main.ts).
+// is held for rules.evolution.holdTime; Candy prices come with growth. The dev trigger is `?evolve=<seconds>`
+// (src/main.ts).
 import { SPECIES_BY_ID } from '../rules/species';
 import { recomputeMember } from './progression';
 import { BTN, type Player, type SimContext, type System } from './types';

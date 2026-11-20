@@ -42,7 +42,7 @@ A target set is data: per target a species, a kind, an anchor (`spawn`, or a hab
 
 ## Breakthrough (`src/sim/evolution.ts`)
 
-A per-player state, never a world freeze: for `rules.evolution.breakSeconds` (2 s) the Pokémon is rooted and invulnerable (hits and hazards) with its status cleared, then it becomes its next form at full health. `startEvolution(ctx, player, member)` is the one entry; the survivor level trigger calls it until that loop goes, and `?evolve=<seconds>` (or `pokewatch.evolve()`) is the dev trigger. The renderer alternates the two forms' sprites over the Breakthrough and the overlay is not modal. Growing needs no code of its own: the new footprint applies from the next tick and `World.moveBody` lets a body out of a tight spot, never further in (`tests/evolution.test.ts`: a corridor, a deck).
+A per-player state, never a world freeze: for `rules.evolution.breakSeconds` (2 s) the Pokémon is rooted and invulnerable (hits and hazards) with its status cleared, then it becomes its next form at full health. `startEvolution(ctx, player, member)` is the one entry (the survivor level trigger that also called it was deleted at pivot step 9); `?evolve=<seconds>` (or `pokewatch.evolve()`) is the dev trigger. The renderer alternates the two forms' sprites over the Breakthrough and the overlay is not modal. Growing needs no code of its own: the new footprint applies from the next tick and `World.moveBody` lets a body out of a tight spot, never further in (`tests/evolution.test.ts`: a corridor, a deck).
 
 ## Loadout and swapping (`src/sim/swap.ts`)
 

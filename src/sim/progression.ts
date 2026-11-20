@@ -1,12 +1,12 @@
-// Derived stats, the player and its members, and the survivor loop's remains: evolution by level and chests (cards,
-// build, XP and pickups went first, docs/hero-shooter-pivot.md §8 step 9).
+// Derived stats, the player and its members, and the survivor loop's chests (cards, build, XP, pickups and the
+// evolution level trigger went first, docs/hero-shooter-pivot.md §8 step 9). Evolution is the Breakthrough alone
+// (src/sim/evolution.ts).
 // XP to next level [C]: round(8 + 5.5*L + L^1.8).
 
 import { dhypot } from '../core/detmath';
 import { SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import type { Rules } from '../rules/defaults';
 import { heroHealth, statMult, topSpeed } from '../rules/stats';
-import { startEvolution } from './evolution';
 import { compileMove } from './moves';
 import { Player, type Derived, type Member, type SimContext } from './types';
 
@@ -44,27 +44,6 @@ export function learnMove(ctx: SimContext, key: string) {
   ctx.events.push({ t: 'learn', key });
 }
 
-/** the survivor loop's level checks: benched Pokémon evolve at their level (no Breakthrough), and the field Pokémon's
- *  level starts a Breakthrough (sim/evolution.ts). Deleted with the loop (docs/hero-shooter-pivot.md §8 step 9) */
-export function levelChecks(ctx: SimContext) {
-  if (ctx.state !== 'play') return;
-  const P = ctx.player;
-  for (let k = 0; k < P.squad.length; k++) {
-    if (k === P.active) continue;
-    const m = P.squad[k];
-    const bs = m.species;
-    if (!m.fainted && bs.evolvesTo && bs.evolveLevel && P.level >= bs.evolveLevel) {
-      m.species = SPECIES_BY_ID[bs.evolvesTo];
-      recomputeMember(ctx, m);
-      m.hp = m.maxHp;
-      ctx.events.push({ t: 'benchEvolve', from: bs.id, to: m.species.id });
-    }
-  }
-  const sp = P.species;
-  if (P.breakT > 0) return;
-  if (sp.evolvesTo && sp.evolveLevel && P.level >= sp.evolveLevel) startEvolution(ctx);
-}
-
 export const progressionSystem = {
   name: 'progression',
   update(ctx: SimContext) {
@@ -77,7 +56,6 @@ export const progressionSystem = {
         ctx.events.push({ t: 'chest', x: c.x, z: c.z });
       }
     }
-    levelChecks(ctx);
   },
 };
 

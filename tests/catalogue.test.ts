@@ -353,7 +353,7 @@ test('the records with a game role agree with the catalogue and keep their role'
   // the catalogue's own records never carry in-run pacing, and the 10 non-Charmander starter
   // edges in SPECIES are outside the catalogue's 102 and stay untouched
   // (the paced lines carry an evolveLevel; every other species is linked to its single next form by the content build
-  // with no evolveLevel, so the survivor level trigger never fires on it and only a Breakthrough evolves it)
+  // with no evolveLevel; a Breakthrough evolves every line, and evolveLevel is data only since the level trigger went)
   const inRun = SPECIES.filter((s) => s.evolvesTo && s.evolveLevel).map((s) => `${s.id}>${s.evolvesTo}`);
   assert.equal(inRun.length, 14, 'the six starter lines and the Caterpie test line (docs/hero-shooter-pivot.md Q33)');
   assert.equal(SPECIES.filter((s) => s.evolvesTo && !s.evolveLevel).length, 84, 'the content build\'s links');
