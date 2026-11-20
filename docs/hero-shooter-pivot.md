@@ -573,7 +573,7 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 | 6 Stats | `7f635d9`, fixes `d8f5c89` `a44d76f` `44dbcff` `5f4bc16`, closed `d3d65b9` | done, two open findings below |
 | 7 Match foundation | `3321d90` | done (docs/RANGE.md) |
 | 8 Baseline | `9b313b5` (infrastructure), content `48268cb`, list and baseline `8be2889` | done: `PROTOTYPE` approved with a Rock and a Dragon family; `tests/fixtures/replays.json` committed |
-| 9 Survivor deletions | §8a: carry `2de2534`, lasso `3e6b00a`, enterMap `07fa253`, throw action `c98b1db`; cards and build `43df45b`, XP and pickups `46cc74b`, level trigger `58520c8`, Transport and Hunt `af7adf6`, recruiting `40543d1`, bosses `11a52f7` | in progress; every replay hash held at each commit |
+| 9 Survivor deletions | §8a: carry `2de2534`, lasso `3e6b00a`, enterMap `07fa253`, throw action `c98b1db`; cards and build `43df45b`, XP and pickups `46cc74b`, level trigger `58520c8`, Transport and Hunt `af7adf6`, recruiting `40543d1`, bosses `11a52f7`, stage flow `a93d78d` | stopped before the director: deleting the difficulty curves moves `gorge-hold` (below) |
 
 Step 8 closing work (owner, after the Q35 stop):
 
@@ -589,3 +589,5 @@ Open design question:
 Follow-up:
 
 - **54 `ready` species exceed the frozen habitat profiles** (footprint 0.88 m, eye 1.42 m: Onix, Lugia, Wailord…). Making any of them a hero means re-measuring the habitat profiles, which moves accepted layouts: a planned `HAB_VERSION` bump with `docs/habaudit/baseline.json` regenerated, not a side effect of a roster change.
+
+Step 9 stop (2026-11-20): **the difficulty curves.** `spawnEnemy` scales every non-target enemy's health and speed by the survivor curves (`hpMultiplier`, `toughness`, `speedFactor`: stage time, stage, `rules.director.hp*`/`speed*`). Hold's Raid party (foundation, Q14) spawns through it, so the `gorge-hold` scenario's raiders carry curve values that grow with match time; deleting the curves moves that replay's hashes. The director itself is hash-neutral to delete (no hero mode runs it; the curves' final-swarm term is always off without it). Options: keep the curves, their numbers moved out of `rules.director`, until the co-op wave step puts enemies on the canon curve and the speed band (Q36's note); or replace them now with the canon curve for every non-target enemy and re-baseline `gorge-hold` in that commit.
