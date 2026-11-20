@@ -19,7 +19,7 @@ export const TAG_SLOT = 9;
 export function tagDefOf(m: Member): TagDef | null {
   const line = tagLineOf(lineage(m.species)[0].id) ?? tagLineOf(m.species.id);
   if (!line) return null;
-  return m.tagVariant ? line.variant : line.base;
+  return line.base;
 }
 
 /** the Tag Action as a cast spec: at the flat rules.squad.tagActionLevel (Q26), hitting like a strong manual move */

@@ -145,7 +145,6 @@ export interface Member {
   coat: number; coatDeep: number; coatT: number;
   fainted: boolean;
   /** chosen Tag Action variant (0 = base, 1 = the evolution variant) */
-  tagVariant: number;
   /** Flash Fire armed (s left: its Fire moves hit x1.5); Sturdy spent this region */
   flashT: number; sturdyUsed: boolean;
 }
@@ -443,8 +442,6 @@ export interface SimContext {
   director: Director;
   beat: Beat;
   objective: Objective | null;
-  /** recruits offered so far, a pending recruit choice (species ids), and members waiting to pick a Tag variant */
-  recruit: { offered: number; pending: string[] | null; variants: number[] };
   weather: { element: Element | null; t: number };
   stats: { kills: number; damageDealt: number; damageTaken: number; bosses: number; maxHit: number };
   input: InputFrame;

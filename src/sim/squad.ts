@@ -101,8 +101,9 @@ export function addLoadoutMember(ctx: SimContext, id: string): Member | null {
   return m;
 }
 
-// ------------------------------------------------------------------ recruiting
-/** add a Pokémon to the squad at the squad's level, with its first moves */
+// ------------------------------------------------------------------ squad members
+/** add a Pokémon to the squad with its first moves (harnesses and the ?squad= dev parameter; recruiting was deleted at
+ *  hero-shooter pivot step 9) */
 export function addMember(ctx: SimContext, id: string): Member | null {
   const P = ctx.player;
   const sp = SPECIES_BY_ID[id];
@@ -117,34 +118,6 @@ export function addMember(ctx: SimContext, id: string): Member | null {
   return m;
 }
 
-/** an elite went down: offer a recruit when the squad has room and the run is far enough along */
-export function maybeOfferRecruit(ctx: SimContext) {
-  const P = ctx.player, R = ctx.rules.squad, Q = ctx.recruit;
-  if (ctx.rules.objectives.enabled) return; // the Hunt objective pays recruits (sim/objectives.ts)
-  if (Q.pending || P.squad.length >= R.max) return;
-  const after = R.recruitAfter[Math.min(Q.offered, R.recruitAfter.length - 1)];
-  if (ctx.time < after) return;
-  const table = ctx.spawnTable;
-  const have = new Set(P.squad.map((m) => lineage(m.species)[0].id));
-  const pool = [...new Set(table.spawns.map(([id]) => id))].filter((id) => !have.has(id) && SPECIES_BY_ID[id] && tagLineOf(id));
-  if (!pool.length) return;
-  const picks: string[] = [];
-  const bag = [...pool];
-  while (picks.length < 2 && bag.length) picks.push(bag.splice(ctx.rng.ai.int(0, bag.length - 1), 1)[0]);
-  Q.pending = picks;
-  Q.offered++;
-}
-
-/** a member reached its first evolution (or the variant level): queue its Tag variant choice */
-export function queueVariant(ctx: SimContext, k: number) {
-  if (!ctx.recruit.variants.includes(k)) ctx.recruit.variants.push(k);
-}
-
-export function variantDue(ctx: SimContext, m: Member, sp: SpeciesDef) {
-  return !m.tagVariant && !sp.evolvesTo && !lineage(sp).some((s) => s.evolvesTo) && ctx.player.level >= ctx.rules.squad.variantLevel;
-}
-
-// ------------------------------------------------------------------ the system
 /** the squad's core, any size: the field timer and each member's Flash Fire timer. Swapping (Tag input, Tag Actions,
  *  the faint replacement, grey health and the bench) is the opt-in swap system (src/sim/swap.ts). */
 export const squadSystem = {

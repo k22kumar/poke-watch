@@ -64,7 +64,7 @@ export function makeMember(species: SpeciesDef): Member {
     species, hp: 1, maxHp: 0, grey: 0, moves: [], buffT: 0, buffAtk: 0, buffSpe: 0, paraT: 0,
     trailT: 0, trailSpec: null, trailLevel: 0, trailAcc: 0, regenAcc: 0,
     derived: { maxHp: 1, atk: 1, spa: 1, def: 1, spd: 1, speed: 6, haste: 1, area: 1, crit: 0.05 },
-    learned: new Set(), coat: 0, coatDeep: 0, coatT: 0, fainted: false, tagVariant: 0, flashT: 0, sturdyUsed: false,
+    learned: new Set(), coat: 0, coatDeep: 0, coatT: 0, fainted: false, flashT: 0, sturdyUsed: false,
   };
 }
 

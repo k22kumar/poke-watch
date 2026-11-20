@@ -405,7 +405,7 @@ export const defaultRules = {
     menderHeal: 0.12, menderEvery: 3.2, menderRadius: 5,
   },
   objectives: {
-    enabled: true, // false = v8 pacing: no objectives, the alpha at 3:30 and recruits after elite kills
+    enabled: true, // false = v8 pacing: no objectives, the alpha at 3:30
     offerTime: 45, // s to engage before an objective lapses
     firstAfter: 90, secondAfter: 200, // s into the stage before the first and second objective can open
     hold: { radius: 5, time: 30, drain: 0.015, limit: 60 }, // drain: charge lost per Raider on the pad per s (4 out-drain you)
@@ -435,9 +435,7 @@ export const defaultRules = {
     benchRefill: 0.03, // share of max HP per second refilled from grey health while benched
     faintDelay: 1, // s before the next Pokémon comes in after a faint
     reviveHp: 0.3, // fainted Pokémon return at this share of max HP at the next region's portal
-    recruitAfter: [120, 300], // s of run time before the first and the second recruit can be offered
     tagDmgMult: 1.8, tagKnockMult: 1.5, // a Tag Action hits like a strong manual move
-    variantLevel: 18, // Pokémon that never evolve unlock their Tag variant at this squad level
   },
   // [B] creature coats and reactions (blueprint section 8): the four tile agents also coat creatures.
   // Light coats come from the basic attack and stick only to fodder; deep coats come from moves A/B, Tag

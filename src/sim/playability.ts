@@ -88,7 +88,7 @@ export const READINESS_CHECKS: ReadinessCheck[] = [
       if (rules.hero.loadout <= 1) return null;
       const line = tagLineOf(lineage(sp)[0].id) ?? tagLineOf(sp.id);
       if (!line) return 'no Tag Action (tagging it in fires nothing)';
-      if (!MOVE_BY_KEY[line.base.move] || !MOVE_BY_KEY[line.variant.move]) return 'Tag Action move missing from the move database';
+      if (!MOVE_BY_KEY[line.base.move]) return 'Tag Action move missing from the move database';
       return null;
     },
   },

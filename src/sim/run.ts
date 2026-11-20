@@ -85,7 +85,6 @@ export function createRun(opts: RunOptions): SimContext {
     events: [], hooks, systems,
     director: freshDirector(rules),
     beat: freshBeat(), objective: null,
-    recruit: { offered: 0, pending: null, variants: [] },
     weather: { element: null, t: 0 },
     stats: { kills: 0, damageDealt: 0, damageTaken: 0, bosses: 0, maxHit: 0 },
     input: NO_INPUT,

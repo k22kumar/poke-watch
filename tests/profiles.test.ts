@@ -66,7 +66,7 @@ test('an authored Tag Action wins; any other species gets a derived one from its
     if (TAG_ACTIONS[sp.id]) continue;
     const line = tagLineOf(sp.id);
     if (!line) continue;
-    for (const d of [line.base, line.variant]) {
+    for (const d of [line.base]) {
       const m = MOVE_BY_KEY[d.move];
       assert.ok(m && m.power > 0 && m.cls !== 'status', `${sp.id}: ${d.move} is a damaging move`);
       // ...or, for a species that learns no damaging move (Cosmog), the basic attack (rules.moves.fallbackAttack)

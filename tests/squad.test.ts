@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
-import { addMember, maybeOfferRecruit, onHpLoss } from '../src/sim/squad';
+import { addMember, onHpLoss } from '../src/sim/squad';
 import { tagDefOf, tagSpec } from '../src/sim/swap';
 import { damagePlayer } from '../src/sim/combat';
 import { lineage } from '../src/rules/heroes';
@@ -30,7 +30,6 @@ test('every partner and recruitable wild line has a Tag Action whose moves exist
     const line = tagLineOf(base);
     assert.ok(line, `${sp.id} has a Tag Action`);
     assert.ok(MOVE_BY_KEY[line.base.move], `${base} base ${line.base.move}`);
-    assert.ok(MOVE_BY_KEY[line.variant.move], `${base} variant ${line.variant.move}`);
   }
 });
 

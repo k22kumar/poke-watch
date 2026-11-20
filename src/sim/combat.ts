@@ -7,7 +7,7 @@ import { SPECIES_BY_ID, weightClass } from '../rules/species';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { AG, agentIndex } from '../rules/reactions';
 import { ccApply, coatEnemy, shatter } from './coats';
-import { maybeOfferRecruit, onHpLoss } from './squad';
+import { onHpLoss } from './squad';
 import { applyAfterHit, creatureForce } from './capabilities';
 import { rec, setSrc, type LogKind } from './caplog';
 import { guardWeight } from './player';
@@ -209,7 +209,6 @@ export function killEnemy(ctx: SimContext, e: number) {
     ctx.events.push({ t: 'portal', x: E.x[e], z: E.z[e] });
   } else if (E.roles[e] & (ROLE.elite | ROLE.alpha)) {
     ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopKillBig });
-    maybeOfferRecruit(ctx);
   }
   E.kill(e);
 }
