@@ -100,7 +100,6 @@ const ui = new UI({
   tuning: () => ({
     rules: ctx?.rules ?? {},
     ctx,
-    spawnBoss: () => { if (!ctx) return; const t = ctx.spawnTable; const P = ctx.player; const b = spawnEnemy(ctx, t.boss, P.x + 18, P.z, ROLE.boss); ctx.director.bossIndex = b; ctx.director.bossSpawned = true; ui.banner(SPECIES_BY_ID[t.boss].name, 'appears!', 2); audio.boss(); },
     god: (on) => { god = on; },
     killAll: () => { if (!ctx) return; const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i] && !(E.roles[i] & ROLE.boss)) killEnemy(ctx, i); },
   }),
@@ -276,10 +275,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
-      // boss cries play at their recorded pitch; see docs/AUDIO.md
-      case 'bossSpawn': ui.banner(SPECIES_BY_ID[e.species].name, SPECIES_BY_ID[e.species].boss?.title ?? 'appears!', 3); audio.boss(); audio.onBossSpawn(); setTimeout(() => audio.cry(e.species, { volume: 0.8, gate: 0 }), 450); break;
-      case 'bossPhase': ui.banner('It\'s getting angry!', '', 1.4); audio.onMusicClimax(); break;
-      case 'bossDead': ui.banner('Boss defeated!', 'Step into the portal', 3); audio.cry(e.species, { volume: 0.8, pitch: 0.85, gate: 0 }); audio.onBossDead(); break;
       case 'finalSwarm': ui.banner('FINAL SWARM', 'They keep getting tougher…', 2.5); break;
       case 'swarm': ui.banner('Stampede!', '', 1.2); break;
       case 'chest': audio.chest(); break;
@@ -448,7 +443,7 @@ function frame(now: number) {
   if (c.player.breakT <= 0) ui.show('overlay-evolve', false);
   const tSim1 = performance.now();
   const alpha = Math.max(0, Math.min(1, acc / c.dt));
-  audio.intensity = Math.min(1, c.enemies.count / 500 + (c.director.bossIndex >= 0 ? 0.5 : 0));
+  audio.intensity = Math.min(1, c.enemies.count / 500);
   renderer.render(c, alpha, real, paused ? 0 : simDt);
   const tR = performance.now();
   perf.sim = perf.sim * 0.9 + (tSim1 - tSim0) * 0.1; perf.render = perf.render * 0.9 + (tR - tSim1) * 0.1;
@@ -470,7 +465,7 @@ function audioTick(dt: number) {
       for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const dx = E.x[i] - P.x, dz = E.z[i] - P.z; if (dx * dx + dz * dz < 144) n++; }
       enemiesNear = n;
     }
-    audio.tick(dt, { inRun: c.state === 'play', enemiesNear, enemies: c.enemies.count, boss: c.director.bossIndex >= 0 && c.enemies.alive[c.director.bossIndex] === 1, health: c.player.hp / Math.max(1, c.player.maxHp), objective: c.objective?.phase === 'active' });
+    audio.tick(dt, { inRun: c.state === 'play', enemiesNear, enemies: c.enemies.count, boss: false, health: c.player.hp / Math.max(1, c.player.maxHp), objective: c.objective?.phase === 'active' });
   } else audio.tick(dt);
 }
 

@@ -306,9 +306,6 @@ export type SimEvent =
   | { t: 'evolveEnd'; species: string }
   | { t: 'respawn'; species: string }
   | { t: 'learn'; key: string }
-  | { t: 'bossSpawn'; species: string; enemy: number }
-  | { t: 'bossPhase'; phase: number }
-  | { t: 'bossDead'; species: string; x: number; z: number }
   | { t: 'portal'; x: number; z: number }
   | { t: 'stageStart'; stage: number; biome: string }
   | { t: 'spawnSkipped'; species: string; reason: string; x: number; z: number }
@@ -372,9 +369,6 @@ export interface Director {
   nextElite: number;
   nextSwarm: number;
   alphaSpawned: boolean;
-  bossSpawned: boolean;
-  bossIndex: number; // enemy slot, -1 none
-  bossDead: boolean;
   finalSwarm: boolean;
   liveCap: number;
   /** Bulwarks alive this tick (enemy slots), for projectile blocking */
@@ -443,7 +437,7 @@ export interface SimContext {
   beat: Beat;
   objective: Objective | null;
   weather: { element: Element | null; t: number };
-  stats: { kills: number; damageDealt: number; damageTaken: number; bosses: number; maxHit: number };
+  stats: { kills: number; damageDealt: number; damageTaken: number; maxHit: number };
   input: InputFrame;
   /** the spatial aim resolved this tick, for presentation (sim/aim.ts) */
   aim: AimState;

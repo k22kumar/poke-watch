@@ -869,7 +869,6 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   return true;
 }
 
-const AB_PRESSURE = ABILITY_IDS.indexOf('pressure') + 1;
 
 /** true when slot i is a manual move (button-cast) under the current combat mode */
 export function isManual(ctx: SimContext, i: number): boolean {
@@ -903,9 +902,6 @@ export const movesSystem = {
     const btn = raw & tagMask;
     // Phase 3: the presses (rising edges) of this sample; only these can queue a cast (rules.combat.fireBuffer)
     const press = (ctx.input.press ?? 0) & tagMask;
-    // Pressure (Articuno): within 12 m, cooldowns recover 15% slower (there is no PP to drain)
-    let pressure = 1;
-    { const E = ctx.enemies, b = ctx.director.bossIndex; if (b >= 0 && E.alive[b] && E.ability[b] === AB_PRESSURE && dhypot(E.x[b] - p.x, E.z[b] - p.z) < 12) pressure = 0.85; }
     if (p.paraT > 0) p.paraT -= dt;
     for (let i = 0; i < p.moves.length; i++) {
       const slot = p.moves[i];
@@ -929,7 +925,7 @@ export const movesSystem = {
       if (slot.queued !== undefined && (raw & BTN.sig) && bit !== BTN.sig) dropQueued(ctx, slot, i, 'cancel');
       // carrying the Transport egg: only the basic attack (Move A and B wait, still cooling)
       if (ctx.player.carrying && i > 0) {
-        if (slot.cd > 0) slot.cd -= dt * pressure;
+        if (slot.cd > 0) slot.cd -= dt;
         slot.windup = undefined;
         if (slot.queued !== undefined) dropQueued(ctx, slot, i, 'cancel');
         if (pressed) ctx.events.push({ t: 'fireDropped', slot: i, why: 'cancel', wait: 0 });
@@ -941,17 +937,17 @@ export const movesSystem = {
         const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
         if (slot.windup > 0) {
           // a press during the wind-up: ready after the rest of it and the refunded cooldown
-          if (pressed) offerQueue(ctx, slot, i, slot.windup + Math.max(0.05, spec.cd - w) / pressure, win);
+          if (pressed) offerQueue(ctx, slot, i, slot.windup + Math.max(0.05, spec.cd - w), win);
           continue;
         }
         slot.windup = 0;
         if (resolveAim(ctx, spec, aimed, i === 0) && fire(ctx, impl, spec, i)) slot.cd = Math.max(0.05, spec.cd - w);
         else slot.cd = 0.1;
-        if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win);
+        if (pressed) offerQueue(ctx, slot, i, slot.cd, win);
         continue;
       }
-      if (slot.cd > 0) slot.cd -= dt * pressure;
-      if (slot.cd > 0) { if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win); continue; }
+      if (slot.cd > 0) slot.cd -= dt;
+      if (slot.cd > 0) { if (pressed) offerQueue(ctx, slot, i, slot.cd, win); continue; }
       // button-cast slots wait, ready, until their button is held (holding repeats on cooldown; releasing starts
       // nothing new, though a wind-up already under way still lands) or a buffered press is queued (it casts once)
       const fromQueue = slot.queued !== undefined;

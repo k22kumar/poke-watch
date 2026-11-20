@@ -1,12 +1,12 @@
 // The encounter director (blueprint section 9, Phase 7).
 //
 // v8's director stays underneath as the background difficulty: the spawn accumulator, the HP and speed
-// curves, elites, ring swarms and the boss at 5:00. On top of it the beat director paces a stage in beats:
+// curves, elites and ring swarms (the boss was deleted at pivot step 9). On top of it the beat director paces a stage in beats:
 //   Build (35-45 s)  spawns ramp from 0.75x to 1.15x
 //   Peak  (20-30 s)  1.3x spawns plus one event: an objective, a composition, or regional weather
 //   Relax (10-15 s)  spawns drop to 0.3x; the banked level-up picks are the thing to do
 // A Peak ends early once intensity (recent damage, enemies within 6 m, missing health) has stayed at 0.85
-// or more for 5 s. While the boss is out the beats rest. Objectives open at the first Peak after 1:30 and
+// or more for 5 s. Objectives open at the first Peak after 1:30 and
 // after 3:20 of each stage (sim/objectives.ts). The director never counter-picks your squad: compositions
 // and weather are drawn from the region's own Pokémon and climate.
 
@@ -102,7 +102,7 @@ function enter(ctx: SimContext, phase: Beat['phase'], noObjective = false) {
 
 /** an objective lapsed or failed: the pressure comes now (a Peak without a new objective) */
 export function forcePeak(ctx: SimContext) {
-  if (!ctx.rules.beats.enabled || ctx.director.bossSpawned || ctx.beat.phase === 'peak') return;
+  if (!ctx.rules.beats.enabled || ctx.beat.phase === 'peak') return;
   enter(ctx, 'peak', true);
 }
 
@@ -119,7 +119,7 @@ function beats(ctx: SimContext, dt: number): number {
   const raw = 0.45 * Math.min(1, B.dmgRecent / Math.max(1, 0.35 * P.maxHp)) + 0.35 * Math.min(1, near / 14) + 0.2 * (1 - P.hp / Math.max(1, P.maxHp));
   B.intensity += (raw - B.intensity) * Math.min(1, dt * 1.5);
 
-  if (!R.enabled || ctx.director.bossSpawned) return 1;
+  if (!R.enabled) return 1;
   B.t += dt;
   if (B.phase === 'peak') B.hot = B.intensity >= R.hotIntensity ? B.hot + dt : 0;
   if (B.t >= B.dur || (B.phase === 'peak' && B.hot >= R.hotTime)) enter(ctx, B.phase === 'build' ? 'peak' : B.phase === 'peak' ? 'relax' : 'build');
@@ -201,28 +201,13 @@ export const directorSystem = {
     const t = ctx.stageTime / 60;
     const [rMin, rMax] = ctx.rules.enemy.spawnRadius;
 
-    // boss
-    if (!dir.bossSpawned && ctx.stageTime >= S.bossAt) {
-      dir.bossSpawned = true;
-      const P = ctx.player;
-      const a = P.facing;
-      const x = clamp(P.x + dsin(a) * 22, -ctx.world.bound, ctx.world.bound);
-      const z = clamp(P.z + dcos(a) * 22, -ctx.world.bound, ctx.world.bound);
-      const b = spawnEnemy(ctx, table.boss, x, z, ROLE.boss);
-      dir.bossIndex = b;
-      ctx.events.push({ t: 'bossSpawn', species: table.boss, enemy: b });
-      ctx.events.push({ t: 'shake', amount: ctx.rules.feel.shakeBoss, x, z });
-    }
-    if (!dir.finalSwarm && ctx.stageTime >= S.finalSwarmAt && !dir.bossDead) {
+    if (!dir.finalSwarm && ctx.stageTime >= S.finalSwarmAt) {
       dir.finalSwarm = true;
       ctx.events.push({ t: 'finalSwarm' });
     }
 
-    const bossAlive = dir.bossIndex >= 0;
     let rate = D.spawnBase + D.spawnPerMin * t + D.spawnPerStage * s;
-    if (bossAlive) rate *= 0.45;
     if (dir.finalSwarm) rate *= 2.5;
-    if (dir.bossDead) rate *= 0.3;
     rate *= beats(ctx, dt);
     weatherTick(ctx);
     dir.spawnAcc += rate * dt;
@@ -252,7 +237,7 @@ export const directorSystem = {
     if (ctx.stageTime >= dir.nextSwarm) {
       dir.nextSwarm += D.swarmEvery;
       const swarmers = table.spawns.filter(([id]) => ['swarm', 'chase'].includes(SPECIES_BY_ID[id].behaviour ?? 'chase'));
-      if (ctx.stageTime > 30 && !bossAlive && !(ctx.rules.beats.enabled && ctx.beat.phase === 'relax') && swarmers.length) {
+      if (ctx.stageTime > 30 && !(ctx.rules.beats.enabled && ctx.beat.phase === 'relax') && swarmers.length) {
         const n = ctx.rng.spawn.int(D.swarmSize[0], D.swarmSize[1]) + s * 4;
         const P = ctx.player;
         const habitat = ctx.world.habitatAt(P.x, P.z);

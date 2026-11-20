@@ -72,7 +72,7 @@ export interface UIHooks {
   applySettings(): void;
   resetSettings(): void;
   preview(kind: 'cry' | 'sfx' | 'music'): void;
-  tuning(): { rules: any; ctx: SimContext | null; spawnBoss(): void; god(on: boolean): void; killAll(): void };
+  tuning(): { rules: any; ctx: SimContext | null; god(on: boolean): void; killAll(): void };
   /** developer roster (docs/PLAYABILITY.md): `dev` (?dev=1) adds the All Pokémon view to the partner screen */
   dev: boolean;
   /** every species graded for player control, in registry order (sim/playability.ts plus the host's art check) */
@@ -586,22 +586,6 @@ export class UI {
     // the squad: one card per Pokémon (field one marked), with HP, grey health and what Tag will do
     this.updateSquad(ctx);
 
-    // boss info box
-    const bi = ctx.director.bossIndex;
-    const E = ctx.enemies;
-    if (bi >= 0 && E.alive[bi] && E.roles[bi] & ROLE.boss) {
-      if (H.boss.classList.contains('hidden')) {
-        H.boss.classList.remove('hidden');
-        const sp = SPECIES[E.species[bi]];
-        H.bossName.innerHTML = '';
-        H.bossName.append(h('b', {}, sp.name), h('small', {}, sp.boss?.title ?? ''));
-        H.bossTypes.innerHTML = '';
-        for (const e of sp.elements) H.bossTypes.append(typeBadge(e));
-      }
-      const f = (Math.max(0, E.hp[bi]) / E.maxHp[bi]) * 100;
-      H.bossFill.style.width = `${f}%`;
-      H.bossFill.className = 'fill ' + (f <= 20 ? 'lo' : f <= 50 ? 'mid' : 'hi');
-    } else H.boss.classList.add('hidden');
 
     // move slots
     const slotsMax = P.level >= ctx.rules.player.lateSlotLevel ? ctx.rules.player.moveSlotsLate : ctx.rules.player.moveSlots;
@@ -742,7 +726,7 @@ export class UI {
     const rows: [string, string][] = [
       ['Time', fmtTime(ctx.time)], ['Region', `${ctx.stage + 1}${ctx.loop ? ` (lap ${ctx.loop + 1})` : ''}`], ['Level', String(ctx.player.level)],
       ['KOs', s.kills.toLocaleString()], ['Damage dealt', Math.round(s.damageDealt).toLocaleString()], ['Damage taken', Math.round(s.damageTaken).toLocaleString()],
-      ['Bosses', String(s.bosses)], ['Biggest hit', Math.round(s.maxHit).toLocaleString()], ['Seed', String(ctx.seed)],
+      ['Biggest hit', Math.round(s.maxHit).toLocaleString()], ['Seed', String(ctx.seed)],
     ];
     return rows.flatMap(([a, b]) => [h('span', {}, a), h('span', {}, b)]);
   }
@@ -1016,7 +1000,6 @@ export class UI {
     el.children[1].after(h('h4', {}, 'Play as'), h('div', { class: 'row play-as' }, pick, btn('Restart as', () => { if (this.hooks.become(pick.value)) this.show('tuning', false); else this.hooks.sound('denied'); }, 'btn small')));
     let god = false;
     el.append(h('div', { class: 'btns' },
-      btn('Spawn boss', () => T.spawnBoss(), 'btn small'),
       btn('Clear wild', () => T.killAll(), 'btn small'),
       btn('God: off', function (this: HTMLElement) { god = !god; T.god(god); this.textContent = god ? 'God: on' : 'God: off'; }, 'btn small'),
       btn('Close', () => this.toggleTuning(), 'btn small'),

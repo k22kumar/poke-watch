@@ -196,18 +196,7 @@ export function killEnemy(ctx: SimContext, e: number) {
   ctx.stats.kills++;
   ctx.events.push({ t: 'kill', x: E.x[e], y: E.y[e], z: E.z[e], species: E.species[e], roles: E.roles[e], element: sp.elements[0] });
   for (const h of ctx.hooks.onKill) h(ctx, e);
-  if (E.roles[e] & ROLE.boss) {
-    ctx.stats.bosses++;
-    ctx.director.bossDead = true;
-    ctx.director.bossIndex = -1;
-    ctx.events.push({ t: 'bossDead', species: sp.id, x: E.x[e], z: E.z[e] });
-    ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopBossKill });
-    ctx.events.push({ t: 'shake', amount: 1, x: E.x[e], z: E.z[e] });
-    ctx.projectiles.clearHostile();
-    const [px, pz] = ctx.world.walkable(E.x[e], E.z[e]) ? [E.x[e], E.z[e]] : ctx.world.nearestWalkable(E.x[e], E.z[e]);
-    ctx.portal = { active: true, x: px, z: pz };
-    ctx.events.push({ t: 'portal', x: E.x[e], z: E.z[e] });
-  } else if (E.roles[e] & (ROLE.elite | ROLE.alpha)) {
+  if (E.roles[e] & (ROLE.elite | ROLE.alpha)) {
     ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopKillBig });
   }
   E.kill(e);

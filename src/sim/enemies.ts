@@ -1,4 +1,4 @@
-// Enemy spawning (director), steering, behaviours, bosses.
+// Enemy spawning (director), steering, behaviours (the bosses were deleted at pivot step 9).
 // Steering [C]: desired direction straight at the player; velocity eases toward it by
 // min(1, 10*dt); knockback decays by exp(-7*dt); neighbours within 2r + 1 push apart via the grid.
 
@@ -101,7 +101,6 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   E.roles[i] = roles;
   E.attackCd[i] = ctx.rng.ai.range(0.5, 2);
   E.facing[i] = datan2(ctx.player.x - x, ctx.player.z - z);
-  if (roles & ROLE.boss) { E.state[i] = 0; E.stateT[i] = 1.6; E.attackCd[i] = 2.5; }
   return i;
 }
 
@@ -287,9 +286,7 @@ export const enemySystem = {
       let goal: [number, number] | null = roles & ROLE.target ? targetGoal(ctx, i) : null;
       if (!goal && O && O.phase === 'active' && roles & ROLE.raider) goal = [O.x, O.z];
 
-      if (roles & ROLE.boss) {
-        bossThink(ctx, i, sp, dist, ux, uz, dt);
-      } else if (goal) {
+      if (goal) {
         const gx = goal[0] - E.x[i], gz = goal[1] - E.z[i], gl = dhypot(gx, gz);
         if (gl < 1.4) speed *= 0.15; else { ux = gx / gl; uz = gz / gl; }
         // habitat maps: a Raider bound for the point walks the contest's flow field (bridges, causeways, caves); the
@@ -375,9 +372,9 @@ export const enemySystem = {
         speed *= E.hzKind[i] === 2 ? ctx.rules.hazards.lava.speed : ctx.rules.hazards.water.speed;
       }
       if (E.fallV[i] > 0) speed = 0;
-      // any enemy started on a throw (src/sim/actions.ts) stands and winds up; a boss's is ticked in bossThink
-      if (!(roles & ROLE.boss) && E.state[i] === THROWING) { E.stateT[i] -= dt; speed = 0; throwTick(ctx, i, 0); }
-      if (frozen || (roles & ROLE.boss && E.state[i] === 99)) speed = 0;
+      // any enemy started on a throw (src/sim/actions.ts) stands and winds up
+      if (E.state[i] === THROWING) { E.stateT[i] -= dt; speed = 0; throwTick(ctx, i, 0); }
+      if (frozen) speed = 0;
       if (!(roles & ROLE.boss)) {
         const [fs, grip] = E.hover[i] > 0 ? [1, 1] : footing(ctx, E.x[i], E.z[i], sp.elements, true);
         E.vx[i] += (ux * speed * fs - E.vx[i]) * steer * grip;
@@ -406,7 +403,7 @@ export const enemySystem = {
       let nx = Math.fround(clamp(ox + (E.vx[i] + E.kx[i] + sx * sepK) * dt, -W.bound, W.bound));
       let nz = Math.fround(clamp(oz + (E.vz[i] + E.kz[i] + sz * sepK) * dt, -W.bound, W.bound));
       E.kx[i] *= kdecay; E.kz[i] *= kdecay;
-      if (ground && !(roles & ROLE.boss && E.state[i] === 5)) {
+      if (ground) {
         const feet = E.py[i];
         // solid geometry stops anything; a lethal liquid or open air only stops a creature walking there on its own
         // (knockback past rules.hazards.forcedKnock carries it over the lip)
@@ -430,7 +427,7 @@ export const enemySystem = {
         }
       }
       E.x[i] = nx; E.z[i] = nz;
-      if (W.hazards && ground && !(roles & ROLE.boss && E.state[i] === 5)) {
+      if (W.hazards && ground) {
         // support ends over open air: it falls (sim/hazards.ts knocks it out below the map's floor)
         const sg = W.support(E.x[i], E.z[i], E.y[i]);
         if (sg === -Infinity || E.y[i] - sg > 0.65 + E.fallV[i] * dt) {
@@ -446,7 +443,7 @@ export const enemySystem = {
         }
       } else {
         const g = W.over ? W.height(E.x[i], E.z[i], E.y[i] - E.hover[i]) : W.height(E.x[i], E.z[i]);
-        if (!(roles & ROLE.boss && E.state[i] === 5)) {
+        {
           const hv = E.hover[i] > 0 ? traversalOf(sp, ctx.rules).hover : null; // the hover row's bob
           E.y[i] = g + E.hover[i] + (hv ? dsin(ctx.time * hv.bobRate + i) * hv.bob : 0);
         }
@@ -468,7 +465,7 @@ export const enemySystem = {
         else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen && E.dmg[i] > 0) {
           E.contactCd[i] = R.contactCooldown;
-          const charging = (sp.behaviour === 'charger' && E.state[i] === 2) || (roles & ROLE.boss && E.state[i] === 2);
+          const charging = sp.behaviour === 'charger' && E.state[i] === 2;
           const res = damagePlayer(ctx, E.dmg[i] * (charging ? 1.5 : 1) * enemyAttackMult(ctx, i), E.x[i], E.z[i], 1, weightClass(sp, (roles & ROLE.boss) !== 0), sp.elements[0], { kind: 'creature', name: sp.name }, channelOf(sp));
           // your Pokémon's Static or Effect Spore: 30% to stun whatever touched it
           if (res === 'hit' && (playerAbility(ctx) === AB_STATIC || playerAbility(ctx) === AB_SPORE) && ctx.rng.combat.next() < 0.3) {
@@ -482,7 +479,7 @@ export const enemySystem = {
             const resist = roles & ROLE.boss ? 0.15 : roles & ROLE.alpha ? 0.4 : roles & ROLE.elite ? 0.7 : 1;
             E.kx[i] += (kx / kl) * G.parryKnock * resist; E.kz[i] += (kz / kl) * G.parryKnock * resist;
             E.stun[i] = Math.max(E.stun[i], G.parryStun * resist);
-            if (E.state[i] === 2) E.state[i] = roles & ROLE.boss ? 1 : 0; // a parried charge ends
+            if (E.state[i] === 2) E.state[i] = 0; // a parried charge ends
             E.contactCd[i] = Math.max(E.contactCd[i], 0.6);
             ctx.events.push({ t: 'parry', x: E.x[i], z: E.z[i], enemy: i });
           }
@@ -492,132 +489,3 @@ export const enemySystem = {
   },
 };
 
-// ------------------------------------------------------------------ bosses
-// states: 0 intro, 1 idle/chase, 2 charging, 3 charge windup, 4 spiral, 5 leaping, 6 volley
-function bossThink(ctx: SimContext, i: number, sp: SpeciesDef, dist: number, ux: number, uz: number, dt: number) {
-  const E = ctx.enemies;
-  const P = ctx.player;
-  const kit = sp.boss!;
-  const phase = E.bossPhase[i];
-  const el = sp.elements[0];
-  E.stateT[i] -= dt;
-
-  // phase changes [C]: clear hostile projectiles
-  const frac = E.hp[i] / E.maxHp[i];
-  if (phase < kit.phaseHp.length && frac < kit.phaseHp[phase]) {
-    E.bossPhase[i]++;
-    ctx.projectiles.clearHostile();
-    ctx.events.push({ t: 'bossPhase', phase: E.bossPhase[i] });
-    ctx.events.push({ t: 'hitstop', dur: 0.3 });
-    ctx.events.push({ t: 'shake', amount: 0.7, x: E.x[i], z: E.z[i] });
-    ctx.events.push({ t: 'ring', x: E.x[i], z: E.z[i], r: 7, element: el, life: 0.6 });
-  }
-
-  const steer = Math.min(1, ctx.rules.enemy.steerRate * dt);
-  const st = E.state[i];
-  let speed = E.speed[i] * (1 + phase * 0.15);
-  if (st === 0) { // intro
-    speed = 0;
-    if (E.stateT[i] <= 0) { E.state[i] = 1; }
-  } else if (st === 1) {
-    if (E.attackCd[i] <= 0) {
-      const extra = (ctx.rules.bosses.extraAttacks[sp.id] ?? []) as typeof kit.attacks;
-      const atk = ctx.rng.ai.pick(extra.length ? [...kit.attacks, ...extra] : kit.attacks);
-      E.attackCd[i] = Math.max(1.2, 3.0 - phase * 0.6) * ctx.rng.ai.range(0.85, 1.15);
-      switch (atk) {
-        case 'charge':
-          E.state[i] = 3; E.stateT[i] = 0.8; E.tx[i] = ux; E.tz[i] = uz;
-          ctx.events.push({ t: 'line', x1: E.x[i], z1: E.z[i], x2: E.x[i] + ux * 22, z2: E.z[i] + uz * 22, width: E.radius[i] * 1.6, life: 0.8 });
-          break;
-        case 'slam': {
-          const zi = ctx.zones.spawn();
-          if (zi >= 0) {
-            const Z = ctx.zones;
-            Z.kind[zi] = ZK.hostileSlam; Z.x[zi] = P.x; Z.z[zi] = P.z; Z.radius[zi] = 5 + phase;
-            Z.delay[zi] = 1.15; Z.life[zi] = Z.maxLife[zi] = 2; Z.dmg[zi] = E.dmg[i] * 1.6; Z.element[zi] = ELEMENTS.indexOf(el); Z.src[zi] = E.species[i];
-            ctx.events.push({ t: 'telegraph', x: P.x, z: P.z, r: 5 + phase, life: 1.15, hostile: true });
-            E.state[i] = 5; E.stateT[i] = 1.15; E.tx[i] = P.x; E.tz[i] = P.z;
-            E.sx[i] = E.x[i]; E.sz[i] = E.z[i];
-          }
-          break;
-        }
-        case 'radial': {
-          const n = 16 + phase * 6;
-          const off = ctx.rng.ai.range(0, 1);
-          for (let k = 0; k < n; k++) {
-            const a = ((k + off) / n) * Math.PI * 2;
-            shootHostile(ctx, E.x[i], E.z[i], dsin(a), dcos(a), 8.5, E.dmg[i] * 0.6, el, 0.6, E.species[i]);
-          }
-          ctx.events.push({ t: 'ring', x: E.x[i], z: E.z[i], r: 4, element: el, life: 0.4 });
-          break;
-        }
-        case 'spiral':
-          E.state[i] = 4; E.stateT[i] = 2.4; E.tx[i] = 0;
-          break;
-        case 'volley':
-          E.state[i] = 6; E.stateT[i] = 1.1; E.tx[i] = 0;
-          break;
-        case 'boulder': {
-          // Rock Throw: a 0.6 s wind-up with the path drawn on the ground, then a Heavy boulder rolls at you
-          startThrow(ctx, i, phase >= 1 ? 2 : 1);
-          break;
-        }
-        case 'summon': {
-          const n = 6 + phase * 3;
-          for (let k = 0; k < n; k++) {
-            const a = (k / n) * Math.PI * 2;
-            spawnEnemy(ctx, kit.summon ?? 'burrowbun', E.x[i] + dsin(a) * 4, E.z[i] + dcos(a) * 4);
-          }
-          ctx.events.push({ t: 'ring', x: E.x[i], z: E.z[i], r: 5, element: el, life: 0.5 });
-          break;
-        }
-      }
-    }
-  } else if (st === THROWING) { // Rock Throw's wind-up (src/sim/actions.ts)
-    speed = 0;
-    throwTick(ctx, i, 1);
-  } else if (st === 3) { // windup
-    speed = 0;
-    if (E.stateT[i] <= 0) { E.state[i] = 2; E.stateT[i] = 1.0; }
-  } else if (st === 2) { // charging
-    ux = E.tx[i]; uz = E.tz[i]; speed *= 3.4;
-    if (E.stateT[i] <= 0) E.state[i] = 1;
-  } else if (st === 4) { // spiral
-    speed *= 0.3;
-    E.tx[i] -= dt;
-    if (E.tx[i] <= 0) {
-      E.tx[i] = 0.11;
-      const base = ctx.time * 2.6;
-      const arms = 3 + phase;
-      for (let k = 0; k < arms; k++) {
-        const a = base + (k / arms) * Math.PI * 2;
-        shootHostile(ctx, E.x[i], E.z[i], dsin(a), dcos(a), 7.5, E.dmg[i] * 0.5, el, 0.5, E.species[i]);
-      }
-    }
-    if (E.stateT[i] <= 0) E.state[i] = 1;
-  } else if (st === 6) { // volley
-    speed = 0;
-    E.tx[i] -= dt;
-    if (E.tx[i] <= 0) {
-      E.tx[i] = 0.36;
-      const base = datan2(P.x - E.x[i], P.z - E.z[i]);
-      for (let k = -2; k <= 2; k++) shootHostile(ctx, E.x[i], E.z[i], dsin(base + k * 0.18), dcos(base + k * 0.18), 13, E.dmg[i] * 0.55, el, 0.55, E.species[i]);
-    }
-    if (E.stateT[i] <= 0) E.state[i] = 1;
-  } else if (st === 5) { // leaping to slam point
-    speed = 0;
-    const sx = E.sx[i], sz = E.sz[i];
-    const f = 1 - Math.max(0, E.stateT[i]) / 1.15;
-    E.x[i] = sx + (E.tx[i] - sx) * f;
-    E.z[i] = sz + (E.tz[i] - sz) * f;
-    E.y[i] = ctx.world.height(E.x[i], E.z[i]) + dsin(f * Math.PI) * 7;
-    E.vx[i] = 0; E.vz[i] = 0;
-    if (E.stateT[i] <= 0) { E.state[i] = 1; }
-    return;
-  }
-  E.vx[i] += (ux * speed - E.vx[i]) * steer;
-  E.vz[i] += (uz * speed - E.vz[i]) * steer;
-  void dist;
-}
-
-export { damageEnemy };

@@ -21,8 +21,6 @@ while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') {
   maxEnemies = Math.max(maxEnemies, ctx.enemies.count);
   for (const e of ev) {
     if (e.t === 'evolveEnd') log.push(`${ctx.time.toFixed(0)}s evolved -> ${e.species}`);
-    if (e.t === 'bossSpawn') log.push(`${ctx.time.toFixed(0)}s boss ${e.species} (hp ${ctx.enemies.maxHp[e.enemy].toFixed(0)})`);
-    if (e.t === 'bossDead') log.push(`${ctx.time.toFixed(0)}s boss down`);
     if (e.t === 'stageStart') log.push(`${ctx.time.toFixed(0)}s stage ${e.stage + 1} ${e.biome}`);
     if (e.t === 'learn') log.push(`${ctx.time.toFixed(0)}s learned ${e.key}`);
   }

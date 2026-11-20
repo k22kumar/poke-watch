@@ -86,7 +86,7 @@ export function createRun(opts: RunOptions): SimContext {
     director: freshDirector(rules),
     beat: freshBeat(), objective: null,
     weather: { element: null, t: 0 },
-    stats: { kills: 0, damageDealt: 0, damageTaken: 0, bosses: 0, maxHit: 0 },
+    stats: { kills: 0, damageDealt: 0, damageTaken: 0, maxHit: 0 },
     input: NO_INPUT,
     aim: freshAimState(),
     speciesIndex: SPECIES,
@@ -111,7 +111,7 @@ export function createRun(opts: RunOptions): SimContext {
 function freshDirector(rules: Rules) {
   return {
     spawnAcc: 0, nextElite: rules.director.eliteEvery, nextSwarm: rules.director.swarmEvery,
-    alphaSpawned: false, bossSpawned: false, bossIndex: -1, bossDead: false, finalSwarm: false, liveCap: rules.enemy.liveCap, bulwarks: [] as number[],
+    alphaSpawned: false, finalSwarm: false, liveCap: rules.enemy.liveCap, bulwarks: [] as number[],
   };
 }
 

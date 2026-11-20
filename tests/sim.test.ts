@@ -78,29 +78,6 @@ test('same seed + same inputs = identical run (determinism)', () => {
   assert.notEqual(hashRun(a), hashRun(c));
 });
 
-test('a classic run spawns a boss at 5:00 and can clear a region', { skip: 'survivor run: the bot no longer clears a region without cards and build; deleted with stages, portal and timer in docs/hero-shooter-pivot.md §8 step 9' }, () => {
-  // Tanky so the bot outlasts contact damage. Tile hazards (Charge, burning grass) still take a share of max HP, and
-  // whether the bot wanders into a Charge flood depends on the seed, so the claim is checked over a few seeds: every
-  // run alive at 5:00 meets its boss on time, and at least one clears the region.
-  let bosses = 0, clears = 0;
-  for (const seed of [3, 2, 4, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { hero: { health: 4000 } } });
-    let boss = false, cleared = false;
-    while (ctx.time < 900 && ctx.state !== 'over') {
-      for (const e of step(ctx, botInput(ctx))) {
-        if (e.t === 'bossSpawn') { boss = true; assert.ok(Math.abs(ctx.stageTime - defaultRules.stage.bossAt) < 0.05); }
-        if (e.t === 'stageStart' && e.stage === 1) cleared = true;
-      }
-      if (cleared) break;
-    }
-    if (ctx.stageTime >= defaultRules.stage.bossAt || cleared) assert.ok(boss, `seed ${seed}: alive at 5:00 but no boss`);
-    bosses += boss ? 1 : 0; clears += cleared ? 1 : 0;
-    if (cleared) break;
-  }
-  assert.ok(bosses > 0, 'boss spawned');
-  assert.ok(clears > 0, 'region 1 cleared');
-});
-
 test('mods and modes plug in without engine changes', () => {
   let healed = 0;
   const ctx = createRun({ seed: 5, species: 'charmander', mode: MODES.find((m) => m.id === 'glass-cannon'), mods: [{ id: 'probe', name: 'probe', hooks: { onKill: () => { healed++; } } }] });

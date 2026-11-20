@@ -583,10 +583,6 @@ export const defaultRules = {
      *  the thrower's radius it starts (m), and the body template */
     throw: { windup: 0.6, speed: 11, dmg: 1.5, again: 1.5, offset: 1.3, lineLength: 26, lineWidth: 2.2, template: 'boulder' },
   },
-  bosses: {
-    // extra attacks layered on a boss's roster kit: Rock-type bosses roll boulders at you
-    extraAttacks: { sudowoodo: ['boulder'], magcargo: ['boulder'] } as Record<string, string[]>,
-  },
   feel: {
     hitstopKillBig: 0.06, hitstopBossHit: 0.0, hitstopBossKill: 0.5, hitstopPlayerHurt: 0.08, // [C] range 0.06..0.5
     shakePlayerHurt: 0.35, shakeBoss: 0.6, shakeNova: 0.15,

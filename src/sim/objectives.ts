@@ -2,7 +2,7 @@
 // (docs/hero-shooter-pivot.md §8); carrying a body is the general src/sim/carry.ts.
 //
 // The survivor director offers up to two Holds a stage, at the first beat-director Peak after 1:30 and after 3:20.
-// None is required (only the boss is), each must be engaged within 45 s or it lapses; ignoring or losing one brings a
+// None is required, each must be engaged within 45 s or it lapses; ignoring or losing one brings a
 // Peak forward rather than ending the run. A habitat map's Hold sits on its contest floor; the Hold mode opens one at
 // the start (src/sim/modes/hold.ts holds the point, the charge, the Raiders' drain and the Raid party).
 //   Hold       stand within 5 m of the pylon for 30 s; Raiders on the pad drain it
@@ -18,7 +18,7 @@ import { holdOfferTime, holdPoint, holdTick, spawnRaidParty } from './modes/hold
 /** the objective the next Peak should open, if one is due */
 export function objectiveDue(ctx: SimContext): ObjectiveKind | null {
   const O = ctx.rules.objectives, B = ctx.beat;
-  if (!O.enabled || ctx.director.bossSpawned) return null;
+  if (!O.enabled) return null;
   if (ctx.objective && (ctx.objective.phase === 'offer' || ctx.objective.phase === 'active')) return null;
   const n = B.objectives;
   if (n >= 2 || ctx.stageTime < (n === 0 ? O.firstAfter : O.secondAfter)) return null;
@@ -75,7 +75,6 @@ export const objectiveSystem = {
     const P = ctx.player;
     O.t -= dt;
     if (O.phase === 'done' || O.phase === 'failed') { if (O.t <= 0) ctx.objective = null; return; }
-    if (ctx.director.bossSpawned && O.phase === 'offer') { O.phase = 'failed'; O.t = 0; ctx.events.push({ t: 'objective', kind: O.kind, phase: 'expired', x: O.x, z: O.z }); return; }
     const dP = dhypot(P.x - O.x, P.z - O.z);
     if (holdTick(ctx, O, 0, dP) === 'activate') activate(ctx, O);
     if (O.phase === 'active' && holdTick(ctx, O, dt, dP) === 'taken') { finish(ctx, O, true); return; }

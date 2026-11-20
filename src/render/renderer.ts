@@ -502,11 +502,6 @@ export class Renderer {
         case 'jump':
           for (let k = 0; k < 5; k++) this.px.spawn('dust', P.x, P.y + 0.1, P.z, rnd(-2, 2), rnd(0.5, 1.5), rnd(-2, 2), 0.3, 1);
           break;
-        case 'bossDead': {
-          const y = ctx.world.height(e.x, e.z);
-          for (let k = 0; k < 120; k++) { const a = rnd(0, TAU); this.px.spawn(k % 4 ? 'star' : 'impactBig', e.x, y + 2, e.z, Math.cos(a) * rnd(2, 14), rnd(2, 14), Math.sin(a) * rnd(2, 14), rnd(0.8, 1.6), k % 4 ? 1 : 2, 6, rnd(-5, 5)); }
-          break;
-        }
         case 'chest':
           for (let k = 0; k < 30; k++) this.px.spawn('star', e.x, ctx.world.height(e.x, e.z) + 0.8, e.z, rnd(-3, 3), rnd(3, 8), rnd(-3, 3), 1, 1, 9, rnd(-5, 5));
           break;
@@ -1141,9 +1136,6 @@ export class Renderer {
     if (ctx.portal.active) {
       put(D, ctx.portal.x, ctx.portal.z, ctx.rules.stage.portalRadius * 1.4, [0.6, 0.85, 1], 1, 3, 0.2, this.time * 2, this.time);
     }
-    // boss marker ring
-    const bi = ctx.director.bossIndex;
-    if (bi >= 0 && E.alive[bi]) put(D, E.x[bi], E.z[bi], E.radius[bi] * 1.4, [1, 0.25, 0.25], 0.6, 1, 0.06);
     void py;
   }
 

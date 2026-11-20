@@ -120,15 +120,3 @@ test('rocks are cover: enemy shots stop on them', () => {
   assert.equal(P.hp >= hp0 - 1e-6, true, 'no damage behind the rock');
 });
 
-test('Sudowoodo throws boulders that roll at the player', () => {
-  const ctx = createRun({ mode: RANGE, seed: 9, species: 'cyndaquil', ruleOverrides: { bosses: { extraAttacks: { sudowoodo: ['boulder'] } } } as never });
-  steps(ctx, 10);
-  const P = ctx.player;
-  P.hp = P.maxHp = 1e6;
-  const [bx, bz] = ctx.world.nearestWalkable(P.x + 14, P.z);
-  const e = spawnEnemy(ctx, 'sudowoodo', bx, bz, 4);
-  ctx.director.bossIndex = e;
-  let thrown = 0;
-  for (let t = 0; t < 60 * 30 && thrown === 0; t++) { const ev = step(ctx, NONE); thrown += ev.filter((x) => x.t === 'throw').length; }
-  assert.ok(thrown > 0, 'a boulder was thrown');
-});
