@@ -34,6 +34,25 @@ const CONFIGS: Config[] = [
 // Phase 8b: `build off` (caps on, the build layer off) must print the Phase 8a `caps on` hashes exactly; `on` is the
 // current game. Pass `off`, `build-off` or `on` to print only one set.
 const which = process.argv[2] ?? 'all';
+
+// the hero-shooter baseline (tests/fixtures/scenarios.ts, docs/hero-shooter-pivot.md Q41–Q44): `scenarios` prints
+// every scenario's checkpoints and end hash; `scenarios --update` rewrites tests/fixtures/replays.json. The survivor
+// sets below retire with the old layers (pivot step 10).
+if (which === 'scenarios') {
+  const { SCENARIOS, runScenario } = await import('../tests/fixtures/scenarios');
+  const fs = await import('node:fs');
+  const out: Record<string, unknown> = {};
+  for (const s of SCENARIOS) {
+    const r = runScenario(s);
+    out[s.id] = r;
+    console.log(`${s.id.padEnd(18)} ${r.checkpoints.join(' ')} end=${r.end}`);
+  }
+  if (process.argv.includes('--update')) {
+    fs.writeFileSync(new URL('../tests/fixtures/replays.json', import.meta.url), JSON.stringify({ comment: 'Hero-shooter replay baseline (tests/replays.test.ts). Rewritten by `npx tsx scripts/checksum.ts scenarios --update`; a commit that changes it says why.', scenarios: out }, null, 1) + '\n');
+    console.log('wrote tests/fixtures/replays.json');
+  }
+  process.exit(0);
+}
 // W0/W4: `world-off` (materials off) and `on` (materials apply to generated regions only, by default) must both print
 // the pre-worldgen `on` hashes exactly; `gen` plays the default generated regions (Viridian Forest and Mt. Moon
 // from Pokémon locations, the classic generator elsewhere); `gen-classic` turns locations off.

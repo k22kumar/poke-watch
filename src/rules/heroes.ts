@@ -58,7 +58,11 @@ export const FEATURED: readonly string[] = ['caterpie', 'metapod', 'butterfree',
 export interface HeroKit { primary?: string; q?: string; e?: string }
 
 /** Hand-authored kits that override the rule, field by field (the featured heroes' tuning lives here). */
-export const HERO_KITS: Record<string, Partial<HeroKit>> = {};
+export const HERO_KITS: Record<string, Partial<HeroKit>> = {
+  // Tauros's canonical learnset has no hold move; Wrap (a Normal bind, rules/capabilities.ts HOLD_MOVES) is its E so the
+  // featured physical hero can hold and throw (docs/hero-shooter-pivot.md Q41, scenario range-tauros)
+  tauros: { e: 'wrap' },
+};
 
 /** a species' level-up moves in canonical order (its official level-up list, earliest level first, status moves
  *  included), else its game learnset */
