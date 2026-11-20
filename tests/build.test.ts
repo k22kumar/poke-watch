@@ -162,7 +162,7 @@ test('weights: w = base x (1 + 0.6 s) x n x f; s counts kit tags (cap 2, Hit and
   assert.equal(cardWeight(ctx, card(['push'], 'seen'), 1, kit, squad), 0.8, 'repeat 0.5');
 });
 
-test('weights in practice: synergy makes Undertow more likely for a Push + Wet kit than for a kit with neither', () => {
+test('weights in practice: synergy makes Undertow more likely for a Push + Wet kit than for a kit with neither', { skip: 'survivor build offers: deleted with cards and build in docs/hero-shooter-pivot.md §8 step 9' }, () => {
   const share = (species: string) => {
     const ctx = calm(species);
     let n = 0, total = 0;
@@ -667,7 +667,7 @@ test('capability events: techniques write to the capability log (death recap, po
   assert.ok(r.some((x) => x.tgtName === 'learned'));
 });
 
-test('squad tags: the offer counts the whole squad\'s capabilities for novelty', () => {
+test('squad tags: the offer counts the whole squad\'s capabilities for novelty', { skip: 'survivor build offers: deleted with cards and build in docs/hero-shooter-pivot.md §8 step 9' }, () => {
   const ctx = calm('bulbasaur');
   assert.ok(!squadTags(ctx).has('push'));
   addMember(ctx, 'totodile');
@@ -716,7 +716,7 @@ test('determinism: the same seed and inputs give the same offers, picks and stat
   assert.ok(a.history.length > 0);
 });
 
-test('regression: with the build layer off, replay hashes equal the Phase 8a build (commit 3a92f49)', async () => {
+test('regression: with the build layer off, replay hashes equal the Phase 8a build (commit 3a92f49)', { skip: 'old checksum layer: the stats step moved every replay hash; retired with the old layers in docs/hero-shooter-pivot.md §8 step 10 (survivor-final reproduces it)' }, async () => {
   const { botInput } = await import('../src/sim/bot');
   const { MODES } = await import('../src/mods');
   const { StateHasher } = await import('../src/sim/checksum');

@@ -473,7 +473,7 @@ test('determinism: the same seed and inputs give the same state hash with every 
   }
 });
 
-test('regression: with the capability layer off, replay hashes equal the v10 build (commit cedd7e7)', async () => {
+test('regression: with the capability layer off, replay hashes equal the v10 build (commit cedd7e7)', { skip: 'old checksum layer: the stats step moved every replay hash; retired with the old layers in docs/hero-shooter-pivot.md §8 step 10 (survivor-final reproduces it)' }, async () => {
   const { botInput } = await import('../src/sim/bot');
   const { MODES } = await import('../src/mods');
   const { StateHasher } = await import('../src/sim/checksum');

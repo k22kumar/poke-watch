@@ -134,7 +134,7 @@ test('an ignored objective lapses after 45 s and brings a Peak forward', () => {
   forcePeak(ctx);
 });
 
-test('the beat director cycles Build, Peak and Relax and opens the first objective after 1:30', () => {
+test('the beat director cycles Build, Peak and Relax and opens the first objective after 1:30', { skip: 'survivor director and beats: deleted with the director in docs/hero-shooter-pivot.md §8 step 9' }, () => {
   const ctx = createRun({ seed: 2, species: 'cyndaquil' });
   const phases: string[] = [];
   const opened: string[] = [];
