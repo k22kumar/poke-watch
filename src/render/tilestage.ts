@@ -134,6 +134,8 @@ interface StaticProp { key: string; frames: number; x: number; y: number; z: num
 const groundCache = new Map<string, HTMLCanvasElement>();
 /** separation (m) between faces that would otherwise share a plane: far below a pixel, far above depth precision */
 const COPLANAR = 0.015;
+/** the tall-grass tuft's three atlas keys (still, and the two rustle frames), so the prop loop builds no strings */
+const TALL_KEYS = ['tall0', 'tall1', 'tall2'];
 
 /** the ground under an overhead deck sits in its shadow (full under the slab, half a tile beyond its edge), so a
  *  covered space reads as covered from any angle */
@@ -159,6 +161,13 @@ export class TileStage {
   private bbBatch: InstanceBatch; private shBatch: InstanceBatch;
   private treeShadows: [number, number, number, number, number][] = [];
   readonly rustle = new Map<number, number>();
+  /** a two-frame prop's atlas keys (`key0`, `key1`), built once per key rather than per prop per frame */
+  private readonly frameKeyCache = new Map<string, [string, string]>();
+  private frameKeys(key: string): [string, string] {
+    let k = this.frameKeyCache.get(key);
+    if (!k) { k = [key + 0, key + 1]; this.frameKeyCache.set(key, k); }
+    return k;
+  }
   readonly art;
   /** the expedition art direction for this biome (render/artdirection.ts) */
   readonly dir: ArtDirection;
@@ -576,7 +585,9 @@ export class TileStage {
     for (const [x, y, z, r, pi] of this.treeShadows) {
       if (this.propState && this.propState[pi] >= 2 && this.propState[pi] <= 3) continue;
       if (!inStageView(view, x, z)) continue;
-      const o = S.push(); S.data.set([x, y + 0.03, z, r, r * 0.45, 0.2, 0, 0], o);
+      // written in place, not through a temporary array: this loop and the props' run every frame (no garbage per prop)
+      const o = S.push(), d = S.data;
+      d[o] = x; d[o + 1] = y + 0.03; d[o + 2] = z; d[o + 3] = r; d[o + 4] = r * 0.45; d[o + 5] = 0.2; d[o + 6] = 0; d[o + 7] = 0;
     }
     const sp = this.sh.use();
     gl.uniformMatrix4fv(sp.loc('uVP'), false, VP);
@@ -609,15 +620,16 @@ export class TileStage {
       if (p.frames === 3) {
         // burning (2) or burnt to ash (4): the tuft is gone
         if (this.cells && p.tile >= 0 && (this.cells.state[p.tile] === 2 || this.cells.state[p.tile] === 4)) continue;
-        const rs = this.rustle.get(p.tile); key = 'tall' + (rs ? 1 + (Math.floor(rs * 14) % 2) : 0);
+        const rs = this.rustle.get(p.tile); key = TALL_KEYS[rs ? 1 + (Math.floor(rs * 14) % 2) : 0];
       }
-      else if (p.frames === 2) key = p.key + ((flowerFrame + (p.tile & 1)) % 2);
+      else if (p.frames === 2) key = this.frameKeys(p.key)[(flowerFrame + (p.tile & 1)) % 2];
       const e = A.map.get(key);
       if (!e) continue;
-      const [u0, v0, u1, v1] = A.uv(key);
-      const o = B.push();
-      if (o < 0) break;
-      B.data.set([px, p.y, pz, e.w / 16, e.h / 16, p.flip ? 1 : 0, key === 'stump' && p.kind !== 'stump' ? 0 : p.sway, p.shade, u0, v0, u1, v1], o);
+      // Atlas.uv(key) inlined (it returns a new array), and the instance written in place: no garbage per prop
+      const sz = A.size, o = B.push(), d = B.data;
+      d[o] = px; d[o + 1] = p.y; d[o + 2] = pz; d[o + 3] = e.w / 16; d[o + 4] = e.h / 16; d[o + 5] = p.flip ? 1 : 0;
+      d[o + 6] = key === 'stump' && p.kind !== 'stump' ? 0 : p.sway; d[o + 7] = p.shade;
+      d[o + 8] = e.x / sz; d[o + 9] = e.y / sz; d[o + 10] = (e.x + e.w) / sz; d[o + 11] = (e.y + e.h) / sz;
     }
     const bp = this.bb.use();
     gl.uniformMatrix4fv(bp.loc('uVP'), false, VP);
