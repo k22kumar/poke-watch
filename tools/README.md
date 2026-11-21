@@ -6,6 +6,8 @@ The merge check is `python3 -I tests/browser/range.py <html> <outdir>`: title, T
 
 Scenes and tools from before the hero-shooter pivot were deleted at its merge check (the level-up, boss, card-tray, recruit, squad and swarm scenes, `menus.py`, `play.py`, `phase7scenes.json`, `squadscenes.json`, `traycheck.mjs`). A `go=1` query with no `loc` or `world` now starts the training range on the range arena.
 
+In the game itself, `?perf=1` adds the dev frame-time overlay (`src/ui/perfhud.ts`): frame-interval percentiles, the worst frame of the last 5 s and its age, sim / render / HUD CPU time, sim ticks per frame, mouse-look gaps (frames with no look movement while the mouse moves), long tasks and heap drops. Without the query it is never built.
+
 | Script | What it checks |
 |---|---|
 | `cap.mjs <html> <scenes.json> <outdir> [filter]` | Deterministic screenshots of seeded scenes (`scenes.json` environment, `camscenes.json` camera presets, `uiscenes.json` menus, `anim.json` attack and faint strips) |
@@ -24,3 +26,4 @@ Scenes and tools from before the hero-shooter pivot were deleted at its merge ch
 | `audiocheck.mjs <html> <outdir> <phase>` | Records the mixer output: `cries`, `cryfix`, `music`, `play` (no synthesised effects: every music state is the adaptive score) |
 | `musiccheck.mjs <html>` | Actual adaptive stem decoding, loop configuration, melody continuity through intensity changes, mixer, defeat and restart |
 | `perf.mjs <html>` | Frame, render and sim-step timings. Its query still asks for the survivor's dense boss fight, so on hero-core it times the range; it needs a crowd before it measures anything again |
+| `stutter.mjs <html> <label> "<query>" [s] [turn]` | Real-time frame pacing on this machine's GPU and display (docs/ROADMAP.md item 2): opens a visible window, lets the game run its own loop under `?autoplay` with a steady camera turn, and times it from outside (rAF interval, main-loop JS, `renderer.render`, ticks per frame, long tasks, heap drops as GCs). Works on any build, so the same check runs on `survivor-final`. `--pos=x,y` pins the window to one display, `--warm=0` times the first seconds, `--heap` adds the top allocating functions (use a `--dev` build for names) |
