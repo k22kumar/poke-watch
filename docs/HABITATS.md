@@ -39,7 +39,9 @@ the recipe (`anchors[].provenance`: `canon`, `reinterpretation`, `original`; `ad
   differ. `?mapseed=` must be a whole number; empty or malformed values are ignored with a console warning (they used to
   become seed 0) and a value past 4294967295 wraps and says so (`src/world/replay.ts`).
 - **Reproducibility:** recipe + variant + seed + `HAB_VERSION` (+ map size, 128) fully determine the layout. The
-  generator is a pure function (named RNG streams `hab:<stage>`, detmath trig, no clock in the output); the vent cycle
+  generator is a pure function (named RNG streams `hab:<stage>`, no clock in the output); its trig still calls `Math`
+  (68 allow-listed sites in `tests/worldgen.test.ts`), so layouts are reproducible within one JS engine, and moving them
+  to `core/detmath` is P2c, a `HAB_VERSION` bump (`docs/ROADMAP.md`); the vent cycle
   is a pure function of stage time. `mapChecksum` now also covers decks and fluid levels.
 - **Fallback / error:** a seed that fails every attempt loads the recipe's first passing `fallbackSeeds` entry (each is
   tested to pass on its first attempt, the variants included) through the same validator, and the plaque says

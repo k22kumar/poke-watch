@@ -1,6 +1,6 @@
 # Hero-shooter pivot: inventory
 
-Status: **decided, 2026-11-19.** The removal plan was grilled; the decisions are in §10 and the order in §8. Work happens on the `hero-core` branch.
+Status: **closed record, 2026-11-21.** The pivot is merged to `main` (`ad0cdc7`). This file is kept as the record of what was decided (§10) and done (§11) and is no longer updated; its open items, and all new work, are in `docs/ROADMAP.md`. (Was: decided 2026-11-19; the removal plan was grilled; decisions in §10, order in §8; work on the `hero-core` branch.)
 
 - **Direction.** Develop the hero-shooter core (map traversal, movement, aiming, combat). Remove the survivor run and its upgrade loop.
 - **Last survivor state.** It is tagged `survivor-final` (annotated tag on `6e9b63e`, pushed to origin with `git push origin survivor-final`). Everything listed as "remove" stays recoverable from that tag.

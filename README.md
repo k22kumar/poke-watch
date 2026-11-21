@@ -73,7 +73,7 @@ npm run build
 - **Bodies** (`sim/bodies.ts`, `rules/materials.ts`): loose Medium rocks on every route, Light throwables on the range, rubble. They take type-chart damage, break, hit enemies when moving, block enemy shots, and can be deflected by a Guard heavy enough. Any enemy behaviour can wind up and throw a boulder (`sim/actions.ts`).
 - **Surface states and coats** (`sim/cells.ts`, `sim/coats.ts`, `docs/SQUAD.md`): Heat lights tall grass, Wet soaks ground, Cold freezes water, Charge floods connected wet cells. The four agents also coat creatures (light from the primary, deep from Abilities and tiles) and react: Steam, Freeze then Shatter, Conduct, Overload, Cancel.
 - **Swap** is a system a mode opts into (`sim/swap.ts`, the `swap` Mod): a loadout of three, Tag Actions, grey health and the bench. No shipped title-screen mode registers it; `RANGE_SWAP` and its replay scenario keep it alive (`docs/SQUAD.md`).
-- **Determinism.** All sim trigonometry, exp, log and pow go through `core/detmath.ts` (fdlibm kernels), so replays should match across browser engines.
+- **Determinism.** Replays match within one JS engine (Node and Chromium are both V8). Cross-engine matching is not claimed yet: `core/detmath.ts` (fdlibm kernels) carries most sim maths, but 8 sim and rules call sites (P2b) and 68 habitat-generator ones (P2c, a `HAB_VERSION` bump) still call `Math.hypot`, `sin`, `cos`, `tan`, `atan2`, `exp`, `log` or pow, which engines may round differently (`docs/ROADMAP.md`). `tests/worldgen.test.ts` holds the allow-list, which can only shrink.
 
 ## Water, lava and open edges
 
