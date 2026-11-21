@@ -177,9 +177,11 @@ input[type=text]:focus-visible { box-shadow: 0 0 0 2px var(--frame), 0 0 0 5px v
 #banner.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
 #banner small { display: block; font-size: 14px; color: var(--ink-soft); margin-top: 2px; }
 /* region plaque: adventure-style area sign (dark outline, themed border, light panel) */
-#plaque { position: absolute; top: 66px; right: 12px; transform: translateY(-160%); padding: 6px 24px 7px; font-size: 18px; font-weight: 700; border-radius: 7px; pointer-events: none; z-index: 2; white-space: nowrap; transition: transform .35s; color: #2c3444;
+#plaque { position: absolute; top: 66px; right: 12px; transform: translateY(-160%); padding: 6px 24px 7px; font-size: 18px; font-weight: 700; border-radius: 7px; pointer-events: none; z-index: 2; white-space: nowrap; color: #2c3444;
+  /* hidden whenever it is not shown: the translate alone left an empty plaque (title, hero pick) on screen */
+  visibility: hidden; transition: transform .35s, visibility 0s linear .35s;
   background: #f8f4e4; box-shadow: 0 0 0 3px var(--pl, #6aa848), 0 0 0 5px #20283a, 0 6px 0 4px rgba(20,24,40,.35); }
-#plaque.show { transform: translateY(0); }
+#plaque.show { transform: translateY(0); visibility: visible; transition: transform .35s; }
 #plaque small { font-size: 11px; font-weight: 600; margin-left: 10px; color: var(--ink-soft); }
 #plaque.plaque-meadow { --pl: #58a840; } #plaque.plaque-badlands { --pl: #d09848; } #plaque.plaque-frost { --pl: #78b8e8; } #plaque.plaque-dusk { --pl: #2c4a78; }
 .vignette { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px rgba(255,0,40,0); transition: box-shadow .2s; }
