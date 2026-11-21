@@ -21,8 +21,14 @@ export class PerfHud {
   private readonly parts: Float32Array = new Float32Array(W * 3);
   private col = 0;
   private textT = 0;
-  /** long tasks (PerformanceObserver 'longtask', Chrome) with their end times, for the 5 s count */
+  /** long tasks (PerformanceObserver 'longtask', Chrome: main-thread tasks over 50 ms, whoever ran them, extensions'
+   *  content scripts included) as end-time / duration pairs, for the 5 s count */
   private readonly longs: number[] = [];
+  /** every long task since the overlay was built: count, longest, and when the last one ended (a player's report keeps
+   *  a stall that has scrolled out of the 5 s window) */
+  private longTotal = 0;
+  private longWorst = 0;
+  private longLastEnd = -1;
   private lastHeap = 0;
   /** heap drops of more than 1 MB between frames: garbage collections big enough to see (Chrome's performance.memory) */
   private readonly gcs: { t: number; mb: number }[] = [];
@@ -39,7 +45,12 @@ export class PerfHud {
     this.el.append(cv, this.text);
     parent.appendChild(this.el);
     try {
-      new PerformanceObserver((l) => { for (const e of l.getEntries()) this.longs.push(e.startTime + e.duration, e.duration); }).observe({ type: 'longtask', buffered: false });
+      new PerformanceObserver((l) => {
+        for (const e of l.getEntries()) {
+          this.longs.push(e.startTime + e.duration, e.duration);
+          this.longTotal++; this.longWorst = Math.max(this.longWorst, e.duration); this.longLastEnd = e.startTime + e.duration;
+        }
+      }).observe({ type: 'longtask', buffered: false });
     } catch { /* not supported (Firefox, Safari): the line says n/a */ }
   }
 
@@ -91,6 +102,7 @@ export class PerfHud {
     const tk = s.ticks, tn = Math.max(1, s.frames);
     const pct = (v: number) => `${Math.round((v / tn) * 100)}%`;
     const gcMb = this.gcs.reduce((a, b) => a + b.mb, 0);
+    const longOk = !!PerformanceObserver.supportedEntryTypes?.includes('longtask');
     this.text.textContent = [
       `fps ${s.fps.toFixed(0)} (display ~${hz.toFixed(0)} Hz)   frames ${s.frames} / ${s.span.toFixed(1)} s`,
       `frame ms  p50 ${f1(s.frame.p50)}  p95 ${f1(s.frame.p95)}  p99 ${f1(s.frame.p99)}`,
@@ -99,8 +111,9 @@ export class PerfHud {
       `                hud ${f1(s.ui.p50)}/${f1(s.ui.max)}`,
       `ticks/frame  0: ${pct(tk[0])}  1: ${pct(tk[1])}  2: ${pct(tk[2])}  3+: ${pct(tk[3])}`,
       `mouse look  frames ${s.look.frames}  gaps ${s.look.gaps}`,
-      `long tasks ${this.longs.length ? `${longN} (max ${longMax.toFixed(0)} ms)` : PerformanceObserver.supportedEntryTypes?.includes('longtask') ? '0' : 'n/a'}   ` +
-        (heap !== undefined ? `heap ${(heap / (1 << 20)).toFixed(0)} MB  gc ${this.gcs.length} (${gcMb.toFixed(0)} MB)` : 'heap n/a'),
+      `long tasks >50 ms  5 s: ${this.longs.length ? `${longN} (max ${longMax.toFixed(0)} ms)` : longOk ? '0' : 'n/a'}   ` +
+        (longOk ? `session: ${this.longTotal}${this.longTotal ? ` (max ${this.longWorst.toFixed(0)} ms, last ${((now - this.longLastEnd) / 1000).toFixed(0)} s ago)` : ''}` : ''),
+      heap !== undefined ? `heap ${(heap / (1 << 20)).toFixed(0)} MB  gc ${this.gcs.length} (${gcMb.toFixed(0)} MB)` : 'heap n/a',
     ].join('\n');
   }
 }

@@ -6,7 +6,7 @@ The merge check is `python3 -I tests/browser/range.py <html> <outdir>`: title, T
 
 Scenes and tools from before the hero-shooter pivot were deleted at its merge check (the level-up, boss, card-tray, recruit, squad and swarm scenes, `menus.py`, `play.py`, `phase7scenes.json`, `squadscenes.json`, `traycheck.mjs`). A `go=1` query with no `loc` or `world` now starts the training range on the range arena.
 
-In the game itself, `?perf=1` adds the dev frame-time overlay (`src/ui/perfhud.ts`): frame-interval percentiles, the worst frame of the last 5 s and its age, sim / render / HUD CPU time, sim ticks per frame, mouse-look gaps (frames with no look movement while the mouse moves), long tasks and heap drops. Without the query it is never built.
+In the game itself, `?perf=1` adds the dev frame-time overlay (`src/ui/perfhud.ts`): frame-interval percentiles, the worst frame of the last 5 s and its age, sim / render / HUD CPU time, sim ticks per frame, mouse-look gaps (frames with no look movement while the mouse moves), main-thread long tasks over 50 ms (PerformanceObserver `longtask`, Chrome: the last 5 s, and the session's count, longest and age of the last; a browser extension's content script counts too, which is how the Ghostery click stall shows) and heap drops. Without the query it is never built.
 
 | Script | What it checks |
 |---|---|
