@@ -84,7 +84,7 @@ input[type=text]:focus-visible { box-shadow: 0 0 0 2px var(--frame), 0 0 0 5px v
 .logo { font-size: clamp(54px, 10vw, 112px); font-weight: 700; letter-spacing: 3px; color: #fff; line-height: .9; text-shadow: 4px 4px 0 var(--frame), -2px -2px 0 var(--frame), 2px -2px 0 var(--frame), -2px 2px 0 var(--frame), 0 8px 0 rgba(20,24,40,.35); }
 .logo span { color: #ffd23a; }
 .tagline { color: #fff; font-size: 17px; text-shadow: 2px 2px 0 var(--frame); margin-bottom: 6px; text-align: center; }
-.modes { display: grid; grid-template-columns: repeat(2, minmax(200px, 280px)); gap: 14px; }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 280px)); justify-content: center; gap: 14px; }
 .mode { padding: 10px 14px 10px 30px; display: flex; flex-direction: column; gap: 3px; }
 .mode b { font-size: 19px; }
 .mode span { font-size: 12px; color: var(--ink-soft); }
