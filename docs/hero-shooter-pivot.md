@@ -4,7 +4,7 @@ Status: **decided, 2026-11-19.** The removal plan was grilled; the decisions are
 
 - **Direction.** Develop the hero-shooter core (map traversal, movement, aiming, combat). Remove the survivor run and its upgrade loop.
 - **Last survivor state.** It is tagged `survivor-final` (annotated tag on `6e9b63e`, pushed to origin with `git push origin survivor-final`). Everything listed as "remove" stays recoverable from that tag.
-- **`main` is already live.** `origin/main` was pushed on 2026-11-18 at 22:56 (`092a487`, the size-flag flip) and on 2026-11-19 at 09:08 (`6e9b63e`, the S2 roster import and its follow-up) (`git reflog show origin/main`). `.github/workflows/deploy.yml` deploys on every push to `main`, so the live GitHub Pages site already runs the size-extremes, F3 framing and S2 catalogue-wave changes. The tag and `origin/main` point at the same commit.
+- **The live site was stale.** `origin/main` was pushed on 2026-11-18 at 22:56 (`092a487`, the size-flag flip) and on 2026-11-19 at 09:08 (`6e9b63e`, the S2 roster import and its follow-up) (`git reflog show origin/main`). The tag and `origin/main` pointed at the same commit. `.github/workflows/deploy.yml` deploys on every push to `main`, but it runs `npm test` before the build, and every deploy failed from the first push that carried `d0d557e` (`b89fb55`, 2026-11-18) on, because of the four red `tests/pointerlock.test.ts` cases that commit added. The last deploy that succeeded was `dfbb99c` ("feat: size aware navigation", 2026-11-16), so the live GitHub Pages site never ran the size-extremes, F3 framing or S2 changes. The fix (`fix/pointerlock`, 2026-11-21) made those cases pass.
 
 Verdicts:
 
@@ -401,7 +401,7 @@ Proposal: build the new baseline *before* removing anything, so removal steps ca
 
 ## 8. Removal order (decided, §10)
 
-All work is on the `hero-core` branch (Q4). `main` is merged into it at each step boundary, and any `main` change that moves layouts, hashes or gates is re-gated there (Q49). Each step ends with `npm run check` (apart from the known pointer-lock reds) and the kept gates (`navwalk all 5`, `hazplay`, `habstate`; `habaudit` when worldgen is touched). From step 8 on, the new replay test (`tests/replays.test.ts`) must also hold.
+All work is on the `hero-core` branch (Q4). `main` is merged into it at each step boundary, and any `main` change that moves layouts, hashes or gates is re-gated there (Q49). Each step ends with `npm run check` and the kept gates (`navwalk all 5`, `hazplay`, `habstate`; `habaudit` when worldgen is touched). From step 8 on, the new replay test (`tests/replays.test.ts`) must also hold.
 
 Today's checksum sets keep printing their old hashes through steps 1–4. Steps 5 and 6 (importing the test lines, the stats step) move them on purpose; they are retired in step 10 and stay reproducible from `survivor-final` (Q5).
 
@@ -496,7 +496,7 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 - **Q1 Match shape.** Offline, human against bots: T0 targets, then T2 hero bots (players in `ctx.players[]` driven by `InputFrame`s). Netcode out of scope, but per-player systems are built so a remote player could slot in later.
 - **Q2 Hero unit.** One Pokémon per player. Built modular, so a future mode or mechanic with swapping is easy to add, change and maintain.
 - **Q3 Baseline first.** The new replay baseline exists before anything is deleted, and each deletion holds it.
-- **Q4 Branch.** All pivot work on `hero-core`. The live site stays on `survivor-final`. Merge when title → hero pick → training range works end to end and the kept gates pass: `npm run check` (apart from the known pointer-lock reds), `navwalk all 5`, `hazplay`, `habstate` and the new replay test.
+- **Q4 Branch.** All pivot work on `hero-core`. The live site was meant to stay on `survivor-final`; in fact it stayed on `dfbb99c` (2026-11-16), because every deploy failed from `b89fb55` (2026-11-18) on (the four red `tests/pointerlock.test.ts` cases; fixed 2026-11-21). Merge when title → hero pick → training range works end to end and the kept gates pass: `npm run check`, `navwalk all 5`, `hazplay`, `habstate` and the new replay test.
 - **Q5 Old checksum layers.** All 19 flag-off sets retire in one commit once the director is gone; `survivor-final` reproduces them. The deck coverage moves into T0 scenarios first.
 - **Q49 `main` during the pivot.** `main` is merged into `hero-core` at each step boundary, and a `main` change that moves layouts, hashes or gates is re-gated there. Survivor-only work stops.
 - **Q50 Record.** This section, then `hero-core`, then go.

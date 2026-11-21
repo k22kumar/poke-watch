@@ -507,7 +507,12 @@ person (an Esc keydown cannot grant the lock, and the same Esc that released it 
 press Enter on it. One refused request no longer makes clicks attack: the next click captures again. Only a page refused
 twice before it ever locked, or three times in a row after, gives up on the lock (`Input.lockUnavailable`: a frame without
 pointer-lock permission). Clicks then attack, Resume no longer waits, and right-drag looks. With a gamepad connected, and in
-the fixed views, nothing waits for a lock. Pinned by `tests/pointerlock.test.ts`.
+the fixed views, nothing waits for a lock. **One request at a time** (2026-11-21, `Input.capture`): a refusal counts
+whether the browser reports it by the `pointerlockerror` event, by rejecting the promise `requestPointerLock()` returns,
+or both (once), and a throwing or missing API is a refusal too. Repeated Resume clicks share the request still in
+flight (one the browser never answers expires after 1.5 s). `releaseLock` (pause, menus, quit) withdraws a request in
+flight: its refusal is dropped, and a late grant is handed straight back, so the menu keeps the cursor and the game does
+not resume. Pinned by `tests/pointerlock.test.ts`.
 Right stick turns the camera (radial dead zone, response curve: `docs/CONTROLS.md` "Look"). If the mouse is not captured,
 holding the right mouse button and dragging still turns the camera.
 Look never changes altitude, and moving never reads the pitch: keys, buttons and their bindings (Settings → Controls →

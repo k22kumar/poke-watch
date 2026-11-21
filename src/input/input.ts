@@ -12,6 +12,9 @@ export const DEFAULT_BINDINGS = DEFAULT_KEYS;
 const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard, touch: BTN.touch };
 /** mouse buttons as InputFrame.btn bits: left is primary fire (the basic attack), right is Move A */
 const mouseBits = (button: number) => (button === 0 ? BTN.basic : button === 2 ? BTN.a : 0);
+/** a lock request the browser has not answered after this long is treated as lost, so a new click may ask again
+ *  (browsers answer at once; this only keeps a silent one from blocking capture for good). Input timing, not sim */
+const LOCK_REQUEST_EXPIRY_MS = 1500;
 
 export class Input {
   keys = new Set<string>();
@@ -38,6 +41,16 @@ export class Input {
   /** consecutive refused lock requests, and whether this page has held the lock at all */
   private refusals = 0;
   private everLocked = false;
+  /** lock requests, numbered. `pendingReq`: the one the browser has not answered yet (repeated Resume clicks share it;
+   *  `pendingAt` lets a request that is never answered expire). `answeredReq`: one already settled by one of its two
+   *  signals (Chrome both fires pointerlockerror and rejects the promise), so the other is not a second refusal.
+   *  `cancelledReq`: one the host withdrew (releaseLock) before it was answered: its refusal is dropped and a late
+   *  grant is handed straight back */
+  private reqSeq = 0;
+  private pendingReq = 0;
+  private pendingAt = 0;
+  private answeredReq = 0;
+  private cancelledReq = 0;
   /** which device aimed last: the cursor, the right stick, or nothing yet */
   aimSource: 'none' | 'mouse' | 'stick' = 'none';
   /** right-stick aim direction in world space (unit), valid while aimSource is 'stick' */
@@ -95,7 +108,7 @@ export class Input {
       if (this.context !== 'play') return;
       this.aimSource = 'mouse'; this.mouseSeen = true;
       // third person: the click that captures the mouse only captures it (no stray attack before you can aim)
-      if (this.chase && !this.locked && !this.lockFailed) { this.capture(); return; }
+      if (this.chase && !this.locked && !this.lockUnavailable) { this.capture(); return; }
       const bit = mouseBits(e.button);
       this.mouseBtn |= bit; this.btnLatch |= bit; this.pressLatch |= bit;
       this.capture();
@@ -106,10 +119,10 @@ export class Input {
     });
     window.addEventListener('blur', () => this.clearButtons());
     document.addEventListener('pointerlockerror', () => {
-      this.refusals++;
-      // a page that has never held the lock is likely not allowed it at all (a frame without pointer-lock permission)
-      if (this.refusals >= (this.everLocked ? 3 : 2)) this.lockFailed = true;
-      this.onLockError?.();
+      if (this.pendingReq) { this.answeredReq = this.pendingReq; this.pendingReq = 0; this.lockRefused(); return; }
+      // no live request: the event half of a request its promise already refused, or of a cancelled one
+      if (this.answeredReq || this.cancelledReq) { this.answeredReq = this.cancelledReq = 0; return; }
+      this.lockRefused();
     });
     el.addEventListener('mousemove', (e) => {
       const r = el.getBoundingClientRect();
@@ -119,8 +132,11 @@ export class Input {
     el.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('pointerlockchange', () => {
       const was = this.locked;
-      this.locked = document.pointerLockElement === el;
-      if (this.locked) { this.lockFailed = false; this.refusals = 0; this.everLocked = true; if (!was) this.onLockGained?.(); }
+      const mine = document.pointerLockElement === el;
+      // a grant for a request the host withdrew (pause, menus) is handed back at once: the menu keeps the cursor
+      if (mine && !was && this.cancelledReq && !this.pendingReq) { this.cancelledReq = 0; document.exitPointerLock(); return; }
+      this.locked = mine;
+      if (this.locked) { this.pendingReq = this.answeredReq = this.cancelledReq = 0; this.lockFailed = false; this.refusals = 0; this.everLocked = true; if (!was) this.onLockGained?.(); }
       if (was && !this.locked) {
         this.clearButtons(); // nothing keeps firing once the mouse is let go (menus, pause, Esc)
         // a release the host asked for (menus, pause) is not a pause request; the browser's own Esc release is
@@ -215,7 +231,28 @@ export class Input {
     for (const k of Object.keys(this.touchButtons)) this.touchButtons[k] = false;
   }
 
-  releaseLock() { if (document.pointerLockElement) { this.expectUnlock = true; document.exitPointerLock(); } }
+  /** let go of the mouse, and withdraw a lock request the browser has not answered yet */
+  releaseLock() {
+    if (this.pendingReq) { this.cancelledReq = this.pendingReq; this.pendingReq = 0; }
+    if (document.pointerLockElement) { this.expectUnlock = true; document.exitPointerLock(); }
+  }
+
+  /** a lock request was refused: count it, give up on the lock after repeated refusals, and tell the host */
+  private lockRefused() {
+    this.refusals++;
+    // a page that has never held the lock is likely not allowed it at all (a frame without pointer-lock permission)
+    if (this.refusals >= (this.everLocked ? 3 : 2)) this.lockFailed = true;
+    this.onLockError?.();
+  }
+
+  /** the promise half of request `id` refused it (or the API threw): a refusal unless it is already settled */
+  private requestRefused(id: number) {
+    if (id === this.answeredReq) { this.answeredReq = 0; return; }   // the event already counted it
+    if (id === this.cancelledReq) { this.cancelledReq = 0; return; } // withdrawn: nobody waits on it
+    if (id !== this.pendingReq) return;                              // superseded
+    this.pendingReq = 0; this.answeredReq = id;
+    this.lockRefused();
+  }
 
   /** the pointer lock cannot be had here: the host stops waiting for it (mouse look falls back to right-drag) */
   get lockUnavailable() { return this.lockFailed || typeof (this.el as { requestPointerLock?: unknown }).requestPointerLock !== 'function'; }
@@ -224,7 +261,15 @@ export class Input {
    *  `force`: ask even though a menu still owns the input (the Start and Resume buttons, inside their own click) */
   capture(force = false) {
     if (!this.chase || this.locked || (!force && this.context !== 'play')) return;
-    try { const r = this.el.requestPointerLock() as unknown; if (r && typeof (r as Promise<void>).catch === 'function') (r as Promise<void>).catch(() => { /* refused: the next click retries */ }); } catch { /* unsupported */ }
+    // one request at a time: a second Resume click waits on the first (unless the browser never answered it)
+    const now = performance.now();
+    if (this.pendingReq && now - this.pendingAt < LOCK_REQUEST_EXPIRY_MS) return;
+    const id = ++this.reqSeq;
+    this.pendingReq = id; this.pendingAt = now; this.answeredReq = this.cancelledReq = 0;
+    let r: unknown;
+    try { r = this.el.requestPointerLock(); } catch { this.requestRefused(id); return; } // throwing or missing API
+    // a rejection reports the refusal even where no pointerlockerror event comes with it
+    if (r && typeof (r as Promise<void>).then === 'function') (r as Promise<void>).then(undefined, () => this.requestRefused(id));
   }
 
   /** right stick as a look axis, for the third-person camera */
