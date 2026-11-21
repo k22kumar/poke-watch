@@ -1,51 +1,39 @@
-// Audio data checks: every move has an explicit sound mapping, every track's score is
-// well-formed and loops at its declared loop point, and the music slots manifest is valid JSON.
+// Audio checks after the hero-shooter pivot (docs/hero-shooter-pivot.md Q51): every music state is the adaptive
+// score, there are no synthesised sounds anywhere in the audio path, and cries are recordings only (a species
+// without one is silent). The adaptive score's own timing and stem checks are in tests/adaptive-audio.test.ts.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { MOVES } from '../src/rules/moves';
-import { MOVE_SFX, MATERIALS, MOTION } from '../src/audio/sfx';
-import { TRACKS, barEvents, nextBar, trackBars, midi, chordNotes } from '../src/audio/music';
+import { CryBank } from '../src/assets/cries';
 
-test('every move in the game has an explicit sound mapping', () => {
-  for (const m of MOVES) {
-    const s = MOVE_SFX[m.key];
-    assert.ok(s, `${m.key} has no sound mapping`);
-    assert.ok(MATERIALS[s.material], `${m.key}: material ${s.material}`);
-    assert.ok(MOTION[s.motion], `${m.key}: motion ${s.motion}`);
-    assert.ok(s.pitch > 0.6 && s.pitch < 1.4, `${m.key}: pitch ${s.pitch}`);
-  }
-  assert.equal(Object.keys(MOVE_SFX).length, MOVES.length);
-});
+const read = (rel: string) => fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
 
-test('every track is well-formed: bar lengths, chords, notes, loop point', () => {
-  for (const t of Object.values(TRACKS)) {
-    const n = trackBars(t);
-    assert.ok(n > 0, t.id);
-    for (const lines of [t.lead, t.harm, t.layer?.lead]) {
-      if (!lines) continue;
-      assert.equal(lines.length, n, `${t.id}: line length`);
-      lines.forEach((b, i) => {
-        const toks = b.split(/\s+/);
-        assert.equal(toks.length, t.steps, `${t.id} bar ${i}: ${toks.length} steps`);
-        for (const tk of toks) if (tk !== '-' && tk !== '.') assert.doesNotThrow(() => midi(tk), `${t.id}: ${tk}`);
-      });
+test('the audio path synthesises nothing: no oscillators, no generated waves, no chip-tune or sfx modules', () => {
+  for (const f of ['../src/audio/audio.ts', '../src/audio/adaptive.ts', '../src/audio/adaptive-score.ts', '../src/assets/cries.ts']) {
+    const src = read(f);
+    for (const banned of ['createOscillator', 'createPeriodicWave', 'PeriodicWave', "from './sfx'", "from './music'", 'music.json']) {
+      assert.ok(!src.includes(banned), `${f} still uses ${banned}`);
     }
-    for (const d of [...t.drums, ...(t.layer?.drums ?? [])]) assert.equal(d.split(/\s+/).length, t.steps, `${t.id}: drum pattern ${d}`);
-    for (const c of t.chords) assert.equal(chordNotes(c).length >= 3, true);
-    assert.ok(t.loopStart >= 0 && t.loopStart < n, `${t.id}: loopStart`);
-    // walk 3 loops: the bar after the last is the loop start (stingers end instead)
-    let bar = 0, steps = 0;
-    for (let k = 0; k < n * 3 && bar >= 0; k++) { barEvents(t, bar); bar = nextBar(t, bar); steps++; if (bar === t.loopStart && k >= n - 1) break; }
-    if (t.stinger) assert.equal(nextBar(t, n - 1), -1, `${t.id}: stinger ends`);
-    else assert.equal(nextBar(t, n - 1), t.loopStart, `${t.id}: loops to bar ${t.loopStart}`);
-    assert.ok(steps > 0);
+  }
+  for (const gone of ['../src/audio/sfx.ts', '../src/audio/music.ts', '../src/content/music.json', '../content/music/manifest.json']) {
+    assert.ok(!fs.existsSync(new URL(gone, import.meta.url)), `${gone} should be deleted`);
   }
 });
 
-test('music slots manifest parses and lists only known states', () => {
-  const known = new Set(['title', 'route_meadow', 'route_badlands', 'route_frost', 'route_dusk', 'battle', 'boss', 'evolution', 'evolved', 'victory', 'defeat', 'item']);
-  const man = JSON.parse(fs.readFileSync(new URL('../content/music/manifest.json', import.meta.url), 'utf8'));
-  for (const k of Object.keys(man.slots ?? {})) assert.ok(known.has(k), k);
-  for (const k of Object.keys(TRACKS)) assert.ok(known.has(k), `track ${k} has a slot name`);
+test('every music state plays the adaptive score: the director has no other track source', () => {
+  const src = read('../src/audio/audio.ts');
+  assert.match(src, /new AdaptivePlayer\(/);
+  assert.ok(!/TRACKS|TrackPlayer|slotBuffers/.test(src), 'no chip-tune tracks or recording slots remain');
+});
+
+test('a species with no cry recording is silent: no fallback voice', () => {
+  const bank = new CryBank();
+  assert.equal(bank.kind('nocry'), 'none');
+  assert.equal(bank.status('nocry'), 'none');
+  assert.equal(bank.format('nocry'), 'none');
+  bank.play(null, null, 'nocry'); // no context: a no-op, never throws
+  assert.equal(bank.stats.played, 0);
+  bank.sample('withcry', 'data:audio/ogg;base64,AAAA', 1);
+  assert.equal(bank.kind('withcry'), 'sample');
+  assert.equal(bank.status('withcry'), 'idle');
 });

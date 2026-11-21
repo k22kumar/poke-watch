@@ -127,7 +127,7 @@ test('gamepad: a press only a frame saw (shorter than a tick, a display above 60
 
 // ------------------------------------------------------------------ vertical intent and descend
 
-test('my = ascend − descend from buttons: V descends, Space ascends, both cancel; C stays the card pointer', async () => {
+test('my = ascend − descend from buttons: V descends, Space ascends, both cancel; C is not descend', async () => {
   const { input, key } = await stubInput();
   const actions: string[] = [];
   input.onAction = (a) => actions.push(a);
@@ -142,7 +142,7 @@ test('my = ascend − descend from buttons: V descends, Space ascends, both canc
   key('Space', false);
   assert.equal(input.sample(0).my, 0);
   key('KeyC');
-  assert.ok(actions.includes('cardPointer') && actions.includes('descend'));
+  assert.ok(actions.includes('descend'));
   assert.equal(input.sample(0).my, 0, 'C does not descend');
 });
 
@@ -187,18 +187,20 @@ test('look is independent of movement: mouse look and the right stick change nei
 const PRE_R6C_KEYS: Record<string, string[]> = {
   up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
   jump: ['Space'], dash: ['ShiftLeft', 'ShiftRight'], basic: ['KeyJ'], moveA: ['KeyK'], moveB: ['KeyR'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
-  pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
-  pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
+  pause: ['Escape', 'KeyP'], tuning: ['Backquote'], mute: ['KeyM'],
 };
-const PRE_R6C_PAD: Record<string, number[]> = { jump: [0], dash: [1], sig: [3], guard: [4], moveB: [5], moveA: [6], basic: [7], pause: [9], pick1: [14], pick2: [12], pick3: [15], reroll: [13] };
+const PRE_R6C_PAD: Record<string, number[]> = { jump: [0], dash: [1], sig: [3], guard: [4], moveB: [5], moveA: [6], basic: [7], pause: [9] };
 
 test('defaults: every earlier binding unchanged; descend is V and left-stick click; no Ctrl; no conflicts', () => {
+  // since: Touch took F (hold: a Breakthrough, docs/hero-shooter-pivot.md Q39), and the card actions (picks, reroll, skip,
+  // banish, cursor toggle) went with the cards at pivot step 9
   for (const [a, cs] of Object.entries(PRE_R6C_KEYS)) assert.deepEqual(DEFAULT_KEYS[a], cs, a);
+  for (const a of ['pick1', 'reroll', 'skip', 'banish', 'cardPointer']) assert.equal(DEFAULT_KEYS[a], undefined, a);
+  assert.deepEqual(DEFAULT_KEYS.touch, ['KeyF']);
   for (const [a, cs] of Object.entries(PRE_R6C_PAD)) assert.deepEqual(DEFAULT_PAD[a], cs, a);
   assert.deepEqual(DEFAULT_KEYS.descend, ['KeyV']);
   assert.deepEqual(DEFAULT_PAD.descend, [PAD.ls]);
   assert.ok(!Object.values(DEFAULT_PAD).flat().includes(PAD.x), 'X is free: the alternative descend a player may bind');
-  assert.deepEqual(DEFAULT_KEYS.cardPointer, ['KeyC']);
   assert.equal(Object.values(DEFAULT_KEYS).flat().filter((c) => c.startsWith('Control')).length, 0, 'Ctrl + W / S / D are browser shortcuts');
   assert.deepEqual(bindingConflicts(DEFAULT_KEYS), []);
   assert.deepEqual(bindingConflicts(DEFAULT_PAD), []);
@@ -219,13 +221,13 @@ test('overrides: an overridden action has exactly its codes, and a claimed code 
 
 test('assignBinding moves a code (never two actions on one code), clears slots, and leaves its input alone', () => {
   const o0 = {};
-  const r = assignBinding(DEFAULT_KEYS, o0, 'descend', 0, 'KeyC');
+  const r = assignBinding(DEFAULT_KEYS, o0, 'descend', 0, 'KeyM');
   assert.deepEqual(o0, {}, 'input unchanged');
-  assert.equal(r.from, 'cardPointer');
+  assert.equal(r.from, 'mute');
   const k = resolveBindings(DEFAULT_KEYS, r.overrides);
-  assert.deepEqual(k.descend, ['KeyC']); assert.deepEqual(k.cardPointer, []);
+  assert.deepEqual(k.descend, ['KeyM']); assert.deepEqual(k.mute, []);
   const r2 = assignBinding(DEFAULT_KEYS, r.overrides, 'descend', 1, 'KeyV');
-  assert.deepEqual(resolveBindings(DEFAULT_KEYS, r2.overrides).descend, ['KeyC', 'KeyV']);
+  assert.deepEqual(resolveBindings(DEFAULT_KEYS, r2.overrides).descend, ['KeyM', 'KeyV']);
   const r3 = assignBinding(DEFAULT_KEYS, r2.overrides, 'descend', 0, null);
   assert.deepEqual(resolveBindings(DEFAULT_KEYS, r3.overrides).descend, ['KeyV']);
   // a seeded storm of random assignments never yields a conflict
@@ -268,6 +270,55 @@ test('saved bindings: anything saved is cut down to known actions and valid code
   const fresh = loadSettings({});
   assert.notEqual(fresh.keys, SETTINGS_DEFAULT.keys, 'never the default object (Reset must not see edits)');
   assert.deepEqual(fresh.keys, {}); assert.deepEqual(fresh.pad, {});
+});
+
+test('a survivor build\'s saved settings load: the card keys and the C toggle drop, live overrides stay, F is Touch', async () => {
+  // what survivor-final (the card build) wrote to localStorage: the whole settings object, with overrides of the card
+  // actions (picks, reroll, skip, banish, cardPointer: the C cursor / camera toggle) beside overrides that still exist
+  const saved = JSON.parse(JSON.stringify({
+    ...SETTINGS_DEFAULT, camera: 'chase', camV: 2, worldV: 2,
+    keys: { pick1: ['Digit5'], pick2: ['Digit6'], pick3: ['Digit7'], pick4: ['Digit8'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'], cardPointer: ['KeyC'], basic: ['KeyH'] },
+    pad: { pick1: [PAD.left], pick2: [PAD.up], pick3: [PAD.right], reroll: [PAD.down], jump: [PAD.a] },
+  }));
+  const s = loadSettings(saved);
+  assert.deepEqual(s.keys, { basic: ['KeyH'] }, 'only the actions that still exist');
+  assert.deepEqual(s.pad, { jump: [PAD.a] });
+  const { input, key } = await stubInput();
+  input.setBindings(s.keys, s.pad);
+  assert.deepEqual(bindingConflicts(input.bindings), []);
+  assert.deepEqual(bindingConflicts(input.padBindings), []);
+  assert.deepEqual(input.bindings.touch, ['KeyF'], 'the old reroll key did not take F from Touch');
+  assert.deepEqual(input.bindings.basic, ['KeyH']);
+  assert.ok(!Object.values(input.bindings).flat().includes('KeyC'), 'C is bound to nothing');
+  key('KeyF');
+  assert.equal((input.sample(0).btn ?? 0) & BTN.touch, BTN.touch, 'F holds Touch');
+  key('KeyF', false);
+  key('KeyC');
+  const f = input.sample(0);
+  assert.equal(f.btn ?? 0, 0, 'C presses nothing'); assert.equal(f.mx, 0); assert.equal(f.mz, 0);
+  // saving it back writes the clean copy, and it loads to the same settings
+  assert.deepEqual(loadSettings(JSON.parse(JSON.stringify(s))), s);
+
+  // the moved-default case: in the survivor build the player bound Q to Reroll and Y to Pick 1, which moved them off the
+  // Signature (assignBinding leaves `sig: []`); they also cleared Guard's keys and moved L to Move B, so Guard's E is free
+  // but L is not. On load every live action left with no code gets its free defaults back
+  const moved = loadSettings(JSON.parse(JSON.stringify({
+    ...SETTINGS_DEFAULT, camV: 2, worldV: 2,
+    keys: { reroll: ['KeyQ'], sig: [], guard: [], moveB: ['KeyR', 'KeyL'], dash: [] },
+    pad: { pick1: [PAD.y], sig: [] },
+  })));
+  assert.deepEqual(moved.keys, { moveB: ['KeyR', 'KeyL'] }, 'the empty overrides went: their defaults are free again');
+  assert.deepEqual(moved.pad, {});
+  const m = await stubInput();
+  m.input.setBindings(moved.keys, moved.pad);
+  assert.deepEqual(m.input.bindings.sig, ['KeyQ'], 'Q is the Signature again');
+  assert.deepEqual(m.input.bindings.guard, ['KeyE'], 'Guard gets E back; L stays on Move B');
+  assert.deepEqual(m.input.bindings.dash, DEFAULT_KEYS.dash);
+  assert.deepEqual(m.input.padBindings.sig, [PAD.y], 'Y is the Signature again on the pad');
+  assert.deepEqual(bindingConflicts(m.input.bindings), []);
+  assert.deepEqual(bindingConflicts(m.input.padBindings), []);
+  // an empty override whose defaults are all claimed stays empty (nothing free to give it)
+  assert.deepEqual(loadSettings({ keys: { jump: [], dash: ['Space'] } }).keys, { jump: [], dash: ['Space'] });
 });
 
 test('names for the bindings screen', () => {

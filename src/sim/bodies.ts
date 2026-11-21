@@ -18,14 +18,11 @@ import { effectiveness, type Element } from '../rules/elements';
 import { forceOnProp } from './props';
 import { weightClass } from '../rules/species';
 import { damageEnemy, damagePlayer } from './combat';
-import { deflecting } from './player';
+import { deflecting, guardWeight } from './player';
 import { CS, rubbleAt } from './cells';
-import { ROLE } from './pools';
 import type { MoveSpec, SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { currentCastSlot, holdAim, holdButton } from './capabilities';
-import { TB } from '../rules/build';
-import { guardWeight, holdSeconds, logTech, onGuardDeflect } from './techniques';
 import { applyAgent } from './cells';
 
 const PUSH: [number, number] = [0, 0];
@@ -58,6 +55,8 @@ export class BodyPool {
   hPT: Float64Array; hP: Uint8Array; hX: Float64Array; hZ: Float64Array;
   /** made by a player's Create (counted against rules.caps.createCap) */
   made: Uint8Array;
+  /** who carries it (src/sim/carry.ts CARRIER): -1 nobody, -2 the player, else an enemy slot */
+  carrier: Int32Array;
   /** recently struck bodies (body-on-body impacts): body index and until when */
   bhitE: Int32Array; bhitT: Float64Array; bhitN: Uint8Array;
   private free: number[] = [];
@@ -72,7 +71,7 @@ export class BodyPool {
     this.pushT = F(); this.pushP = new Uint8Array(cap); this.pushX = F(); this.pushZ = F(); this.hitCd = F();
     this.hitE = new Int32Array(cap * HIT_RING); this.hitT = new Float64Array(cap * HIT_RING); this.hitN = new Uint8Array(cap);
     this.holdT = F(); this.holdP = new Uint8Array(cap); this.holdBtn = new Uint8Array(cap);
-    this.hPT = F(); this.hP = new Uint8Array(cap); this.hX = F(); this.hZ = F(); this.made = new Uint8Array(cap);
+    this.hPT = F(); this.hP = new Uint8Array(cap); this.hX = F(); this.hZ = F(); this.made = new Uint8Array(cap); this.carrier = new Int32Array(cap).fill(-1);
     this.bhitE = new Int32Array(cap * HIT_RING); this.bhitT = new Float64Array(cap * HIT_RING); this.bhitN = new Uint8Array(cap);
     for (let i = cap - 1; i >= 0; i--) this.free.push(i);
   }
@@ -83,7 +82,7 @@ export class BodyPool {
     if (i >= this.hi) this.hi = i + 1;
     this.vx[i] = this.vz[i] = 0; this.age[i] = 0; this.roll[i] = 0; this.pushT[i] = -9; this.pushP[i] = 0; this.hitCd[i] = 0; this.hitN[i] = 0;
     this.hitE.fill(-1, i * HIT_RING, (i + 1) * HIT_RING);
-    this.holdT[i] = 0; this.holdP[i] = 0; this.holdBtn[i] = 0; this.hPT[i] = -9; this.hP[i] = 0; this.made[i] = 0; this.bhitN[i] = 0;
+    this.holdT[i] = 0; this.holdP[i] = 0; this.holdBtn[i] = 0; this.hPT[i] = -9; this.hP[i] = 0; this.made[i] = 0; this.bhitN[i] = 0; this.carrier[i] = -1;
     this.bhitE.fill(-1, i * HIT_RING, (i + 1) * HIT_RING);
     return i;
   }
@@ -178,7 +177,7 @@ export function pushBody(ctx: SimContext, b: number, power: number, dx: number, 
 export function holdBody(ctx: SimContext, b: number, power: number, dx: number, dz: number, team: number, btn: number): boolean {
   const B = ctx.bodies, W = bodyWeight(ctx, b), C = ctx.rules.caps;
   if (B.holdT[b] > 0) return true; // already suspended: a hold lasts its time, it is not refreshed
-  if (ctx.objective && ctx.objective.egg === b && ctx.objective.carrier !== -1) return false; // carried
+  if (B.carrier[b] !== -1) return false; // carried
   const L = dhypot(dx, dz) || 1; dx /= L; dz /= L;
   let P = power;
   if (ctx.time - B.hPT[b] <= C.combineWindow && dx * B.hX[b] + dz * B.hZ[b] >= C.combineCos) P = Math.min(4, Math.max(P, B.hP[b]) + 1);
@@ -186,7 +185,7 @@ export function holdBody(ctx: SimContext, b: number, power: number, dx: number, 
   const r = rec(ctx, 'hold', P >= W ? (P > power ? 'combined' : 'ok') : 'fail');
   if (r) { r.power = P; r.weight = W; r.tgt = 'body'; r.tgtName = BODY_KINDS[B.kind[b]]; r.type = tpl(ctx, b).type; r.x = B.x[b]; r.z = B.z[b]; }
   if (P >= W) {
-    B.holdT[b] = holdSeconds(ctx); B.holdP[b] = P; B.holdBtn[b] = btn;
+    B.holdT[b] = C.holdTime; B.holdP[b] = P; B.holdBtn[b] = btn;
     B.vx[b] = 0; B.vz[b] = 0;
     changeOwner(ctx, b, team);
     ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: true, combined: P > power });
@@ -205,7 +204,7 @@ function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
   B.holdT[b] -= dt;
   const [ux, uz] = holdAim(ctx);
   const O = ctx.objective;
-  if (P.paraT > 0 || P.faintT >= 0 || ctx.state !== 'play' || (O && O.egg === b && O.carrier !== -1)) {
+  if (P.paraT > 0 || P.faintT >= 0 || ctx.state !== 'play' || B.carrier[b] !== -1) {
     // a stunned or fainted holder drops it where it is
     B.holdT[b] = 0; B.vx[b] = B.vz[b] = 0;
     const r = rec(ctx, 'release', 'drop');
@@ -246,34 +245,24 @@ export function changeOwner(ctx: SimContext, b: number, team: number) {
     if (team === TEAM.player) B.dmg[b] = 10 * bodyWeight(ctx, b) * 1.5; // turned against its thrower
   }
   B.team[b] = team;
-  if (B.hp[b] <= 0) breakBody(ctx, b);
+  // an unbreakable body (integrity 0: the egg, the range's throwable) has hp 0 from the start and never wears
+  if (B.hp[b] <= 0 && tpl(ctx, b).integrity > 0) breakBody(ctx, b);
 }
 
-/** Integrity damage through the type chart; breaks it at zero. `byPlayer`: the trainer's hit (Quarry). */
-export function damageBody(ctx: SimContext, b: number, amount: number, element: Element, byPlayer = false) {
+/** Integrity damage through the type chart; breaks it at zero. */
+export function damageBody(ctx: SimContext, b: number, amount: number, element: Element) {
   const B = ctx.bodies;
   if (!B.alive[b]) return;
   const T = tpl(ctx, b);
   if (T.integrity <= 0) return;
-  const quarry = byPlayer && (ctx.player.techMask & TB.quarry) !== 0;
   const eff = effectiveness(ctx.chart, element, [T.type]);
-  const dealt = amount * eff * (quarry ? ctx.rules.build.tech.quarry.integrity : 1);
+  const dealt = amount * eff;
   B.hp[b] -= dealt;
   ctx.events.push({ t: 'bodyHit', x: B.x[b], y: B.y[b] + T.radius, z: B.z[b], amount: dealt, eff, element });
-  if (B.hp[b] <= 0) breakBody(ctx, b, quarry);
+  if (B.hp[b] <= 0) breakBody(ctx, b);
 }
 
-/** Quarry: a rock or boulder the trainer broke leaves extra rubble, owned by the player, flung outward */
-function quarryRubble(ctx: SimContext, x: number, z: number, a0: number) {
-  const Q = ctx.rules.build.tech.quarry;
-  for (let k = 0; k < Q.rubble; k++) {
-    const a = a0 + Math.PI * (0.5 + k) * (2 / Q.rubble);
-    spawnBody(ctx, 'rubble', x + dsin(a) * 0.5, z + dcos(a) * 0.5, dsin(a) * Q.speed, dcos(a) * Q.speed, TEAM.player);
-  }
-  logTech(ctx, 'quarry', `+${Q.rubble} rubble`, x, z);
-}
-
-export function breakBody(ctx: SimContext, b: number, quarry = false) {
+export function breakBody(ctx: SimContext, b: number) {
   const B = ctx.bodies;
   if (!B.alive[b]) return;
   const T = tpl(ctx, b);
@@ -287,7 +276,6 @@ export function breakBody(ctx: SimContext, b: number, quarry = false) {
   if (T.weight >= 3) rubbleAt(ctx, x, z, 1);
   const into = T.breaksInto;
   if (!into) return;
-  if (quarry && into.template === 'rubble') quarryRubble(ctx, x, z, datan2(vx, vz));
   const base = datan2(vx, vz), sp = dhypot(vx, vz) * into.speedKeep;
   for (let k = 0; k < into.count; k++) {
     // shrapnel keeps half the speed, fanned over 60°; resting rocks scatter gently
@@ -307,22 +295,20 @@ export function moveOnBody(ctx: SimContext, b: number, s: MoveSpec, dmg: number,
   const out = dmg * ctx.rules.damage.playerMult * (s.cls === 'physical' ? d.atk : d.spa);
   setSrc(slot === 9 ? 'tag' : 'move', s.name);
   forceOnBody(ctx, b, pushPower(s), holdPower(s), dirx, dirz, slot);
-  if (B.alive[b]) damageBody(ctx, b, out, s.element, true);
+  if (B.alive[b]) damageBody(ctx, b, out, s.element);
 }
 
 /** The force verbs of a player effect on body b: a Hold (pull in v10, suspend in Phase 8a), else a Push. */
 export function forceOnBody(ctx: SimContext, b: number, push: number, hold: number, dirx: number, dirz: number, slot: number) {
   const B = ctx.bodies, P = ctx.player;
   if (hold > 0) {
-    if (ctx.rules.caps.enabled && ctx.rules.caps.suspendHold) { holdBody(ctx, b, hold, P.x - B.x[b], P.z - B.z[b], TEAM.player, holdButton(ctx, slot)); return; }
-    // v10: a hold pulls it toward you when it is light enough
+    if (ctx.rules.caps.suspendHold) { holdBody(ctx, b, hold, P.x - B.x[b], P.z - B.z[b], TEAM.player, holdButton(ctx, slot)); return; }
+    // caps.suspendHold off (the v10 rule): a hold pulls it toward you when it is light enough
     const W = bodyWeight(ctx, b);
     if (hold >= W) { const dx = P.x - B.x[b], dz = P.z - B.z[b], L = dhypot(dx, dz) || 1; B.vx[b] = (dx / L) * 7; B.vz[b] = (dz / L) * 7; changeOwner(ctx, b, TEAM.player); ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: true, combined: false }); }
     else ctx.events.push({ t: 'push', x: B.x[b], z: B.z[b], ok: false, combined: false });
   } else if (push > 0) {
-    const moved = pushBody(ctx, b, push, dirx, dirz, TEAM.player);
-    // Undertow: your Pushes also Apply Wet (the ground under the rock you roll)
-    if (moved && P.techMask & TB.undertow) applyAgent(ctx, 'wet', B.x[b], B.z[b], 1.2);
+    pushBody(ctx, b, push, dirx, dirz, TEAM.player);
   }
 }
 
@@ -347,7 +333,6 @@ export function deflectBody(ctx: SimContext, b: number, ux: number, uz: number) 
   B.vx[b] = ux * sp; B.vz[b] = uz * sp;
   changeOwner(ctx, b, TEAM.player);
   ctx.player.guardHit = true;
-  onGuardDeflect(ctx);
   ctx.events.push({ t: 'deflect', x: B.x[b], z: B.z[b], element: tpl(ctx, b).type });
 }
 
@@ -358,7 +343,7 @@ export const bodySystem = {
   name: 'bodies',
   update(ctx: SimContext, dt: number) {
     const B = ctx.bodies, W = ctx.world, E = ctx.enemies, P = ctx.player;
-    const collide = ctx.rules.caps.enabled && ctx.rules.caps.bodyCollisions;
+    const collide = ctx.rules.caps.bodyCollisions;
     for (let b = 0; b < B.hi; b++) {
       if (!B.alive[b]) continue;
       const T = tpl(ctx, b);
@@ -381,7 +366,7 @@ export const bodySystem = {
         const blockX = W.blocks(nx + ax, B.z[b], feet, 0.6), blockZ = W.blocks(B.x[b], nz + az, feet, 0.6);
         if (blockX || blockZ) {
           // W4: a body running into a tree, bush or rock strikes it as a force of its own Weight
-          if (ctx.rules.surfaces.enabled && sp >= IMPACT_SPEED) {
+          if (sp >= IMPACT_SPEED) {
             const k = W.tile(blockX ? nx + ax : B.x[b], blockX ? B.z[b] : nz + az);
             if (k >= 0) forceOnProp(ctx, k, sp >= 8 ? T.weight : T.weight - 1, (10 * T.weight * sp) / 10, T.type);
           }
@@ -404,7 +389,7 @@ export const bodySystem = {
           const dx = E.x[e] - x, dz = E.z[e] - z, rr = R + E.radius[e];
           if (dx * dx + dz * dz > rr * rr || B.recentlyHit(b, e, ctx.time)) continue;
           B.markHit(b, e, ctx.time + 0.5);
-          const ew = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
+          const ew = weightClass(ctx.speciesIndex[E.species[e]]);
           const dealt = (B.dmg[b] * sp) / 10;
           damageEnemy(ctx, e, dealt, { element: T.type, cls: 'physical', ailment: 'knock', chance: 0, knock: wgt >= ew ? 9 : 2, kx: B.vx[b], kz: B.vz[b], drain: 0, source: 'impact' });
           if (ew >= wgt) { B.vx[b] *= -0.3; B.vz[b] *= -0.3; } // stopped by something as heavy
@@ -438,8 +423,8 @@ export const bodySystem = {
           if (res !== 'none') { B.vx[b] *= 0.8; B.vz[b] *= 0.8; }
         }
       }
-      const held = ctx.objective && ctx.objective.egg === b && ctx.objective.carrier !== -1;
-      // resting contact is physical: with size geometry on it is the partner's movement footprint that touches the body
+      const held = B.carrier[b] !== -1;
+      // resting contact is physical: it is the partner's movement footprint that touches the body
       // (docs/SIZING.md "Footprint"), not its hurtbox, which only decides what hits it
       const pf = partnerFootprint(ctx.player.species, ctx.rules), rs = pf > 0 ? R + pf : rp;
       if (!held && sp < IMPACT_SPEED && dp2 < rs * rs && dp2 > 1e-6 && P.y - B.y[b] < R * 1.2) {
@@ -460,7 +445,7 @@ function bodyImpacts(ctx: SimContext, b: number, sp: number): number {
   for (let j = 0; j < B.hi && B.alive[b]; j++) {
     if (j === b || !B.alive[j] || B.holdT[j] > 0) continue;
     if (B.age[b] < 0.25 && B.age[j] < 0.25) continue; // pieces of one break do not strike each other
-    if (O && O.egg === j && O.carrier !== -1) continue; // a carried egg is in someone's arms
+    if (B.carrier[j] !== -1) continue; // a carried body is in someone's arms
     const Tj = tpl(ctx, j), rr = T.radius + Tj.radius;
     const dx = B.x[j] - B.x[b], dz = B.z[j] - B.z[b];
     if (dx * dx + dz * dz > rr * rr) continue;
@@ -473,7 +458,7 @@ function bodyImpacts(ctx: SimContext, b: number, sp: number): number {
     const r = rec(ctx, 'impact', Tj.weight <= wgt ? 'ok' : 'fail');
     if (r) { r.power = wgt; r.weight = Tj.weight; r.amount = amount; r.type = T.type; r.tgt = 'body'; r.tgtName = BODY_KINDS[B.kind[j]]; r.x = B.x[j]; r.z = B.z[j]; }
     pushBody(ctx, j, wgt, ux, uz, B.team[b]);
-    if (B.alive[j]) damageBody(ctx, j, amount, T.type, B.team[b] === TEAM.player);
+    if (B.alive[j]) damageBody(ctx, j, amount, T.type);
     if (Tj.weight >= wgt) { B.vx[b] *= -0.3; B.vz[b] *= -0.3; } else { B.vx[b] *= 0.6; B.vz[b] *= 0.6; }
     sp = dhypot(B.vx[b], B.vz[b]);
     if (sp < IMPACT_SPEED) break;
@@ -490,10 +475,10 @@ export function seedBodies(ctx: SimContext) {
     const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(7, 42);
     const x = Math.floor(sx + dsin(a) * r) + 0.5, z = Math.floor(sz + dcos(a) * r) + 0.5;
     if (!W.walkable(x, z) || !W.walkable(x + 1, z) || !W.walkable(x - 1, z) || !W.walkable(x, z + 1) || !W.walkable(x, z - 1)) continue;
-    // size geometry on: only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre
-    // beside it keeps rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to
-    // every partner until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
-    if (ctx.rules.size.geometry) {
+    // only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre beside it keeps
+    // rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to every partner
+    // until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
+    {
       let open = true;
       for (let dz = -3; dz <= 3 && open; dz++) for (let dx = -3; dx <= 3 && open; dx++) open = W.walkable(x + dx, z + dz);
       if (!open) continue;
@@ -509,6 +494,11 @@ export function seedBodies(ctx: SimContext) {
     const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
     if (!W.walkable(x, z)) continue;
     spawnBody(ctx, 'rock', x, z);
+  }
+  // authored arenas: the throwables (the training range)
+  for (const [tx, ty] of W.map.throwables ?? []) {
+    const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
+    if (W.walkable(x, z)) spawnBody(ctx, 'cobble', x, z);
   }
 }
 

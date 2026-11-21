@@ -20,6 +20,8 @@ import { compileMove } from '../src/sim/moves';
 import { freshAimState, NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
+import { runEnded as ended } from '../scripts/lib/ended';
+import { crowd } from '../scripts/lib/crowd';
 import {
   CF, Contacts, MASK, QF, RayHit, SK, SK_ACTOR, SK_WORLD, overlapCylinder, overlapSector, raycastWorld, segmentClear,
   mapExposureClear, solidAt, spatialQuery, sweep, sweepTo,
@@ -245,25 +247,23 @@ test('initial overlap: a start inside a solid is a t = 0 contact; skipInitialWor
 
 // ------------------------------------------------------------------------------------------------ actors
 
-test('giants (size-extremes default flip): a ray at 0.85 of Onix\'s drawn height hits with the size flags on and misses with them off; a 0.3 m bolt at 95 % of it hits', () => {
-  // with axis + xlContinuous + xlTall (the defaults) an Extra Large body's hit window is 0.892 x its drawn height, so a
-  // shot at the upper body of the sprite lands; with the flags off the window stops at the class height. One aim height
-  // for both runs, from the flags-on body
-  const ON = defaultRules.size, OFF = { size: { axis: false, xlContinuous: false, xlTall: false } };
-  const on = bodyOf(SPECIES_BY_ID.onix, ON), off = bodyOf(SPECIES_BY_ID.onix, { ...ON, ...OFF.size });
+test('giants: a ray at 0.85 of Onix\'s drawn height hits, above the class height; a 0.3 m bolt at 95 % of it hits', () => {
+  // an Extra Large body's hit window is 0.892 x its drawn height, so a shot at the upper body of the sprite lands; the
+  // class height (where the window stopped before the size-extremes flip) is below the aim height
+  const on = bodyOf(SPECIES_BY_ID.onix), classH = defaultRules.size.classes[4].height;
   const h = 0.85 * on.visualM;
-  assert.ok(off.height < h && h < on.height, `windows ${off.height.toFixed(2)} / ${on.height.toFixed(2)} m bracket ${h.toFixed(2)} m`);
+  assert.ok(classH < h && h < on.height, `class height ${classH} / window ${on.height.toFixed(2)} m bracket ${h.toFixed(2)} m`);
   const shot = (over: object | undefined, y: number, r: number) => {
     const { ctx, W } = scene(over), z = C(W, 50);
     const e = put(ctx, 'onix', C(W, 60), 0, z), out = new Contacts();
     sweep(ctx, C(W, 50), y, z, 1, 0, 0, 20, spatialQuery({ mask: SK.enemy, block: 0, actorR: r, actorH: r }), out);
     return { hit: [...out.id.subarray(0, out.n)].includes(e), tall: ctx.enemies.tall[e] };
   };
-  const rayOn = shot(undefined, h, 0), rayOff = shot(OFF, h, 0);
-  assert.ok(Math.abs(rayOn.tall - on.height) < 1e-5 && Math.abs(rayOff.tall - off.height) < 1e-5, 'E.tall carries each body');
-  assert.ok(rayOn.hit, 'flags on: the ray hits');
-  assert.ok(!rayOff.hit, 'flags off: the ray passes over the window');
-  assert.ok(shot(undefined, 0.95 * on.visualM, 0.3).hit, 'flags on: a 0.3 m bolt at 95 % of the drawn height hits');
+  const rayOn = shot(undefined, h, 0);
+  assert.ok(Math.abs(rayOn.tall - on.height) < 1e-5, 'E.tall carries the body');
+  assert.ok(rayOn.hit, 'the ray hits');
+  assert.ok(!shot(undefined, on.height + 0.05, 0).hit, 'a ray just over the window passes');
+  assert.ok(shot(undefined, 0.95 * on.visualM, 0.3).hit, 'a 0.3 m bolt at 95 % of the drawn height hits');
 });
 
 test('actors: size-class cylinders; actor radius and half-height inflate the volume exactly', () => {
@@ -621,11 +621,12 @@ test('exact against dense sampling, and World.sight compared, on 10 000 segments
 // ------------------------------------------------------------------------------------------------ tick state and broad phase
 
 test('live crowd: the grid broad phase never misses what a brute-force pass finds; enemies stay inside gridSlack', () => {
-  const ctx = createRun({ seed: 2, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 12, spawnPerMin: 6, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
-  const E = ctx.enemies, rng = new Rng(11), out = new Contacts(64), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
+  const ctx = createRun({ seed: 2, species: 'cyndaquil', mods: [crowd(330)] });
+  // a buffer past any ray's crowd: a full one would cut the sweep short of the brute-force list
+  const E = ctx.enemies, rng = new Rng(11), out = new Contacts(512), q = spatialQuery({ mask: SK.enemy, pierce: Infinity, actorR: 0.4, actorH: 0.4 });
   let maxMove = 0, compared = 0, contacts = 0, peak = 0;
   const brute: [number, number][] = [];
-  while (ctx.time < 70) {
+  while (ctx.time < 70 && !ended(ctx)) {
     ctx.player.hp = ctx.player.maxHp;
     step(ctx, botInput(ctx));
     peak = Math.max(peak, E.count);
@@ -657,39 +658,10 @@ test('live crowd: the grid broad phase never misses what a brute-force pass find
   assert.ok(maxMove < ctx.rules.spatial.gridSlack, `per-tick movement ${maxMove} within gridSlack`);
 });
 
-test('live strays (Phase 2B): an enemy relocated or added after the grid rebuild is still met where it is', () => {
-  // the probe after each step: the grid is this tick's rebuild (before enemySystem moved anyone) and the positions are
-  // this tick's, which is what every query inside the tick sees. Each live enemy out of its spawn guard is probed with a
-  // short vertical sweep through its centre; a widened grid.query around it shows what a plain grid reader would get
-  const ctx = createRun({ seed: 5, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: 14, spawnPerMin: 8, capBase: 330, capPerMin: 0 }, enemy: { liveCap: 330 } } as never });
-  const E = ctx.enemies, out = new Contacts(256), q = spatialQuery({ mask: SK.enemy, pierce: Infinity });
-  let probes = 0, gridMiss = 0, ticksWithStrays = 0, far = 0;
-  while (ctx.time < 60) {
-    ctx.player.hp = ctx.player.maxHp;
-    step(ctx, botInput(ctx));
-    let strays = 0;
-    for (let e = 0; e < E.hi; e++) {
-      if (!E.alive[e] || E.spawnT[e] < ctx.rules.spatial.spawnGuard) continue;
-      const x = E.x[e], z = E.z[e], y = E.y[e] + E.tall[e] / 2;
-      sweep(ctx, x, y + 1, z, 0, -1, 0, 2, q, out);
-      assert.ok([...out.id.subarray(0, out.n)].includes(e), `tick ${ctx.tick}: enemy ${e} at (${x.toFixed(1)}, ${z.toFixed(1)}) not met`);
-      probes++;
-      const n = ctx.grid.query(x, z, E.radius[e] + ctx.rules.spatial.gridSlack);
-      let inGrid = false;
-      for (let k = 0; k < n && !inGrid; k++) inGrid = ctx.grid.result[k] === e;
-      if (!inGrid) { gridMiss++; strays++; if (Math.hypot(x - ctx.player.x, z - ctx.player.z) > 20) far++; }
-    }
-    if (strays) ticksWithStrays++;
-  }
-  console.log(`strays: ${probes} probes, all met; a plain grid.query missed ${gridMiss} (on ${ticksWithStrays} ticks, ${far} of them relocated onto the ring ahead of the trainer)`);
-  assert.ok(probes > 50000);
-  assert.ok(gridMiss > 0, 'the run relocates enemies (otherwise this test proves nothing)');
-});
-
 test('determinism: repeated replays, another grid cell size and an in-use grid.result give identical contacts', () => {
   const build = () => {
-    const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'mt-moon' } }, director: { spawnBase: 12, spawnPerMin: 6, capBase: 200, capPerMin: 0 }, enemy: { liveCap: 200 } } as never });
-    while (ctx.time < 40) { ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
+    const ctx = createRun({ seed: 3, species: 'totodile', mods: [crowd(200)], ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'mt-moon' } } } as never });
+    while (ctx.time < 40 && !ended(ctx)) { ctx.player.hp = ctx.player.maxHp; step(ctx, botInput(ctx)); }
     return ctx;
   };
   const digest = (ctx: SimContext) => {
@@ -726,7 +698,7 @@ test('determinism: repeated replays, another grid cell size and an in-use grid.r
 test('no sim state changes: a query reads only (stateHash unchanged after thousands of queries)', async () => {
   const { stateHash } = await import('../src/sim/checksum');
   const ctx = createRun({ seed: 4, species: 'charmander' });
-  while (ctx.time < 20) step(ctx, botInput(ctx));
+  while (ctx.time < 20 && !ended(ctx)) step(ctx, botInput(ctx));
   const h0 = stateHash(ctx), out = new Contacts(), q = spatialQuery({ mask: SK_WORLD | SK_ACTOR, pierce: Infinity });
   for (let s = 0; s < 3000; s++) {
     const a = s * 0.37;
@@ -736,7 +708,7 @@ test('no sim state changes: a query reads only (stateHash unchanged after thousa
   assert.equal(stateHash(ctx), h0);
   // and stepping on afterwards matches a run that never queried
   const twin = createRun({ seed: 4, species: 'charmander' });
-  while (twin.time < 20) step(twin, botInput(twin));
+  while (twin.time < 20 && !ended(twin)) step(twin, botInput(twin));
   for (let t = 0; t < 300; t++) { step(ctx, botInput(ctx)); step(twin, botInput(twin)); }
   assert.equal(stateHash(ctx), stateHash(twin));
 });

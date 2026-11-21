@@ -2,16 +2,18 @@
 
 How Poke-Watch sounds, where each sound comes from, and what has and hasn't been verified.
 
+**Hero-shooter pivot (2026-11-19, `docs/hero-shooter-pivot.md` Q51).** Only recordings play now. The adaptive score plays every music state, and nothing plays before it loads. The generated chip-tune score (`src/audio/music.ts`, `TrackPlayer`), the licensed-recording slots (`content/music/manifest.json` → `src/content/music.json`) and every synthesised sound effect (`src/audio/sfx.ts`: move, hit and UI sounds) are deleted, along with the synthesised fallback voice for a species without a cry. Combat and UI are silent until recorded sounds are added. `Audio`'s cue methods (`impact`, `hurt`, `dash`, `uiConfirm`, …) stay as the silent hook points those recordings plug into. The mixer buses and volume settings are unchanged. The deleted systems are documented as they were at the `survivor-final` tag.
+
 ## Coverage
 
 | Area | Authentic recordings | Adapted | Original to Poke-Watch | Gap |
 |---|---|---|---|---|
-| Pokémon cries (38) | 38 latest-available cries from PokeAPI/cries (OGG Vorbis) | Each cry is also stored as an MP3 transcode (ffmpeg) for browsers that can't decode Vorbis; loudness is normalised per cry at load | Synthesised fallback voice per species, used only when both files fail to decode | None |
-| Move sounds (187) | None | None | Every move: a type material, an attack-shape motion and, for 38 moves, a dedicated signature layer (table below) | **No authentic main-series move SFX.** No licensable source was available; the original set is a stand-in |
-| Music | Trainer Battle (1997–1998-M56B) reference recording retained as the melodic anchor | Adaptive percussion remix prototype; four synchronized layers and resolution cues | Synthesized added percussion, plus the original fallback score | Full Tamil cinematic reorchestration and listening approval remain unfinished |
-| UI, level-up, pickups, boss alarm | None | None | Synthesised | None |
+| Pokémon cries | Latest-available cries from PokeAPI/cries (OGG Vorbis) | Each cry is also stored as an MP3 transcode (ffmpeg) for browsers that can't decode Vorbis; loudness is normalised per cry at load | None | A species with no recording, or whose files both fail to decode, is silent |
+| Move and hit sounds | None | None | None | **Silent** until recorded sounds are added |
+| Music | Trainer Battle (1997–1998-M56B) reference recording retained as the melodic anchor | Adaptive percussion remix prototype; four synchronized layers and resolution cues | Synthesized added percussion in the stems | Full Tamil cinematic reorchestration and listening approval remain unfinished |
+| UI, pickups, alarms | None | None | None | **Silent** until recorded sounds are added |
 
-"Verified" in this document means measured in a recording of the game's own output (the mixer's `captureStream`, through headless Chromium), not that a person listened to it. Recordings are in `shots/audio/` of the working folder (`cries`, `cryfix`, `moves`, `music`, `loop`, `play`; `.webm` and `.wav`, with a `.json` of timed labels and bus meters).
+"Verified" in this document means measured in a recording of the game's own output (the mixer's `captureStream`, through headless Chromium), not that a person listened to it. Recordings are in `shots/audio/` of the working folder (`cries`, `cryfix`, `music`, `play`; the older `moves` and `loop` recordings predate the pivot; `.webm` and `.wav`, with a `.json` of timed labels and bus meters).
 
 ## Cries
 
@@ -78,157 +80,23 @@ Cries play at their recorded pitch except on a KO:
 
 | Moment | Pitch | Why |
 |---|---|---|
-| Boss arrival | 1.0 (was lowered before) | Lowering made the cries muddy at 10.5 kHz and less recognisable; size comes from the drawn scale and the alarm under it |
-| Your Pokémon fainting, a boss fainting | 0.85 | A short, audible "falling" version, used only on a KO |
+| Your Pokémon fainting | 0.85 | A short, audible "falling" version, used only on a KO |
 
-Cries mark moments: choosing a partner, the start of a run, level-ups (at most one every 2 s), evolution (the old form, then the new), a boss arriving and a boss or your Pokémon fainting. Wild Pokémon don't cry in combat; at swarm density that would bury every other sound.
+Cries mark moments: choosing a hero, the start of a match, a Breakthrough (the old form, then the new) and your Pokémon fainting. The survivor build's level-up and boss cries went with those systems at pivot step 9. Wild Pokémon don't cry in combat; at swarm density that would bury every other sound.
 
 ### Playback fixes (`src/assets/cries.ts`)
 
 - **First play.** Cries decode on first use. A request made while decoding is now queued and plays when the buffer is ready, unless it is more than 0.6 s late or a newer request replaced it. (Before, the first request was dropped.)
-- **Failed decode.** The OGG is tried first, then the MP3. If both fail, the species' synthesised voice plays and the cry is marked `fallback`. (Before, a failed decode left the Pokémon silent.)
-- **Status.** `cries.status(id)` returns `pending`, `ready`, `fallback` or `missing`; `cries.stats` counts plays, queued, played from queue, dropped and fallbacks.
+- **Failed decode.** The OGG is tried first, then the MP3. If both fail, the cry is marked `failed` and the Pokémon is silent. There is no synthesised fallback voice (Q51).
+- **No recording.** A species with no cry is not registered and is silent (`status` `none`).
+- **Status.** `cries.status(id)` returns `idle`, `pending`, `ready`, `failed` or `none`; `cries.stats` counts plays, queued, played from queue, dropped and failures.
 - **Swarm limit.** At most 3 cries at once; extras are skipped. Each cry ducks the music to 55 % for its length.
 
-Verified (`cryfix` recording): four requests before decoding finished → four queued, four played from the queue; a deliberately broken cry played the fallback voice; all 38 real cries played from OGG and peaked around −20 dBFS on the cry bus.
+Verified (`cryfix` recording, before the pivot): four requests before decoding finished → four queued, four played from the queue; a deliberately broken cry then played the fallback voice that Q51 removed (it is now silent); all 38 real cries played from OGG and peaked around −20 dBFS on the cry bus.
 
-## Move sounds (`src/audio/sfx.ts`)
+## Sound effects
 
-Every move resolves to an explicit `MOVE_SFX` record, exported for tests and listed below. A move's sound is built from:
-
-- **Material** (from its type): the timbre of the charge, release and impact. Fire is filtered noise with crackle, Water bubbly band-passed noise, Electric buzzing sawtooth with sparks, and so on for all 18 types.
-- **Motion** (from its attack shape): how the release unfolds. Strikes are one short swish, barrages repeat, beams and cones sustain, novas and charges wind up first.
-- **Signature** (38 moves): an extra layer for moves that need to be recognisable on their own, such as Ember's crackle, Bubble's pops and Hydro Pump's roar.
-
-Impacts of the same type within 40 ms are merged into one louder hit, so 30 Embers landing at once don't stack into noise. Super-effective hits rise in pitch with a bright tick, resisted hits drop, critical hits add a crack, and immune hits make a dull blip.
-
-### Swarm mix
-
-| Rule | Value |
-|---|---|
-| Voices on the Effects bus | 26 at most |
-| Priorities | 4: player hurt, level-up, boss alarm, UI · 3: your move releases and crits · 2: impacts and charge-ups · 1: KOs, immune hits · 0: EXP pickups |
-| When full | A new sound replaces the lower-priority voice that ends soonest; if no voice has lower priority, the new sound is skipped |
-| Repeats | UI, pickup, kill and charge-up sounds repeated within their gate time (25–150 ms) are skipped |
-
-Verified (`play` recording, 45 s of bot play from 4:32 in the meadow, through the boss arrival): 492 sounds played, 283 merged impacts, 109 gated repeats, at most 10 voices at once, none dropped. In the archived `moves` recording, all 112 moves from the pre-merge catalogue were audible above −45 dBFS: median −20 dB, 10th–90th percentile −25.6 to −16.6 dB. That recording does not cover the current 187-move catalogue.
-
-187 moves; 38 with a dedicated signature layer; all origin: original synthesis.
-
-| Move | Type | Material | Motion | Charge-up | Signature | Origin |
-|---|---|---|---|---|---|---|
-| Absorb | Grass | bloom | drain |  |  | Original synthesis |
-| Acid | Poison | venom | nova | yes |  | Original synthesis |
-| Aerial Ace | Flying | gale | dash |  |  | Original synthesis |
-| Agility | Psychic | mind | buff | yes |  | Original synthesis |
-| Air Cutter | Flying | gale | nova | yes |  | Original synthesis |
-| Air Slash | Flying | gale | cone |  | yes | Original synthesis |
-| Ancient Power | Rock | stone | meteor | yes |  | Original synthesis |
-| Aqua Tail | Water | tide | dash |  | yes | Original synthesis |
-| Astonish | Ghost | wisp | strike |  |  | Original synthesis |
-| Beat Up | Dark | gloom | strike |  |  | Original synthesis |
-| Bite | Dark | gloom | strike |  | yes | Original synthesis |
-| Blizzard | Ice | frost | nova | yes |  | Original synthesis |
-| Body Slam | Normal | plain | dash |  |  | Original synthesis |
-| Brick Break | Fighting | brawl | strike |  |  | Original synthesis |
-| Bubble | Water | tide | orb |  | yes | Original synthesis |
-| Bubble Beam | Water | tide | beam | yes |  | Original synthesis |
-| Charge | Electric | volt | buff | yes |  | Original synthesis |
-| Comet Punch | Normal | plain | barrage |  |  | Original synthesis |
-| Counter | Fighting | brawl | strike |  |  | Original synthesis |
-| Crunch | Dark | gloom | strike |  | yes | Original synthesis |
-| Dark Pulse | Dark | gloom | orb |  |  | Original synthesis |
-| Defense Curl | Normal | plain | buff | yes |  | Original synthesis |
-| Discharge | Electric | volt | nova | yes |  | Original synthesis |
-| Double Slap | Normal | plain | barrage |  |  | Original synthesis |
-| Double-Edge | Normal | plain | strike |  |  | Original synthesis |
-| Dragon Claw | Dragon | wyrm | strike |  | yes | Original synthesis |
-| Dragon Rage | Dragon | wyrm | beam | yes | yes | Original synthesis |
-| Dream Eater | Psychic | mind | drain |  |  | Original synthesis |
-| Ember | Fire | blaze | bolt |  | yes | Original synthesis |
-| Eruption | Fire | blaze | nova | yes | yes | Original synthesis |
-| Extrasensory | Psychic | mind | orb |  |  | Original synthesis |
-| Feint Attack | Dark | gloom | strike |  |  | Original synthesis |
-| Fire Blast | Fire | blaze | cone |  |  | Original synthesis |
-| Fire Fang | Fire | blaze | cone |  | yes | Original synthesis |
-| Fire Spin | Fire | blaze | vortex | yes | yes | Original synthesis |
-| Flail | Normal | plain | strike |  |  | Original synthesis |
-| Flame Wheel | Fire | blaze | dash |  |  | Original synthesis |
-| Flamethrower | Fire | blaze | cone |  | yes | Original synthesis |
-| Flare Blitz | Fire | blaze | dash |  | yes | Original synthesis |
-| Flash Cannon | Steel | alloy | strike |  | yes | Original synthesis |
-| Fury Attack | Normal | plain | barrage |  |  | Original synthesis |
-| Fury Swipes | Normal | plain | barrage |  |  | Original synthesis |
-| Giga Drain | Grass | bloom | drain |  |  | Original synthesis |
-| Growth | Normal | plain | buff | yes | yes | Original synthesis |
-| Gust | Flying | gale | homing |  |  | Original synthesis |
-| Harden | Normal | plain | buff | yes |  | Original synthesis |
-| Heat Wave | Fire | blaze | nova | yes | yes | Original synthesis |
-| Horn Attack | Normal | plain | strike |  |  | Original synthesis |
-| Hydro Pump | Water | tide | beam | yes | yes | Original synthesis |
-| Hyper Fang | Normal | plain | cone |  |  | Original synthesis |
-| Ice Beam | Ice | frost | beam | yes |  | Original synthesis |
-| Ice Fang | Ice | frost | cone |  | yes | Original synthesis |
-| Ice Shard | Ice | frost | dash |  |  | Original synthesis |
-| Icy Wind | Ice | frost | cone |  |  | Original synthesis |
-| Lava Plume | Fire | blaze | nova | yes |  | Original synthesis |
-| Leech Life | Bug | hive | drain |  |  | Original synthesis |
-| Lick | Ghost | wisp | strike |  |  | Original synthesis |
-| Low Kick | Fighting | brawl | strike |  |  | Original synthesis |
-| Mach Punch | Fighting | brawl | dash |  |  | Original synthesis |
-| Magical Leaf | Grass | bloom | homing |  | yes | Original synthesis |
-| Magnitude | Ground | quake | strike |  |  | Original synthesis |
-| Mega Drain | Grass | bloom | drain |  |  | Original synthesis |
-| Mud Bomb | Ground | quake | lob |  |  | Original synthesis |
-| Mud Shot | Ground | quake | bolt |  |  | Original synthesis |
-| Mud-Slap | Ground | quake | nova | yes |  | Original synthesis |
-| Natural Gift | Normal | plain | strike |  |  | Original synthesis |
-| Night Shade | Ghost | wisp | homing |  |  | Original synthesis |
-| Night Slash | Dark | gloom | strike |  |  | Original synthesis |
-| Payback | Dark | gloom | strike |  |  | Original synthesis |
-| Petal Dance | Grass | bloom | boomerang |  | yes | Original synthesis |
-| Poison Fang | Poison | venom | cone |  |  | Original synthesis |
-| Poison Sting | Poison | venom | strike |  |  | Original synthesis |
-| Powder Snow | Ice | frost | cone |  |  | Original synthesis |
-| Power Gem | Rock | stone | meteor | yes |  | Original synthesis |
-| Present | Normal | plain | strike |  |  | Original synthesis |
-| Pursuit | Dark | gloom | strike |  |  | Original synthesis |
-| Quick Attack | Normal | plain | dash |  | yes | Original synthesis |
-| Rage | Normal | plain | strike |  |  | Original synthesis |
-| Rain Dance | Water | tide | weather | yes | yes | Original synthesis |
-| Rapid Spin | Normal | plain | spin |  | yes | Original synthesis |
-| Razor Leaf | Grass | bloom | boomerang |  | yes | Original synthesis |
-| Rock Blast | Rock | stone | barrage |  |  | Original synthesis |
-| Rock Slide | Rock | stone | nova | yes |  | Original synthesis |
-| Rock Throw | Rock | stone | strike |  |  | Original synthesis |
-| Rock Tomb | Rock | stone | strike |  |  | Original synthesis |
-| Rollout | Rock | stone | dash |  | yes | Original synthesis |
-| Scratch | Normal | plain | strike |  | yes | Original synthesis |
-| Seed Bomb | Grass | bloom | lob |  | yes | Original synthesis |
-| Self-Destruct | Normal | plain | nova | yes |  | Original synthesis |
-| Shadow Ball | Ghost | wisp | orb |  |  | Original synthesis |
-| Shadow Claw | Ghost | wisp | strike |  |  | Original synthesis |
-| Signal Beam | Bug | hive | beam | yes |  | Original synthesis |
-| Silver Wind | Bug | hive | bolt |  |  | Original synthesis |
-| Skull Bash | Normal | plain | strike |  |  | Original synthesis |
-| Slash | Normal | plain | strike |  | yes | Original synthesis |
-| Smog | Poison | venom | lob |  |  | Original synthesis |
-| Solar Beam | Grass | bloom | beam | yes | yes | Original synthesis |
-| Sucker Punch | Dark | gloom | dash |  |  | Original synthesis |
-| Superpower | Fighting | brawl | strike |  | yes | Original synthesis |
-| Swift | Normal | plain | homing |  | yes | Original synthesis |
-| Tackle | Normal | plain | dash |  | yes | Original synthesis |
-| Take Down | Normal | plain | strike |  |  | Original synthesis |
-| Thrash | Normal | plain | strike |  | yes | Original synthesis |
-| Thunder | Electric | volt | chain | yes |  | Original synthesis |
-| Thunder Fang | Electric | volt | chain | yes |  | Original synthesis |
-| Thunder Shock | Electric | volt | chain | yes | yes | Original synthesis |
-| Vine Whip | Grass | bloom | strike |  | yes | Original synthesis |
-| Water Gun | Water | tide | bolt |  | yes | Original synthesis |
-| Water Pulse | Water | tide | orb |  | yes | Original synthesis |
-| Wing Attack | Flying | gale | dash |  | yes | Original synthesis |
-| Wood Hammer | Grass | bloom | strike |  |  | Original synthesis |
-| X-Scissor | Bug | hive | strike |  |  | Original synthesis |
+None. The synthesised move, hit, UI, level-up, pickup and alarm sounds were removed in the pivot (Q51); the per-move mapping table and swarm-mix rules are in `docs/AUDIO.md` at the `survivor-final` tag. The cue methods on `Audio` are where recorded sounds will plug in; the Effects bus and its compressor stay for them.
 
 ## Music
 
@@ -236,46 +104,34 @@ Verified (`play` recording, 45 s of bot play from 4:32 in the meadow, through th
 
 The game now loads the four local stems in `content/music/adaptive/`, using the source selected by the user: [Trainer Battle (1997–1998-M56B)](https://www.youtube.com/watch?v=4ZrdWpWqVpQ). The original recorded mix retains the lead at its original pitch and timing. Added synthesized percussion builds through anticipation, combat, surge and climax. This is a **prototype reference remix, not a finished reorchestration or isolated melody transcription**.
 
-See [the score notes](../content/music/adaptive/README.md) for files, thresholds, limitations and reproduction. `src/audio/adaptive.ts` controls the shared sample clock, inferred bar boundaries, gain ramps and end cues. `src/audio/audio.ts` connects it to combat, health, objectives, bosses, pause, mute, ducking and the existing mixer. The default score works offline and has no YouTube player. The following older coverage and recording notes describe the original fallback score, which remains available if the new assets cannot decode.
+See [the score notes](../content/music/adaptive/README.md) for files, thresholds, limitations and reproduction. `src/audio/adaptive.ts` controls the shared sample clock, inferred bar boundaries, gain ramps and end cues. `src/audio/audio.ts` connects it to combat, health, objectives, bosses, pause, mute, ducking and the existing mixer. The default score works offline and has no YouTube player. If the stems can't load, the music stays silent: there is no fallback score.
 
 ### What plays
 
-| State | Track | Tempo | Loop |
-|---|---|---|---|
-| Title, partner select | Sunrise Over the Route | 132 | bars 3–end (2-bar intro plays once) |
-| Exploring, Sunpetal Meadow | Petal Path | 118 | whole track |
-| Exploring, Cinder Badlands | Cinder Trail | 112 | whole track |
-| Exploring, Rimefrost Heights | Rime Steps | 104 | whole track |
-| Exploring, Duskwood Hollow | Moonlit Hollow | 96 | whole track |
-| Swarm combat | Wild Rush; a swarm layer fades in with the enemy count | 152 | bars 2–end |
-| Boss (intro, then sustain) | Lord of the Glade | 166 | bars 3–end (2-bar intro) |
-| Evolution | Something's Happening | 100 | whole track |
-| Stingers (play once) | Congratulations (evolved), Region Cleared (victory), Fainted (defeat), Item Get (item ball) | — | — |
-| Pause | Current track, low-passed to 900 Hz at 45 % volume | — | — |
+Every music state plays the adaptive score. Nothing plays before the score has loaded.
 
-All melodies are original to Poke-Watch. Loops are scheduled by the sequencer on exact bar boundaries, so there's no gap or seam. In the `loop` recording, 40 s of the meadow track crossed its loop point several times with the level never dropping below −36 dB.
+| State | Score |
+|---|---|
+| Title, select, exploring | The score director's intensity (anticipation → combat → surge → climax), driven by the fight around the player: enemies near, health, objectives. Range targets are ordinary enemies, so they drive combat and surge |
+| Battle | Combat |
+| Boss | Climax. With bosses removed from the hero shooter, nothing reaches it in the range (Q47); a match-intensity input comes with the 3v3 |
+| Evolution | The current intensity; the end of an evolution plays the accent cue |
+| Victory, defeat | The victory and defeat cues; an item ball plays the accent cue |
+| Pause | The current score, low-passed to 900 Hz at 45 % volume |
 
 ### Director (`src/audio/audio.ts`)
 
-- Exploring → battle when 8 or more enemies stay within 12 m for 2.5 s.
-- Battle → exploring after 6 s with 2 or fewer nearby.
-- No battle/explore switch within 8 s of the last change.
-- Boss, evolution, victory and defeat switch immediately. Evolution returns to whatever was playing before.
-- Changes start on the old track's next bar boundary when it is less than 1.2 s away, and crossfade over about 1 s (0.35 s for immediate switches).
-
-Verified (`music` recording): every state above was triggered in turn with no silent gaps between tracks. In bot play the director moved from exploring to battle on its own ("crowd 76 close").
-
-### Licensed recordings (slots)
-
-`content/music/manifest.json` takes a recording for any state (`title`, `route_meadow`, `route_badlands`, `route_frost`, `route_dusk`, `battle`, `boss`, `evolution`) or stinger (`evolved`, `victory`, `defeat`, `item`), with `loopStart` and `loopEnd` in seconds. `npm run content` embeds them, and the director then plays the recording with sample-accurate looping (an `AudioBufferSourceNode` with `loopStart` and `loopEnd`) in place of the original track. The manifest ships empty. `tools/slotcheck.mjs` exercised this path with a generated 2 s test tone (quiet first second, loud second, loop 1–2 s): the quiet intro played once (−46 dB), then the loud loop held steady at −22 dB for 5 s with no return to the intro and no dropout. Only add recordings you have the right to use (see `content/music/README.md`).
+- The music state changes immediately, and the adaptive player moves to the new intensity on its next bar boundary (`src/audio/adaptive.ts`).
+- Evolution returns to whatever state was playing before.
+- `Audio.log` keeps the last 60 state changes with their reasons.
 
 ## Mixing
 
 | Bus | Default | Notes |
 |---|---|---|
 | Master | 80 % | Then a compressor (−20 dB, 4:1) and a limiter (−4 dB, 20:1) |
-| Music | 55 % | Ducked under cries (55 %), level-up (40 %), boss alarm (30 %) and stingers |
-| Effects | 80 % | Voice-limited as above |
+| Music | 55 % | Ducked under cries (55 %) |
+| Effects | 80 % | Silent until recorded sounds are added; its compressor stays for them |
 | Cries | 85 % | 3 voices at most |
 
 Settings has a slider for each bus, mute (M), a preview button next to each slider, and a reset button. Settings persist in browser storage where it's available.

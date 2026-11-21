@@ -11,6 +11,7 @@ import { NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import { craterChecks, fieldOf, gorgeChecks, mk, strippedChecks, type Check } from '../scripts/habstate';
 
+import { RANGE } from '../src/mods';
 const verify = (cs: Check[]) => { for (const c of cs) assert.ok(c.ok, `${c.recipe} ${c.id} [${c.coverage}] ${c.transition}: ${c.detail}`); };
 
 // seeds with a vent field of different sizes (4 tiles to 27) and with the river's two reaches
@@ -106,7 +107,7 @@ test('hazards off: ice that opens under the trainer on a classic region puts the
 
 test('hazards on: ice that opens under the trainer on a classic region leaves them in the water where they stood, and the exposure rule decides', () => {
   for (const [species, safe] of [['totodile', true], ['rattata', false]] as const) {
-    const ctx = createRun({ seed: 3, species, ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } }, director: { spawnBase: -99 } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } } as never });
     const W = ctx.world, P = ctx.player, c = (k: number): [number, number] => [(k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5];
     const k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water && W.isOpen(q - 1) && W.map.terrain[q - 1] !== T.water && W.isOpen(q - 2) && W.isOpen(q - 3))!;
     applyAgent(ctx, 'cold', ...c(k), 0.5);

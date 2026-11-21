@@ -34,7 +34,6 @@ export const AIM_SPECIES = ['cyndaquil', 'quilava', 'charizard', 'feraligatr', '
 function run(species: string, stage: number, seed = 1): SimContext {
   const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  ctx.rules.director.spawnBase = -99;
   return ctx;
 }
 
@@ -162,7 +161,7 @@ export function fightBlocked(species: string, stage: number, seed: number): Figh
   const P = ctx.player, E = ctx.enemies, rig = RIG.make();
   rig.snapTo(P.x, P.y, P.z, Math.PI);
   const T: FightTally = { aimed: 0, blocked: 0, onEnemy: 0, onEnemyBlocked: 0, onEnemyWorld: 0, steep: 0 };
-  for (let k = 0; k < 3600 && ctx.state !== 'over' && ctx.state !== 'victory'; k++) {
+  for (let k = 0; k < 3600 && ctx.state !== 'over'; k++) {
     let best = -1, bd = 900;
     for (let i = 0; i < E.hi; i++) if (E.alive[i]) { const d = (E.x[i] - P.x) ** 2 + (E.z[i] - P.z) ** 2; if (d < bd) { bd = d; best = i; } }
     if (best >= 0) {
@@ -172,7 +171,6 @@ export function fightBlocked(species: string, stage: number, seed: number): Figh
     }
     const v = rig.sample(1280, 720), aim = RIG.chaseAim(v, P.x, P.z, v.aspect, (x, z) => ctx.world.height(x, z));
     const inp: InputFrame = { ...botInput(ctx), aim: aimRayOf(v), aimDev: 'mouse', aimX: aim[0], aimZ: aim[1] };
-    if (ctx.cards.offer) inp.card = { action: 'pick', index: 0 };
     step(ctx, inp);
     rig.update(RIG.chaseFrame(ctx, { dt: 1 / 60, x: P.x, y: P.y, z: P.z, lookPitch: 0 }));
     const a = ctx.aim;

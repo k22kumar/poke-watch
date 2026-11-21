@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { defaultRules } from '../src/rules/defaults';
 import { HAB } from '../src/rules/habitats';
-import { habitatSpawnFactor } from '../src/rules/profiles';
 import { STAGES } from '../src/rules/stages';
 import { startStage, createRun } from '../src/sim/run';
 import { applyAgent, footing } from '../src/sim/cells';
@@ -10,14 +9,6 @@ import { generateRegion } from '../src/world/gen';
 import { T } from '../src/world/tiles';
 
 const GENERATED = { ...defaultRules.worldgen, mode: 'generated' as const };
-
-test('local habitat favors native encounters without excluding visitors', () => {
-  assert.equal(habitatSpawnFactor('poliwag', HAB.water), 2);
-  assert.equal(habitatSpawnFactor('geodude', HAB.water), 0.55);
-  assert.equal(habitatSpawnFactor('geodude', HAB.rock), 2);
-  assert.equal(habitatSpawnFactor('unlisted', HAB.water), 1);
-  assert.equal(habitatSpawnFactor('poliwag', 0), 1);
-});
 
 test('all generated regional rosters have reachable habitat and biome-specific traversal', () => {
   const ctx = createRun({ seed: 431, species: 'squirtle', ruleOverrides: { worldgen: GENERATED } as never });
@@ -31,7 +22,7 @@ test('all generated regional rosters have reachable habitat and biome-specific t
   for (let stage = 0; stage < STAGES.length; stage++) {
     startStage(ctx, stage);
     const def = STAGES[stage], map = generateRegion({
-      biome: def.biome, seed: 431, species: [...def.spawns.map(([id]) => id), ...def.elites],
+      biome: def.biome, seed: 431,
     });
     assert.ok(map.gen?.gates.every((gate) => gate.ok), `${def.biome} generation gates`);
     assert.ok(map.gen?.habitat.some((habitat) => habitat !== 0), `${def.biome} has tagged habitat`);

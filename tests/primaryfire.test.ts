@@ -18,10 +18,11 @@ import { datan2 } from '../src/core/detmath';
 import { BTN, NO_INPUT, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
 import type { DeepPartial } from '../src/core/util';
 
+import { RANGE } from '../src/mods';
 const WIN = Math.round(defaultRules.combat.fireBuffer[0] * 60); // the default window in ticks (9)
 
 function calm(species: string, rules: DeepPartial<Rules> = {}): { ctx: SimContext; aim: Partial<InputFrame> } {
-  const ctx = createRun({ seed: 3, species, ruleOverrides: { ...rules, director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { ...rules } as never });
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
   const P = ctx.player;
   const [ex, ez] = ctx.world.nearestWalkable(P.x + 5, P.z);
@@ -213,7 +214,7 @@ test('a modal state that outlasts the bound expires the queued press; a pause (n
     const { ctx, aim, G } = fired('cyndaquil');
     const at = G - 1 - 6;
     run(ctx, [...idle(aim, at), tap(aim)]);
-    ctx.state = 'evolving'; ctx.stateTimer = 99;
+    ctx.state = 'dead'; ctx.stateTimer = 99; // a modal state: the moves system does not tick (evolution is no longer one)
     run(ctx, idle(aim, 40)); // the sim's tick runs, the moves do not
     ctx.state = 'play';
     const log = run(ctx, idle(aim, 60));
@@ -298,7 +299,7 @@ test('damage per second: mashing equals holding, a slow tap rate is never booste
 /** a private flat plain (tile walls editable), the partner at tile (50, 50), one move, one still enemy `dist` m away at
  *  `off` degrees right of a due-+z aim */
 function assistScene(move: string, dev: InputFrame['aimDev'] | undefined, off: number, wall = false, dist = 6, rules: DeepPartial<Rules> = {}) {
-  const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { ...rules, director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'cyndaquil', ruleOverrides: { ...rules } as never });
   const W = new World(defaultRules, BIOMES.meadow, 5);
   const n = W.w * W.h, M = W.map;
   const map = { ...M, terrain: new Uint8Array(n), elev: new Float32Array(n), stairs: new Uint8Array(n), wall: new Uint8Array(n), platform: new Float32Array(n), over: new Float32Array(n), wlevel: undefined };

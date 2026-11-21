@@ -1,6 +1,6 @@
 // Measurement axis: what a species' listed extent (PokéAPI `height`, decimetres) measures. The listed figure is the
 // standing height for most bodies, but the length along the body for serpents and fish, so a 8.8 m Onix is not
-// 8.8 m tall. docs/SIZING.md "Measurement axis" has the rationale; rules.size.axis turns its use on.
+// 8.8 m tall. docs/SIZING.md "Measurement axis" has the rationale.
 //
 // The axis comes from the official body shape (`pokemon_species.shape_id` -> `pokemon_shapes.identifier`), which the
 // content build carries into `canon.shape`. SHAPE_AXIS decides the axis, so a new shape or a new generation needs a

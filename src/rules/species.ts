@@ -49,7 +49,7 @@ export interface SpeciesDef {
   // enemy-only
   /** a wild roster entry (content/roster.json `wild`), whether or not it names its role */
   wild?: boolean;
-  /** the roster wave it joined with (content/roster.json; rules.spawning.waves can turn a wave off) */
+  /** the roster wave it joined with (content/roster.json; data only since the spawn pools were deleted) */
   wave?: string;
   /** `rule`: behaviour and flight came from the default role rule (src/rules/roles.ts), not the roster entry */
   roleFrom?: 'rule';
@@ -58,7 +58,6 @@ export interface SpeciesDef {
   boss?: { attacks: BossAttack[]; phaseHp: number[]; summon?: string; title: string };
 }
 
-import { Rng, streamSeed } from '../core/rng';
 
 export const bst = (s: Stats) => s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
 
@@ -100,21 +99,10 @@ export function starterEligibleSpecies(): SpeciesDef[] {
   return out;
 }
 
-/** Deterministic random offer of starter candidates for a run, with one mulligan available in the menu. */
-export function starterChoices(seed: number, count = 3): string[] {
-  const pool = starterEligibleSpecies();
-  if (!pool.length) return [];
-  const rng = new Rng(streamSeed(seed, 'starter-pick'));
-  const shuffled = [...pool];
-  rng.shuffle(shuffled);
-  return shuffled.slice(0, Math.min(count, shuffled.length)).map((sp) => sp.id);
-}
-
 /** Weight class 0-4 from PokéAPI kilograms: Weightless < 1 kg, Light < 10, Medium < 50, Heavy < 200, Massive.
- *  Bosses count one class heavier. It decides what a Pokémon can Guard against and what can move it. */
-export function weightClass(sp: SpeciesDef, boss = false): number {
+ *  It decides what a Pokémon can Guard against and what can move it. */
+export function weightClass(sp: SpeciesDef): number {
   const kg = sp.canon?.weightKg ?? 20;
-  const c = kg < 1 ? 0 : kg < 10 ? 1 : kg < 50 ? 2 : kg < 200 ? 3 : 4;
-  return Math.min(4, c + (boss ? 1 : 0));
+  return kg < 1 ? 0 : kg < 10 ? 1 : kg < 50 ? 2 : kg < 200 ? 3 : 4;
 }
 export const WEIGHT_NAMES = ['Weightless', 'Light', 'Medium', 'Heavy', 'Massive'] as const;

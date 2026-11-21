@@ -1,5 +1,5 @@
 // Tactical Hold evaluation on habitat maps, through the real sim: the real Hold objective, the real Raid party (spawned
-// at team B's staging when the Hold activates), the squad, and the director's ordinary horde. The trainer is driven by
+// at team B's staging when the Hold activates), the squad, and a chasing crowd of 120 (scripts/lib/crowd.ts; the survivor director's horde until pivot step 9). The trainer is driven by
 // a scripted controller (route following + the balance bot's move buttons, Tag and cards), so the numbers are
 // reproducible but they are NOT a human's: read them as "what a competent committed player would meet".
 //
@@ -15,8 +15,7 @@
 import { writeFileSync } from 'node:fs';
 import { createRun, startStage, step } from '../src/sim/run';
 import { startObjective } from '../src/sim/objectives';
-import { addMember } from '../src/sim/squad';
-import { gainXp } from '../src/sim/progression';
+import { addLoadoutMember } from '../src/sim/squad';
 import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
 import { STAGES } from '../src/rules/stages';
@@ -25,6 +24,8 @@ import { clearance } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE, swap } from '../src/mods';
+import { crowd } from './lib/crowd';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const flag = (k: string) => process.argv.includes(k);
 
@@ -165,11 +166,9 @@ export function playHold(o: TacOpts): TacResult {
   const stage = o.stage ?? (isHab ? biomeStage(HABITATS[map].biomeFit[0]) : map === 'viridian-forest' ? biomeStage('meadow') : map === 'mt-moon' ? biomeStage('dusk') : 0);
   const horde = o.horde ?? true;
   const locations: Record<string, string> = map === 'classic' ? { meadow: '', dusk: '', badlands: '', frost: '' } : { meadow: map, dusk: map, badlands: map, frost: map };
-  const ctx = createRun({ seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, ...(horde ? {} : { director: { spawnBase: -99 } }), ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
+  const ctx = createRun({ mode: horde ? undefined : RANGE, mods: horde ? [swap, crowd(120)] : [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}), hero: { loadout: 3 } } as never });
   if (stage) startStage(ctx, stage);
-  const level = o.level ?? 10;
-  for (let i = 1; i < level; i++) gainXp(ctx, ctx.player.xpNext - ctx.player.xp + 0.01);
-  for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addMember(ctx, id);
+  for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addLoadoutMember(ctx, id);
   ctx.player.hp = ctx.player.maxHp;
   for (const m of ctx.player.squad) m.hp = m.maxHp;
   const W = ctx.world, H = W.hab, E = ctx.enemies, P = ctx.player, n = W.w * W.h;
@@ -190,9 +189,9 @@ export function playHold(o: TacOpts): TacResult {
   let stageB: [number, number] | null = null, contest: [number, number] | null = null, rC = 5;
   if (H) { stageB = [H.stage.B[0], H.stage.B[1]]; contest = [H.contest.x, H.contest.y]; rC = H.contest.r; }
   const dead = () => ctx.state === 'dead' || ctx.state === 'over';
-  const tick = (inp: InputFrame) => { step(ctx, inp); if (ctx.cards.offer) step(ctx, { ...NO_INPUT, card: { action: 'skip', index: 0 } }); };
+  const tick = (inp: InputFrame) => { step(ctx, inp); };
 
-  // 1. warm-up: the squad holds its start, fighting what the director sends (the horde is part of the situation)
+  // 1. warm-up: the squad holds its start, fighting the crowd (the horde is part of the situation)
   const sx = P.x, sz = P.z, warm = o.warm ?? 100;
   while (ctx.time < warm && !dead()) tick(leash(ctx, sx, sz, 5));
   if (dead()) { res.hold = 'wiped'; res.note = 'wiped in warm-up'; return res; }

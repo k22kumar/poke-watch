@@ -25,8 +25,12 @@ export const BODY_TEMPLATES: Record<string, BodyTemplate> = {
   // loose rocks lying on the route; Medium, so Power 2 moves (Flame Wheel, Take Down, Bite…) roll them
   rock: { type: 'stone', weight: 2, radius: 0.7, integrity: 60, friction: 3.2, life: Infinity, breaksInto: { template: 'rubble', count: 2, speedKeep: 0.6 }, sprite: 'bodyRock', scale: 1.5 },
   // shrapnel from a break; Light, so anything with Power 1 can fling it
-  // the Transport objective's egg: Medium (Power 2 pushes it), unbreakable, carried by walking into it
+  // an egg: Medium (Power 2 pushes it), unbreakable, carried by walking into it (src/sim/carry.ts; the Transport
+  // objective's, until Transport was deleted at pivot step 9)
   egg: { type: 'plain', weight: 2, radius: 0.6, integrity: 0, friction: 5, life: Infinity, sprite: 'bodyEgg', scale: 1.2 },
   rubble: { type: 'stone', weight: 1, radius: 0.4, integrity: 12, friction: 6, life: 5, sprite: 'rockChunk', scale: 1 },
+  // the training range's throwable (docs/RANGE.md): Light, so any hold move (Wrap, Psychic: Power 1+) picks it up and
+  // throws it, and unbreakable, so it stays to be thrown again. Last in the table: earlier kinds keep their index
+  cobble: { type: 'stone', weight: 1, radius: 0.45, integrity: 0, friction: 4, life: Infinity, sprite: 'rockChunk', scale: 1.4 },
 };
 export const BODY_KINDS = Object.keys(BODY_TEMPLATES);

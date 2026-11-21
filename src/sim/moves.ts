@@ -20,8 +20,6 @@ import { agentOf, applyAgent } from './cells';
 import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
 import { HEAD, assistSees, beamLength, combatFlags, launchHeading, resolveSpatial, shotReach, spatialFor } from './aim';
 import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
-import { TB } from '../rules/build';
-import { tech, techSpec } from './techniques';
 import { AG } from '../rules/reactions';
 
 export function classify(m: MoveData): string {
@@ -120,11 +118,10 @@ export function enemiesInRadius(ctx: SimContext, x: number, z: number, r: number
 }
 export const hitScratch = scratch;
 
-/** coat depth of the cast in progress: slot 0 (the basic attack) coats light, every other slot deep
- *  (Phase 8b: 0 for the basic attack under Catalyst) */
+/** coat depth of the cast in progress: slot 0 (the basic attack) coats light, every other slot deep */
 let castDepth = 1;
 export function setCastDepth(d: number) { castDepth = d; }
-/** Phase 8b: an extra agent the cast in progress carries (Slipstream's copied coat; 0 none) */
+/** an extra agent the cast in progress carries (0 none: nothing sets one since the build layer went) */
 let castExtra = 0;
 /** the coat depth a cast applies: the slot's, unless the move always coats light or deep (Scatter, Searing);
  *  a basic attack under Catalyst applies no light coat */
@@ -157,7 +154,7 @@ function aoe(ctx: SimContext, x: number, z: number, r: number, spec: MoveSpec, d
   // Phase 8a: enemy shots in the area are pushed away (deflected) or caught, by the same rule as bodies
   shotsInCircle(ctx, spec, x, z, r, outward ? x : P.x, outward ? z : P.z);
   // W4: trees, bushes and rocks in the area: a Push of their Weight breaks them, weaker pushes chip them
-  if (ctx.rules.surfaces.enabled) { const pp = pushPower(spec); if (pp) forceOnPropsIn(ctx, x, z, r, pp, dmg, spec.element); }
+  { const pp = pushPower(spec); if (pp) forceOnPropsIn(ctx, x, z, r, pp, dmg, spec.element); }
   return n;
 }
 
@@ -837,18 +834,16 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   const t = AIM.t;
   if (t < 0 && !AIM.manual) return false;
   if (A3.on) {
-    // Phase 2B: from the muzzle toward the crosshair point, in 3D. R2 (rules.aim.poleSafe): a fan turns in the plane
+    // Phase 2B: from the muzzle toward the crosshair point, in 3D. R2 pole-safe aim: a fan turns in the plane
     // perpendicular to the launch direction u, about u's local up: u cos + r sin, r = the horizontal right of u's heading
-    // (launchHeading), so each shot is `off` from u at any pitch. Level, this is the Phase 2B fan. Pre-R2: turned about
-    // the vertical with u's pitch kept, which shrank the spread toward the poles (20.6° level, 2.5° at 80°, audit F7)
-    const sp = s.spread ?? spread, pole = ctx.rules.aim.poleSafe;
+    // (launchHeading), so each shot is `off` from u at any pitch. Level, this is the Phase 2B fan
+    const sp = s.spread ?? spread;
     let rx = 0, rz = 0;
-    if (pole && s.count > 1) { launchHeading(ctx, A3.ux, A3.uz); rx = HEAD.z; rz = -HEAD.x; }
+    if (s.count > 1) { launchHeading(ctx, A3.ux, A3.uz); rx = HEAD.z; rz = -HEAD.x; }
     for (let k = 0; k < s.count; k++) {
       const off = (k - (s.count - 1) / 2) * sp;
       if (off === 0) spawnShot3D(ctx, s, A3.ux, A3.uy, A3.uz, slot);
-      else if (pole) { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + rx * n, A3.uy * c, A3.uz * c + rz * n, slot); }
-      else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + A3.uz * n, A3.uy, A3.uz * c - A3.ux * n, slot); }
+      else { const c = dcos(off), n = dsin(off); spawnShot3D(ctx, s, A3.ux * c + rx * n, A3.uy * c, A3.uz * c + rz * n, slot); }
     }
     p.facing = datan2(AIM.ux, AIM.uz);
     ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx: A3.tx, tz: A3.tz, key: s.key,
@@ -872,7 +867,6 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   return true;
 }
 
-const AB_PRESSURE = ABILITY_IDS.indexOf('pressure') + 1;
 
 /** true when slot i is a manual move (button-cast) under the current combat mode */
 export function isManual(ctx: SimContext, i: number): boolean {
@@ -889,9 +883,9 @@ export function needsButton(ctx: SimContext): boolean {
 export function slotSpec(ctx: SimContext, i: number): MoveSpec {
   const slot = ctx.player.moves[i];
   const s = levelled(ctx, slot);
-  if (!isManual(ctx, i)) return techSpec(ctx, s);
+  if (!isManual(ctx, i)) return s;
   const C = ctx.rules.combat;
-  return techSpec(ctx, { ...s, cd: s.cd * C.manualCdMult, dmg: s.dmg * C.manualDmgMult });
+  return { ...s, cd: s.cd * C.manualCdMult, dmg: s.dmg * C.manualDmgMult };
 }
 
 export const movesSystem = {
@@ -906,14 +900,10 @@ export const movesSystem = {
     const btn = raw & tagMask;
     // Phase 3: the presses (rising edges) of this sample; only these can queue a cast (rules.combat.fireBuffer)
     const press = (ctx.input.press ?? 0) & tagMask;
-    // Pressure (Articuno): within 12 m, cooldowns recover 15% slower (there is no PP to drain)
-    let pressure = 1;
-    { const E = ctx.enemies, b = ctx.director.bossIndex; if (b >= 0 && E.alive[b] && E.ability[b] === AB_PRESSURE && dhypot(E.x[b] - p.x, E.z[b] - p.z) < 12) pressure = 0.85; }
     if (p.paraT > 0) p.paraT -= dt;
-    const catalyst = tech(ctx, TB.catalyst);
     for (let i = 0; i < p.moves.length; i++) {
       const slot = p.moves[i];
-      castDepth = i === 0 ? (catalyst ? 0 : 1) : 2;
+      castDepth = i === 0 ? 1 : 2;
       setCastSlot(i);
       // a slot cast by its button (every slot outside 'auto' mode) is player-aimed: it fires along the aim even with
       // no enemy there; an automatic one (or the basic attack under basicNeedsTarget) waits for a target.
@@ -933,7 +923,7 @@ export const movesSystem = {
       if (slot.queued !== undefined && (raw & BTN.sig) && bit !== BTN.sig) dropQueued(ctx, slot, i, 'cancel');
       // carrying the Transport egg: only the basic attack (Move A and B wait, still cooling)
       if (ctx.player.carrying && i > 0) {
-        if (slot.cd > 0) slot.cd -= dt * pressure;
+        if (slot.cd > 0) slot.cd -= dt;
         slot.windup = undefined;
         if (slot.queued !== undefined) dropQueued(ctx, slot, i, 'cancel');
         if (pressed) ctx.events.push({ t: 'fireDropped', slot: i, why: 'cancel', wait: 0 });
@@ -945,17 +935,17 @@ export const movesSystem = {
         const w = ctx.rules.feel.windup[spec.archetype] ?? 0;
         if (slot.windup > 0) {
           // a press during the wind-up: ready after the rest of it and the refunded cooldown
-          if (pressed) offerQueue(ctx, slot, i, slot.windup + Math.max(0.05, spec.cd - w) / pressure, win);
+          if (pressed) offerQueue(ctx, slot, i, slot.windup + Math.max(0.05, spec.cd - w), win);
           continue;
         }
         slot.windup = 0;
         if (resolveAim(ctx, spec, aimed, i === 0) && fire(ctx, impl, spec, i)) slot.cd = Math.max(0.05, spec.cd - w);
         else slot.cd = 0.1;
-        if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win);
+        if (pressed) offerQueue(ctx, slot, i, slot.cd, win);
         continue;
       }
-      if (slot.cd > 0) slot.cd -= dt * pressure;
-      if (slot.cd > 0) { if (pressed) offerQueue(ctx, slot, i, slot.cd / pressure, win); continue; }
+      if (slot.cd > 0) slot.cd -= dt;
+      if (slot.cd > 0) { if (pressed) offerQueue(ctx, slot, i, slot.cd, win); continue; }
       // button-cast slots wait, ready, until their button is held (holding repeats on cooldown; releasing starts
       // nothing new, though a wind-up already under way still lands) or a buffered press is queued (it casts once)
       const fromQueue = slot.queued !== undefined;
@@ -995,7 +985,7 @@ export const movesSystem = {
  *  the HUD (ctx.aim): what the crosshair rests on, the muzzle, and whether cover stands between. Presentation only */
 function presentAim(ctx: SimContext) {
   const p = ctx.player;
-  if (!ctx.rules.aim.spatial || !ctx.input.aim || ctx.state !== 'play') return;
+  if (!ctx.input.aim || ctx.state !== 'play') return;
   for (let i = 0; i < p.moves.length; i++) {
     const s = slotSpec(ctx, i);
     if (!ctx.rules.aim.archetypes.includes(s.archetype)) continue;
@@ -1019,18 +1009,11 @@ function dropQueued(ctx: SimContext, slot: MoveSlot, i: number, why: 'cancel' | 
   ctx.events.push({ t: 'fireDropped', slot: i, why, wait: 0 });
 }
 
-/** cast slot i (Phase 8b bookkeeping around the archetype: uses, Pressure Jet's root, Slipstream's copied coat) */
+/** cast slot i, then the move's self-root (MoveSpec.selfRoot) */
 function fire(ctx: SimContext, impl: Archetype, spec: MoveSpec, i: number): boolean {
-  const p = ctx.player;
-  const slip = (i === 1 || i === 2) && p.slipAg > 0 ? p.slipAg : 0;
-  castExtra = slip;
   const ok = impl.cast(ctx, spec, i);
-  castExtra = 0;
   if (!ok) return false;
-  const slot = p.moves[i];
-  if (slot) slot.uses = (slot.uses ?? 0) + 1;
-  if (spec.selfRoot) p.rootT = Math.max(p.rootT, spec.selfRoot);
-  if (slip) p.slipAg = 0;
+  if (spec.selfRoot) ctx.player.rootT = Math.max(ctx.player.rootT, spec.selfRoot);
   return true;
 }
 void AG;

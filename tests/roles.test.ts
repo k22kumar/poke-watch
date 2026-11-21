@@ -79,14 +79,16 @@ test('the roster: hand roles always win; every entry without a behaviour takes t
   const rule = SPECIES.filter((s) => s.roleFrom === 'rule');
   const count: Record<string, number> = {};
   for (const s of rule) count[s.behaviour!] = (count[s.behaviour!] ?? 0) + 1;
-  assert.deepEqual(count, { charger: 39, ranged: 50, chase: 33, tank: 32, healer: 6, swarm: 2 });
-  assert.equal(rule.filter((s) => s.flying).length, 39);
+  // + Tauros (charger), Mewtwo (ranged); the heroes wave: Graveler and Golem (tank), Bagon and Shelgon (chase), Salamence
+  // (charger, flying)
+  assert.deepEqual(count, { charger: 41, ranged: 51, chase: 35, tank: 34, healer: 6, swarm: 2 });
+  assert.equal(rule.filter((s) => s.flying).length, 40);
   assert.equal(SPECIES_BY_ID.dodrio.flying, undefined, 'Dodrio runs');
 });
 
 test('recruitable: false holds a species out of the squad, with a reason', () => {
-  assert.deepEqual(Object.keys(SPECIES_OVERRIDES).filter((id) => !isRecruitable(id)).sort(), ['eternatus', 'stakataka']);
-  for (const id of ['eternatus', 'stakataka']) assert.ok(SPECIES_OVERRIDES[id].recruitableReason, id);
+  assert.deepEqual(Object.keys(SPECIES_OVERRIDES).filter((id) => !isRecruitable(id)).sort(), ['eternatus', 'shedinja', 'stakataka']);
+  for (const id of ['eternatus', 'shedinja', 'stakataka']) assert.ok(SPECIES_OVERRIDES[id].recruitableReason, id);
   assert.ok(isRecruitable('wailord') && isRecruitable('rattata'));
   assert.equal(unrecruitableReason('rattata'), null);
   assert.match(unrecruitableReason('eternatus')!, /lens/, 'the developer roster shows the reason');

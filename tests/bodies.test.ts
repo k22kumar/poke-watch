@@ -8,10 +8,11 @@ import { createRun, step } from '../src/sim/run';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { BTN, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
 function calm(species = 'totodile'): SimContext {
-  const ctx = createRun({ seed: 4, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 4, species, ruleOverrides: { bodies: { looseRocks: 0 } } as never });
   for (let i = 0; i < 20; i++) step(ctx, NONE);
   return ctx;
 }
@@ -119,15 +120,3 @@ test('rocks are cover: enemy shots stop on them', () => {
   assert.equal(P.hp >= hp0 - 1e-6, true, 'no damage behind the rock');
 });
 
-test('Sudowoodo throws boulders that roll at the player', () => {
-  const ctx = createRun({ seed: 9, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bosses: { extraAttacks: { sudowoodo: ['boulder'] } } } as never });
-  steps(ctx, 10);
-  const P = ctx.player;
-  P.hp = P.maxHp = 1e6;
-  const [bx, bz] = ctx.world.nearestWalkable(P.x + 14, P.z);
-  const e = spawnEnemy(ctx, 'sudowoodo', bx, bz, 4);
-  ctx.director.bossIndex = e;
-  let thrown = 0;
-  for (let t = 0; t < 60 * 30 && thrown === 0; t++) { const ev = step(ctx, NONE); thrown += ev.filter((x) => x.t === 'throw').length; }
-  assert.ok(thrown > 0, 'a boulder was thrown');
-});

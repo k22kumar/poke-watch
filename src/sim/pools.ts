@@ -1,4 +1,4 @@
-// Struct-of-arrays pools with free lists (PokéBonk keeps enemies, projectiles, pickups
+// Struct-of-arrays pools with free lists (PokéBonk keeps enemies, projectiles
 // and particles this way; enemy capacity 2,200). Allocation-free during play.
 
 class FreeList {
@@ -20,9 +20,13 @@ class FreeList {
   }
 }
 
-/** role bits. Phase 7 roles (blueprint section 9): shielder = Bulwark (blocks shots in its front arc), healer =
- *  Mender, hexer lays deep agents on you and the ground, raider goes for the objective, hunt marks the Hunt target */
-export const ROLE = { elite: 1, alpha: 2, boss: 4, ranged: 8, flying: 16, healer: 32, shielder: 64, hexer: 128, raider: 256, swarm: 512, stampede: 1024, hunt: 2048 } as const;
+/** role bits: healer = the healer behaviour (heals what is near it), raider goes for the objective, target = a training
+ *  target. 64 and 128 were the Bulwark and the Hexer, 2048 the Hunt target (deleted at pivot step 9, Q20) */
+/** role bits on EnemyPool.roles. ranged, healer and swarm are the behaviour's own flags (spawnEnemy sets them from the
+ *  species' behaviour); flying from its traversal; raider and target from the spawner. Free bits: 1, 2, 4 (the elite,
+ *  alpha and boss roles), 64, 128 (Shielder, Hexer), 1024 (the stampede), 2048 (the Hunt target), all deleted at the
+ *  pivot (docs/hero-shooter-pivot.md) */
+export const ROLE = { ranged: 8, flying: 16, healer: 32, raider: 256, swarm: 512, target: 4096 } as const;
 
 export class EnemyPool {
   readonly cap: number;
@@ -37,7 +41,7 @@ export class EnemyPool {
   kx: Float32Array; kz: Float32Array;
   hp: Float32Array; maxHp: Float32Array;
   speed: Float32Array; dmg: Float32Array; radius: Float32Array; size: Float32Array;
-  /** vertical hit extent (rules/sizing.ts enemyHeight: class height × role size; the role size itself when size geometry is off) */
+  /** vertical hit extent (rules/sizing.ts enemyHeight: class height × role size) */
   tall: Float32Array;
   /** movement footprint (rules/sizing.ts footprintOf: the circle walls stop, World.moveBody; 0 = point collision) */
   foot: Float32Array;
@@ -50,7 +54,7 @@ export class EnemyPool {
   state: Uint8Array; stateT: Float32Array; tx: Float32Array; tz: Float32Array;
   burn: Float32Array; poison: Float32Array; sleep: Float32Array; root: Float32Array;
   confuse: Float32Array; chill: Float32Array; stun: Float32Array; dot: Float32Array;
-  facing: Float32Array; animT: Float32Array; xp: Float32Array; hover: Float32Array; spawnT: Float32Array;
+  facing: Float32Array; animT: Float32Array; hover: Float32Array; spawnT: Float32Array;
   bossPhase: Uint8Array;
   sx: Float32Array; sz: Float32Array;
   /** index into ABILITY_IDS (+1; 0 = none) and per-enemy ability state (Flash Fire armed, Sturdy spent) */
@@ -61,8 +65,6 @@ export class EnemyPool {
   frozen: Float32Array; blind: Float32Array;
   /** crowd-control meter (s of stun / freeze / root, decaying) and immunity left */
   ccAcc: Float32Array; ccImmune: Float32Array;
-  /** Bulwark shield down (s left; a Fighting hit or a push breaks it) */
-  guardDown: Float32Array;
   /** Phase 8b Lasso: s left suspended in front of the holder, the hold's Power and the button that keeps it */
   heldT: Float32Array; heldP: Uint8Array; heldBtn: Uint8Array;
   /** liquid exposure (sim/hazards.ts): liquid kind (0 none, 1 water, 2 lava), s exposed, damage carried below a whole
@@ -83,13 +85,12 @@ export class EnemyPool {
     this.state = new Uint8Array(cap); this.stateT = F(); this.tx = F(); this.tz = F();
     this.burn = F(); this.poison = F(); this.sleep = F(); this.root = F();
     this.confuse = F(); this.chill = F(); this.stun = F(); this.dot = F();
-    this.facing = F(); this.animT = F(); this.xp = F(); this.hover = F(); this.spawnT = F();
+    this.facing = F(); this.animT = F(); this.hover = F(); this.spawnT = F();
     this.bossPhase = new Uint8Array(cap);
     this.sx = F(); this.sz = F();
     this.ability = new Uint8Array(cap); this.abilityFlag = new Uint8Array(cap);
     this.coat = new Uint8Array(cap); this.coatDeep = new Uint8Array(cap); this.coatT = F(); this.coatIcd = F();
     this.frozen = F(); this.blind = F(); this.ccAcc = F(); this.ccImmune = F();
-    this.guardDown = F();
     this.heldT = F(); this.heldP = new Uint8Array(cap); this.heldBtn = new Uint8Array(cap);
     this.hzKind = new Uint8Array(cap); this.hzT = F(); this.hzAcc = F(); this.hzCue = F(); this.hzCueT = F(); this.hzX = F(); this.hzZ = F(); this.fallV = F();
   }
@@ -108,7 +109,6 @@ export class EnemyPool {
     this.ability[i] = 0; this.abilityFlag[i] = 0;
     this.coat[i] = 0; this.coatDeep[i] = 0; this.coatT[i] = 0; this.coatIcd[i] = 0;
     this.frozen[i] = 0; this.blind[i] = 0; this.ccAcc[i] = 0; this.ccImmune[i] = 0;
-    this.guardDown[i] = 0;
     this.heldT[i] = 0; this.heldP[i] = 0; this.heldBtn[i] = 0;
     this.hzKind[i] = 0; this.hzT[i] = 0; this.hzAcc[i] = 0; this.hzCue[i] = 0; this.hzCueT[i] = 0; this.fallV[i] = 0;
     return i;
@@ -266,37 +266,3 @@ export class ZonePool {
   }
 }
 
-export class PickupPool {
-  readonly cap: number;
-  private fl: FreeList;
-  count = 0;
-  hi = 0;
-  alive: Uint8Array;
-  x: Float32Array; y: Float32Array; z: Float32Array; value: Float32Array; kind: Uint8Array; magnet: Uint8Array; t: Float32Array;
-  constructor(cap: number) {
-    this.cap = cap;
-    this.fl = new FreeList(cap);
-    this.alive = new Uint8Array(cap);
-    this.x = new Float32Array(cap); this.y = new Float32Array(cap); this.z = new Float32Array(cap);
-    this.value = new Float32Array(cap); this.kind = new Uint8Array(cap); this.magnet = new Uint8Array(cap); this.t = new Float32Array(cap);
-  }
-  spawn(): number {
-    const i = this.fl.take();
-    if (i < 0) return -1;
-    this.alive[i] = 1;
-    this.count++;
-    if (i >= this.hi) this.hi = i + 1;
-    this.magnet[i] = 0;
-    this.t[i] = 0;
-    return i;
-  }
-  kill(i: number) {
-    if (!this.alive[i]) return;
-    this.alive[i] = 0;
-    this.count--;
-    this.fl.give(i);
-  }
-  clear() {
-    for (let i = 0; i < this.hi; i++) if (this.alive[i]) this.kill(i);
-  }
-}

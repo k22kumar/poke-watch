@@ -14,7 +14,8 @@ import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT } from '../src/sim/types';
 
-const CALM = { director: { spawnBase: -99, eliteEvery: 1e9, swarmEvery: 1e9 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } };
+import { RANGE } from '../src/mods';
+const CALM = { };
 const withRules = (o: object) => deepMerge(defaultRules, o as never) as Rules;
 /** run `fn` with extra SPECIES_OVERRIDES entries, restoring the table afterwards */
 function withOverrides(extra: typeof SPECIES_OVERRIDES, fn: () => void) {
@@ -119,7 +120,7 @@ test('template numbers come from the rules the accessor is given (cached per rul
 });
 
 test('the wild hover reads the hover row: height, spread and bob, no literals', () => {
-  const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { ...CALM, locomotion: { templates: { 'fixed-hover': { height: 2, step: 0, bob: 0 } } } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 3, species: 'cyndaquil', ruleOverrides: { ...CALM, locomotion: { templates: { 'fixed-hover': { height: 2, step: 0, bob: 0 } } } } as never });
   const P = ctx.player, W = ctx.world;
   const i = spawnEnemy(ctx, 'zubat', P.x + 3, P.z + 3);
   assert.equal(ctx.enemies.hover[i], 2);
@@ -133,7 +134,7 @@ test('player glide and wild hover are separate rows of one species', () => {
   const fall = (traversal?: string[]) => {
     let vy = 0;
     withOverrides(traversal ? { charizard: { traversal } } : {}, () => {
-      const ctx = createRun({ seed: 1, species: 'charizard', ruleOverrides: CALM as never });
+      const ctx = createRun({ mode: RANGE, seed: 1, species: 'charizard', ruleOverrides: CALM as never });
       const P = ctx.player;
       P.y = P.py = ctx.world.height(P.x, P.z) + 30; P.grounded = false; P.vy = 0;
       for (let k = 0; k < 60; k++) step(ctx, { ...NO_INPUT, jump: true });

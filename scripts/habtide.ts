@@ -32,7 +32,7 @@ import { startObjective } from '../src/sim/objectives';
 import { spawnEnemy } from '../src/sim/enemies';
 import { shoreFor, tidePhase } from '../src/sim/hazards';
 import { compileMove } from '../src/sim/moves';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember as addMember } from '../src/sim/squad';
 import { ROLE } from '../src/sim/pools';
 import { SPECIES } from '../src/rules/species';
 import { defaultRules } from '../src/rules/defaults';
@@ -43,6 +43,8 @@ import { enemyCore, pathBetween } from '../src/world/locgen/nav';
 import { T } from '../src/world/tiles';
 import { drive, playHabitat, routeTo } from './habplay';
 
+import { RANGE, swap } from '../src/mods';
+import { assertRunning, runEnded } from './lib/ended';
 export const RECIPE = 'tidal-cave';
 export interface Check { id: string; seed: number; coverage: 'static' | 'live'; ok: boolean; detail: string }
 type Tide = Partial<typeof defaultRules.habitat.tide>;
@@ -55,7 +57,7 @@ export function mkTide(seed: number, species = 'cyndaquil', tide?: Tide): SimCon
   return ctx;
 }
 function mkRaw(seed: number, species: string, tide?: Tide): SimContext {
-  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99 }, ...(tide ? { habitat: { tide } } : {}) } as never });
+  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, ...(tide ? { habitat: { tide } } : {}), hero: { loadout: 3 } } as never });
 }
 const ALWAYS_HIGH: Tide = { low: 0, warn: 0 };
 const ALWAYS_LOW: Tide = { low: 1e6 };
@@ -166,6 +168,7 @@ function raidParty(ctx: SimContext, budget = 40): { steps: number; tidal: number
   let steps = 0, tidal = 0, at: number | null = null, water = 0;
   ctx.hooks.onTick.push((c) => { for (const e of c.events) if (e.t === 'hazardHit' && e.who === 'enemy' && (c.enemies.roles[e.id] & ROLE.raider) && e.kind === 'water') water++; });
   while (ctx.time - t0 < budget && O.phase === 'active') {
+    assertRunning(ctx, 'habtide raid party');
     ctx.player.iframes = 1; ctx.player.hp = ctx.player.maxHp;
     for (let e = 0; e < E.hi; e++) if (E.alive[e] && !(E.roles[e] & ROLE.raider)) E.kill(e);
     step(ctx, NO_INPUT);
@@ -193,11 +196,13 @@ function walkOut(ctx: SimContext, budget: number): number | null {
   for (let v = 0; v < cl.length; v++) allow[v] = cl[v] >= 0.45 ? 1 : 0;
   const D = new Int32Array(n).fill(-1), Q = [here];
   D[here] = 0;
-  // (a tile whose neighbours are dry too: the driver stops within a metre of its goal, never on the waterline)
+  // (a tile whose neighbours are dry too, so the dry tile the driver stops on is never the waterline)
   const solid = (a: number) => !W.tide!.mask[a] && W.isOpen(a) && [1, -1, W.w, -W.w].every((o) => !W.tide!.mask[a + o] && W.isOpen(a + o));
   for (let h = 0; h < Q.length; h++) { const a = Q[h]; if (solid(a)) { best = pathBetween(m, here, a, allow); if (best) break; } const x = a % W.w, y = (a / W.w) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = (y + dy) * W.w + x + dx; if (D[b] < 0 && W.isOpen(b) && Math.abs(W.topOf(b) - W.topOf(a)) <= 0.6) { D[b] = D[a] + 1; Q.push(b); } } }
   if (!best) return null;
-  return drive(ctx, best, budget, { n: 0 });
+  // arrived only when standing on a dry tile: within 1.2 m of the goal can still be the tidal floor at a slow hero's
+  // speed (seed 7, 5.76 m/s: it stopped on a tidal tile and the flood caught it there)
+  return drive(ctx, best, budget, { n: 0 }, undefined, () => !ctx.world.tidalAt(ctx.player.x, ctx.player.z));
 }
 
 export function warningEscapeCheck(seed: number): Check {
@@ -283,6 +288,7 @@ function driveLine(ctx: SimContext, path: number[], budget: number): number | nu
   const P = ctx.player, t0 = ctx.time;
   let i = 0;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return null;
     quiet(ctx);
     while (i < path.length - 1) { const [x, z] = centre(ctx, path[i]); if (Math.hypot(x - P.x, z - P.z) < 0.9) i++; else break; }
     const [tx, tz] = centre(ctx, path[Math.min(path.length - 1, i + 1)]);

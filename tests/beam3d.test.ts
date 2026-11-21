@@ -19,7 +19,6 @@ import { spawnEnemy } from '../src/sim/enemies';
 import { spawnBody, tpl } from '../src/sim/bodies';
 import { compileMove, movesSystem, slotSpec } from '../src/sim/moves';
 import { stateHash } from '../src/sim/checksum';
-import { setTransform } from '../src/sim/build';
 import { MASK, QF, SK, SK_WORLD, segmentClear, solidAt } from '../src/sim/spatial';
 import { PROP_MATERIALS, MATERIALS } from '../src/rules/surfaces';
 import { BTN, NO_INPUT, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
@@ -59,7 +58,6 @@ interface Scene { ctx: SimContext; W: World; P: V3 }
 /** the partner at the centre of tile (50, 50) facing +z, its only move an Ice Beam (range 15, half-width 0.9, pierce all) */
 function scene(opts: { species?: string; rules?: DeepPartial<Rules>; move?: string; edit?: (W: World) => void } = {}): Scene {
   const ctx = createRun({ seed: 1, species: opts.species ?? 'cyndaquil', ruleOverrides: opts.rules });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld();
   opts.edit?.(W);
   ctx.world = W;
@@ -539,17 +537,3 @@ test('determinism and the flag: a scripted beam replay is identical twice; with 
   assert.ok(off.beams.every((s) => JSON.parse(s).y1 === undefined), 'planar beams');
 });
 
-test('Pressure Jet (Water Gun turned into a beam by a build) takes the spatial beam path with its own length, width and push', () => {
-  const { ctx, P } = scene({ species: 'totodile', move: 'water_gun', edit: (W) => prop(W, 'pillar', 50, 56) });
-  ctx.player.moves[0].uses = 99;
-  assert.equal(setTransform(ctx, ctx.player.moves[0], 'pressure_jet'), true);
-  const s = slotSpec(ctx, 0);
-  assert.equal(s.archetype, 'beam');
-  const e = put(ctx, P[0], 0, P[2] + 4), behind = put(ctx, P[0], 0, P[2] + 8);
-  const log = fire(ctx, lens(P, centre(ctx, behind)));
-  assert.ok(hitsOn(log, e) >= 1 && hitsOn(log, behind) === 0, 'the near enemy, not the one behind the pillar');
-  assert.ok(Math.abs(beamOf(log).width - s.radius) < 1e-9);
-  truthful(ctx, log, [e]);
-});
-
-void tpl; void MASK;

@@ -14,6 +14,7 @@ import { runFrame } from '../src/render/hostframe';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { defaultRules } from '../src/rules/defaults';
 
+import { RANGE } from '../src/mods';
 class Target {
   l: Record<string, ((e: unknown) => void)[]> = {};
   addEventListener(t: string, f: (e: unknown) => void) { (this.l[t] ??= []).push(f); }
@@ -28,7 +29,7 @@ const { Input } = await import('../src/input/input');
 
 const DT = 1 / 60;
 function calm(): SimContext {
-  const ctx = createRun({ seed: 1, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'cyndaquil', ruleOverrides: {} as never });
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
   return ctx;
 }

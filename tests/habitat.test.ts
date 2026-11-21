@@ -9,9 +9,13 @@ import { defaultRules } from '../src/rules/defaults';
 import { createRun, step } from '../src/sim/run';
 import { applyAgent } from '../src/sim/cells';
 import { ventPhase } from '../src/sim/hazards';
-import { objectiveDue, startObjective } from '../src/sim/objectives';
+import { startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { generateHabitat, HabitatError, HABITATS, HAB_VERSION, profilesFor, findHabitat, CONTROL_POINT } from '../src/world/habitat';
+import { measuredProfileInputs, VALIDATED_PROFILES } from '../src/world/habitat/mode';
+import { PROTOTYPE } from '../src/rules/heroes';
+import { SPECIES_BY_ID } from '../src/rules/species';
+import { partnerFootprint } from '../src/rules/sizing';
 import { clearance, validateHabitat, type Layout } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { findMapSource, locationFor, mapChecksum, regionKey, regionMap } from '../src/world/maps';
@@ -20,6 +24,7 @@ import { loadSettings, SETTINGS_DEFAULT } from '../src/ui/settings';
 import { T, type ArenaMap } from '../src/world/tiles';
 import { playHabitat } from '../scripts/habplay';
 
+import { RANGE } from '../src/mods';
 const IDS = Object.keys(HABITATS);
 const gen = (id: string, seed: number, variant = '') => generateHabitat({ recipe: id, seed, variant });
 
@@ -156,11 +161,7 @@ test('sim seam: the map loads through the normal entry point; the objective is a
   const H = ctx.world.hab!;
   assert.ok(H && ctx.world.los, 'habitat maps use the location rules (line of sight, drop navigation)');
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
-  // the schedule's first objective in region 1 is a Hold anyway; the second (a Hunt elsewhere) is a Hold here too
-  ctx.stageTime = ctx.rules.objectives.secondAfter + 1; ctx.beat.objectives = 1;
-  const due = objectiveDue(ctx);
-  assert.equal(due, 'hold', 'every objective on a habitat map is the shared control point');
-  assert.ok(startObjective(ctx, due!), 'an objective opened');
+  assert.ok(startObjective(ctx, 'hold'), 'an objective opened');
   assert.equal(ctx.objective!.kind, 'hold');
   assert.ok(Math.abs(ctx.objective!.x - (H.contest.x - ctx.world.half)) < 0.01 && Math.abs(ctx.objective!.z - (H.contest.y - ctx.world.half)) < 0.01, 'on the generated contest floor');
   // Raiders have a flow field to the point from team B's staging
@@ -171,7 +172,7 @@ test('sim seam: the map loads through the normal entry point; the objective is a
 test('sim seam: vents erupt on a fixed cycle and hurt what stands in them; lava never freezes', () => {
   let seed = 1, m;
   for (; seed < 20; seed++) { m = gen('volcanic-ridge', seed); if (m.gen!.hab!.hazard.length) break; }
-  const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge' } }, director: { spawnBase: -99 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: 'volcanic-ridge' } } } as never });
   const W = ctx.world, H = W.hab!, P = ctx.player, k = H.hazard[0];
   P.x = (k % W.w) - W.half + 0.5; P.z = ((k / W.w) | 0) - W.half + 0.5; P.y = W.height(P.x, P.z);
   const hp0 = P.hp;
@@ -260,4 +261,28 @@ test('settings: Map and Map seed survive a save and load; anything else in a sav
   }
   assert.equal(loadSettings({ camV: 2, worldV: 2, world: 'generated' }).world, 'generated', 'a saved classic-regions choice is kept');
   assert.equal(loadSettings({ world: 'generated' }).world, 'locations', 'a copy from before locations moves to the default once (unchanged)');
+});
+
+// The body profiles are frozen at the numbers every shipped map was accepted against (docs/hero-shooter-pivot.md §8
+// step 3): no roster or pool change can move a layout. A playable roster that outgrows them fails here instead of
+// quietly walking bodies through routes the maps were never validated for.
+test('habitat body profiles are the frozen validated numbers, and the playable roster still fits the trainer', () => {
+  const P = Object.fromEntries(profilesFor().map((p) => [p.id, p]));
+  assert.deepEqual(Object.fromEntries(Object.entries(P).map(([id, p]) => [id, [p.radius, p.step, p.climb, p.drop, p.eye, p.speed, p.essential]])), {
+    trainer: [0.88, 0.6, 0.6, 4, [0.7, 1.42], 7.2, true],
+    'trainer-jump': [0.88, 0.6, 2.44, Infinity, [0.7, 1.42], 7.2, false],
+    'wild-small': [0.3, 0.6, 0.6, 4, [0.5, 0.9], 3.5, true],
+    'wild-elite': [1.42, 0.6, 0.6, 4, [0.9, 1.4], 3.5, true],
+    boss: [0.95, 0.6, 0.6, 4, [1.2, 2.5], 3, false],
+  });
+  // every hero, not just the partners: the featured lines (and, once drafted, the prototype list) must fit the frozen
+  // trainer, or the maps were never validated for them
+  for (const id of PROTOTYPE) {
+    const sp = SPECIES_BY_ID[id];
+    assert.ok(partnerFootprint(sp, defaultRules) <= VALIDATED_PROFILES.trainerRadius + 1e-9, `${id}: footprint ${partnerFootprint(sp, defaultRules)} m`);
+    assert.ok(sp.height * 0.8 <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `${id}: eye ${(sp.height * 0.8).toFixed(2)} m`);
+  }
+  const m = measuredProfileInputs();
+  assert.ok(m.trainerRadius <= VALIDATED_PROFILES.trainerRadius + 1e-9, `the widest playable footprint ${m.trainerRadius} m is wider than the validated trainer ${VALIDATED_PROFILES.trainerRadius} m`);
+  assert.ok(m.trainerEyeTop <= VALIDATED_PROFILES.trainerEye[1] + 1e-9, `the tallest playable eye ${m.trainerEyeTop.toFixed(2)} m is above the validated ${VALIDATED_PROFILES.trainerEye[1]} m`);
 });

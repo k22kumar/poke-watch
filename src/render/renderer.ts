@@ -113,7 +113,7 @@ void main(){
   o = vec4(mix(uHor, uZen, q), 1.0);
 }`;
 
-/** sprite tint per coat (rules/reactions.ts AG index) and the ring colour under coated elites, bosses and you */
+/** sprite tint per coat (rules/reactions.ts AG index) and the ring colour under you when coated */
 const COAT_TINT: [number, number, number][] = [[1, 1, 1], [1.3, 0.85, 0.6], [0.72, 0.9, 1.35], [0.8, 1.15, 1.3], [1.3, 1.25, 0.6]];
 const COAT_RING: [number, number, number][] = [[1, 1, 1], [1, 0.45, 0.15], [0.3, 0.6, 1], [0.6, 0.95, 1], [1, 0.9, 0.2]];
 const ELC: Record<string, [number, number, number]> = Object.fromEntries(ELEMENTS.map((e) => [e, hexToRgb(ELEMENT_DEFS[e].color)]));
@@ -353,8 +353,7 @@ export class Renderer {
       const p = this.project(E.x[i], E.y[i] + 0.5, E.z[i]);
       if (p && p[0] > 0 && p[0] < W && p[1] > 0 && p[1] < H) continue; // in frame: it is already seen
       const [ang, d] = bearingOf(this.rig.yaw, P.x, P.z, E.x[i], E.z[i]);
-      const r = E.roles[i];
-      ringAdd(ring, ang, d, r & ROLE.boss ? 8 : r & ROLE.alpha ? 4 : r & ROLE.elite ? 3 : 1);
+      ringAdd(ring, ang, d, 1);
     }
     return ring;
   }
@@ -410,8 +409,7 @@ export class Renderer {
         case 'kill': {
           const sp = SPECIES[e.species];
           const set = this.sheets.get(sp.id);
-          const scale = e.roles & ROLE.boss ? 1 : e.roles & ROLE.alpha ? ctx.rules.enemy.roles.alpha.size : e.roles & ROLE.elite ? ctx.rules.enemy.roles.elite.size : 1;
-          if (set && this.dying.length < 120) this.dying.push({ sp: sp.id, x: e.x, y: e.y, z: e.z, dir: 0, frame: 0, t: 0, scale: scale * (sp.scale ?? 1) });
+          if (set && this.dying.length < 120) this.dying.push({ sp: sp.id, x: e.x, y: e.y, z: e.z, dir: 0, frame: 0, t: 0, scale: sp.scale ?? 1 });
           const fx = ELEMENT_FX[e.element] ?? ELEMENT_FX.plain;
           for (let k = 0; k < 5; k++) this.px.spawn('dust', e.x + rnd(-0.4, 0.4), e.y + 0.3, e.z + rnd(-0.4, 0.4), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), rnd(0.3, 0.5), 1, 2);
           for (let k = 0; k < 3; k++) this.px.spawn(fx[1], e.x, e.y + 0.5, e.z, rnd(-3, 3), rnd(3, 6), rnd(-3, 3), rnd(0.35, 0.6), 1, 12, rnd(-6, 6));
@@ -463,7 +461,6 @@ export class Renderer {
           if (e.kind === 'shatter' || e.kind === 'freeze') for (let k = 0; k < 8; k++) this.px.spawn('snow', e.x + rnd(-0.5, 0.5), ctx.world.height(e.x, e.z) + 0.6, e.z + rnd(-0.5, 0.5), rnd(-2, 2), rnd(1, 3), rnd(-2, 2), 0.5, 1);
           break;
         }
-        case 'hex': this.rings.push({ x: e.x, z: e.z, r: e.r, c: ELC[e.element], life: e.life, max: e.life, kind: 2, grow: false }); break;
         case 'block': this.rings.push({ x: e.x, z: e.z, r: 0.9, c: [0.85, 0.92, 1], life: 0.2, max: 0.2, kind: 1, grow: true }); break;
         case 'telegraph': this.rings.push({ x: e.x, z: e.z, r: e.r, c: e.hostile ? [1, 0.2, 0.2] : [1, 0.85, 0.3], life: e.life, max: e.life, kind: 2, grow: false }); break;
         case 'line': {
@@ -477,15 +474,6 @@ export class Renderer {
           this.rings.push({ x: e.x, z: e.z, r: 2.4, c: ELC[e.element], life: 0.4, max: 0.4, kind: 1, grow: true });
           break;
         }
-        case 'pickup': {
-          const c = e.kind === 1 ? [1, 0.5, 0.7] : e.kind === 2 ? [1, 0.9, 0.3] : [0.5, 0.9, 1];
-          for (let k = 0; k < 3; k++) this.parts.add(P.x, P.y + 0.8, P.z, rnd(-2, 2), rnd(1, 3), rnd(-2, 2), 0.3, 0.2, c);
-          break;
-        }
-        case 'levelUp':
-          for (let k = 0; k < 24; k++) { const a = rnd(0, TAU); this.px.spawn('star', P.x + Math.cos(a) * 0.8, P.y + 0.2, P.z + Math.sin(a) * 0.8, Math.cos(a) * 1.5, rnd(3, 7), Math.sin(a) * 1.5, 0.9, 1, 2, rnd(-4, 4)); }
-          this.rings.push({ x: P.x, z: P.z, r: 3, c: [1, 0.95, 0.5], life: 0.5, max: 0.5, kind: 1, grow: true });
-          break;
         case 'evolveEnd':
           for (let k = 0; k < 70; k++) { const a = rnd(0, TAU); this.px.spawn(k % 3 ? 'star' : 'impact', P.x, P.y + 1, P.z, Math.cos(a) * rnd(2, 9), rnd(1, 9), Math.sin(a) * rnd(2, 9), rnd(0.6, 1.2), 1, 4, rnd(-5, 5)); }
           this.rings.push({ x: P.x, z: P.z, r: 7, c: [1, 1, 1], life: 0.8, max: 0.8, kind: 1, grow: true });
@@ -507,11 +495,6 @@ export class Renderer {
         case 'jump':
           for (let k = 0; k < 5; k++) this.px.spawn('dust', P.x, P.y + 0.1, P.z, rnd(-2, 2), rnd(0.5, 1.5), rnd(-2, 2), 0.3, 1);
           break;
-        case 'bossDead': {
-          const y = ctx.world.height(e.x, e.z);
-          for (let k = 0; k < 120; k++) { const a = rnd(0, TAU); this.px.spawn(k % 4 ? 'star' : 'impactBig', e.x, y + 2, e.z, Math.cos(a) * rnd(2, 14), rnd(2, 14), Math.sin(a) * rnd(2, 14), rnd(0.8, 1.6), k % 4 ? 1 : 2, 6, rnd(-5, 5)); }
-          break;
-        }
         case 'chest':
           for (let k = 0; k < 30; k++) this.px.spawn('star', e.x, ctx.world.height(e.x, e.z) + 0.8, e.z, rnd(-3, 3), rnd(3, 8), rnd(-3, 3), 1, 1, 9, rnd(-5, 5));
           break;
@@ -850,20 +833,13 @@ export class Renderer {
       if (E.frozen[i] > 0) tint = [0.62, 0.9, 1.45];
       else if (E.coat[i]) { const ct = COAT_TINT[E.coat[i]]; const k = E.coatDeep[i] === 2 ? 1 : 0.6; tint = [tint[0] * (1 + (ct[0] - 1) * k), tint[1] * (1 + (ct[1] - 1) * k), tint[2] * (1 + (ct[2] - 1) * k)]; }
       if (E.blind[i] > 0) tint = [tint[0] * 0.8, tint[1] * 0.8, tint[2] * 0.85];
-      if (roles & ROLE.alpha) tint = [tint[0] * 1.15, tint[1] * 0.75, tint[2] * 0.75];
-      else if (roles & ROLE.elite) tint = [tint[0] * 1.1, tint[1] * 1.0, tint[2] * 0.7];
       const spawnFade = E.spawnT[i] < 0.25 ? 1 - E.spawnT[i] / 0.25 : 0;
       let flash = E.flash[i] > 0 ? 0.85 : 0;
       // animation state from the sim's state
       let state: AnimState = 'walk', t = E.animT[i] * set.walkRate;
-      if (E.flash[i] > 0 && !(roles & ROLE.boss)) { state = 'hurt'; t = 0.12 - E.flash[i]; }
+      if (E.flash[i] > 0) { state = 'hurt'; t = 0.12 - E.flash[i]; }
       if (E.sleep[i] > 0) { state = 'sleep'; t = this.time; }
-      if (roles & ROLE.boss) {
-        const s = E.state[i];
-        if (s === 3) { state = 'charge'; t = 0.8 - E.stateT[i]; flash = Math.max(flash, 0.35 + 0.35 * Math.sin(this.time * 30)); }
-        else if (s === 2 || s === 5) { state = 'attack'; t = 0.15; }
-        else if (s === 6 || s === 4) { state = 'shoot'; t = Math.max(0, 1.1 - E.stateT[i]); }
-      } else if (sp.behaviour === 'charger' && E.state[i] === 1) { state = 'charge'; t = ctx.rules.enemy.chargeWindup - E.stateT[i]; flash = Math.max(flash, 0.4 + 0.4 * Math.sin(this.time * 30)); }
+      if (sp.behaviour === 'charger' && E.state[i] === 1) { state = 'charge'; t = ctx.rules.enemy.chargeWindup - E.stateT[i]; flash = Math.max(flash, 0.4 + 0.4 * Math.sin(this.time * 30)); }
       else if (sp.behaviour === 'charger' && E.state[i] === 2) { state = 'attack'; t = 0.1; }
       const inGrass = E.hover[i] === 0 && ctx.world.inTallGrass(x, z);
       push(sp.id, x, y, z, E.size[i] * (sp.scale ?? 1), E.facing[i], state, t, flash, spawnFade * 0.9, tint, inGrass ? -0.12 : 0);
@@ -888,7 +864,7 @@ export class Renderer {
     }
     if (this.lastHp >= 0 && P.hp < this.lastHp - 0.5 && P.hurtFlash > 0) this.pAnim = { state: 'hurt', start: this.time, until: this.time + 0.3, wind: 0, hitT: 0, postScale: 1 };
     this.lastHp = P.hp;
-    const evolving = ctx.state === 'evolving';
+    const evolving = P.breakT > 0; // a Breakthrough (sim/evolution.ts): per player, the world keeps running
     const blink = P.iframes > 0 && P.dashT <= 0 && Math.floor(this.time * 20) % 2 === 0;
     let flash = P.hurtFlash > 0 ? 0.9 : 0;
     let id = P.species.id;
@@ -899,7 +875,7 @@ export class Renderer {
     if (ctx.state === 'over' || ctx.state === 'dead') { if (this.deadAt < 0) this.deadAt = this.time; state = 'faint'; t = this.time - this.deadAt; }
     else this.deadAt = -1;
     if (evolving) {
-      const k = 1 - ctx.stateTimer / ctx.rules.sim.evolveSeconds;
+      const k = 1 - P.breakT / ctx.rules.evolution.breakSeconds;
       const rate = 2 + k * 18;
       id = Math.floor(this.time * rate) % 2 === 0 ? P.species.id : P.species.evolvesTo ?? P.species.id;
       flash = 0.5 + k * 0.5;
@@ -1049,11 +1025,8 @@ export class Renderer {
       ref = W.over ? E.y[i] - E.hover[i] : undefined;
       put(D, x, z, E.radius[i] * 1.25, [0, 0, 0], 1, 0);
       if (hideO) continue;
-      if (E.roles[i] & (ROLE.elite | ROLE.alpha)) put(D, x, z, E.radius[i] * 1.6, E.roles[i] & ROLE.alpha ? [1, 0.3, 0.2] : [1, 0.8, 0.2], 0.8, 1, 0.12, 0, 0);
-      // a deep coat on anything, or any coat on an elite or boss: a coloured ring that says what it carries
-      // a coat ring only where it carries a decision (elites, alphas, bosses); fodder shows its coat as a tint, so a
-      // soaked swarm does not turn the ground into rings (art direction: signals stay scarce)
-      if (E.coat[i] && E.roles[i] & (ROLE.elite | ROLE.alpha | ROLE.boss)) put(T, x, z, E.radius[i] * 1.35 + 0.15, COAT_RING[E.coat[i]], 0.85, 1, 0.16, 0, 0);
+      // coats show as a tint, not a ring, so a soaked crowd does not turn the ground into rings (art direction: signals
+      // stay scarce; the ring went with the elite, alpha and boss roles at pivot step 10)
     }
     { const B = ctx.bodies;
       for (let b = 0; b < B.hi; b++) {
@@ -1072,23 +1045,12 @@ export class Renderer {
     { const O = ctx.objective, E = ctx.enemies, R = ctx.rules.objectives;
       if (O && (O.phase === 'offer' || O.phase === 'active')) {
         const pulse = 0.55 + 0.45 * Math.sin(this.time * 5);
-        if (O.kind === 'hold') put(D, O.x, O.z, R.hold.radius, [1, 0.84, 0.3], O.phase === 'offer' ? 0.5 + 0.4 * pulse : 0.9, 2, 0.12, O.charge);
-        else if (O.kind === 'transport') {
-          put(D, O.x, O.z, R.transport.goalRadius, [0.45, 1, 0.55], 0.6 + 0.35 * pulse, 2, 0.14, 0);
-          if (O.egg >= 0 && O.carrier === -1) put(T, ctx.bodies.x[O.egg], ctx.bodies.z[O.egg], 1.1, [1, 1, 0.6], pulse, 1, 0.16);
-        } else if (O.target >= 0 && E.alive[O.target]) {
-          put(T, E.x[O.target], E.z[O.target], E.radius[O.target] * 1.9, [1, 0.25, 0.2], 0.6 + 0.4 * pulse, 1, 0.12);
-          if (O.mender >= 0 && E.alive[O.mender]) put(D, E.x[O.mender], E.z[O.mender], E.radius[O.mender] * 1.7, [0.4, 1, 0.45], 0.7, 1, 0.12);
-        }
+        put(D, O.x, O.z, R.hold.radius, [1, 0.84, 0.3], O.phase === 'offer' ? 0.5 + 0.4 * pulse : 0.9, 2, 0.12, O.charge);
       } }
-    // roles: a raised Bulwark shield, a Hexer's element, a Raider's orange tag
-    { const E = ctx.enemies, RR = ctx.rules.roles;
-      for (const b of ctx.director.bulwarks) if (E.alive[b]) put(D, E.x[b], E.z[b], RR.bulwarkRadius * E.size[b], [0.8, 0.9, 1], 0.55, 1, 0.07);
-      for (let i = 0; i < E.hi; i++) {
-        if (!E.alive[i] || !(E.roles[i] & (ROLE.hexer | ROLE.raider))) continue;
-        const sp = ctx.speciesIndex[E.species[i]];
-        put(D, E.x[i], E.z[i], E.radius[i] * 1.5, E.roles[i] & ROLE.hexer ? ELC[sp.elements.find((el) => el === 'blaze' || el === 'tide' || el === 'frost' || el === 'volt') ?? sp.elements[0]] : [1, 0.6, 0.15], 0.85, 1, 0.14);
-      } }
+    // a Raider's orange tag
+    { const E = ctx.enemies;
+      for (let i = 0; i < E.hi; i++) if (E.alive[i] && E.roles[i] & ROLE.raider) put(D, E.x[i], E.z[i], E.radius[i] * 1.5, [1, 0.6, 0.15], 0.85, 1, 0.14);
+    }
     const pArt = this.sheets.get(ctx.player.species.id)?.art;
     put(D, px, pz, [0.42, 0.55, 0.8][pArt?.shadowSize ?? 1] ?? 0.55, [0, 0, 0], 1, 0, 0, 0, 0, W.height(px, pz, ref));
     { const m = ctx.player.m; if (m && m.coat) put(T, px, pz, 0.8, COAT_RING[m.coat], 0.9, 1, 0.16, 0, 0, W.height(px, pz, ref)); }
@@ -1097,8 +1059,6 @@ export class Renderer {
     { const gy = W.height(px, pz, ref), f = ctx.player.facing, OWN = [0.55, 0.95, 1];
       put(D, px, pz, 0.72, OWN, 0.95, 1, 0.2, 0, 0, gy);
       put(D, px + Math.sin(f) * 0.86, pz + Math.cos(f) * 0.86, 0.13, OWN, 1, 4, 0, 0, 0, gy); }
-    // pickup radius hint
-    put(D, px, pz, ctx.player.derived.magnet, [0.6, 0.85, 1], 0.1, 1, 0.03, 0, 0, W.height(px, pz, ref));
     // Phase 2B: the sim's spatial aim (ctx.aim), when the primary is a direct shot through the chase crosshair: a marker
     // where the shot will actually stop (red, on the cover) or arrive (white, on the aim point), and three dots along its
     // real line from the muzzle. Drawn from sim state only; nothing here feeds back
@@ -1151,17 +1111,10 @@ export class Renderer {
       const rad = r.grow ? r.r * (0.3 + 0.7 * Math.sqrt(f)) : r.r;
       put(D, r.x, r.z, rad, r.c, 1 - f, 1, 0.12);
     }
-    // portal
-    if (ctx.portal.active) {
-      put(D, ctx.portal.x, ctx.portal.z, ctx.rules.stage.portalRadius * 1.4, [0.6, 0.85, 1], 1, 3, 0.2, this.time * 2, this.time);
-    }
-    // boss marker ring
-    const bi = ctx.director.bossIndex;
-    if (bi >= 0 && E.alive[bi]) put(D, E.x[bi], E.z[bi], E.radius[bi] * 1.4, [1, 0.25, 0.25], 0.6, 1, 0.06);
     void py;
   }
 
-  /** projectiles and pickups as crisp element sprites */
+  /** projectiles and item balls as crisp element sprites */
   private queuePixelFx(ctx: SimContext, alpha: number) {
     // bodies: boulders, rocks and rubble; they rock side to side as they roll
     const B = ctx.bodies;
@@ -1204,13 +1157,6 @@ export class Renderer {
       if (dx * dx + dz * dz > 40 * 40) continue;
       this.px.sprite('itemball', c.x, ctx.world.height(c.x, c.z) + 0.3 + Math.abs(Math.sin(this.time * 2.2)) * 0.06, c.z, 1, 0, 1, 0);
     }
-    const Pk = ctx.pickups;
-    for (let i = 0; i < Pk.hi; i++) {
-      if (!Pk.alive[i]) continue;
-      const k = Pk.kind[i], v = Pk.value[i];
-      const kind = k === 1 ? 'oran' : k === 2 ? 'star' : 'xp';
-      this.px.sprite(kind, Pk.x[i], Pk.y[i] + 0.35 + Math.sin(this.time * 4 + i) * 0.08, Pk.z[i], k === 0 && v >= 12 ? 2 : 1, 0, 1, k === 0 && v >= 3 && Math.floor(this.time * 6 + i) % 4 === 0 ? 0.5 : 0);
-    }
   }
 
   private fillGlows(ctx: SimContext, alpha: number) {
@@ -1232,15 +1178,6 @@ export class Renderer {
       const o = G.push();
       const f = Pa.life[i] / Pa.max[i];
       G.data.set([Pa.x[i], Pa.y[i], Pa.z[i], Pa.size[i] * (0.4 + 0.6 * f), Pa.r[i], Pa.g[i], Pa.b[i], Math.min(1, f * 1.5)], o);
-    }
-    // portal column
-    if (ctx.portal.active) {
-      const y = ctx.world.height(ctx.portal.x, ctx.portal.z);
-      for (let k = 0; k < 6; k++) {
-        const o = G.push();
-        G.data.set([ctx.portal.x, y + 0.5 + k * 0.9 + Math.sin(this.time * 3 + k) * 0.2, ctx.portal.z, 1.4 - k * 0.12, 0.5, 0.8, 1, 0.7], o);
-      }
-      if (Math.random() < 0.6) { const a = rnd(0, TAU); this.parts.add(ctx.portal.x + Math.cos(a) * 2.5, y, ctx.portal.z + Math.sin(a) * 2.5, -Math.cos(a), rnd(2, 5), -Math.sin(a), 1, 0.3, [0.6, 0.85, 1]); }
     }
     // chest sparkle
     if (Math.random() < 0.3) for (const c of ctx.world.chests) if (!c.open && Math.hypot(c.x - ctx.player.x, c.z - ctx.player.z) < 60) this.parts.add(c.x + rnd(-0.6, 0.6), ctx.world.height(c.x, c.z) + 1.2, c.z + rnd(-0.6, 0.6), 0, rnd(0.5, 1.5), 0, 0.8, 0.2, [1, 0.9, 0.4]);

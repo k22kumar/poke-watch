@@ -17,7 +17,7 @@ power and shape. The UI shows them on learn, upgrade and Tag cards and in the mo
 | `create:template` | Tag Action data (`rules/tags.ts`: Rock Throw's rock) |
 
 Power from base power: under 60 = 1, 60–90 = 2, over 90 = 3; a combined force can reach 4. `CAP_OVERRIDES` adds or
-removes tags per move (Phase 8b transforms compile their own edited caps instead; see `docs/BUILDS.md`). A test checks that the compiled Push and Hold Power of
+removes tags per move (the Phase 8b transforms that compiled their own edited caps were deleted with the build layer at pivot step 9). A test checks that the compiled Push and Hold Power of
 all 187 cross-version moves equals the v10 derivation.
 
 ## The resolver (`sim/capabilities.ts`)
@@ -71,7 +71,7 @@ cover), still in the plane; the bodies it pushes or holds are the ones it reache
 | Drops | a stunned (paralysed) or fainted holder drops it where it is; a carried Transport egg cannot be held |
 | Passes | your own shots and strikes pass a body you are holding |
 
-The holder is not rooted; the *Lodestone* technique (Phase 8b, `docs/BUILDS.md`) is where "you cannot move while holding"
+The holder is not rooted; the *Lodestone* technique (Phase 8b, deleted with the build layer at pivot step 9) was where "you cannot move while holding"
 belongs as a cost. `suspendHold: false` restores v10's pull (7 m/s toward you).
 
 ## Body-on-body impacts
@@ -112,9 +112,11 @@ with the overlay on.
 
 ## Flags
 
+`caps.enabled` (the master switch: off was the v10 rules exactly) was hard-wired on at pivot step 10 (Q18); the
+measurements below that compare against it are from the survivor build.
+
 | Flag | Default | Off means |
 | --- | --- | --- |
-| `caps.enabled` | true | the v10 rules exactly (no log, no recap) |
 | `caps.interception` | true | shots ignore each other and every force; Guard deflects any shot |
 | `caps.suspendHold` | true | Hold pulls (v10) |
 | `caps.bodyCollisions` | true | bodies pass through each other |
@@ -152,3 +154,15 @@ with the overlay on.
 - **One player.** Holds, the Create cap and the recap read `ctx.player`; the `ctx.players` refactor (Phase 9) will move them.
 - **Bot coverage.** The balance bot never aims, guards or holds on purpose, so sweeps exercise interception and impacts
   far more than Hold. Readability and the recap wording are untested with people (hypotheses V4, V6, V7).
+
+## What stayed from the build layer
+
+The survivor build layer (offers, transforms, techniques, mastery) was deleted at hero-shooter pivot step 9; its doc is `docs/BUILDS.md` on the `survivor-final` tag. What stayed, because the hero kits and the carry-and-throw foundation use it (§8a):
+
+- The move-spec flags a transform used to set (`MoveFlags` in `src/sim/types.ts`: `spread`, `coatDepth`, `selfRoot`,
+  `lasso`, `bramble`, …) and the sim paths that read them.
+- The Lasso's hold time, `rules.caps.lassoHold`, and the bramble cell's numbers, `rules.reactions.brambleTime` /
+  `brambleSlow`.
+- The technique helpers' no-technique values, inlined: a Guard's Weight is the Pokémon's weight class
+  (`guardWeight`, `src/sim/player.ts`), a Hold lasts `rules.caps.holdTime`, and move levels stay at
+  `rules.hero.moveLevel`.

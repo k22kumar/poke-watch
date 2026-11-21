@@ -14,10 +14,10 @@
    "checksum": "7997d385",
    "geometry": "5f596e55.ba141ec5.2a450d76.a16e82b1.4d1fac32.38699dc5.3db4bf6d.811c9dc5",
    "nav": "f8d454a5.c644e8e3",
-   "sim": "1f251977",
+   "sim": "46929314",
    "loads": 4,
    "agree": true,
-   "ms": "1400/1426/1402/591"
+   "ms": "368/387/391/217"
   },
   {
    "request": "river-gorge seed 7",
@@ -29,10 +29,10 @@
    "checksum": "e549aa9b",
    "geometry": "6e635dea.4e6b243a.5ea0c83d.ed45c3f1.bd13d54c.38699dc5.4eb3b443.811c9dc5",
    "nav": "0dcf5484.3fb54dcf",
-   "sim": "6abe93bd",
+   "sim": "49f371ca",
    "loads": 4,
    "agree": true,
-   "ms": "1491/1433/1394/655"
+   "ms": "388/396/404/246"
   },
   {
    "request": "river-gorge/snow seed 3",
@@ -44,10 +44,10 @@
    "checksum": "22f7cf39",
    "geometry": "5f596e55.ba141ec5.2a450d76.a16e82b1.4d1fac32.38699dc5.3db4bf6d.811c9dc5",
    "nav": "f8d454a5.c644e8e3",
-   "sim": "1f251977",
+   "sim": "46929314",
    "loads": 3,
    "agree": true,
-   "ms": "1300/1300/628"
+   "ms": "402/400/224"
   },
   {
    "request": "river-gorge/snow seed 7",
@@ -59,10 +59,10 @@
    "checksum": "4920363d",
    "geometry": "6e635dea.4e6b243a.5ea0c83d.ed45c3f1.bd13d54c.38699dc5.4eb3b443.811c9dc5",
    "nav": "0dcf5484.3fb54dcf",
-   "sim": "6abe93bd",
+   "sim": "49f371ca",
    "loads": 3,
    "agree": true,
-   "ms": "1136/1051/519"
+   "ms": "405/375/228"
   },
   {
    "request": "volcanic-ridge seed 3",
@@ -74,10 +74,10 @@
    "checksum": "c59665d1",
    "geometry": "5589ac50.dcaa6fcb.85e6821d.02d40b39.443c4bc5.38699dc5.a99ad781.3e5eec50",
    "nav": "2b7ade24.0831547f",
-   "sim": "8f65d5c4",
+   "sim": "76e12210",
    "loads": 4,
    "agree": true,
-   "ms": "5023/4307/4264/2878"
+   "ms": "1946/1844/1862/1766"
   },
   {
    "request": "volcanic-ridge seed 7",
@@ -89,10 +89,10 @@
    "checksum": "c655a19c",
    "geometry": "10907a03.3f6ddb6a.02cbfc5d.81185845.dbd74a05.38699dc5.1bd8cbce.17a5becb",
    "nav": "0719466b.afec8ecd",
-   "sim": "431b2495",
+   "sim": "8d8a6671",
    "loads": 4,
    "agree": true,
-   "ms": "1075/1328/1169/526"
+   "ms": "557/569/557/419"
   },
   {
    "request": "volcanic-ridge/ash seed 3",
@@ -104,10 +104,10 @@
    "checksum": "c59665d1",
    "geometry": "5589ac50.dcaa6fcb.85e6821d.02d40b39.443c4bc5.38699dc5.a99ad781.3e5eec50",
    "nav": "2b7ade24.0831547f",
-   "sim": "8f65d5c4",
+   "sim": "76e12210",
    "loads": 3,
    "agree": true,
-   "ms": "3649/3622/2116"
+   "ms": "1869/1918/1705"
   },
   {
    "request": "volcanic-ridge/ash seed 7",
@@ -119,10 +119,10 @@
    "checksum": "c655a19c",
    "geometry": "10907a03.3f6ddb6a.02cbfc5d.81185845.dbd74a05.38699dc5.1bd8cbce.17a5becb",
    "nav": "0719466b.afec8ecd",
-   "sim": "431b2495",
+   "sim": "8d8a6671",
    "loads": 3,
    "agree": true,
-   "ms": "884/766/496"
+   "ms": "599/580/404"
   },
   {
    "request": "tidal-cave seed 3",
@@ -134,10 +134,10 @@
    "checksum": "4c15a18c",
    "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
    "nav": "258ce6bb.2e7d8a33",
-   "sim": "74e5ef53",
+   "sim": "dddf2601",
    "loads": 4,
    "agree": true,
-   "ms": "220/261/237/64"
+   "ms": "157/152/152/53"
   },
   {
    "request": "tidal-cave seed 7",
@@ -149,10 +149,10 @@
    "checksum": "9326ae3",
    "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
    "nav": "d44c55d2.81a23e65",
-   "sim": "460608e3",
+   "sim": "e3bbb5f3",
    "loads": 4,
    "agree": true,
-   "ms": "219/228/227/54"
+   "ms": "161/155/150/51"
   },
   {
    "request": "tidal-cave/glimmer seed 3",
@@ -164,10 +164,10 @@
    "checksum": "4c15a18c",
    "geometry": "bdf59c61.b1b372f5.f662bfc5.b59f7b71.93ec820b.38699dc5.a5d827a8.811c9dc5",
    "nav": "258ce6bb.2e7d8a33",
-   "sim": "74e5ef53",
+   "sim": "dddf2601",
    "loads": 3,
    "agree": true,
-   "ms": "225/194/63"
+   "ms": "165/154/51"
   },
   {
    "request": "tidal-cave/glimmer seed 7",
@@ -179,10 +179,10 @@
    "checksum": "9326ae3",
    "geometry": "d4b9d2d9.33b7ab8a.4763406a.310cf445.e4d5c225.38699dc5.1990dfc5.811c9dc5",
    "nav": "d44c55d2.81a23e65",
-   "sim": "460608e3",
+   "sim": "e3bbb5f3",
    "loads": 3,
    "agree": true,
-   "ms": "213/242/68"
+   "ms": "151/154/49"
   },
   {
    "request": "forest-cemetery seed 3",
@@ -194,10 +194,10 @@
    "checksum": "c676c7bc",
    "geometry": "07c61bc9.cc4e3330.1e2b851f.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "bd48d363.5c34b601",
-   "sim": "111e6666",
+   "sim": "69dc20b5",
    "loads": 4,
    "agree": true,
-   "ms": "360/378/378/246"
+   "ms": "274/263/267/201"
   },
   {
    "request": "forest-cemetery seed 7",
@@ -209,10 +209,10 @@
    "checksum": "6b37db34",
    "geometry": "83a048be.56d89cb6.0f3b5f28.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "6aa18736.11878851",
-   "sim": "f2150acf",
+   "sim": "b5b66d7d",
    "loads": 4,
    "agree": true,
-   "ms": "384/371/344/216"
+   "ms": "277/277/278/187"
   },
   {
    "request": "forest-cemetery/hollow seed 3",
@@ -224,10 +224,10 @@
    "checksum": "c676c7bc",
    "geometry": "07c61bc9.cc4e3330.1e2b851f.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "bd48d363.5c34b601",
-   "sim": "111e6666",
+   "sim": "69dc20b5",
    "loads": 3,
    "agree": true,
-   "ms": "336/350/220"
+   "ms": "276/273/195"
   },
   {
    "request": "forest-cemetery/hollow seed 7",
@@ -239,10 +239,10 @@
    "checksum": "6b37db34",
    "geometry": "83a048be.56d89cb6.0f3b5f28.-.38699dc5.38699dc5.38699dc5.811c9dc5",
    "nav": "6aa18736.11878851",
-   "sim": "f2150acf",
+   "sim": "b5b66d7d",
    "loads": 3,
    "agree": true,
-   "ms": "350/342/202"
+   "ms": "288/302/193"
   },
   {
    "request": "tropical-lagoon seed 3",
@@ -254,10 +254,10 @@
    "checksum": "1972d433",
    "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
    "nav": "6523eceb.2a6fe209",
-   "sim": "dc4608f3",
+   "sim": "40641d6b",
    "loads": 4,
    "agree": true,
-   "ms": "411/393/372/171"
+   "ms": "289/304/318/159"
   },
   {
    "request": "tropical-lagoon seed 7",
@@ -269,10 +269,10 @@
    "checksum": "ecce33e2",
    "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
    "nav": "c84e62dc.1c273ddb",
-   "sim": "efdf15ed",
+   "sim": "b9d8ae1a",
    "loads": 4,
    "agree": true,
-   "ms": "427/363/388/180"
+   "ms": "314/296/317/157"
   },
   {
    "request": "tropical-lagoon/dusk seed 3",
@@ -284,10 +284,10 @@
    "checksum": "1972d433",
    "geometry": "a6fe6695.2b1632ff.f82339bc.30ceeeff.d4ca54bd.38699dc5.bff51ee7.811c9dc5",
    "nav": "6523eceb.2a6fe209",
-   "sim": "dc4608f3",
+   "sim": "40641d6b",
    "loads": 3,
    "agree": true,
-   "ms": "375/390/179"
+   "ms": "325/291/165"
   },
   {
    "request": "tropical-lagoon/dusk seed 7",
@@ -299,10 +299,10 @@
    "checksum": "ecce33e2",
    "geometry": "1ac9d960.43b3da48.fd11a542.83a804a5.41fc9b3f.38699dc5.2b3186af.811c9dc5",
    "nav": "c84e62dc.1c273ddb",
-   "sim": "efdf15ed",
+   "sim": "b9d8ae1a",
    "loads": 3,
    "agree": true,
-   "ms": "377/328/162"
+   "ms": "310/295/171"
   },
   {
    "request": "spear-sanctuary seed 3",
@@ -314,10 +314,10 @@
    "checksum": "118e923d",
    "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
    "nav": "67c732ef.d086eaef",
-   "sim": "80484cf",
+   "sim": "c3f32fec",
    "loads": 4,
    "agree": true,
-   "ms": "254/264/279/124"
+   "ms": "224/220/222/117"
   },
   {
    "request": "spear-sanctuary seed 7",
@@ -329,10 +329,10 @@
    "checksum": "b245e43a",
    "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
    "nav": "9b6f8b80.3d768df5",
-   "sim": "9a1af862",
+   "sim": "bb2275d9",
    "loads": 4,
    "agree": true,
-   "ms": "261/299/265/112"
+   "ms": "247/236/224/113"
   },
   {
    "request": "spear-sanctuary/snow seed 3",
@@ -344,10 +344,10 @@
    "checksum": "118e923d",
    "geometry": "43fb4d84.e3bfc313.6bd0f2eb.-.261ac23f.38699dc5.bd76bcfa.811c9dc5",
    "nav": "67c732ef.d086eaef",
-   "sim": "80484cf",
+   "sim": "c3f32fec",
    "loads": 3,
    "agree": true,
-   "ms": "283/255/115"
+   "ms": "226/222/110"
   },
   {
    "request": "spear-sanctuary/snow seed 7",
@@ -359,10 +359,10 @@
    "checksum": "bdf1142e",
    "geometry": "d998123e.468075d6.b9490823.-.d2168f4d.38699dc5.93d3b897.811c9dc5",
    "nav": "9b6f8b80.3d768df5",
-   "sim": "9a1af862",
+   "sim": "bb2275d9",
    "loads": 3,
    "agree": true,
-   "ms": "260/243/115"
+   "ms": "237/222/116"
   }
  ],
  "replayLinks": [
@@ -3781,10 +3781,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 203,
-   "msP95": 405,
-   "msMax": 406,
-   "msMean": 239,
+   "msP50": 201,
+   "msP95": 383,
+   "msMax": 407,
+   "msMean": 234,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.13,
@@ -3834,10 +3834,10 @@
     "15→389790312(2)",
     "27→1971284506(2)"
    ],
-   "msP50": 411,
-   "msP95": 1457,
-   "msMax": 1680,
-   "msMean": 545,
+   "msP50": 397,
+   "msP95": 1437,
+   "msMax": 1663,
+   "msMean": 531,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.059,
@@ -3876,10 +3876,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 46,
-   "msP95": 49,
-   "msMax": 102,
-   "msMean": 48,
+   "msP50": 41,
+   "msP95": 44,
+   "msMax": 44,
+   "msMean": 41,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.113,
@@ -3918,10 +3918,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 167,
-   "msP95": 175,
-   "msMax": 176,
-   "msMean": 166,
+   "msP50": 159,
+   "msP95": 167,
+   "msMax": 168,
+   "msMean": 157,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.265,
@@ -3960,10 +3960,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 138,
-   "msP95": 289,
-   "msMax": 369,
-   "msMean": 156,
+   "msP50": 134,
+   "msP95": 279,
+   "msMax": 367,
+   "msMean": 149,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.067,
@@ -4002,10 +4002,10 @@
    "attemptsMax": 1,
    "rejectedByGate": {},
    "retriedSeeds": [],
-   "msP50": 108,
-   "msP95": 115,
-   "msMax": 181,
-   "msMean": 111,
+   "msP50": 104,
+   "msP95": 112,
+   "msMax": 113,
+   "msMean": 104,
    "variety": {
     "pairs": 435,
     "routeOverlapMedian": 0.068,

@@ -11,7 +11,7 @@ and the gameplay interpretations it is allowed. The same generator builds every 
 | `src/world/maps.ts` | Which stage biome uses which location (`rules.worldgen.locations`), cache |
 | `src/sim/world.ts`, `enemies.ts`, `effects.ts`, `player.ts`, `bodies.ts` | Drop navigation, line of sight, spawn anchors, loose stones, corner-cut fix, two-layer height / collision / flow field for decks (location maps only) |
 | `src/render/*` | Location palettes and `TERRAIN_STYLE` (rock tops, rock faces, veins, light pools), deck slabs, gatehouse / tent / ladder / house sprites, location stones, camera climb and deck ceiling |
-| `scripts/locstats.ts`, `scripts/locsheet.ts`, `scripts/locsurvival.ts` | Gate sweep and metrics, diagnostic contact sheet, bot playtest |
+| `scripts/locstats.ts`, `scripts/locsheet.ts` | Gate sweep and metrics, diagnostic contact sheet (the survivor bot playtest `locsurvival.ts` was deleted at hero-shooter pivot step 9) |
 | `tests/locations.test.ts` | Determinism, gates over seeds, identity, sim rules, bot play |
 
 ## Why the old maps felt flat (the audit)
@@ -119,7 +119,7 @@ All gated on `map.gen.loc`; authored arenas and the classic generator replay bit
 | landmarks | every canonical landmark placed at least its minimum count |
 | pinch | ≤ 24 one-tile passages |
 
-Gated: `wide`. Footprints of 0.5 m and up (Large and Extra Large Pokémon, partners included, and elites) route on the wide block lattice (`src/world/navblocks.ts`, read by both the sim and `wideCore` in `locgen/nav.ts`; docs/SIZING.md "Navigation classes"). The gate uses the strictest wide body, an Extra Large partner at 0.88 m with no diagonal-only links. From the hub it must reach every mandatory space: the boss hall and every arena (the main-route spaces), plus at least three enemy anchors, so wide enemies always have a way in. `wideBoss` and `wideAnchors` are still reported.
+Gated: `wide`. Footprints of 0.5 m and up (Large and Extra Large Pokémon, partners included) route on the wide block lattice (`src/world/navblocks.ts`, read by both the sim and `wideCore` in `locgen/nav.ts`; docs/SIZING.md "Navigation classes"). The gate uses the strictest wide body, an Extra Large partner at 0.88 m with no diagonal-only links. From the hub it must reach every mandatory space: the boss hall and every arena (the main-route spaces), plus at least three enemy anchors, so wide enemies always have a way in. `wideBoss` and `wideAnchors` are still reported.
 
 ### Size-restricted spaces
 
@@ -146,7 +146,7 @@ Before this gate, `wideBoss` read 73 / 50 / 37 % of seeds (Viridian Forest / Mt.
 High is intended — a rim is where you stand to shoot down, and where you can be shot from below; the interior of a
 raised space is safe from below and cannot shoot down either.
 
-Bot playtest (`npx tsx scripts/locsurvival.ts 6 180`: 6 seeds × Totodile and Cyndaquil, 180 s, meadow roster):
+Bot playtest (historical: `scripts/locsurvival.ts`, deleted at hero-shooter pivot step 9; `npx tsx scripts/locsurvival.ts 6 180`: 6 seeds × Totodile and Cyndaquil, 180 s, meadow roster):
 
 | Map | reach 180 s | mean survival | KOs/min | damage taken/min | ground enemies with no path |
 | --- | --- | --- | --- | --- | --- |
@@ -187,7 +187,7 @@ References are in each file; the main ones: [Bulbapedia — Viridian Forest](htt
 [Bulbapedia — Chargestone Cave](https://bulbapedia.bulbagarden.net/wiki/Chargestone_Cave),
 [Serebii — Chargestone Cave](https://serebii.net/pokearth/unova/chargestonecave.shtml).
 
-**Species fit.** Spawn tables stay the region's (`src/rules/spawning.ts`) unless the location sets its own `spawns` pool (docs/SPAWNING.md); otherwise only the map changes. The default
+**Species fit.** `biomeFit` names the stage biomes a location suits; the region spawn pools it once fed were deleted at hero-shooter pivot step 9 (docs/SPAWNING.md). The default
 mapping puts a location where its canonical ecology overlaps the roster: Viridian Forest in the first region (Ledyba,
 Oddish, Rattata are forest and grass dwellers, and Pikachu is now in the Meadow pool; Caterpie and Weedle are not in the roster), Mt. Moon
 in the last (Zubat and Paras are canonical Mt. Moon Pokémon). Badlands (Fire) and Frost (Articuno) keep the classic
@@ -202,7 +202,6 @@ generator: none of these locations fits them. `?loc=` overrides this for testing
 - `npx tsx scripts/locsheet.ts mt-moon 8 1 sheet.png 3` — contact sheet: tiers by colour, cliff lines, zone graph
   (white path/trail, blue ramp, orange bridge), spawn (white), boss (red), anchors (orange), chests (yellow), stones
   (cyan), pinches (magenta), and any player-only perch (red; there should be none).
-- `npx tsx scripts/locsurvival.ts 6 180` — bot playtest table above.
 
 ## Adding a location
 

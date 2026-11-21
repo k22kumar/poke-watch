@@ -12,6 +12,7 @@ import { generateRegion, GEN_VERSION } from '../src/world/gen';
 import { mapChecksum, regionMap } from '../src/world/maps';
 import { getArena } from '../src/world/arenas';
 import { T, PROP_RULES } from '../src/world/tiles';
+import { crowd } from '../scripts/lib/crowd';
 
 const SPECIES = ['rattata', 'ledyba', 'sandshrew', 'oddish', 'poliwag', 'mareep', 'heracross', 'geodude'];
 const GEN = { ...defaultRules.worldgen, mode: 'generated' as const, biomes: ['meadow'] };
@@ -79,19 +80,22 @@ test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode 
   // the factory caches by (biome, seed, version): a second World on the same seed shares the base arrays
   assert.equal(regionMap(GEN, 'meadow', 5, SPECIES).terrain, g1.map.terrain);
   // only listed biomes are generated
-  const bad = new World({ ...rules, worldgen: GEN, surfaces: { ...rules.surfaces, enabled: false } }, BIOMES.badlands, 5);
+  const bad = new World({ ...rules, worldgen: GEN }, BIOMES.badlands, 5);
   assert.equal(bad.map, getArena('badlands'));
 });
 
 test('a generated region plays two minutes for each archetype: no errors, enemies never inside walls or water', () => {
   const seen = new Set<string>();
   for (const seed of [1, 3, 9, 4, 2, 5]) {
-    const ctx = createRun({ seed, species: 'squirtle', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, player: { hpBase: 4000 } } as never });
+    const ctx = createRun({ seed, species: 'squirtle', mods: [crowd(60)], ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '' } }, hero: { health: 4000 } } as never });
     const arch = ctx.world.map.gen!.archetype;
     if (seen.has(arch)) continue;
     seen.add(arch);
     let checked = 0;
     while (ctx.time < 120 && ctx.state !== 'over') {
+      // the player is kept up: this checks the map and the crowd on it, not the survivor bot's odds (it has no cards
+      // or build since docs/hero-shooter-pivot.md §8 step 9)
+      ctx.player.hp = ctx.player.maxHp;
       step(ctx, botInput(ctx));
       if (ctx.tick % 60) continue;
       const E = ctx.enemies, W = ctx.world;

@@ -126,7 +126,6 @@ const at = (s: Sample[], t: number) => { let k = 1; while (k < s.length - 1 && s
 function fresh(seed: number, stage: number, species: string, calm: boolean) {
   const ctx = createRun({ seed, species, ruleOverrides: AUTHORED ? {} : { worldgen: { mode: 'generated' } } });
   if (stage) startStage(ctx, stage);
-  if (calm) ctx.rules.director.spawnBase = -99;
   return ctx;
 }
 

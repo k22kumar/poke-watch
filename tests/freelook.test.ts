@@ -55,7 +55,6 @@ function speciesOf(cls: string): string {
 }
 function scene(species = 'cyndaquil') {
   const ctx = createRun({ seed: 1, species });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld();
   ctx.world = W;
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear(); ctx.zones.clear();

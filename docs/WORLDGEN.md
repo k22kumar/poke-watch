@@ -32,8 +32,8 @@ a co-op handshake would compare).
 | Spatial grid sized for the larger map when generation is on | `sim/run.ts` |
 | Authored arenas are untouched and remain "authored mode" | `world/arenas.ts` |
 
-Exit gate: replay checksums identical in authored mode. `scripts/checksum.ts world-off` prints the pre-change `on`
-hashes exactly (all four configurations, every 60 s mark), and `off` / `build-off` are unchanged.
+Exit gate (survivor build): replay checksums identical in authored mode; the `world-off` set printed the pre-change `on`
+hashes exactly (all four configurations, every 60 s mark). Those sets retired at pivot step 10 (`survivor-final` has them).
 
 ## W1–W3: the pipeline
 
@@ -53,7 +53,7 @@ greps the generator for `Math.sin/cos/atan/hypot/exp/log/pow/random`.
 | Hamlet grammar | `kit.ts` | An E–W street through the site; 5–6-tile lots on its north side, cabins with doors facing the street (the DS camera looks north); hedges behind the lots; a well, fenced garden, flower beds, bench, lamp and a sign on the south side. |
 | Ecology | `ecology.ts`, `rules/stages.ts` | Moisture, canopy, tall-grass and reed densities are biome data, not palette swaps. Meadow has broad grass cover; the arid Badlands thin it and expose sand and vents; Frost limits understory and keeps snowbound ground open; humid Duskwood grows dense canopy and reed-fringed wet ground. Existing map structures (rivers, ponds, ridges, hamlets, groves) remain shared. |
 | Habitat | `rules/habitats.ts`, `ecology.ts` | Per-tile bits: water edge, tall grass, rock, dry open ground, meadow, forest edge. Each native species has one or more affinities; generated-region spawns in matching habitat get 2× weight, mismatches retain 0.55× weight, and unclassified species remain neutral. The decor layer draws burrow mounds, wool tufts and water-edge prints (`render/decor.ts`). |
-| Field play | `sim/cells.ts`, `sim/director.ts` | Generated tall grass slows most ground-builds but not Bloom/Hive Pokémon; Badlands sand slows non-Quake/Stone builds and becomes deeper mud when soaked; Frost ground slows non-Ice builds and periodic frost weather can freeze wet ground or ponds into slippery shortcuts; Duskwood wet edges slow builds without Tide, Bloom, Venom or Quake affinity. Rain, fire spread, water-created Wet cells and Electric discharge keep cross-biome counterplay useful. Terrain footing is generated-map-only; regional weather and cell chemistry also apply to authored arenas. |
+| Field play | `sim/cells.ts`, `sim/weather.ts` | Generated tall grass slows most ground-builds but not Bloom/Hive Pokémon; Badlands sand slows non-Quake/Stone builds and becomes deeper mud when soaked; Frost ground slows non-Ice builds and periodic frost weather can freeze wet ground or ponds into slippery shortcuts; Duskwood wet edges slow builds without Tide, Bloom, Venom or Quake affinity. Rain, fire spread, water-created Wet cells and Electric discharge keep cross-biome counterplay useful. Terrain footing is generated-map-only; weather a move sets (`sim/weather.ts`: Rain soaks, Sun lights grass, Hail chills water; the director's regional weather went with the director) and cell chemistry also apply to authored arenas. |
 | Gameplay pass | `gameplay.ts` | Spawn clearing: no blockers within 12 m, 6–8 cover pieces at 13–21 m, at most 12 within 22 m. Light cover across the map. Chest spots tucked against walls or on high ground. Encounter spaces measured from 64 route samples (hub, chokepoint, overlook, grove, water edge). |
 | Pockets | `gameplay.ts` | Walkable ground the routes never reach is connected by a trail when a legal one exists (it may bridge or climb), otherwise planted as forest, so nothing that looks walkable is an invisible wall. Repair trails clear only trees, bushes and rocks, never buildings or stamps. |
 | Frame | `index.ts` | Border forest, ledge lips, stone outcrops on the 2.5 m ridge top. |
@@ -100,7 +100,7 @@ kind → material map. Tiles keep running in `sim/cells.ts`; props run in `sim/p
 | Cover cap | lost + burning cover may not exceed 40 % of the region's cover pieces; past it nothing more ignites or breaks |
 | Watchdog | every 2 s, reachable tiles from the spawn against the base map; under 90 % reverts the oldest stumps |
 | State hash | prop states are hashed when any prop has changed (an untouched overlay hashes as nothing) |
-| Flags | `surfaces.enabled: false` gives today's rules exactly; `surfaces.inAuthored` (default false) applies materials to the handcrafted arenas too. By default they apply to generated regions only, because on the authored Meadow bot runs die much earlier with them (Cyndaquil seed 2: level 9 instead of 24), a balance change that needs people, not a bot |
+| Flags | `surfaces.inAuthored` (default false) applies materials to the handcrafted arenas too. By default they apply to generated regions only, because on the authored Meadow bot runs die much earlier with them (Cyndaquil seed 2: level 9 instead of 24), a balance change that needs people, not a bot |
 
 The renderer draws burnt wood as a stump at the footprint's south-west tile, skips burnt leaf and broken props, and drops
 their shadows.

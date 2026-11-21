@@ -23,7 +23,7 @@ export interface NeutralExtent {
 /**
  * Approved neutral core extents (m), by species id: a reviewed figure for a species whose listed extent describes
  * something other than its standing silhouette — length along the body for a serpent, a hovering cloud's envelope.
- * An entry here replaces the canonical listed extent as the input `S`, with or without rules.size.axis. A bare number
+ * An entry here replaces the canonical listed extent as the input `S`. A bare number
  * keeps the species' own axis; a NeutralExtent names the axis its figure measured (the only way to select `span`).
  * To force a class regardless of extent, use `sizeClass` in SPECIES_OVERRIDES (src/rules/profiles.ts) instead.
  * Only owner-reviewed figures go here, each with its basis.
@@ -35,7 +35,7 @@ export const NEUTRAL_CORE_EXTENT_M: Record<string, number | NeutralExtent> = {
 };
 
 /** Where a species' class came from, so a capture or report can say. `length-rise` is a listed body length times
- *  rules.size.lengthRise (rules.size.axis on). */
+ *  rules.size.lengthRise. */
 export type ExtentSource = 'override' | 'approved-neutral' | 'canonical-listed' | 'length-rise' | 'sprite-fallback';
 
 export interface SpeciesExtent {
@@ -60,7 +60,7 @@ export const listedAxis = (sp: SpeciesDef): MeasureAxis => sp.canon?.axis ?? axi
 
 /**
  * The extent behind a species' class: an approved neutral figure, else the canonical listed one, else the
- * sprite-derived height. With rules.size.axis on, a listed body length (`length` axis) counts `lengthRise` × itself.
+ * sprite-derived height. A listed body length (`length` axis) counts `lengthRise` × itself.
  */
 export function speciesExtent(sp: SpeciesDef, size: SizeRules = defaultRules.size): SpeciesExtent {
   const axis = listedAxis(sp);
@@ -69,7 +69,7 @@ export function speciesExtent(sp: SpeciesDef, size: SizeRules = defaultRules.siz
   if (a !== undefined && a.m > 0) return { m: a.m, source: 'approved-neutral', axis: a.axis };
   const canon = sp.canon?.heightM;
   if (canon !== undefined && canon > 0) {
-    if (size.axis && axis === 'length') return { m: canon * size.lengthRise, source: 'length-rise', axis };
+    if (axis === 'length') return { m: canon * size.lengthRise, source: 'length-rise', axis };
     return { m: canon, source: 'canonical-listed', axis };
   }
   return { m: sp.height, source: 'sprite-fallback', axis: 'height' };

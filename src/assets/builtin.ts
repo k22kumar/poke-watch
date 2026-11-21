@@ -24,14 +24,15 @@ export async function loadBuiltinArt(bundle: ArtBundle, onArt: (id: string, art:
     const { art, report, notes } = await buildArt(id, entry.art);
     registry.setArt(id, art);
     onArt(id, art);
-    if (entry.cry?.src) cries.sample(id, entry.cry.src, entry.cry.gain ?? 1, entry.cry.alt, sp?.height ?? 1.2, sp?.elements[0] ?? 'plain');
-    else { cries.synth(id, sp?.height ?? 1.2, sp?.elements[0] ?? 'plain'); notes.push('no cry; using a synthesised call'); }
+    // recordings only: a species with no cry is silent (docs/hero-shooter-pivot.md Q51)
+    if (entry.cry?.src) cries.sample(id, entry.cry.src, entry.cry.gain ?? 1, entry.cry.alt);
+    else notes.push('no cry recording; silent');
     const credits = entry.art.credits ?? [];
     registry.record({
       id, name: sp?.name ?? id, origin: 'pokedex',
       data: { source: entry.provenance?.data ?? 'PokéAPI', license: entry.provenance?.dataLicense ?? 'PokéAPI' },
       art: { kind: 'pmd', source: entry.art.source, license: entry.art.license ?? 'CC BY-NC 4.0', credits, url: entry.art.url, clips: report },
-      cry: { kind: entry.cry?.src ? 'sample' : 'synth', source: entry.cry?.source ?? 'synthesised', license: entry.cry?.license ?? '—', era: entry.cry?.era, alt: entry.cry?.altSource },
+      cry: { kind: entry.cry?.src ? 'sample' : 'none', source: entry.cry?.source ?? 'none', license: entry.cry?.license ?? '—', era: entry.cry?.era, alt: entry.cry?.altSource },
       status: notes.length ? 'fallback' : 'ok', notes, checksum: entry.provenance?.sha256?.atlas,
     });
     onProgress?.(++k / ids.length);

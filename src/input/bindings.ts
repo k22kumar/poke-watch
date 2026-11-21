@@ -4,7 +4,7 @@
 // Controls → Bindings (ui/ui.ts).
 //
 // Defaults are the controls of every earlier phase, unchanged, plus `descend` (R6c): V on the keyboard (next to C and
-// Space; C stays `cardPointer`), left-stick click on the pad (provisional, docs/CONTROLS.md "Descend"; X stays free as
+// Space; C has been free since the card tray's cursor toggle went at pivot step 9), left-stick click on the pad (provisional, docs/CONTROLS.md "Descend"; X stays free as
 // the alternative a player can bind if it proves uncomfortable: no duplicate default), and a touch button. Ctrl is not a default: Ctrl + W / S / D are browser shortcuts while
 // moving (Ctrl + W cannot be intercepted); a player may still bind it.
 //
@@ -15,10 +15,8 @@
 /** the actions players can bind, in the order the bindings screen lists them */
 export const ACTIONS = [
   { id: 'up', label: 'Move forward' }, { id: 'down', label: 'Move back' }, { id: 'left', label: 'Move left' }, { id: 'right', label: 'Move right' },
-  { id: 'jump', label: 'Jump / ascend' }, { id: 'descend', label: 'Descend (flight)' }, { id: 'dash', label: 'Dash' },
+  { id: 'jump', label: 'Jump / ascend' }, { id: 'descend', label: 'Descend (flight)' }, { id: 'dash', label: 'Dash' }, { id: 'touch', label: 'Touch (hold: Breakthrough)' },
   { id: 'basic', label: 'Attack' }, { id: 'moveA', label: 'Move A' }, { id: 'moveB', label: 'Move B' }, { id: 'sig', label: 'Signature / Tag' }, { id: 'guard', label: 'Guard' },
-  { id: 'pick1', label: 'Pick card 1' }, { id: 'pick2', label: 'Pick card 2' }, { id: 'pick3', label: 'Pick card 3' }, { id: 'pick4', label: 'Pick card 4' },
-  { id: 'reroll', label: 'Reroll cards' }, { id: 'skip', label: 'Skip cards' }, { id: 'banish', label: 'Banish a card' }, { id: 'cardPointer', label: 'Cursor / camera toggle' },
   { id: 'pause', label: 'Pause' }, { id: 'mute', label: 'Mute' }, { id: 'tuning', label: 'Tuning panel' },
 ] as const;
 export type Action = (typeof ACTIONS)[number]['id'];
@@ -37,8 +35,9 @@ export const DEFAULT_KEYS: KeyBindings = {
   // hero-shooter combat: the basic attack is primary fire (left mouse, J), Move A secondary (right mouse, K),
   // Move B R, Q the Signature / Tag, E Guard
   basic: ['KeyJ'], moveA: ['KeyK'], moveB: ['KeyR'], sig: ['KeyQ'], guard: ['KeyE', 'KeyL'],
-  pause: ['Escape', 'KeyP'], reroll: ['KeyF'], skip: ['KeyX'], banish: ['KeyZ'],
-  pick1: ['Digit1'], pick2: ['Digit2'], pick3: ['Digit3'], pick4: ['Digit4'], cardPointer: ['KeyC'], tuning: ['Backquote'], mute: ['KeyM'],
+  // Touch (docs/CONTROL_SCHEME_TARGET.md): F; held, a Breakthrough (evolution) where the mode allows one
+  touch: ['KeyF'],
+  pause: ['Escape', 'KeyP'], tuning: ['Backquote'], mute: ['KeyM'],
 };
 
 /** standard-mapping gamepad button indices */
@@ -47,11 +46,10 @@ export const PAD = { a: 0, b: 1, x: 2, y: 3, lb: 4, rb: 5, lt: 6, rt: 7, back: 8
 export const PAD_BUTTONS = 16;
 
 /** gamepad defaults: the buttons the pad used before R6c (A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A,
- *  RT attack, Start pause, d-pad left / up / right picks and down rerolls while the card tray is open), plus descend */
+ *  RT attack, Start pause), plus descend. The card-tray picks went with the cards (pivot step 9) */
 export const DEFAULT_PAD: PadBindings = {
   jump: [PAD.a], dash: [PAD.b], basic: [PAD.rt], moveA: [PAD.lt], moveB: [PAD.rb], sig: [PAD.y], guard: [PAD.lb],
   descend: [PAD.ls], pause: [PAD.start],
-  pick1: [PAD.left], pick2: [PAD.up], pick3: [PAD.right], reroll: [PAD.down],
 };
 
 /** keys a binding may not take: Escape cancels a capture on the bindings screen (and releases the pointer lock in the
@@ -79,6 +77,24 @@ function sanitize<T extends string | number>(saved: unknown, ok: (c: unknown) =>
 }
 export const sanitizeKeyOverrides = (saved: unknown) => sanitize(saved, okKey);
 export const sanitizePadOverrides = (saved: unknown) => sanitize(saved, okPad);
+
+/** On load: an action the overrides leave with no code gets its default codes back where they are free (no override
+ *  claims them). A save from an older build can hold an empty override for a live action whose key had moved to an
+ *  action that no longer exists (the survivor build's card keys): that action would otherwise stay unbound. Returns new
+ *  overrides; the input is not changed. Note it also brings back a default the player cleared on purpose, when free. */
+export function restoreUnbound<T extends string | number>(defaults: Record<string, readonly T[]>, overrides: Record<string, readonly NoInfer<T>[]>): Record<string, T[]> {
+  const out: Record<string, T[]> = {};
+  for (const [a, cs] of Object.entries(overrides)) out[a] = [...cs];
+  const claimed = new Set<T>();
+  for (const a of ACTIONS) for (const c of out[a.id] ?? []) claimed.add(c);
+  for (const a of ACTIONS) {
+    const o = out[a.id];
+    if (!o || o.length) continue;
+    // an empty override: drop it when a default code is free, so resolveBindings gives the action its free defaults
+    if ((defaults[a.id] ?? []).some((c) => !claimed.has(c))) delete out[a.id];
+  }
+  return out;
+}
 
 /** The table in use: the defaults with the player's overrides on top. An overridden action has exactly its override's
  *  codes; a code an override claims leaves every action the player did not override, so a default added later (or

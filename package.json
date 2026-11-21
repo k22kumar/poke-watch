@@ -10,7 +10,6 @@
     "check": "npm run typecheck && npm test && npm run build",
     "typecheck": "tsc --noEmit -p .",
     "test": "tsx --test tests/*.test.ts",
-    "sim": "tsx scripts/headless.ts",
     "import": "node scripts/import-pack.mjs",
     "fixtures": "node scripts/make-fixture-mirror.mjs tests/fixtures/mirror",
     "import:fixture": "node scripts/import-pack.mjs charmander squirtle totodile --mirror tests/fixtures/mirror --out packs/fixture --id fixture --name \"Fixture starters\"",

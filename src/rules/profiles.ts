@@ -6,10 +6,10 @@
 //                                               hover, swim; defaults from the roster's legacy `flying` flag and the
 //                                               swimming types (rules.hazards.water.safeTypes), replaced per species by
 //                                               `traversal`. Knowing a safe move (Surf) also swims (`canSwim`)
-//   preference   what it TENDS to favour        `prefers`: habitat tags whose tiles raise its encounter odds
-//                                               (rules.spawning.preference) — never required
+//   preference   what it TENDS to favour        `prefers`: habitat tags it favours (data only since the spawn pools
+//                                               and their encounter odds were deleted at pivot step 9) — never required
 //   restriction  what MUST or MUST NOT hold     `requires` / `avoids`: habitat tags a spawn tile must have / must not
-//                                               have. Checked only by spawn compatibility (src/rules/spawning.ts).
+//                                               have. Checked only by placement (src/sim/placement.ts allowedAt).
 //
 // Defaults are derived; an entry in SPECIES_OVERRIDES replaces individual fields. Nothing here is implied by a
 // Pokémon's type: a Water type is not given `requires: water`, and an unlisted species has no preference at all.
@@ -28,7 +28,6 @@ export interface SpeciesOverride {
   /** a spawn tile must carry none of these habitat tags */
   avoids?: number;
   /** can heal allies in a composition even without the `healer` behaviour */
-  mender?: boolean;
   /** pin the size class instead of deriving it from the canonical extent (docs/SIZING.md) */
   sizeClass?: SizeClassId;
   /** traversal template ids (rules.locomotion.templates), replacing the derived list entirely ([] = none). At most one
@@ -48,28 +47,30 @@ export interface SpeciesProfile {
   prefers: number;
   requires: number;
   avoids: number;
-  mender: boolean;
   sizeClass?: SizeClassId;
 }
 
 /** Authored per-species facts. Every field is optional; leave a species out to take the defaults. */
+/** why a species whose identity is its Ability (Wonder Guard, Truant, Slow Start, Schooling) is not a hero yet */
+export const NEEDS_ABILITY_RULE_REASON = 'needs its Ability rule';
+
 export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   rattata: { prefers: HAB.meadow | HAB.grass },
   ledyba: { prefers: HAB.forest | HAB.meadow },
   sandshrew: { prefers: HAB.dry | HAB.rock },
-  oddish: { prefers: HAB.grass | HAB.forest, mender: true },
+  oddish: { prefers: HAB.grass | HAB.forest },
   poliwag: { prefers: HAB.water },
   mareep: { prefers: HAB.meadow },
   heracross: { prefers: HAB.forest },
   geodude: { prefers: HAB.rock },
   houndour: { prefers: HAB.dry | HAB.rock },
   zubat: { prefers: HAB.forest | HAB.rock },
-  paras: { prefers: HAB.forest | HAB.water, mender: true },
+  paras: { prefers: HAB.forest | HAB.water },
   vulpix: { prefers: HAB.dry },
   slugma: { prefers: HAB.rock | HAB.dry },
   swinub: { prefers: HAB.water | HAB.rock },
   // Present heals in the main games
-  delibird: { prefers: HAB.meadow | HAB.rock, mender: true },
+  delibird: { prefers: HAB.meadow | HAB.rock },
   gastly: { prefers: HAB.forest | HAB.rock },
   // Joltik clings to plants and to cave walls (Pinwheel Forest, Chargestone Cave); Onix tunnels
   // through rock and dry ground (Rock Tunnel, Mt. Moon, the desert routes).
@@ -91,6 +92,8 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   // the catalogue wave (docs/size-extremes-plan.md §S2)
   eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/size-extremes-plan.md "F3 done")' },
   stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/size-extremes-plan.md §S2)' },
+  // the hero-shooter prototype (docs/STATS_GROWTH_TARGET.md "Prototype scope"; docs/hero-shooter-pivot.md Q34)
+  shedinja: { recruitable: false, recruitableReason: NEEDS_ABILITY_RULE_REASON },
 };
 
 /** May this species join the squad? (SPECIES_OVERRIDES `recruitable: false` says no, with a reason) */
@@ -113,7 +116,6 @@ export function speciesProfile(sp: SpeciesDef | string): SpeciesProfile {
     prefers: o.prefers ?? 0,
     requires: o.requires ?? 0,
     avoids: o.avoids ?? 0,
-    mender: o.mender ?? false,
     sizeClass: o.sizeClass,
   };
   cache.set(id, p);
@@ -183,14 +185,6 @@ export function traversalOf(sp: TraversalSource, rules: Rules = defaultRules): T
  *  rules.hazards.water.safeMoves move in its move set (knowing Surf lends it, cooling down or not). */
 export function canSwim(species: TraversalSource, moves?: readonly { key: string }[], rules: Rules = defaultRules): boolean {
   return traversalOf(species, rules).swim !== null || (!!moves && moves.some((s) => rules.hazards.water.safeMoves.includes(s.key)));
-}
-
-/** Preference: encounter-odds factor of a species on a tile with these habitat tags. Never 0: preference is not
- *  eligibility. A species with no preference, or a tile with no tags, is neutral (1). */
-export function habitatSpawnFactor(species: string, habitat: number, pref: Rules['spawning']['preference'] = defaultRules.spawning.preference): number {
-  const native = speciesProfile(species).prefers;
-  if (!native || !habitat) return 1;
-  return native & habitat ? pref.native : pref.foreign;
 }
 
 /** Restriction: may this species spawn on a tile with these habitat tags? (Preference plays no part.) */

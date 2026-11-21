@@ -1,0 +1,105 @@
+{
+ "comment": "Hero-shooter replay baseline (tests/replays.test.ts). Rewritten by `npx tsx scripts/checksum.ts [scenario|all] --update`; a commit that changes it says why.",
+ "scenarios": {
+  "range-charmander": {
+   "checkpoints": [
+    "d1f0a9af",
+    "acbc53f5",
+    "c0eba315",
+    "960f1de2",
+    "311b2dfa"
+   ],
+   "end": "429d96b0"
+  },
+  "range-caterpie": {
+   "checkpoints": [
+    "10db9898",
+    "fae6a865",
+    "7a713723",
+    "837b8639",
+    "bb4ace48"
+   ],
+   "end": "dd07605e"
+  },
+  "range-tauros": {
+   "checkpoints": [
+    "60a6ee15",
+    "c500e706",
+    "f92cf04b",
+    "d5bab89c",
+    "57b6bd01"
+   ],
+   "end": "598d442d"
+  },
+  "range-mewtwo": {
+   "checkpoints": [
+    "5a0c4ab7",
+    "9b28ae54",
+    "0941b8a8",
+    "d5cd77fa",
+    "df07c701"
+   ],
+   "end": "63f6148f"
+  },
+  "mtmoon-onix": {
+   "checkpoints": [
+    "638d2c4a",
+    "0f1a4da3",
+    "870fa1f0",
+    "9eb51032",
+    "6a9f447f"
+   ],
+   "end": "cb59b3b5"
+  },
+  "mtmoon-wailord": {
+   "checkpoints": [
+    "64ff7ad4",
+    "4e24a917",
+    "2a87f53a",
+    "071e4a9b",
+    "1302a81e"
+   ],
+   "end": "6cefb42e"
+  },
+  "grotto-totodile": {
+   "checkpoints": [
+    "b7bf52a9",
+    "f93b81f4",
+    "50342930",
+    "456851d6",
+    "a8a81823"
+   ],
+   "end": "79f05f1a"
+  },
+  "crater-charmander": {
+   "checkpoints": [
+    "b24cc1d1",
+    "971cdf1b",
+    "6d451c0a",
+    "f24206ba",
+    "3f8f054d"
+   ],
+   "end": "47a3e5e2"
+  },
+  "gorge-hold": {
+   "checkpoints": [
+    "e862cd46",
+    "5affd9c7",
+    "e826397e",
+    "c4d2b2e1",
+    "f8ded7f6"
+   ],
+   "end": "9aca717d"
+  },
+  "range-swap": {
+   "checkpoints": [
+    "2a4f52b9",
+    "aefa6c9e",
+    "662e2a7f",
+    "aa8e1026",
+    "3e0f71df"
+   ],
+   "end": "5ce05575"
+  }
+ }
+}

@@ -14,3 +14,6 @@ content/music/adaptive/previews/
 content/music/adaptive/production/*.wav
 content/music/adaptive/production/*.mp3
 content/music/adaptive/production/candidates/
+
+# range.py merge-check screenshots (tests/browser/range.py), kept locally
+docs/merge-check/

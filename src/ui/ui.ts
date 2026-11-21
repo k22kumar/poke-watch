@@ -11,7 +11,7 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { weightClass } from '../rules/species';
 import { debugLine, debugTag } from '../sim/caplog';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
-import { SPECIES, SPECIES_BY_ID, starterChoices, type SpeciesDef } from '../rules/species';
+import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import { bodyOf, type SizeRules } from '../rules/sizing';
 import { traversalOf, unrecruitableReason } from '../rules/profiles';
 import { ACTIONS, DEFAULT_KEYS, DEFAULT_PAD, PAD_BUTTONS, RESERVED_KEYS, SLOTS, assignBinding, keyName, padName, resolveBindings, type KeyBindings, type PadBindings } from '../input/bindings';
@@ -19,22 +19,18 @@ import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
 import { ABILITIES, abilityOf } from '../rules/abilities';
-import { MODES } from '../mods';
+import { MODES, TITLE_MODES } from '../mods';
 import type { Mode } from '../mods/types';
-import { ROLE } from '../sim/pools';
 import { compileMove, levelled, slotSpec } from '../sim/moves';
 import { pinchActive } from '../sim/combat';
-import { lineage } from '../sim/progression';
-import type { Card, SimContext } from '../sim/types';
+import { FEATURED, PROTOTYPE, heroKit, lineage } from '../rules/heroes';
+import type { SimContext } from '../sim/types';
 import { COAT_NAMES } from '../rules/reactions';
 import { tagLineOf } from '../rules/tags';
 import { drawText, textWidth } from '../overworld/font';
 import { registry } from '../assets/registry';
 import { CAMERA_PRESETS } from '../render/camera';
 import { TYPE_OF, typeBadge, itemIcon, glyphImg, ICON_LICENSE } from './pixicons';
-import { HEAL_LOOK, LEARN_LOOK, UPGRADE_LOOK, VITAMIN_LOOK, TECH_LOOK, EVOLVE_LOOK, type ItemLook } from './items';
-import { TECHNIQUE_BY_ID, TRANSFORM_BY_ID, TRANSFORMS_OF } from '../rules/build';
-import { transformSpec } from '../sim/build';
 import { WEIGHT_NAMES } from '../rules/species';
 import { loadInfo } from '../world/replay';
 
@@ -63,7 +59,6 @@ const btn = (label: Kid | Kid[], onclick: () => void, cls = 'btn', extra: Attrs 
 export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
 export interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
-  card(action: 'pick' | 'reroll' | 'skip' | 'banish', index: number): void;
   /** `via`: 'click' from the Resume button (a user gesture, so the mouse can be captured in it), 'key' from Esc / Backspace
    *  in the pause menu (no user activation: browsers refuse a pointer lock from an Esc keydown) */
   resume(via: 'click' | 'key'): void;
@@ -76,7 +71,7 @@ export interface UIHooks {
   applySettings(): void;
   resetSettings(): void;
   preview(kind: 'cry' | 'sfx' | 'music'): void;
-  tuning(): { rules: any; ctx: SimContext | null; spawnBoss(): void; addLevel(): void; god(on: boolean): void; killAll(): void };
+  tuning(): { rules: any; ctx: SimContext | null; god(on: boolean): void; killAll(): void };
   /** developer roster (docs/PLAYABILITY.md): `dev` (?dev=1) adds the All Pokémon view to the partner screen */
   dev: boolean;
   /** every species graded for player control, in registry order (sim/playability.ts plus the host's art check) */
@@ -107,9 +102,6 @@ function copyCanvas(src: HTMLCanvasElement | undefined, cls = ''): HTMLCanvasEle
   c.getContext('2d')!.drawImage(src, 0, 0);
   return c;
 }
-function lookIcon(L: ItemLook, scale = 2): HTMLElement {
-  return (L.item ? itemIcon(L.item, scale) : null) ?? glyphImg(L.glyph ?? 'upgrade', scale);
-}
 
 /** screens that take the keyboard, topmost first */
 const MENU_ORDER = ['screen-bindings', 'screen-settings', 'screen-help', 'screen-credits', 'screen-pause', 'screen-end', 'screen-select', 'screen-title'];
@@ -120,16 +112,12 @@ export class UI {
   private backs: Record<string, () => void> = {};
   private hud!: Record<string, HTMLElement>;
   private slots: HTMLElement[] = [];
-  private mode: Mode = MODES[0];
+  private mode: Mode = TITLE_MODES[0];
   private species = 'charmander';
-  private banishing = false;
-  private cardPending = false;
-  private cardsShown: Card[] = [];
   private bannerT = 0;
   private hpLagTimer = 0;
   private lastSpecies = '';
   private lastMoves = '';
-  private lastVits = '';
   private lastStatus = '';
   private padPrev: boolean[] = [];
   private padRepeat = 0;
@@ -138,10 +126,6 @@ export class UI {
   private capture: { action: string; dev: 'key' | 'pad'; slot: number } | null = null;
   private bindingsBack = 'screen-settings';
   fx2d: CanvasRenderingContext2D;
-  tray!: HTMLElement;
-  private upgradeStatus!: HTMLElement;
-  private upgradeFeedback!: HTMLElement;
-  private upgradeFeedbackTimer = 0;
 
   constructor(private hooks: UIHooks) {
     this.root = document.getElementById('ui')!;
@@ -163,12 +147,9 @@ export class UI {
     for (const s of Object.values(this.screens)) s.classList.add('hidden');
     this.clearTransient();
   }
-  /** things that live on #ui outside `screens` (the banked-pick tray, the banner, the region plaque) and the effects canvas:
+  /** things that live on #ui outside `screens` (the banner, the region plaque) and the effects canvas:
    *  every screen change (new run, title, select) must clear them, or they linger over the next screen */
   clearTransient() {
-    this.hideCards();
-    this.cardsShown = [];
-    this.banishing = false;
     this.bannerT = 0;
     document.getElementById('banner')?.classList.remove('show');
     clearTimeout(this.plaqueT);
@@ -242,20 +223,6 @@ export class UI {
       this.bindTo(e.code === 'Delete' || e.code === 'Backspace' ? null : e.code);
       return;
     }
-    if (!name && this.tray.contains(t)) {
-      const dir: Record<string, number> = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 };
-      if (dir[e.key]) {
-        const cards = [...this.tray.querySelectorAll<HTMLButtonElement>('.card')];
-        const i = cards.indexOf(t.closest<HTMLButtonElement>('.card')!);
-        const next = cards[i + dir[e.key]];
-        e.preventDefault();
-        e.stopPropagation();
-        next?.focus();
-        return;
-      }
-      if ((e.key === 'Enter' || e.key === ' ') && t.closest('.card')) e.stopPropagation();
-      return;
-    }
     if (!name) return;
     const typing = t?.tagName === 'INPUT' && (t as HTMLInputElement).type === 'text';
     const k = e.key;
@@ -302,33 +269,26 @@ export class UI {
     this.add('screen-select', h('div', { class: 'screen' }));
     const hud = h('div', {});
     this.hud = {
-      xp: h('div'), portrait: h('div', { class: 'hud-portrait' }), name: h('span', { class: 'nm' }), lvl: h('span', { class: 'lvl' }), types: h('span', { class: 'types' }),
+      portrait: h('div', { class: 'hud-portrait' }), name: h('span', { class: 'nm' }), types: h('span', { class: 'types' }),
       hpFill: h('div', { class: 'fill' }), hpLag: h('div', { class: 'lag' }), hpText: h('div', { class: 'hptext' }), status: h('div', { class: 'status' }),
-      timer: h('div', { class: 'timer' }), stage: h('div', { class: 'stagename' }),
-      kills: h('div'), live: h('small'),
-      boss: h('div', { class: 'box bossbox hidden' }), bossName: h('div', { class: 'name' }), bossFill: h('div', { class: 'fill' }), bossTypes: h('span', { class: 'types' }),
-      slots: h('div', { class: 'hud-bottom' }), vits: h('div', { class: 'vits' }), vignette: h('div', { class: 'vignette' }),
+      slots: h('div', { class: 'hud-bottom' }), vignette: h('div', { class: 'vignette' }),
       squad: h('div', { class: 'squad hidden', role: 'group', 'aria-label': 'Squad' }), tagcd: h('div', { class: 'tagcd' }),
       obj: h('div', { class: 'box objbox hidden', role: 'status', 'aria-live': 'polite' }), objTitle: h('div', { class: 'ot' }), objBar: h('div', { class: 'ob' }), objTime: h('small', {}),
       hint: h('div', { class: 'hint' }),
     };
     const H = this.hud;
     H.obj.append(h('div', { class: 'orow' }, H.objTitle, H.objTime), h('div', { class: 'obar' }, H.objBar));
-    H.boss.append(h('div', { class: 'row' }, H.bossName, H.bossTypes), h('div', { class: 'hprow' }, h('span', { class: 'hptag' }, 'HP'), h('div', { class: 'hpbar' }, h('div', { class: 'track' }, H.bossFill))));
     hud.append(
       H.vignette,
       h('div', { class: 'box infobox' }, H.portrait, h('div', { class: 'col' },
-        h('div', { class: 'hud-name' }, H.name, H.lvl),
+        h('div', { class: 'hud-name' }, H.name),
         H.types,
         h('div', { class: 'hp-line' },
           h('div', { class: 'hprow' }, h('span', { class: 'hptag' }, 'HP'), h('div', { class: 'hpbar' }, h('div', { class: 'track' }, H.hpLag, H.hpFill))),
-          H.hpText),
-        h('div', { class: 'exprow' }, h('span', { class: 'exptag' }, 'EXP'), h('div', { class: 'expbar' }, H.xp)))),
+          H.hpText))),
       H.status, H.squad,
-      h('div', { class: 'box timebox' }, H.timer, H.stage),
       H.obj,
-      h('div', { class: 'box hud-tr' }, H.kills, H.live),
-      H.boss, H.slots, H.vits,
+      H.slots,
       H.hint,
     );
     this.refreshHint();
@@ -347,12 +307,6 @@ export class UI {
     );
     this.root.append(touchControls);
     this.root.append(h('div', { id: 'banner', role: 'status', 'aria-live': 'polite' }), h('div', { id: 'plaque' }));
-    this.tray = h('div', { id: 'tray-cards', class: 'hidden', role: 'region', 'aria-label': 'Upgrade choices' });
-    this.root.append(this.tray);
-    this.upgradeStatus = h('div', { id: 'upgrade-status', class: 'sr-only', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true' });
-    this.root.append(this.upgradeStatus);
-    this.upgradeFeedback = h('div', { id: 'upgrade-feedback', class: 'hidden', role: 'status' });
-    this.root.append(this.upgradeFeedback);
     this.add('overlay-evolve', h('div', { class: 'screen' }, h('div', { class: 'rays' }), h('div', { class: 'box txt', id: 'evotxt' })));
     for (const n of ['screen-pause', 'screen-end', 'screen-settings', 'screen-bindings', 'screen-help', 'screen-credits']) this.add(n, h('div', { class: 'screen dim' }));
     this.add('tuning', h('div', { class: 'box' }));
@@ -375,13 +329,13 @@ export class UI {
       for (const c of modes.children) c.setAttribute('aria-checked', 'false');
       el.setAttribute('aria-checked', 'true');
     };
-    for (const m of MODES) {
+    for (const m of TITLE_MODES) {
       const el: HTMLElement = h('button', { type: 'button', class: 'box choice mode', role: 'radio', 'aria-checked': String(m === this.mode), 'data-follow': '1', onclick: () => choose(m, el) }, h('b', {}, m.name), h('span', {}, m.description));
       modes.append(el);
     }
     scr.append(
       h('div', { class: 'logo' }, 'POKE-', h('span', {}, 'WATCH')),
-      h('div', { class: 'tagline' }, 'A Pokémon survival fan game across four handcrafted regions'),
+      h('div', { class: 'tagline' }, 'A Pokémon hero shooter fan game'),
       modes,
       h('div', { class: 'title-actions' },
         btn('Play', () => { this.hooks.sound('pick'); this.openSelect(); }, 'btn primary'),
@@ -400,15 +354,13 @@ export class UI {
     this.hideAll();
     const scr = this.screens['screen-select'];
     scr.innerHTML = '';
-    const roster = h('div', { class: 'roster', role: 'radiogroup', 'aria-label': 'Partner Pokémon' });
+    const roster = h('div', { class: 'roster', role: 'radiogroup', 'aria-label': 'Hero Pokémon' });
     const seedIn = h('input', { type: 'text', inputmode: 'numeric', value: String(Math.floor(Math.random() * 1e6)), 'aria-label': 'Seed' }) as HTMLInputElement;
-    let offerSeed = Number(seedIn.value) || 1;
-    let offers = starterChoices(offerSeed);
-    let mulligansLeft = 1;
-    if (!offers.length) offers = SPECIES.filter((s) => s.playable).map((s) => s.id);
+    // the hero pick (docs/hero-shooter-pivot.md Q13, Q35, Q46): the prototype list, the featured test lines first
+    const offers = PROTOTYPE.filter((id) => SPECIES_BY_ID[id]);
     // ?dev=1: the All Pokémon view lists every species graded for player control (docs/PLAYABILITY.md), filled from the
     // registry, so a newly generated Pokémon appears here without any UI change
-    let view: 'starters' | 'all' = this.hooks.dev ? 'all' : 'starters';
+    let view: 'heroes' | 'all' = this.hooks.dev ? 'all' : 'heroes';
     let filter = '';
     const selectable = () => this.hooks.roster().filter((r) => r.tier !== 'unavailable').map((r) => r.id);
     const fitView = () => {
@@ -468,20 +420,19 @@ export class UI {
     };
     const rebuildRoster = () => {
       if (view === 'all') { rebuildAll(); return; }
-      roster.className = 'roster';
+      roster.className = 'roster heroes';
       roster.innerHTML = '';
+      const featured = new Set(FEATURED);
+      let group = '';
       for (const id of offers) {
         const sp = SPECIES_BY_ID[id];
-        if (!sp) continue;
+        const g = featured.has(id) ? 'Featured' : 'Prototype heroes';
+        if (g !== group) { group = g; roster.append(h('h3', { class: 'dev-group' }, g)); }
+        const kit = heroKit(sp, { fillE: this.mode.rules?.hero?.fillE });
+        const nm = (k?: string) => (k ? MOVE_BY_KEY[k]?.name ?? k : '—');
         const line = lineFrom(sp);
-        const ab = abilityOf(sp);
-        const st = sp.stats;
-        const bars = h('div', { class: 'stats' });
-        for (const [k, lab] of [['hp', 'HP'], ['atk', 'Atk'], ['def', 'Def'], ['spa', 'SpA'], ['spd', 'SpD'], ['spe', 'Spe']] as const) {
-          bars.append(h('span', {}, lab), h('div', { class: 'stat' }, h('div', { style: `width:${Math.min(100, (st[k] / 100) * 100)}%` })), h('b', {}, String(st[k])));
-        }
         const card: HTMLElement = h('button', {
-          type: 'button', class: 'box choice mon', role: 'radio', 'aria-checked': String(sp.id === this.species), 'aria-label': `${sp.name}, ${sp.elements.map(typeName).join(' and ')} type`,
+          type: 'button', class: `box choice mon hero${featured.has(id) ? ' featured' : ''}`, role: 'radio', 'aria-checked': String(sp.id === this.species), 'aria-label': `${sp.name}, ${sp.elements.map(typeName).join(' and ')} type`,
           onclick: () => {
             if (this.species === sp.id && card.getAttribute('aria-checked') === 'true' && document.activeElement === card && (card as any)._armed) { go(); return; }
             choose(sp.id, card);
@@ -491,58 +442,42 @@ export class UI {
           h('div', { class: 'info' },
             h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
             h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),
-            ab ? h('div', { class: 'ability' }, h('b', {}, ABILITIES[ab].name), ' — ', ABILITIES[ab].game) : null,
-            h('div', { class: 'line' }, line.map((s, i) => (i ? `${s.name} (Lv ${line[i - 1].evolveLevel})` : s.name)).join(' → ')),
-            bars),
+            h('div', { class: 'kit' }, `${nm(kit.primary)} · ${nm(kit.q)}${kit.e ? ' · ' + nm(kit.e) : ''}`),
+            line.length > 1 ? h('div', { class: 'line' }, line.map((s) => s.name).join(' → ')) : null),
         );
         roster.append(card);
       }
     };
     rebuildRoster();
-    const mulligan = btn(mulligansLeft > 0 ? 'Mulligan (1)' : 'Mulligan used', () => {
-      if (mulligansLeft <= 0) return;
-      offerSeed = (offerSeed + 1) >>> 0;
-      offers = starterChoices(offerSeed);
-      if (!offers.length) offers = SPECIES.filter((s) => s.playable).map((s) => s.id);
-      this.species = offers[0];
-      mulligansLeft = 0;
-      this.hooks.sound('ui');
-      rebuildRoster();
-      btnText.textContent = 'Mulligan used';
-      btnText.disabled = true;
-    }, 'btn');
-    const btnText = mulligan as HTMLButtonElement;
     const subText = () => view === 'all'
       ? `Mode: ${this.mode.name} · developer roster: every Pokémon in the game, graded for player control (docs/PLAYABILITY.md)`
-      : `Mode: ${this.mode.name} · pick one of the three starters, or use your single mulligan before starting`;
+      : `Mode: ${this.mode.name} · pick a hero: primary · Ability 1${this.mode.rules?.hero?.fillE ? ' · Ability 2' : ''}`;
     const sub = h('div', { class: 'sub' }, subText());
     let devTools: HTMLElement | null = null;
     if (this.hooks.dev) {
-      const toggle = btn('', () => { view = view === 'all' ? 'starters' : 'all'; this.hooks.sound('ui'); sync(); }, 'btn small') as HTMLButtonElement;
+      const toggle = btn('', () => { view = view === 'all' ? 'heroes' : 'all'; this.hooks.sound('ui'); sync(); }, 'btn small') as HTMLButtonElement;
       const search = h('input', { type: 'search', placeholder: 'Filter: name, type, role, size', 'aria-label': 'Filter Pokémon' }) as HTMLInputElement;
       search.oninput = () => { filter = search.value; rebuildRoster(); };
       const counts = this.hooks.roster().reduce((n, r) => { n[r.tier]++; return n; }, { ready: 0, partial: 0, unavailable: 0 });
       devTools = h('div', { class: 'dev-tools' }, toggle, search, h('span', { class: 'dev-count' }, `${counts.ready} ready · ${counts.partial} partial · ${counts.unavailable} not playable`));
       const sync = () => {
         fitView();
-        toggle.textContent = view === 'all' ? 'Show starters' : 'All Pokémon (dev)';
+        toggle.textContent = view === 'all' ? 'Show heroes' : 'All Pokémon (dev)';
         search.style.display = view === 'all' ? '' : 'none';
-        mulligan.style.display = view === 'all' ? 'none' : '';
         sub.textContent = subText();
         rebuildRoster();
       };
       sync();
     }
     scr.append(
-      h('h2', { class: 'box heading' }, 'Choose your partner'),
+      h('h2', { class: 'box heading' }, 'Choose your hero'),
       sub,
       ...(devTools ? [devTools] : []),
       roster,
       h('div', { class: 'select-actions' },
         btn('Back', () => this.title()),
         h('label', { class: 'seed' }, 'Seed ', seedIn),
-        mulligan,
-        btn('Start run', go, 'btn primary')),
+        btn('Start', go, 'btn primary')),
     );
     this.backs['screen-select'] = () => this.title();
     this.show('screen-select');
@@ -553,7 +488,7 @@ export class UI {
   startHud(ctx: SimContext) {
     this.hideAll();
     this.show('hud');
-    this.lastSpecies = ''; this.lastMoves = ''; this.lastVits = ''; this.lastStatus = '';
+    this.lastSpecies = ''; this.lastMoves = ''; this.lastStatus = '';
     this.stageBanner(ctx);
   }
 
@@ -563,9 +498,9 @@ export class UI {
     el.className = 'plaque-' + b.id;
     el.innerHTML = '';
     const hab = ctx.world.hab;
-    const where = ctx.loop ? `Region ${ctx.stage + 1} · Lap ${ctx.loop + 1}` : `Region ${ctx.stage + 1} of ${ctx.rules.stage.count}`;
-    // habitat maps: the map seed, so a layout can be replayed (Settings → World → Map seed, or ?mapseed=)
-    el.append(h('span', { class: 'pname' }, ctx.world.map.gen?.loc ? ctx.world.map.name : b.name), h('small', {}, hab ? `${where} · ${loadInfo(hab).label}` : where));
+    // the run's mode, and on habitat maps the map seed, so a layout can be replayed (Settings → World → Map seed, or ?mapseed=)
+    const mode = MODES.find((m) => m.id === ctx.rules.mode.id)?.name ?? '';
+    el.append(h('span', { class: 'pname' }, ctx.world.map.gen?.loc ? ctx.world.map.name : b.name), h('small', {}, hab ? [mode, loadInfo(hab).label].filter(Boolean).join(' · ') : mode));
     requestAnimationFrame(() => el.classList.add('show'));
     clearTimeout(this.plaqueT);
     this.plaqueT = setTimeout(() => el.classList.remove('show'), 3400) as unknown as number;
@@ -589,7 +524,6 @@ export class UI {
     const H = this.hud;
     const P = ctx.player;
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) document.getElementById('banner')!.classList.remove('show'); }
-    H.xp.style.width = `${(P.xp / P.xpNext) * 100}%`;
     if (this.lastSpecies !== P.species.id) {
       this.lastSpecies = P.species.id;
       H.portrait.innerHTML = '';
@@ -598,19 +532,12 @@ export class UI {
       H.types.innerHTML = '';
       for (const e of P.species.elements) H.types.append(typeBadge(e));
     }
-    H.lvl.textContent = String(P.level);
     const hpf = Math.max(0, P.hp / P.maxHp) * 100;
     H.hpFill.style.width = hpf + '%';
     H.hpFill.className = 'fill ' + (hpf <= 20 ? 'lo' : hpf <= 50 ? 'mid' : 'hi');
     this.hpLagTimer += dt;
     if (this.hpLagTimer > 0.1) { this.hpLagTimer = 0; H.hpLag.style.width = hpf + '%'; }
     H.hpText.textContent = `${Math.ceil(P.hp)}/${Math.round(P.maxHp)}`;
-    H.timer.textContent = fmtTime(ctx.stageTime);
-    const biome = BIOMES[STAGES[ctx.stage % STAGES.length].biome];
-    const bossIn = ctx.rules.stage.bossAt - ctx.stageTime;
-    H.stage.textContent = ctx.portal.active ? 'Portal open!' : bossIn > 0 ? `Boss in ${fmtTime(bossIn)}` : ctx.director.finalSwarm ? 'Final swarm' : ctx.world.map.gen?.loc ? ctx.world.map.name : biome.name;
-    H.kills.textContent = `${ctx.stats.kills.toLocaleString()} KOs`;
-    H.live.textContent = `${ctx.enemies.count} wild`;
 
     // status chips: paralysis, active ability, boost, weather
     const ab = abilityOf(P.species);
@@ -626,65 +553,47 @@ export class UI {
     // the squad: one card per Pokémon (field one marked), with HP, grey health and what Tag will do
     this.updateSquad(ctx);
 
-    // boss info box
-    const bi = ctx.director.bossIndex;
-    const E = ctx.enemies;
-    if (bi >= 0 && E.alive[bi] && E.roles[bi] & ROLE.boss) {
-      if (H.boss.classList.contains('hidden')) {
-        H.boss.classList.remove('hidden');
-        const sp = SPECIES[E.species[bi]];
-        H.bossName.innerHTML = '';
-        H.bossName.append(h('b', {}, sp.name), h('small', {}, sp.boss?.title ?? ''));
-        H.bossTypes.innerHTML = '';
-        for (const e of sp.elements) H.bossTypes.append(typeBadge(e));
-      }
-      const f = (Math.max(0, E.hp[bi]) / E.maxHp[bi]) * 100;
-      H.bossFill.style.width = `${f}%`;
-      H.bossFill.className = 'fill ' + (f <= 20 ? 'lo' : f <= 50 ? 'mid' : 'hi');
-    } else H.boss.classList.add('hidden');
 
-    // move slots
-    const slotsMax = P.level >= ctx.rules.player.lateSlotLevel ? ctx.rules.player.moveSlotsLate : ctx.rules.player.moveSlots;
-    const key = P.moves.map((m) => m.key + m.level + (m.xf ?? '')).join() + '|' + slotsMax + '|' + ctx.rules.combat.mode;
+    // the kit (docs/hero-shooter-pivot.md Q27, Q46): primary, Ability 1, Ability 2, and the Ultimate slot, empty until
+    // it exists. Keys come from the bindings in use; the moves stay at rules.hero.moveLevel, so no level pips
+    const key = P.moves.map((m) => m.key).join() + '|' + ctx.rules.combat.mode + '|' + this.bindKey;
     if (key !== this.lastMoves) {
       this.lastMoves = key;
       H.slots.innerHTML = '';
       this.slots = [];
       const auto = ctx.rules.combat.mode === 'auto';
-      const KEYS = auto ? ['AUTO', 'AUTO', 'AUTO', 'AUTO'] : ['LMB', 'RMB', 'R', 'Q'];
-      const KEY_TITLE = auto ? ['fires on its own', 'fires on its own', 'fires on its own', 'fires on its own']
-        : ['Left mouse / J / RT, hold to repeat', 'Right mouse / K / LT, aimed', 'R / RB, aimed', 'Q / Y, aimed'];
-      for (let i = 0; i < Math.max(slotsMax, P.moves.length); i++) {
+      const K = this.keyLabels();
+      const KEYS = auto ? ['AUTO', 'AUTO', 'AUTO'] : [`LMB · ${K.basic}`, `RMB · ${K.moveA}`, K.moveB];
+      const ROLE_NAME = ['Primary', 'Ability 1', 'Ability 2'];
+      for (let i = 0; i < 3; i++) {
         const m = P.moves[i];
-        if (!m) { H.slots.append(h('div', { class: 'slot empty' }, h('span', {}, '—'), h('span', { class: 'key' }, KEYS[i] ?? ''))); continue; }
-        const pips = h('div', { class: 'pips' });
-        for (let k = 1; k <= ctx.rules.moves.maxLevel; k++) pips.append(h('i', { class: k <= m.level ? 'on' : '' }));
+        if (!m) { H.slots.append(h('div', { class: 'slot empty', title: `${ROLE_NAME[i]}: empty` }, h('span', {}, '—'), h('span', { class: 'key' }, KEYS[i]))); continue; }
         const cd = h('div', { class: 'cd' });
         const md = MOVE_BY_KEY[m.key];
-        const xf = m.xf ? TRANSFORM_BY_ID[m.xf] : null;
-        const el = h('div', { class: 'slot' + (xf ? ' xf' : ''), style: `--c:${ELEMENT_DEFS[m.spec.element].color}`, title: `${xf ? `${md?.name ?? m.key} → ${xf.title} (${xf.gain}; ${xf.cost})` : m.spec.name}: ${typeName(m.spec.element)} · ${CLASS_NAME[md?.cls ?? 'special']} · ${SHAPE_NAME[m.spec.archetype] ?? m.spec.archetype}${capLabel(m.spec.caps) ? ' · ' + capLabel(m.spec.caps) : ''} · ${KEY_TITLE[i] ?? ''}` },
+        const el = h('div', { class: 'slot', style: `--c:${ELEMENT_DEFS[m.spec.element].color}`, title: `${ROLE_NAME[i]} · ${m.spec.name}: ${typeName(m.spec.element)} · ${CLASS_NAME[md?.cls ?? 'special']} · ${SHAPE_NAME[m.spec.archetype] ?? m.spec.archetype}${capLabel(m.spec.caps) ? ' · ' + capLabel(m.spec.caps) : ''}` },
           h('div', { class: 'band' }),
           glyphImg(m.spec.archetype, 2, 'pix glyph ico'),
-          h('div', { class: 'nm' }, m.spec.name), pips, cd, h('span', { class: 'key' + (auto ? ' auto' : '') }, KEYS[i] ?? ''));
+          h('div', { class: 'nm' }, m.spec.name), cd, h('span', { class: 'key' + (auto ? ' auto' : '') }, KEYS[i]));
         this.slots.push(cd);
         H.slots.append(el);
       }
+      H.slots.append(h('div', { class: 'slot empty ult', title: 'Ultimate: not in the game yet' }, h('span', {}, 'Ultimate'), h('span', { class: 'key' }, '—')));
       // Reflex: two charges shared by Dash (Shift / B) and Guard (E / LB)
-      const reflex = h('div', { class: 'slot dashslot reflex', title: 'Reflex charges: Dash (Shift / B) and Guard (E / LB) each spend one. Tap Guard as a hit arrives to deflect or parry it; hold to brace.' },
+      const reflex = h('div', { class: 'slot dashslot reflex', title: `Reflex charges: Dash (${K.dash} / B) and Guard (${K.guard} / LB) each spend one. Tap Guard as a hit arrives to deflect or parry it; hold to brace.` },
         h('div', { class: 'band' }), glyphImg('dash', 2, 'pix glyph ico'),
-        h('div', { class: 'nm' }, 'Reflex'), h('div', { class: 'rpips' }), h('span', { class: 'key' }, 'E · Shift'));
+        h('div', { class: 'nm' }, 'Reflex'), h('div', { class: 'rpips' }), h('span', { class: 'key' }, `${K.guard} · ${K.dash}`));
       const dcd = h('div', { class: 'cd' });
       reflex.append(dcd);
       this.slots.push(dcd);
       H.slots.append(reflex);
     }
-    for (let i = 0; i < P.moves.length; i++) {
+    for (let i = 0; i < Math.min(3, P.moves.length); i++) {
       const m = P.moves[i];
       const full = slotSpec(ctx, i).cd;
       const f = m.windup ? 0 : Math.max(0, Math.min(1, m.cd / full));
       if (this.slots[i]) this.slots[i].style.height = `${f * 100}%`;
     }
-    const dcd = this.slots[P.moves.length];
+    const dcd = this.slots[Math.min(3, P.moves.length)];
     if (dcd) {
       const C = ctx.rules.combat;
       const full = Math.floor(P.reflex + 1e-6);
@@ -699,22 +608,6 @@ export class UI {
         }
       }
       dcd.parentElement?.classList.toggle('guarding', P.guardT >= 0);
-    }
-
-    // the trainer's techniques (Phase 8b), then held items (vitamins, only with the legacy flag)
-    const vk = P.techs.join() + '|' + JSON.stringify(P.vitamins);
-    if (vk !== this.lastVits) {
-      this.lastVits = vk;
-      H.vits.innerHTML = '';
-      for (const id of P.techs) {
-        const T = TECHNIQUE_BY_ID[id];
-        if (T) H.vits.append(h('div', { class: 'vit tech', title: `${T.title}: ${T.gain}. Cost: ${T.cost}` }, lookIcon(TECH_LOOK[id] ?? { name: T.title, glyph: 'upgrade' }, 1), h('span', {}, T.title)));
-      }
-      for (const [k, v] of Object.entries(P.vitamins)) {
-        if (!(v > 0)) continue;
-        const L = VITAMIN_LOOK[k] ?? { name: k, glyph: 'upgrade' };
-        H.vits.append(h('div', { class: 'vit', title: `${L.name}: ${ctx.rules.vitamins[k]?.label ?? k} +${Math.round(v * 100)}%` }, lookIcon(L, 1), h('span', {}, `+${Math.round(v * 100)}%`)));
-      }
     }
   }
 
@@ -755,214 +648,6 @@ export class UI {
     H.tagcd.classList.toggle('ready', P.tagCd <= 0);
   }
 
-  // ------------------------------------------------------------ level-up cards
-  showCards(ctx: SimContext, cards: Card[], chest: boolean) {
-    this.cardsShown = cards;
-    this.banishing = false;
-    this.cardPending = false;
-    const scr = this.tray;
-    scr.innerHTML = '';
-    const row = h('div', { class: 'cards' });
-    cards.forEach((c, i) => {
-      const { look, kind, lines, tags } = this.describeCard(ctx, c);
-      const title = c.kind === 'vitamin' || c.kind === 'heal' ? look.name : c.title;
-      const detail = `${kind}: ${title}. ${lines.join('. ')}`;
-      const el = h('button', { type: 'button', class: `box card ${c.rarity}`, style: c.element ? `--c:${ELEMENT_DEFS[c.element].color}` : '', onclick: () => this.cardClick(i), title: detail, 'aria-label': `${kind}: ${title}`, 'aria-description': lines.join('. ') },
-        h('div', { class: 'top' }, c.kind === 'recruit' && c.key ? h('div', { class: 'recruit-pic' }, copyCanvas(this.hooks.portrait(c.key))) : lookIcon(look, 2), c.rarity !== 'common' ? h('span', { class: 'rar' }, c.rarity) : null),
-        h('div', { class: 'kind' }, kind),
-        h('div', { class: 'title' }, title),
-        tags.length ? h('div', { class: 'tags' }, ...tags) : null,
-        h('ul', { class: 'effects' }, ...lines.map((l) => h('li', {}, l))),
-        h('div', { class: 'key' }, h('kbd', {}, String(i + 1))),
-      );
-      row.append(el);
-    });
-    const C = ctx.cards;
-    const act = (label: string, count: number, k: string, fn: () => void) => btn([`${label} (${count}) `, h('kbd', {}, k)], fn, 'btn small', { disabled: count <= 0, 'aria-disabled': String(count <= 0) });
-    const more = ctx.player.pendingLevels - (chest ? 0 : 1);
-    const src = ctx.cards.source;
-    const head = src === 'swap' ? `You can hold ${ctx.rules.build.maxTechniques} techniques: discard one for ${TECHNIQUE_BY_ID[ctx.build.swap?.tech ?? '']?.title ?? 'the new one'}, or keep yours (X)` : src === 'recruit' ? 'A wild Pokémon wants to join! Pick 1, 2 or 3' : src === 'tag' ? `${ctx.player.squad[cards[0]?.member ?? 0]?.species.name ?? ''} can learn a new Tag Action: 1 or 2` : chest ? 'You found an item ball!' : `Lv ${ctx.player.level - Math.max(0, more)}! Choose 1, 2 or 3 · D-pad ← ↑ →${more > 0 ? ` (${more} more banked)` : ''}`;
-    this.upgradeStatus.textContent = head;
-    const actions = src === 'recruit' || src === 'tag' || src === 'swap' ? [] : [
-      act('Reroll', C.rerolls, 'F', () => this.cardAction('reroll')),
-      act('Skip', C.skips, 'X', () => this.cardAction('skip')),
-      act('Banish', C.banishes, 'Z', () => this.toggleBanish()),
-    ];
-    const compactHead = chest || src === 'recruit' || src === 'tag' || src === 'swap'
-      ? head
-      : `Lv ${ctx.player.level - Math.max(0, more)}${more > 0 ? ` · ${more} banked` : ' · Choose 1'}`;
-    scr.append(
-      h('div', { class: 'upgrade-toolbar' },
-        h('h2', { class: 'box heading', title: head }, compactHead),
-        actions.length ? h('div', { class: 'card-actions' }, ...actions) : null,
-        h('div', { class: 'sub upgrade-controls' }, 'D-pad picks · C cursor'),
-      ),
-      row,
-      // recruit and Tag-variant offers have no reroll, skip or banish: the last card is the free 'no'
-      h('div', { class: 'sub banish-hint hidden' }, 'Banish: choose a card to remove it from this run'),
-    );
-    this.root.classList.add('offer-open');
-    this.tray.classList.remove('hidden');
-  }
-  /** A nonmodal offer is showing; card keys remain routed alongside gameplay input. */
-  trayOpen() { return !this.tray.classList.contains('hidden') && !this.tray.classList.contains('suspended'); }
-
-  /** a card's practical effect on the current build, in concrete numbers */
-  private describeCard(ctx: SimContext, c: Card): { look: ItemLook; kind: string; lines: string[]; tags: HTMLElement[] } {
-    const P = ctx.player;
-    const f1 = (n: number) => (Math.round(n * 10) / 10).toString();
-    const f2 = (n: number) => n.toFixed(2);
-    if (c.kind === 'recruit') {
-      if (!c.key) return { look: HEAL_LOOK, kind: 'Squad', lines: ['Keep the squad as it is', `${P.squad.length} of ${ctx.rules.squad.max} Pokémon`], tags: [] };
-      const sp = SPECIES_BY_ID[c.key];
-      const tagMove = MOVE_BY_KEY[tagLineOf(c.key)?.base.move ?? ''];
-      const ab = abilityOf(sp);
-      return {
-        look: LEARN_LOOK(TYPE_OF[sp.elements[0]]), kind: 'Recruit',
-        tags: sp.elements.map((e) => typeBadge(e)),
-        lines: [
-          tagMove ? `Tag Action: ${tagMove.name}` : 'No Tag Action',
-          `${sp.canon?.weightKg ?? '?'} kg · ${['Weightless', 'Light', 'Medium', 'Heavy', 'Massive'][sp.canon ? (sp.canon.weightKg < 1 ? 0 : sp.canon.weightKg < 10 ? 1 : sp.canon.weightKg < 50 ? 2 : sp.canon.weightKg < 200 ? 3 : 4) : 2]}`,
-          ab ? `Ability: ${ABILITIES[ab].name}` : 'No ability in play',
-          `Joins at Lv ${P.level}`,
-        ],
-      };
-    }
-    if (c.kind === 'tag') {
-      const m = P.squad[c.member ?? 0];
-      const md = MOVE_BY_KEY[tagLineOf(lineage(m.species)[0].id)?.[c.key === '1' ? 'variant' : 'base'].move ?? ''];
-      const spec = md ? compileMove(ctx.rules, md.key) : null;
-      return {
-        look: LEARN_LOOK(TYPE_OF[md?.element ?? 'plain']), kind: c.key === '1' ? 'New Tag Action' : 'Keep Tag Action',
-        tags: md ? [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')] : [],
-        lines: [`${m.species.name}`, spec ? `${SHAPE_NAME[spec.archetype] ?? spec.archetype}` : '', spec ? capLabel(compileCaps(spec, { create: tagLineOf(lineage(m.species)[0].id)?.[c.key === '1' ? 'variant' : 'base'].create })) || (md?.power ? `Base power ${md.power}` : 'No fixed power') : '', 'Fires when it tags in'],
-      };
-    }
-    // Phase 8b cards: the slot they came from, then what changes
-    const who = c.member !== undefined && P.squad[c.member] ? P.squad[c.member].species.name : P.species.name;
-    const group = c.group === 'kit' ? `Kit · ${who}` : c.group === 'wildcard' ? `Wildcard · ${who}` : c.group === 'technique' ? 'Technique' : '';
-    if (c.kind === 'transform') {
-      const T = TRANSFORM_BY_ID[c.key];
-      const spec = transformSpec(ctx.rules, T.move, T.id);
-      const other = TRANSFORMS_OF[T.move].find((x) => x.id !== T.id)!;
-      return {
-        look: { name: T.title, glyph: spec.archetype }, kind: `${group} · Transform`,
-        tags: [typeBadge(spec.element)],
-        lines: [T.gain, `Cost: ${T.cost}`, capLabel(spec.caps) || 'No force verb', `Rules out ${other.title} for this run`],
-      };
-    }
-    if (c.kind === 'technique') {
-      const T = TECHNIQUE_BY_ID[c.key];
-      const max = ctx.rules.build.maxTechniques;
-      return {
-        look: TECH_LOOK[c.key] ?? { name: T.title, glyph: 'upgrade' }, kind: c.swap ? 'Technique · replaces one' : 'Technique · trainer-wide',
-        tags: [],
-        lines: [T.gain, `Cost: ${T.cost}`, c.swap ? `You hold ${max}: you will choose one to discard` : `${P.techs.length} of ${max} held · works for every Pokémon`],
-      };
-    }
-    if (c.kind === 'swap') {
-      if (!c.key) return { look: HEAL_LOOK, kind: 'Keep', tags: [], lines: ['Back to the same three cards', c.desc] };
-      const T = TECHNIQUE_BY_ID[c.key];
-      return { look: TECH_LOOK[c.key] ?? { name: T.title, glyph: 'upgrade' }, kind: 'Discard', tags: [], lines: [`Lose: ${T.gain}`, `Free of: ${T.cost}`, c.desc] };
-    }
-    if (c.kind === 'evolve') {
-      const m = P.squad[c.member ?? 0], to = SPECIES_BY_ID[c.key];
-      return {
-        look: EVOLVE_LOOK, kind: `${group} · Evolution`, tags: to.elements.map((e) => typeBadge(e)),
-        lines: [`${m.species.name} → ${to.name}`, `Now, instead of at Lv ${m.species.evolveLevel}`, `${WEIGHT_NAMES[weightClass(m.species)]} → ${WEIGHT_NAMES[weightClass(to)]} Weight`, 'Full HP'],
-      };
-    }
-    if (c.kind === 'replace') {
-      const md = MOVE_BY_KEY[c.key], m = P.squad[c.member ?? P.active];
-      const spec = compileMove(ctx.rules, c.key), old = m.moves[c.slot ?? 1];
-      return {
-        look: LEARN_LOOK(TYPE_OF[md.element]), kind: `${group} · Replace a move`,
-        tags: [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')],
-        lines: [`Forget ${old?.spec.name ?? '?'}, learn ${md.name}`, `${SHAPE_NAME[spec.archetype] ?? spec.archetype}`, capLabel(spec.caps) || (md.power ? `Base power ${md.power}` : 'No fixed power'), `Move ${['basic', 'A', 'B', 'C'][c.slot ?? 1]} slot`],
-      };
-    }
-    if (c.kind === 'learn') {
-      const md = MOVE_BY_KEY[c.key];
-      const spec = levelled(ctx, { key: c.key, level: 1, cd: 0, spec: compileMove(ctx.rules, c.key) });
-      const mult = md.cls === 'physical' ? P.derived.atk : P.derived.spa;
-      const stab = P.species.elements.includes(md.element) ? ctx.rules.damage.stab : 1;
-      const learned = lineage(P.species).some((s) => (s.learnset ?? []).some(([, k]) => k === c.key));
-      const ahead = lineage(P.species).flatMap((sp) => sp.learnset ?? sp.canon?.levelUp ?? []).find(([, k]) => k === c.key)?.[0] ?? 0;
-      return {
-        look: LEARN_LOOK(TYPE_OF[md.element]), kind: (group ? group + ' · ' : '') + (learned ? (ahead > P.level ? `Early move (Lv ${ahead})` : 'New move') : 'Coverage move'),
-        tags: [typeBadge(md.element), glyphImg(md.cls, 1, 'pix cat')],
-        lines: [
-          `${SHAPE_NAME[spec.archetype] ?? spec.archetype}`,
-          `≈ ${Math.round(spec.dmg * mult * stab)} damage every ${f2(spec.cd)} s${stab > 1 ? ' (same type)' : ''}`,
-          capLabel(spec.caps) || (md.power ? `Base power ${md.power}` : 'No fixed power'),
-          `Fills move slot ${P.moves.length + 1}`,
-        ],
-      };
-    }
-    if (c.kind === 'upgrade') {
-      const slot = P.moves.find((m) => m.key === c.key)!;
-      const a = levelled(ctx, slot), b = levelled(ctx, { ...slot, level: c.level ?? slot.level + 1 });
-      const lines = [`Lv ${slot.level} → ${c.level}`, `Damage ${f1(a.dmg)} → ${f1(b.dmg)}`, `Cooldown ${f2(a.cd)} s → ${f2(b.cd)} s`];
-      if (capLabel(a.caps)) lines.push(capLabel(a.caps));
-      if (b.count !== a.count) lines.push(`Projectiles ${a.count} → ${b.count}`);
-      if (Math.abs(b.radius - a.radius) > 0.01) lines.push(`Size ${f1(a.radius)} → ${f1(b.radius)} m`);
-      return { look: UPGRADE_LOOK, kind: 'Power up', lines, tags: c.element ? [typeBadge(c.element)] : [] };
-    }
-    if (c.kind === 'vitamin') {
-      const L = VITAMIN_LOOK[c.key] ?? { name: c.title, glyph: 'upgrade' };
-      const V = ctx.rules.vitamins[c.key];
-      const cur = P.vitamins[c.key] ?? 0, add = V.add * ctx.rules.cards.rarityMult[c.rarity];
-      return { look: L, kind: L.item ? 'Item' : 'Charm', lines: [`${V.label} +${Math.round(cur * 100)}% → +${Math.round((cur + add) * 100)}%`, L.canon ? `Main-series effect: ${L.canon}` : 'Survival-only charm'], tags: [] };
-    }
-    const pct = 35 * ctx.rules.cards.rarityMult[c.rarity];
-    return { look: HEAL_LOOK, kind: 'Berry', lines: [`Restore ${Math.round(pct)}% HP (+${Math.round(Math.min(P.maxHp - P.hp, P.maxHp * pct / 100))} HP)`, `HP ${Math.ceil(P.hp)}/${Math.round(P.maxHp)}`], tags: [] };
-  }
-
-  cardKey(a: 'reroll' | 'skip') { this.cardAction(a); }
-  private cardAction(a: 'reroll' | 'skip') {
-    if (this.cardPending) return;
-    const C = this.hooks.tuning().ctx?.cards;
-    if (C && !(a === 'skip' && C.source === 'swap') && (a === 'reroll' ? C.rerolls : C.skips) <= 0) { this.hooks.sound('denied'); return; }
-    this.cardPending = true;
-    this.hooks.sound('pick');
-    this.hooks.card(a, 0);
-  }
-
-  toggleBanish() {
-    if (this.cardPending) return;
-    const C = this.hooks.tuning().ctx?.cards;
-    if (!this.banishing && C && C.banishes <= 0) { this.hooks.sound('denied'); return; }
-    this.banishing = !this.banishing;
-    this.hooks.sound(this.banishing ? 'ui' : 'back');
-    this.tray.querySelectorAll('.card').forEach((c) => c.classList.toggle('banishing', this.banishing));
-    this.tray.querySelector('.banish-hint')?.classList.toggle('hidden', !this.banishing);
-  }
-
-  cardClick(i: number) {
-    if (this.cardPending || !this.cardsShown[i]) return;
-    this.cardPending = true;
-    if (this.banishing) { this.banishing = false; this.hooks.card('banish', i); return; }
-    this.hooks.card('pick', i);
-  }
-
-  hideCards(card?: Card | null) {
-    this.tray.classList.add('hidden');
-    this.tray.classList.remove('suspended');
-    this.root.classList.remove('offer-open');
-    this.cardPending = false;
-    if (card !== undefined) {
-      const message = card ? `Selected ${card.title}.` : 'Upgrade skipped.';
-      this.upgradeStatus.textContent = message;
-      this.upgradeFeedback.textContent = message;
-      this.upgradeFeedback.classList.remove('hidden');
-      clearTimeout(this.upgradeFeedbackTimer);
-      this.upgradeFeedbackTimer = window.setTimeout(() => this.upgradeFeedback.classList.add('hidden'), 1600);
-    } else {
-      clearTimeout(this.upgradeFeedbackTimer);
-      this.upgradeFeedback.classList.add('hidden');
-    }
-  }
-
   // ------------------------------------------------------------ evolution
   evolve(from: string, to: string) {
     document.getElementById('evotxt')!.textContent = `What? ${SPECIES_BY_ID[from].name} is evolving!`;
@@ -985,12 +670,11 @@ export class UI {
       h('p', { class: 'pause-note hidden', id: 'pause-note', role: 'status', 'aria-live': 'polite' }),
       btn('Settings', () => this.openSettings('screen-pause')),
       btn('Controls', () => this.openHelp('screen-pause')),
-      btn('Restart run', () => this.hooks.restart()),
+      btn('Restart', () => this.hooks.restart()),
       btn('Quit to title', () => this.hooks.quit()),
       btn('Tuning panel', () => this.toggleTuning(), 'btn small'),
     ));
     this.backs['screen-pause'] = () => this.hooks.resume('key');
-    this.tray.classList.add('suspended'); // the tray sits under the pause menu and takes no picks while paused
     this.show('screen-pause');
     this.focusDefault('screen-pause');
   }
@@ -1001,41 +685,27 @@ export class UI {
     el.textContent = text;
     el.classList.toggle('hidden', !text);
   }
-  unpause() { this.pauseNote(''); this.tray.classList.remove('suspended'); this.capture = null; this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-bindings', false); this.show('screen-help', false); this.show('screen-credits', false); }
+  unpause() { this.pauseNote(''); this.capture = null; this.show('screen-pause', false); this.show('screen-settings', false); this.show('screen-bindings', false); this.show('screen-help', false); this.show('screen-credits', false); }
 
   private statRows(ctx: SimContext) {
     const s = ctx.stats;
     const rows: [string, string][] = [
-      ['Time', fmtTime(ctx.time)], ['Region', `${ctx.stage + 1}${ctx.loop ? ` (lap ${ctx.loop + 1})` : ''}`], ['Level', String(ctx.player.level)],
+      ['Time', fmtTime(ctx.time)],
       ['KOs', s.kills.toLocaleString()], ['Damage dealt', Math.round(s.damageDealt).toLocaleString()], ['Damage taken', Math.round(s.damageTaken).toLocaleString()],
-      ['Bosses', String(s.bosses)], ['Biggest hit', Math.round(s.maxHit).toLocaleString()], ['Seed', String(ctx.seed)],
+      ['Biggest hit', Math.round(s.maxHit).toLocaleString()], ['Seed', String(ctx.seed)],
     ];
     return rows.flatMap(([a, b]) => [h('span', {}, a), h('span', {}, b)]);
   }
 
-  /** Phase 8b: the run's build: techniques and transforms (blueprint V2/V3 interviews ask players to describe it) */
-  private buildSummary(ctx: SimContext): HTMLElement | null {
-    if (!ctx.rules.build.enabled) return null;
-    const P = ctx.player;
-    const xfs = P.squad.flatMap((m) => m.moves.filter((s) => s.xf).map((s) => `${m.species.name}: ${MOVE_BY_KEY[s.key]?.name ?? s.key} → ${TRANSFORM_BY_ID[s.xf!].title}`));
-    const techs = P.techs.map((id) => TECHNIQUE_BY_ID[id]?.title ?? id);
-    if (!xfs.length && !techs.length) return null;
-    return h('div', { class: 'recap build' }, h('h3', {}, 'Your build'), h('ul', {},
-      h('li', {}, `Techniques: ${techs.length ? techs.join(', ') : 'none'}`),
-      ...(xfs.length ? xfs.map((x) => h('li', {}, x)) : [h('li', {}, 'No transforms')])));
-  }
-
-  end(ctx: SimContext, victory: boolean) {
+  end(ctx: SimContext) {
     const scr = this.screens['screen-end'];
-    this.hideCards(); // an offer still open at the end of the run must not sit on top of the end screen
     scr.innerHTML = '';
-    scr.append(h('div', { class: 'box menu end ' + (victory ? 'win' : 'lose') },
-      h('h2', {}, victory ? 'All regions cleared!' : `${ctx.player.species.name} fainted!`),
+    scr.append(h('div', { class: 'box menu end lose' },
+      h('h2', {}, `${ctx.player.species.name} fainted!`),
       h('div', { class: 'endpic' }, copyCanvas(this.hooks.portrait(ctx.player.species.id))),
       h('div', { class: 'statsgrid' }, ...this.statRows(ctx)),
-      this.buildSummary(ctx),
       // the death recap (Phase 8a): which rule decided each of the last few seconds
-      !victory && ctx.recap && ctx.recap.length ? h('div', { class: 'recap' }, h('h3', {}, 'What happened'), h('ul', {}, ...ctx.recap.map((l) => h('li', {}, l)))) : null,
+      ctx.recap && ctx.recap.length ? h('div', { class: 'recap' }, h('h3', {}, 'What happened'), h('ul', {}, ...ctx.recap.map((l) => h('li', {}, l)))) : null,
       btn('Try again', () => { this.hooks.sound('pick'); this.hooks.restart(); }, 'btn primary'),
       btn('Title screen', () => this.hooks.quit()),
     ));
@@ -1165,8 +835,18 @@ export class UI {
     this.openBindings(this.bindingsBack, from ? `${name} moved from ${label(from)} to ${label(c.action)}.` : '');
     this.screens['screen-bindings'].querySelector<HTMLElement>(`[data-bind="${c.action}:${c.dev}:${c.slot}"]`)?.focus();
   }
+  /** the keyboard key each action is bound to (its first code), for the HUD */
+  private keyLabels(): Record<string, string> {
+    const keys = resolveBindings(DEFAULT_KEYS, this.hooks.settings.keys), out: Record<string, string> = {};
+    for (const [a, cs] of Object.entries(keys)) out[a] = cs.includes('ShiftLeft') && cs.includes('ShiftRight') ? 'Shift' : cs.length ? keyName(cs[0]) : '—';
+    return out;
+  }
+  /** changes when the bindings do, so the slot bar redraws its keys */
+  private bindKey = 0;
+
   /** the HUD's key hint, from the keyboard bindings in use */
   refreshHint() {
+    this.bindKey++;
     const keys = resolveBindings(DEFAULT_KEYS, this.hooks.settings.keys);
     const one = (a: string) => {
       const cs = keys[a];
@@ -1175,8 +855,8 @@ export class UI {
     };
     const kbd = (t: string) => h('kbd', {}, t);
     const H = this.hud.hint;
-    H.replaceChildren(kbd(['up', 'left', 'down', 'right'].map(one).join('')), ' move  ', kbd('Mouse'), ' look + aim  ', kbd('LMB'), ' attack  ', kbd('RMB'), kbd(one('moveB')), ' moves  ',
-      kbd(one('sig')), ' tag  ', kbd(one('guard')), ' guard  ', kbd(one('dash')), ' dash  ', kbd(one('jump')), ' jump  ', kbd(one('pause')), ' pause');
+    H.replaceChildren(kbd(['up', 'left', 'down', 'right'].map(one).join('')), ' move  ', kbd('Mouse'), ' aim  ', kbd('LMB'), kbd('RMB'), kbd(one('moveB')), ' kit  ',
+      kbd(one('guard')), ' guard  ', kbd(one('dash')), ' dash  ', kbd(one('jump')), ' jump  ', kbd(one('touch')), ' hold: evolve  ', kbd(one('pause')), ' pause');
   }
 
   /** Settings → World → Map and Map seed: build every region from one Pokémon location or habitat recipe (and its
@@ -1211,10 +891,10 @@ export class UI {
       h('h2', {}, 'How to play'),
       h('div', { class: 'controls', html: `
         <p><b>Move</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows / left stick · <b>Jump</b> <kbd>Space</kbd> / A (onto rocks and logs; flying partners glide) · <b>Dash</b> <kbd>Shift</kbd> / B</p>
-        <p><b>Attack</b> left mouse / <kbd>J</kbd> / RT (hold to keep attacking) · <b>Move A</b> right mouse / <kbd>K</kbd> / LT · <b>Move B</b> <kbd>R</kbd> / RB · <b>Tag</b> <kbd>Q</kbd> / Y · <b>Guard</b> <kbd>E</kbd> / LB. Your Pokémon attacks where you aim; in Settings → Combat, Auto (classic) makes it attack on its own. Collect EXP Shards, level up, choose an upgrade.</p>
-        <p>Upgrades stay available while combat continues. Choose directly with <kbd>1</kbd>–<kbd>3</kbd> or the D-pad left/up/right; with a card focused, arrows move focus and <kbd>Enter</kbd> confirms. <kbd>C</kbd> toggles cursor/camera control for mouse selection without pausing. <kbd>F</kbd> rerolls, <kbd>X</kbd> skips, and <kbd>Z</kbd> starts a banish (2 rerolls and 1 banish per region). Each pick shows a <b>Kit</b> card (a move to learn, or a <b>transform</b> that changes what a move does; each move has two and you keep one), a <b>Technique</b> (a rule for your whole squad, with a cost; you hold three) and a <b>Wildcard</b> (a benched Pokémon's transform, a Tag Action, an early evolution, a berry). Moves grow stronger with your level on their own.</p>
-        <p>Trees, water and cliffs block the way; climb bluffs by their stairs, hop up ledges, and use groves to split a swarm. Item balls in the field hold a rare upgrade; Oran Berries heal.</p>
-        <p>A boss arrives at 5:00 in each region. Defeat it and step into the portal. Partners evolve at their real levels; types and abilities follow the main games where the survival format allows.</p>
+        <p><b>Primary</b> left mouse / <kbd>J</kbd> / RT (hold to keep firing) · <b>Ability 1</b> right mouse / <kbd>K</kbd> / LT · <b>Ability 2</b> <kbd>R</kbd> / RB · <b>Guard</b> <kbd>E</kbd> / LB: tap as a hit arrives to deflect or parry it, hold to brace. Dash and Guard share two Reflex charges. Your Pokémon fires where you aim; in Settings → Combat, Auto makes it attack on its own.</p>
+        <p><b>Breakthrough</b>: in the training range, hold <kbd>F</kbd> (Touch) to evolve on the spot. <b>Tag</b> <kbd>Q</kbd> / Y swaps Pokémon in a mode with a loadout.</p>
+        <p><b>Training range</b>: dummies, patrols and a strafer that shoots back; each comes back a few seconds after it falls, and so do you. <b>Hold</b>: on a habitat map, stand on the point for 30 s while the Raid party comes for it from the far side.</p>
+        <p>Trees, rocks and cliffs block the way and block shots; climb by stairs and ledges. Water and lava can be entered: only swimmers are safe in water, and nothing is safe in lava for long.</p>
         <p>Menus: arrows / D-pad move, <kbd>Enter</kbd> / A confirm, <kbd>Esc</kbd> / B back, <kbd>Tab</kbd> also works. <kbd>Esc</kbd> / Start pauses · <kbd>M</kbd> mutes · <kbd>\`</kbd> tuning panel.</p>
         <p>These are the default keys and buttons: Settings → Controls → Bindings changes any of them.</p>` }),
       btn('Got it', () => { this.show('screen-help', false); this.show(back); this.focusDefault(back); }, 'btn primary'),
@@ -1241,7 +921,7 @@ export class UI {
         h('p', {}, h('b', {}, 'Game: '), 'code, arenas, environment art and effects are original; gameplay formulas are modelled on PokéBonk (no PokéBonk code or assets are used).'),
         h('table', {}, h('tr', {}, h('th', {}, 'Pokémon'), h('th', {}, 'Sprites'), h('th', {}, 'Cry'), h('th', {}, 'Animation notes')),
           ...rows.map((r) => h('tr', {}, h('td', {}, r.name), h('td', {}, r.art.source, r.art.credits.length ? h('div', {}, 'by ' + r.art.credits.join(', ')) : null),
-            h('td', {}, r.cry.kind === 'sample' ? `${r.cry.era ?? ''} ${r.cry.source.split('/').pop()}`.trim() : 'synthesised'),
+            h('td', {}, r.cry.kind === 'sample' ? `${r.cry.era ?? ''} ${r.cry.source.split('/').pop()}`.trim() : 'none'),
             h('td', { class: r.status === 'ok' ? '' : 'warn' }, r.notes.join('; ') || 'all native')))),
       ),
       btn('Close', () => { this.show('screen-credits', false); this.show(back); this.focusDefault(back); }, 'btn primary'),
@@ -1266,9 +946,8 @@ export class UI {
     el.innerHTML = '';
     el.append(h('div', { style: 'font-weight:700;font-size:15px' }, 'Tuning (live rules)'), h('div', { class: 'sub2' }, 'Edits apply to this run immediately. Defaults live in src/rules/defaults.ts.'));
     const groups: [string, [string, number, number, number][]][] = [
-      ['Player', [['player.baseSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.magnetRadius', 1, 20, 0.5], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
-      ['Enemies', [['enemy.liveCap', 50, 2200, 10], ['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5], ['mode.difficulty', 0.2, 4, 0.05]]],
-      ['Director', [['director.spawnBase', 0, 10, 0.1], ['director.spawnPerMin', 0, 6, 0.1], ['director.eliteEvery', 5, 120, 1], ['stage.bossAt', 10, 900, 5]]],
+      ['Player', [['hero.topSpeed', 3, 15, 0.1], ['player.dashCooldown', 0.2, 4, 0.1], ['player.regenPerSec', 0, 5, 0.05], ['damage.playerMult', 0.2, 6, 0.1]]],
+      ['Enemies', [['enemy.steerRate', 1, 30, 0.5], ['enemy.knockDecay', 1, 20, 0.5]]],
       ['Progression', [['xp.base', 1, 40, 0.5], ['xp.linear', 0, 15, 0.1], ['xp.exponent', 1, 2.6, 0.02], ['damage.critChance', 0, 1, 0.01], ['damage.stab', 1, 3, 0.05]]],
       ['Feel', [['sim.hitstopScale', 0, 1, 0.01], ['feel.hitstopPlayerHurt', 0, 0.5, 0.01], ['camera.lead', 0, 4, 0.1]]],
     ];
@@ -1279,7 +958,7 @@ export class UI {
       for (const [path, min, max, step] of rows) {
         const val = h('span', {}, String(get(path)));
         const inp = h('input', { type: 'range', min, max, step, value: get(path), 'aria-label': path }) as HTMLInputElement;
-        inp.oninput = () => { set(path, Number(inp.value)); val.textContent = inp.value; if (path === 'enemy.liveCap' && T.ctx) T.ctx.director.liveCap = Number(inp.value); };
+        inp.oninput = () => { set(path, Number(inp.value)); val.textContent = inp.value; };
         el.append(h('div', { class: 'row' }, h('span', {}, path.split('.')[1]), inp, val));
       }
     }
@@ -1296,8 +975,6 @@ export class UI {
     el.children[1].after(h('h4', {}, 'Play as'), h('div', { class: 'row play-as' }, pick, btn('Restart as', () => { if (this.hooks.become(pick.value)) this.show('tuning', false); else this.hooks.sound('denied'); }, 'btn small')));
     let god = false;
     el.append(h('div', { class: 'btns' },
-      btn('Spawn boss', () => T.spawnBoss(), 'btn small'),
-      btn('+1 level', () => T.addLevel(), 'btn small'),
       btn('Clear wild', () => T.killAll(), 'btn small'),
       btn('God: off', function (this: HTMLElement) { god = !god; T.god(god); this.textContent = god ? 'God: on' : 'God: off'; }, 'btn small'),
       btn('Close', () => this.toggleTuning(), 'btn small'),
@@ -1311,29 +988,23 @@ export class UI {
     const live = O && (O.phase === 'offer' || O.phase === 'active');
     H.obj.classList.toggle('hidden', !O);
     if (!O) return;
-    const R = ctx.rules.objectives;
-    const name = O.kind === 'hold' ? 'Hold the pad' : O.kind === 'hunt' ? `Hunt the marked ${SPECIES_BY_ID[O.species]?.name ?? 'Pokémon'}` : 'Carry the Egg to the goal';
-    const title = O.phase === 'done' ? (O.kind === 'hunt' ? 'Hunt complete!' : O.kind === 'hold' ? 'Pad charged!' : 'Egg delivered!') : O.phase === 'failed' ? 'Objective lost' : O.phase === 'offer' ? name + (O.kind === 'hold' ? ' (step on it)' : O.kind === 'transport' ? ' (walk into it)' : '') : name;
+    const name = 'Hold the pad';
+    const title = O.phase === 'done' ? 'Pad charged!' : O.phase === 'failed' ? 'Objective lost' : O.phase === 'offer' ? name + ' (step on it)' : name;
     if (H.objTitle.textContent !== title) H.objTitle.textContent = title;
-    let prog = 0;
-    if (O.kind === 'hold') prog = O.charge;
-    else if (O.kind === 'hunt') { const E = ctx.enemies; prog = O.target >= 0 && E.alive[O.target] ? 1 - E.hp[O.target] / E.maxHp[O.target] : 1; }
-    else if (O.egg >= 0) { const B = ctx.bodies, d0 = Math.hypot(O.sx - O.x, O.sz - O.z) || 1; prog = Math.max(0, Math.min(1, 1 - Math.hypot(B.x[O.egg] - O.x, B.z[O.egg] - O.z) / d0)); }
-    if (O.phase === 'done') prog = 1;
+    const prog = O.phase === 'done' ? 1 : O.charge;
     H.objBar.style.width = Math.round(prog * 100) + '%';
     H.obj.classList.toggle('done', O.phase === 'done');
     H.obj.classList.toggle('failed', O.phase === 'failed');
     H.objTime.textContent = live ? fmtTime(Math.max(0, O.t)) : '';
     if (!live) return;
-    // where it is: the pad / goal, the Hunt target, or the loose egg when nobody carries it
-    let tx = O.x, tz = O.z;
-    if (O.kind === 'transport' && O.egg >= 0 && O.carrier !== -2) { tx = ctx.bodies.x[O.egg]; tz = ctx.bodies.z[O.egg]; }
+    // where it is: the pad
+    const tx = O.x, tz = O.z;
     const p = project(tx, ctx.world.height(tx, tz) + 1.6, tz);
     if (!p) return;
     // the overlay canvas is W x Hh internal pixels; project() gives display pixels (scale per internal pixel)
     const c = this.fx2d, x = p[0] / scale, y = p[1] / scale, w = W, hh = Hh, m = 14;
     const on = x > m && x < w - m && y > m + 24 && y < hh - m - 30;
-    const color = O.kind === 'hunt' ? '#ff5a48' : O.kind === 'hold' ? '#ffd23a' : '#7cf08c';
+    const color = '#ffd23a';
     c.save();
     c.imageSmoothingEnabled = false;
     if (on) {
@@ -1447,7 +1118,7 @@ export class UI {
     for (let e = 0; e < E.hi; e++) {
       if (!E.alive[e] || Math.abs(E.x[e] - P.x) > 9 || Math.abs(E.z[e] - P.z) > 7) continue;
       const sp = ctx.speciesIndex[E.species[e]];
-      label(`W${weightClass(sp, (E.roles[e] & ROLE.boss) !== 0)}`, E.x[e], E.y[e] + E.tall[e] + 0.5, E.z[e], '#ffb0a0');
+      label(`W${weightClass(sp)}`, E.x[e], E.y[e] + E.tall[e] + 0.5, E.z[e], '#ffb0a0');
     }
     label(`W${weightClass(P.species)} guard`, P.x, P.y + P.species.height + 0.9, P.z, '#7fd0ff');
     // recent capability events where they happened, rising as they age

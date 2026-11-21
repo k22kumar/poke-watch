@@ -9,15 +9,17 @@ import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import { applyAgent } from '../src/sim/cells';
 import { spawnEnemy } from '../src/sim/enemies';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember as addMember } from '../src/sim/squad';
 import { compileMove } from '../src/sim/moves';
 import { DECK_REACH } from '../src/sim/world';
 
+import { RANGE, swap } from '../src/mods';
 export interface Case { id: string; map: string; seed: number; tile: string; ok: boolean; detail: string }
 
 /** a calm run on one map for every stage (no spawns, no objectives); `hz` changes the sim cadence */
 export function mkRun(map: string, seed: number, species: string, extra: Record<string, unknown> = {}): SimContext {
-  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99, eliteEvery: 1e9, swarmEvery: 1e9 }, ...extra } as never });
+  // knockouts end the run here (hero.respawn 0): these cases measure the hazard's knockout, not the range's respawn
+  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra, hero: { respawn: 0, loadout: 3, ...((extra as { hero?: object }).hero ?? {}) } } as never });
 }
 const centre = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 const tileName = (ctx: SimContext, k: number) => `${k % ctx.world.w},${(k / ctx.world.w) | 0}`;
@@ -114,7 +116,7 @@ const crater = (seed: number) => ['volcanic-ridge', seed] as const;
 function inAndOut(map: string, seed: number, species: string, metres: number, stay: number, opts: { surf?: boolean; hz?: number; heal?: number; extra?: Record<string, unknown>; members?: string[] } = {}) {
   const extra = { ...(opts.extra ?? {}), ...(opts.hz ? { sim: { hz: opts.hz } } : {}) };
   const ctx = mkRun(map, seed, species, extra);
-  if (opts.surf) ctx.player.m.moves.push({ key: 'surf', level: 1, cd: 9, spec: { ...compileMove(ctx.rules, ctx.player.m.moves[0].key), key: 'surf', name: 'Surf' }, uses: 0 });
+  if (opts.surf) ctx.player.m.moves.push({ key: 'surf', level: 1, cd: 9, spec: { ...compileMove(ctx.rules, ctx.player.m.moves[0].key), key: 'surf', name: 'Surf' } });
   for (const id of opts.members ?? []) addMember(ctx, id);
   const sh = findShore(ctx)!;
   const w = watch(ctx);
@@ -155,7 +157,7 @@ export function cases(): Case[] {
 
   // max HP, healing, cadence
   {
-    const lo = inAndOut(gm, gs, 'rattata', 2, 8), hi = inAndOut(gm, gs, 'charmander', 2, 8, { extra: { player: { hpBase: 400 } } });
+    const lo = inAndOut(gm, gs, 'rattata', 2, 8), hi = inAndOut(gm, gs, 'charmander', 2, 8, { extra: { hero: { health: 1000 } } });
     add('water.maxhp', gm, gs, tileName(lo.ctx, lo.sh.k), lo.w.koAt !== null && hi.w.koAt !== null && Math.abs(lo.w.koAt - hi.w.koAt) <= lo.ctx.dt + 1e-6 && hi.max > 3 * lo.max,
       `max HP ${lo.max.toFixed(0)} and ${hi.max.toFixed(0)}: knocked out after ${lo.w.koAt?.toFixed(3)} s and ${hi.w.koAt?.toFixed(3)} s (20 % of max HP per second each)`);
     const heal = inAndOut(gm, gs, 'rattata', 2, 8, { heal: 0.3 });

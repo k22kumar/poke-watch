@@ -8,9 +8,8 @@ import { LOC_VERSION, generateLocation } from './locgen';
 import { LOCATIONS, findLocation } from './locations';
 import { HAB_VERSION, HABITATS, findHabitat, generateHabitat } from './habitat';
 import type { ArenaMap } from './tiles';
-import type { SpawnPoolDef } from '../rules/spawning';
 
-export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string> }
+export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string>; arena?: string }
 
 /** the Pokémon location or habitat recipe (`id` or `id:variant`, src/world/habitat) a stage biome is built from in
  *  generated mode, or '' for the classic generator */
@@ -18,21 +17,6 @@ export const locationFor = (wg: WorldgenRules | undefined, biome: string) => {
   const id = wg?.mode === 'generated' ? wg.locations?.[biome] ?? '' : '';
   return id && (LOCATIONS[id] || HABITATS[id.split(':')[0]]) ? id : '';
 };
-/** the spawn pool the map source of a stage biome layers over the region's (undefined: the region's own) */
-export function mapSpawnPool(wg: WorldgenRules | undefined, biome: string): SpawnPoolDef | undefined {
-  const id = locationFor(wg, biome);
-  if (!id) return undefined;
-  return LOCATIONS[id]?.spawns ?? HABITATS[id.split(':')[0]]?.spawns;
-}
-
-/** every spawn pool a map source declares, by source id (validation and habitat navigation profiles) */
-export function allMapSpawnPools(): Record<string, SpawnPoolDef> {
-  const out: Record<string, SpawnPoolDef> = {};
-  for (const [id, L] of Object.entries(LOCATIONS)) if (L.spawns) out[id] = L.spawns;
-  for (const [id, H] of Object.entries(HABITATS)) if (H.spawns) out[id] = H.spawns;
-  return out;
-}
-
 /** is this map source a habitat recipe (rather than a Pokémon location)? */
 export const isHabitat = (id: string) => !!id && !!HABITATS[id.split(':')[0]];
 
@@ -58,6 +42,8 @@ export function regionKey(biome: string, seed: number, wg: WorldgenRules) {
 }
 
 export function regionMap(wg: WorldgenRules | undefined, biome: string, seed: number, species: string[] = []): ArenaMap {
+  // an authored arena named outright (the training range: rules.worldgen.arena 'range') wins over the stage's biome
+  if (wg?.arena) return getArena(wg.arena);
   if (!usesGenerator(wg, biome)) return getArena(biome);
   const loc = locationFor(wg, biome);
   if (!loc && wg!.version !== GEN_VERSION) throw new Error(`worldgen version ${wg!.version} requested; this build generates version ${GEN_VERSION}`);

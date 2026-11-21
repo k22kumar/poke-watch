@@ -181,8 +181,8 @@ composition, not from its code.
 - **No shake.** The lens is the crosshair ray's origin: shaking it moved the aim and the whole view on every hit and boss
   slam. Third person never shakes; Settings → Screen shake applies to the fixed views only. (Cinemachine's third-person
   aim extension cancels camera noise for the same reason.)
-- **Aim = camera.** The crosshair ray (`InputFrame.aim`, `aimRayOf(view)`) is the sample's lens and axis. Under
-  `rules.aim.spatial` the sim traces it for the direct shots (bolt, orb) and beams: they leave the body's muzzle (class
+- **Aim = camera.** The crosshair ray (`InputFrame.aim`, `aimRayOf(view)`) is the sample's lens and axis. The sim
+  traces it for the direct shots (bolt, orb) and beams: they leave the body's muzzle (class
   height × 0.6 above the feet, ahead by the footprint) toward what the crosshair is on, in 3D, with no magnetism or lead,
   and the crosshair turns red when cover stands between muzzle and target (Phase 2B/2C, `docs/THIRD_PERSON_IMPLEMENTATION.md`
   §13, §14). This is the standard camera-ray targeting with physical attack origins: the camera picks the point, the body

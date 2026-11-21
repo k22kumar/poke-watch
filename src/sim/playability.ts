@@ -2,7 +2,7 @@
 // data with no hand-kept list. Every species in SPECIES (src/content/pokedex.ts, generated from content/roster.json)
 // is graded by the checks below; a newly generated Pokémon is graded the same way the next time the game starts.
 //
-// `playable` on a SpeciesDef still means "offered as a starter" (rules/species.ts starterChoices); this module is
+// `playable` on a SpeciesDef marks the partner lines (the old starter offer went at pivot step 9); this module is
 // about whether a species *works* under player control, which is what the developer roster lists.
 //
 // Tiers: `ready` (every check passes), `partial` (it runs, but a warn check failed: selectable with a warning) and
@@ -15,7 +15,7 @@ import { SPECIES, type SpeciesDef } from '../rules/species';
 import { bodyOf } from '../rules/sizing';
 import { tagLineOf } from '../rules/tags';
 import { ARCHETYPES, compileMove } from './moves';
-import { lineage, openingMove } from './progression';
+import { lineage, openingMove } from '../rules/heroes';
 
 export type ControlTier = 'ready' | 'partial' | 'unavailable';
 
@@ -82,10 +82,13 @@ export const READINESS_CHECKS: ReadinessCheck[] = [
   },
   {
     id: 'tagAction', severity: 'warn',
-    test: (sp) => {
+    // Tag Actions belong to the opt-in swap system (src/sim/swap.ts): the check counts only where a player brings more
+    // than one Pokémon (rules.hero.loadout > 1, a mode that registers swapping; docs/hero-shooter-pivot.md Q11)
+    test: (sp, rules) => {
+      if (rules.hero.loadout <= 1) return null;
       const line = tagLineOf(lineage(sp)[0].id) ?? tagLineOf(sp.id);
       if (!line) return 'no Tag Action (tagging it in fires nothing)';
-      if (!MOVE_BY_KEY[line.base.move] || !MOVE_BY_KEY[line.variant.move]) return 'Tag Action move missing from the move database';
+      if (!MOVE_BY_KEY[line.base.move]) return 'Tag Action move missing from the move database';
       return null;
     },
   },

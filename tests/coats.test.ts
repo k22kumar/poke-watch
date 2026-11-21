@@ -5,15 +5,16 @@ import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { damageEnemy } from '../src/sim/combat';
 import { ccApply, coatEnemy } from '../src/sim/coats';
-import { ROLE, ZK } from '../src/sim/pools';
+import { ZK } from '../src/sim/pools';
 import { AG } from '../src/rules/reactions';
 import type { DamageSpec } from '../src/sim/combat';
 import type { InputFrame, SimContext } from '../src/sim/types';
 import type { Element } from '../src/rules/elements';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 function calm(): SimContext {
-  const ctx = createRun({ seed: 2, species: 'totodile', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 2, species: 'totodile', ruleOverrides: { bodies: { looseRocks: 0 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NONE);
   return ctx;
 }
@@ -27,14 +28,12 @@ function foe(ctx: SimContext, id: string, dx: number, dz: number, roles = 0) {
 }
 const spec = (element: Element, depth: number, cls: DamageSpec['cls'] = 'special'): DamageSpec => ({ element, cls, ailment: 'knock', chance: 0, knock: 0, kx: 0, kz: 0, drain: 0, source: 'test', depth });
 
-test('light coats stick to fodder but not to elites; deep coats stick to both', () => {
+test('light and deep coats stick', () => {
   const ctx = calm(), E = ctx.enemies;
-  const a = foe(ctx, 'rattata', 3, 0), b = foe(ctx, 'rattata', -3, 0, ROLE.elite);
+  const a = foe(ctx, 'rattata', 3, 0), b = foe(ctx, 'rattata', -3, 0);
   damageEnemy(ctx, a, 5, spec('tide', 1));
-  damageEnemy(ctx, b, 5, spec('tide', 1));
   assert.equal(E.coat[a], AG.wet);
   assert.equal(E.coatDeep[a], 1);
-  assert.equal(E.coat[b], 0, 'elite ignores a light coat');
   damageEnemy(ctx, b, 5, spec('tide', 2));
   assert.equal(E.coat[b], AG.wet);
   assert.equal(E.coatDeep[b], 2);
@@ -113,9 +112,6 @@ test('the crowd-control meter grants immunity after 2 s of control', () => {
   assert.equal(ccApply(ctx, a, 1.2), 1.2);
   assert.ok(E.ccImmune[a] > 0, 'immune after 2.4 s');
   assert.equal(ccApply(ctx, a, 1), 0);
-  const boss = foe(ctx, 'sudowoodo', -4, 0, ROLE.boss);
-  ccApply(ctx, boss, 1.1);
-  assert.ok(E.ccImmune[boss] > 0, 'bosses fill it twice as fast');
 });
 
 test('tiles coat what stands on them, and a Soaked Pokémon carries its coat', () => {

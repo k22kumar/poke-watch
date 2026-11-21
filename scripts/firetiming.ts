@@ -11,6 +11,7 @@ import { spawnEnemy } from '../src/sim/enemies';
 import { slotSpec } from '../src/sim/moves';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const FAMILIES: [string, string][] = [
   ['bolt', 'cyndaquil'], ['orb', 'squirtle'], ['strike', 'bulbasaur'], ['dash', 'impidimp'], ['nova', 'magcargo'],
   ['chain', 'pichu'], ['lob', 'slugma'], ['cone', 'snom'], ['boomerang', 'chikorita'], ['barrage', 'heracross'], ['drain', 'oddish'],
@@ -20,7 +21,7 @@ const legacy = args.includes('legacy');
 const only = args.filter((a) => a !== 'legacy');
 
 function calm(species: string): { ctx: SimContext; aim: Partial<InputFrame> } {
-  const ctx = createRun({ seed: 3, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, ...(legacy ? { combat: { fireBuffer: [0, 0, 0, 0] } } : {}) } as never });
+  const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { ...(legacy ? { combat: { fireBuffer: [0, 0, 0, 0] } } : {}) } as never });
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
   const P = ctx.player;
   const [ex, ez] = ctx.world.nearestWalkable(P.x + 5, P.z);

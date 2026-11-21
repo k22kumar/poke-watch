@@ -66,7 +66,6 @@ const tickOf = (ctx: SimContext): TrackTick => {
 export function modeTrack(species: string, seed: number, stage: number, generated: boolean, heading: number, mode: Mode): Track {
   const ctx = createRun({ seed, species, ruleOverrides: generated ? { worldgen: { mode: 'generated' } } : {} });
   if (stage) startStage(ctx, stage);
-  ctx.rules.director.spawnBase = -99;
   const fx = Math.sin(heading), fz = Math.cos(heading), rx = -fz, rz = fx;
   const pos: Track['pos'] = [tickOf(ctx)], yaw = [heading];
   for (let k = 0; k < 7 * 60; k++) {

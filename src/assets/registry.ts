@@ -11,7 +11,7 @@ export interface AssetRecord {
   origin: string; // 'builtin' or 'pack:<id>'
   data: { source: string; license: string };
   art: { kind: 'baked' | 'pmd'; source: string; license: string; credits: string[]; url?: string; clips: Partial<Record<AnimState, string>> };
-  cry: { kind: 'synth' | 'sample' | 'none'; source: string; license: string; era?: string; alt?: string };
+  cry: { kind: 'sample' | 'none'; source: string; license: string; era?: string; alt?: string };
   status: AssetStatus;
   notes: string[];
   checksum?: string;

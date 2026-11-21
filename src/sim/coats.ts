@@ -16,12 +16,10 @@ import { dhypot } from '../core/detmath';
 import { ELEMENTS, effectiveness, type Element } from '../rules/elements';
 import { AG, REACT, coatImmune } from '../rules/reactions';
 import { killEnemy } from './combat';
-import { ROLE, ZK } from './pools';
+import { ZK } from './pools';
 import type { Member, SimContext } from './types';
 import { onHpLoss } from './squad';
-import { onReaction } from './techniques';
 
-const BIG = ROLE.elite | ROLE.alpha | ROLE.boss;
 const AGENT_EL: Element[] = ['plain', 'blaze', 'tide', 'frost', 'volt'];
 
 export type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel';
@@ -30,8 +28,7 @@ export type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overlo
 export function ccApply(ctx: SimContext, e: number, dur: number): number {
   const E = ctx.enemies, C = ctx.rules.reactions.cc;
   if (dur <= 0 || E.ccImmune[e] > 0) return 0;
-  const mult = E.roles[e] & ROLE.boss ? C.bossMult : 1;
-  E.ccAcc[e] += dur * mult;
+  E.ccAcc[e] += dur;
   if (E.ccAcc[e] >= C.limit) { E.ccAcc[e] = 0; E.ccImmune[e] = C.immune; }
   return dur;
 }
@@ -46,10 +43,9 @@ function reactHit(ctx: SimContext, e: number, amount: number, el: Element, kx = 
   E.hp[e] -= dmg;
   E.flash[e] = 0.12;
   ctx.stats.damageDealt += dmg;
-  if (knock > 0 && !(E.roles[e] & ROLE.boss)) {
+  if (knock > 0) {
     const L = dhypot(kx, kz) || 1;
-    const resist = E.roles[e] & ROLE.alpha ? 0.3 : E.roles[e] & ROLE.elite ? 0.6 : 1;
-    E.kx[e] += (kx / L) * knock * resist; E.kz[e] += (kz / L) * knock * resist;
+    E.kx[e] += (kx / L) * knock; E.kz[e] += (kz / L) * knock;
   }
   ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount: dmg, crit: false, eff, element: el, enemy: e });
   if (E.hp[e] <= 0) killEnemy(ctx, e);
@@ -63,19 +59,16 @@ function clearCoat(ctx: SimContext, e: number) {
 /** base for a reaction started by a tile rather than a hit */
 export function tileReactionBase(ctx: SimContext) {
   const R = ctx.rules.reactions;
-  return R.tileBase + R.tilePerLevel * ctx.player.level;
+  return R.tileStrength;
 }
 
 /**
  * Agent `agent` arrives on enemy e at `depth` (1 light, 2 deep), from a hit that dealt `amount`.
  * Coats it, refreshes its coat, or reacts with it.
  */
-export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: number, amount: number, byPlayer = false) {
+export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: number, amount: number) {
   const E = ctx.enemies, R = ctx.rules.reactions;
   if (!agent || depth <= 0 || !E.alive[e]) return;
-  reactByPlayer = byPlayer;
-  const big = (E.roles[e] & BIG) !== 0;
-  if (depth === 1 && big) return; // light coats stick only to fodder
   if (coatImmune(ctx.speciesIndex[E.species[e]].elements, agent)) return;
   if (depth === 1) { if (E.coatIcd[e] > 0) return; E.coatIcd[e] = R.lightIcd; }
   const cur = E.coat[e];
@@ -172,11 +165,8 @@ export function coatEnemy(ctx: SimContext, e: number, agent: number, depth: numb
   }
 }
 
-/** the reaction being settled was started by the trainer's own hit (Catalyst counts only those) */
-let reactByPlayer = false;
 function react(ctx: SimContext, kind: ReactionEvent, x: number, z: number, r: number, deep: boolean, n = 1) {
   ctx.events.push({ t: 'react', kind, x, z, r, deep, n });
-  if (reactByPlayer && kind !== 'shatter') { reactByPlayer = false; onReaction(ctx, x, z); }
 }
 
 /** a physical hit or a push on a frozen creature shatters it: returns the damage multiplier */
@@ -185,7 +175,6 @@ export function shatter(ctx: SimContext, e: number): number {
   if (E.frozen[e] <= 0) return 1;
   E.frozen[e] = 0; E.stun[e] = 0;
   react(ctx, 'shatter', E.x[e], E.z[e], 1, true);
-  onReaction(ctx, E.x[e], E.z[e]); // a shatter is always the trainer's own physical hit
   return ctx.rules.reactions.freeze.shatter;
 }
 
@@ -197,7 +186,6 @@ export function shatter(ctx: SimContext, e: number): number {
  */
 export function coatMember(ctx: SimContext, m: Member, agent: number, depth: number): ReactionEvent | null {
   const R = ctx.rules.reactions;
-  reactByPlayer = false;
   if (!agent || depth <= 0 || m.fainted) return null;
   if (coatImmune(m.species.elements, agent)) return null;
   const time = depth === 2 ? R.deepTime : R.lightTime;
@@ -213,7 +201,7 @@ export function coatMember(ctx: SimContext, m: Member, agent: number, depth: num
       clear();
       if (P.m === m) {
         P.paraT = Math.max(P.paraT, 1.8);
-        const amt = m.maxHp * 0.06 * ctx.rules.mode.difficulty;
+        const amt = m.maxHp * 0.06;
         m.hp = Math.max(0, m.hp - amt);
         P.hurtFlash = 0.2;
         ctx.stats.damageTaken += amt;

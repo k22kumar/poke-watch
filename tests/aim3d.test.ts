@@ -58,7 +58,6 @@ interface Scene { ctx: SimContext; W: World; P: V3 }
 /** a run on a private flat world, the partner at the centre of tile (50, 50) facing +z, its only move an Ember (a bolt) */
 function scene(opts: { species?: string; los?: boolean; rules?: DeepPartial<Rules>; move?: string } = {}): Scene {
   const ctx = createRun({ seed: 1, species: opts.species ?? 'cyndaquil', ruleOverrides: opts.rules });
-  ctx.rules.director.spawnBase = -99;
   const W = flatWorld(opts.los ?? true);
   ctx.world = W;
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear(); ctx.zones.clear();
@@ -114,86 +113,68 @@ function fire(ctx: SimContext, lensAt: (k: number) => { eye: V3; dir: V3; view: 
 const hitsOn = (log: Log, e: number) => log.events.filter((v) => v.t === 'hit' && v.enemy === e).length;
 const casts = (log: Log) => log.events.filter((v): v is Extract<SimEvent, { t: 'cast' }> => v.t === 'cast');
 const ends = (log: Log) => log.events.filter((v): v is Extract<SimEvent, { t: 'shotEnd' }> => v.t === 'shotEnd');
-// Phase 3 device assistance (rules.aim.deviceAssist) is part of the newer layer: legacy turns it off too (§6.1 rule 3)
-const LEGACY: DeepPartial<Rules> = { aim: { spatial: false, deviceAssist: false } };
+// The planar halves of these tests (rules.aim.spatial off, the legacy path) retired with the flag (docs/hero-shooter-pivot.md
+// Q18); survivor-final keeps them.
 
 // ------------------------------------------------------------------------------------------------ the prior defects
 
-test('planar aim (claim 1, shot-up): a flier hovering 4 m up on the crosshair is hit; legacy flies under it at the shooter\'s height', () => {
-  for (const legacy of [false, true]) {
-    const { ctx, P } = scene({ rules: legacy ? LEGACY : {} });
-    const e = put(ctx, P[0], 0, P[2] + 10, 'medium', 4);
-    const at = centre(ctx, e);
-    const log = fire(ctx, () => lens(P, at));
-    if (legacy) assert.equal(hitsOn(log, e), 0, 'legacy: magnetism finds it, the shot passes 3.9 m under it');
-    else assert.ok(hitsOn(log, e) >= 1, 'spatial: the shot climbs to the crosshair and hits');
-  }
+test('planar aim (claim 1, shot-up): a flier hovering 4 m up on the crosshair is hit', () => {
+  const { ctx, P } = scene();
+  const e = put(ctx, P[0], 0, P[2] + 10, 'medium', 4);
+  const at = centre(ctx, e);
+  const log = fire(ctx, () => lens(P, at));
+  assert.ok(hitsOn(log, e) >= 1, 'spatial: the shot climbs to the crosshair and hits');
 });
 
-test('hidden magnetism and lead (claim 3): 6.3 deg off the crosshair is a miss on the spatial path; legacy snaps onto it', () => {
-  for (const legacy of [false, true]) {
-    const { ctx, P } = scene({ rules: legacy ? LEGACY : {} });
-    const e = put(ctx, P[0], 0, P[2] + 10);
-    // the crosshair 6.3 deg to the side of the enemy (1.1 m at 10 m: more than its radius plus the shot's)
-    const a = 6.3 * D2R, at: V3 = [P[0] + Math.sin(a) * 10, ctx.enemies.tall[e] / 2, P[2] + Math.cos(a) * 10];
-    const log = fire(ctx, () => lens(P, at, 0));
-    if (legacy) assert.ok(hitsOn(log, e) >= 1, 'legacy: bent 6.3 deg onto the enemy');
-    else {
-      assert.equal(hitsOn(log, e), 0, 'spatial: what you aim at is what you hit');
-      const c = casts(log)[0];
-      assert.ok(c && c.o, 'a spatial cast reports its origin and aim point');
-      // the cast's aim point lies on the crosshair ray (no bend), and the shot flies from the origin to it
-      const l = lens(P, at, 0), T: V3 = c.o!.t, off = sub(T, l.eye), perp = len(sub(off, l.dir.map((d) => d * dot(off, l.dir)) as V3));
-      assert.ok(perp < 1e-4, `the aim point is ${perp} m off the crosshair ray`);
-    }
-  }
+test('hidden magnetism and lead (claim 3): 6.3 deg off the crosshair is a miss on the spatial path', () => {
+  const { ctx, P } = scene();
+  const e = put(ctx, P[0], 0, P[2] + 10);
+  // the crosshair 6.3 deg to the side of the enemy (1.1 m at 10 m: more than its radius plus the shot's)
+  const a = 6.3 * D2R, at: V3 = [P[0] + Math.sin(a) * 10, ctx.enemies.tall[e] / 2, P[2] + Math.cos(a) * 10];
+  const log = fire(ctx, () => lens(P, at, 0));
+  assert.equal(hitsOn(log, e), 0, 'spatial: what you aim at is what you hit');
+  const c = casts(log)[0];
+  assert.ok(c && c.o, 'a spatial cast reports its origin and aim point');
+  // the cast's aim point lies on the crosshair ray (no bend), and the shot flies from the origin to it
+  const l = lens(P, at, 0), T: V3 = c.o!.t, off = sub(T, l.eye), perp = len(sub(off, l.dir.map((d) => d * dot(off, l.dir)) as V3));
+  assert.ok(perp < 1e-4, `the aim point is ${perp} m off the crosshair ray`);
 });
 
-test('shooter-dependent flight height (claim 4, shot-height): a shot keeps its own line while the shooter jumps; legacy rides the jump', () => {
-  for (const legacy of [false, true]) {
-    for (const los of [false, true]) {
-      const series: number[][] = [];
-      for (const jump of [false, true]) {
-        const { ctx, P } = scene({ los, rules: legacy ? LEGACY : {} });
-        const at: V3 = [P[0], 0.9, P[2] + 30];
-        const log = fire(ctx, () => lens(P, at), 40, (k) => ({ jump: jump && k >= 6 && k < 9 }));
-        series.push(log.ys.map((ys) => ys[0]).filter((y) => y !== undefined));
-      }
-      const [still, jumped] = series, n = Math.min(still.length, jumped.length);
-      assert.ok(n > 20, 'the shot is in flight for the whole window');
-      const dev = Math.max(...still.slice(0, n).map((y, k) => Math.abs(y - jumped[k])));
-      if (legacy && !los) assert.ok(dev > 1, `legacy, authored map: the shot rose ${dev.toFixed(2)} m with the jump`);
-      else if (!legacy) {
-        assert.equal(dev, 0, `spatial (${los ? 'location rules' : 'authored'}): the jump moved the shot ${dev} m`);
-        // and the flight is a straight line: constant vertical step
-        const dy = still.slice(1, n).map((y, k) => y - still[k]);
-        assert.ok(Math.max(...dy) - Math.min(...dy) < 1e-4, 'linear in y');
-      }
+test('shooter-dependent flight height (claim 4, shot-height): a shot keeps its own line while the shooter jumps', () => {
+  for (const los of [false, true]) {
+    const series: number[][] = [];
+    for (const jump of [false, true]) {
+      const { ctx, P } = scene({ los });
+      const at: V3 = [P[0], 0.9, P[2] + 30];
+      const log = fire(ctx, () => lens(P, at), 40, (k) => ({ jump: jump && k >= 6 && k < 9 }));
+      series.push(log.ys.map((ys) => ys[0]).filter((y) => y !== undefined));
     }
+    const [still, jumped] = series, n = Math.min(still.length, jumped.length);
+    assert.ok(n > 20, 'the shot is in flight for the whole window');
+    const dev = Math.max(...still.slice(0, n).map((y, k) => Math.abs(y - jumped[k])));
+    assert.equal(dev, 0, `spatial (${los ? 'location rules' : 'authored'}): the jump moved the shot ${dev} m`);
+    // and the flight is a straight line: constant vertical step
+    const dy = still.slice(1, n).map((y, k) => y - still[k]);
+    assert.ok(Math.max(...dy) - Math.min(...dy) < 1e-4, 'linear in y');
   }
 });
 
 test('close-range reticle (parallax): a target 2.5 m ahead on the right-shoulder crosshair is where the shot goes', () => {
   // the lens is 1.25 m to the right; the crosshair runs parallel to the view, so it crosses the rubble 2.5 m ahead,
   // 1.25 m to the side, and meets the ground far behind it. chaseAim eases the shoulder offset over 16 m and clamps
-  // the point to at least 4 m out, so the legacy shot leaves for a ground point ~0.35 m to the side
-  for (const legacy of [false, true]) {
-    const { ctx, P } = scene({ rules: legacy ? LEGACY : {} });
-    const right: V3 = [1, 0, 0]; // +z is ahead, so the lens's right is +x (lens(): right = (f.z, 0, -f.x))
-    const b = spawnBody(ctx, 'rubble', P[0] + right[0] * 1.25, P[2] + 2.5);
-    const eye: V3 = [P[0] + 1.25, 1.7, P[2] - 4.5], far: V3 = [P[0] + 1.25, 0.4, P[2] + 2.5];
-    const dir = norm(sub(far, eye));
-    const l = { eye, dir, view: { eye, yaw: Math.atan2(dir[0], dir[2]), viewPitch: Math.asin(-dir[1]), fov: 1 } };
-    const [ax, az] = chaseAim(l.view, P[0], P[2], 16 / 9, () => 0);
-    if (legacy) assert.ok(Math.abs(ax - (P[0] + 1.25)) > 0.8 && az - P[2] >= 4, `legacy aim point ${(ax - P[0]).toFixed(2)} m to the side, ${(az - P[2]).toFixed(2)} m out`);
-    const log = fire(ctx, () => l, 30);
-    const hit = log.events.filter((v) => v.t === 'bodyHit').length;
-    if (legacy) assert.equal(hit, 0, 'legacy: the shot passes beside what the crosshair is on');
-    else {
-      assert.ok(hit >= 1 || !ctx.bodies.alive[b], 'spatial: the shot hits the rubble under the crosshair');
-      assert.equal(ctx.aim.hitKind === SK.body || casts(log)[0].o!.kind === SK.body, true, 'the camera trace met the rubble');
-    }
-  }
+  // the point to at least 4 m out (the planar aim point every other move reads)
+  const { ctx, P } = scene();
+  const right: V3 = [1, 0, 0]; // +z is ahead, so the lens's right is +x (lens(): right = (f.z, 0, -f.x))
+  const b = spawnBody(ctx, 'rubble', P[0] + right[0] * 1.25, P[2] + 2.5);
+  const eye: V3 = [P[0] + 1.25, 1.7, P[2] - 4.5], far: V3 = [P[0] + 1.25, 0.4, P[2] + 2.5];
+  const dir = norm(sub(far, eye));
+  const l = { eye, dir, view: { eye, yaw: Math.atan2(dir[0], dir[2]), viewPitch: Math.asin(-dir[1]), fov: 1 } };
+  const [ax, az] = chaseAim(l.view, P[0], P[2], 16 / 9, () => 0);
+  assert.ok(Math.abs(ax - (P[0] + 1.25)) > 0.8 && az - P[2] >= 4, `planar aim point ${(ax - P[0]).toFixed(2)} m to the side, ${(az - P[2]).toFixed(2)} m out`);
+  const log = fire(ctx, () => l, 30);
+  const hit = log.events.filter((v) => v.t === 'bodyHit').length;
+  assert.ok(hit >= 1 || !ctx.bodies.alive[b], 'spatial: the shot hits the rubble under the crosshair');
+  assert.equal(ctx.aim.hitKind === SK.body || casts(log)[0].o!.kind === SK.body, true, 'the camera trace met the rubble');
 });
 
 // ------------------------------------------------------------------------------------------------ the verification matrix
@@ -215,24 +196,17 @@ test('near and far, above and below, stationary: every crosshair target is hit f
 });
 
 test('moving target: no automatic lead; the shot flies to the crosshair point of the release tick', () => {
-  for (const legacy of [false, true]) {
-    const { ctx, P } = scene({ rules: legacy ? LEGACY : {} });
-    const e = put(ctx, P[0] - 3, 0, P[2] + 14), E = ctx.enemies;
-    const log = fire(ctx, () => lens(P, centre(ctx, e), 0), 12, () => { E.vx[e] = 5; return {}; });
-    const Pr = ctx.projectiles;
-    let s = -1;
-    for (let i = 0; i < Pr.hi; i++) if (Pr.alive[i] && Pr.kind[i] === PK.straight) s = i;
-    assert.ok(s >= 0, 'the shot is in flight');
-    const v = norm([Pr.vx[s], Pr.vy[s], Pr.vz[s]]);
-    const c = casts(log)[0];
-    if (legacy) {
-      const aimYaw = Math.atan2(c.tx - P[0], c.tz - P[2]), shotYaw = Math.atan2(v[0], v[2]);
-      assert.ok(Math.abs(shotYaw - aimYaw) > 0.5 * D2R, `legacy leads by ${((shotYaw - aimYaw) / D2R).toFixed(2)} deg`);
-    } else {
-      const want = norm(sub(c.o!.t, c.o!.o));
-      assert.ok(dot(v, want) > 1 - 1e-9, 'spatial: straight from the muzzle to the crosshair point');
-    }
-  }
+  const { ctx, P } = scene();
+  const e = put(ctx, P[0] - 3, 0, P[2] + 14), E = ctx.enemies;
+  const log = fire(ctx, () => lens(P, centre(ctx, e), 0), 12, () => { E.vx[e] = 5; return {}; });
+  const Pr = ctx.projectiles;
+  let s = -1;
+  for (let i = 0; i < Pr.hi; i++) if (Pr.alive[i] && Pr.kind[i] === PK.straight) s = i;
+  assert.ok(s >= 0, 'the shot is in flight');
+  const v = norm([Pr.vx[s], Pr.vy[s], Pr.vz[s]]);
+  const c = casts(log)[0];
+  const want = norm(sub(c.o!.t, c.o!.o));
+  assert.ok(dot(v, want) > 1 - 1e-9, 'spatial: straight from the muzzle to the crosshair point');
 });
 
 test('empty space: a crosshair on the sky fires along the ray, and the shot ends at its own range from the muzzle', () => {
@@ -376,24 +350,23 @@ test('an enemy moved far after the grid rebuild (a relocation) is still met by a
   void W;
 });
 
-test('flag off, or no aim ray: the sim takes the legacy planar path exactly (replay hashes cannot move)', () => {
+test('no aim ray (the bot, fixed views): the sim takes the planar path, deterministically', () => {
   const runs: number[][] = [];
-  for (const [rules, withRay] of [[LEGACY, true], [LEGACY, false], [{}, false]] as [DeepPartial<Rules>, boolean][]) {
-    const { ctx, P } = scene({ rules });
+  for (let r = 0; r < 2; r++) {
+    const { ctx, P } = scene();
     const e = put(ctx, P[0] + 2, 0, P[2] + 9);
     const hs: number[] = [];
     for (let k = 0; k < 120; k++) {
       const l = lens(P, centre(ctx, e), 1.25);
       const inp = frame(ctx, l, k % 20 === 0 ? BTN.basic : 0);
-      if (!withRay) { delete inp.aim; delete inp.aimDev; }
+      delete inp.aim; delete inp.aimDev;
       step(ctx, inp);
       hs.push(stateHash(ctx));
       assert.equal(ctx.aim.on, false, 'no spatial aim state');
     }
     runs.push(hs);
   }
-  assert.deepEqual(runs[0], runs[1], 'flag off: a ray in the input changes nothing');
-  assert.deepEqual(runs[1], runs[2], 'flag on, no ray (bot, fixed views): the legacy path');
+  assert.deepEqual(runs[0], runs[1], 'no ray: the planar path, the same twice');
 });
 
 test('determinism: the same aim rays replay to the same state, tick for tick', () => {
@@ -434,10 +407,8 @@ test('the host adapter: the crosshair ray of a real ChaseRig sample, quantised; 
 });
 
 // ------------------------------------------------------------------------------------------------ R2: pole-safe aim maths
-// docs/THIRD_PERSON_IMPLEMENTATION.md §18, audit F6 / F7 (rules.aim.poleSafe). The camera still stops at 60° up / 50°
-// down (R3 widens it), but the sim takes any ray, so these build rays of any pitch directly. Pitch sign is the camera's:
-// + = down.
-const POLE_OFF: DeepPartial<Rules> = { aim: { poleSafe: false } };
+// docs/THIRD_PERSON_IMPLEMENTATION.md §18, audit F6 / F7. The sim takes any ray, so these build rays of any pitch
+// directly. Pitch sign is the camera's: + = down. The pre-R2 comparisons retired with rules.aim.poleSafe (pivot Q18).
 /** the unit direction of a crosshair ray at pitch `p` (+ down) and yaw `y` (0 = +z), degrees */
 function dirAt(p: number, y = 0): V3 {
   const pr = p * D2R, yr = y * D2R;
@@ -459,11 +430,11 @@ function resolveAlong(ctx: SimContext, d: V3, out = freshAimState()) {
   return out;
 }
 
-test('R2 (T2): the muzzle is continuous over ±89.99° and through both poles; pre-R2 it jumped to the facing', () => {
+test('R2 (T2): the muzzle is continuous over ±89.99° and through both poles', () => {
   for (const cls of ['tiny', 'xl']) {
-    const sc = scene({ species: speciesOf(cls) }), old = scene({ species: speciesOf(cls), rules: POLE_OFF });
+    const sc = scene({ species: speciesOf(cls) });
     // the partner faces +x while the camera looks along +z: the case where the pre-R2 fallback moved the muzzle
-    sc.ctx.player.facing = old.ctx.player.facing = Math.PI / 2;
+    sc.ctx.player.facing = Math.PI / 2;
     let prev: V3 | null = null, worst = 0;
     for (let k = -8999; k <= 8999; k++) {
       const o = resolveAlong(sc.ctx, dirAt(k / 100)), m: V3 = [o.ox, o.oy, o.oz];
@@ -487,19 +458,15 @@ test('R2 (T2): the muzzle is continuous over ±89.99° and through both poles; p
       assert.ok(wm < 1e-3, `${cls} ${sgn > 0 ? 'up' : 'down'}: muzzle step through the pole ${(wm * 1000).toFixed(3)} mm per 0.001°`);
       assert.ok(wu < 0.01, `${cls} ${sgn > 0 ? 'up' : 'down'}: launch turns ${wu.toFixed(4)}° per 0.001° through the pole`);
     }
-    // the defect, flag off: 89.99° up, then exactly up (the facing takes over)
-    const a = resolveAlong(old.ctx, dirAt(-89.99)), b = resolveAlong(old.ctx, [0, 1, 0]);
-    const jump = Math.hypot(a.ox - b.ox, a.oz - b.oz);
-    if (cls === 'xl') assert.ok(jump > 0.5, `pre-R2: the muzzle jumped ${jump.toFixed(3)} m at the pole`);
   }
 });
 
-test('R2: inside today\'s envelope (60° up to 50° down) the muzzle and launch are the pre-R2 ones exactly; past the fade pitch the offset shrinks to 0', () => {
+test('R2: up to the fade pitch the muzzle sits the full forward offset ahead; past it the offset shrinks to 0', () => {
   for (const cls of ['tiny', 'medium', 'xl']) {
-    const sc = scene({ species: speciesOf(cls) }), old = scene({ species: speciesOf(cls), rules: POLE_OFF });
+    const sc = scene({ species: speciesOf(cls) }), P0 = sc.ctx.player, full = fadeOffset(sc.ctx, 0);
     for (let p = -59.5; p <= 50; p += 0.5) for (const y of [0, 37, 133, -101]) {
-      const a = resolveAlong(sc.ctx, dirAt(p, y)), b = resolveAlong(old.ctx, dirAt(p, y));
-      assert.deepEqual([a.ox, a.oy, a.oz, a.ux, a.uy, a.uz, a.tx, a.ty, a.tz], [b.ox, b.oy, b.oz, b.ux, b.uy, b.uz, b.tx, b.ty, b.tz], `${cls} pitch ${p} yaw ${y}`);
+      const a = resolveAlong(sc.ctx, dirAt(p, y));
+      assert.ok(Math.abs(Math.hypot(a.ox - P0.x, a.oz - P0.z) - full) < 1e-9, `${cls} pitch ${p} yaw ${y}: the full offset`);
     }
     for (const p of [-89, -80, -70, 70, 80, 89]) {
       const o = resolveAlong(sc.ctx, dirAt(p, 20)), P = sc.ctx.player, want = fadeOffset(sc.ctx, p);
@@ -537,7 +504,7 @@ test('R2 (T1): Tiny, Medium and XL, both shoulders, pitch 89° up to 89° down: 
   }
 });
 
-test('R2 (T3): a 4-shot fan keeps its outer angle at 0, 45, 80 and 89° up and down; pre-R2 it closed toward the pole', () => {
+test('R2 (T3): a 4-shot fan keeps its outer angle at 0, 45, 80 and 89° up and down', () => {
   /** the angle (deg) of the outermost shots from the fan's bisector, for a 4-shot Ember fired along pitch p into the sky
    *  (up) or from 30 m up toward the ground (down), the lens on the line through the chest (so level is level) */
   function outer(rules: DeepPartial<Rules>, p: number): number {
@@ -564,23 +531,16 @@ test('R2 (T3): a 4-shot fan keeps its outer angle at 0, 45, 80 and 89° up and d
     const a = outer({}, p);
     assert.ok(Math.abs(a - level) < 0.5, `pitch ${p}: outer angle ${a.toFixed(2)}° (level ${level.toFixed(2)}°)`);
   }
-  assert.ok(Math.abs(outer(POLE_OFF, 0) - level) < 1e-6, 'level: the pre-R2 fan exactly');
-  const shut = outer(POLE_OFF, -80);
-  assert.ok(shut < level / 3, `pre-R2 at 80° up: ${shut.toFixed(2)}° (the defect)`);
 });
 
 test('R2: a launch straight up or down takes the crosshair ray\'s heading for the planar side, not the facing', () => {
-  const { ctx } = scene(), old = scene({ rules: POLE_OFF }).ctx;
-  for (const c of [ctx, old]) {
-    c.player.facing = Math.PI / 2; // facing +x
-    c.input = { ...NO_INPUT, aim: { ox: 0, oy: 0, oz: 0, dx: -0.6, dy: 0.8, dz: 0 } }; // the ray looks steeply up toward −x
-  }
+  const { ctx } = scene();
+  ctx.player.facing = Math.PI / 2; // facing +x
+  ctx.input = { ...NO_INPUT, aim: { ox: 0, oy: 0, oz: 0, dx: -0.6, dy: 0.8, dz: 0 } }; // the ray looks steeply up toward −x
   launchHeading(ctx, 0, 0);
   assert.ok(Math.abs(HEAD.x + 1) < 1e-12 && Math.abs(HEAD.z) < 1e-12, `R2: the ray's heading (${HEAD.x}, ${HEAD.z})`);
   launchHeading(ctx, 0.3, -0.4);
   assert.ok(Math.abs(HEAD.x - 0.6) < 1e-12 && Math.abs(HEAD.z + 0.8) < 1e-12, 'a launch with a horizontal part keeps its own heading');
-  launchHeading(old, 0, 0);
-  assert.ok(Math.abs(HEAD.x - 1) < 1e-12, 'pre-R2: the facing');
   // a ray that is itself vertical (never sent by the clamped camera) leaves only the facing
   ctx.input = { ...NO_INPUT, aim: { ox: 0, oy: 0, oz: 0, dx: 0, dy: 1, dz: 0 } };
   launchHeading(ctx, 0, 0);

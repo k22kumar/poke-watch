@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { HAB } from '../src/rules/habitats';
-import { SPECIES_OVERRIDES, canSwim, habitatAllows, habitatSpawnFactor, speciesProfile, traversalOf, validateProfiles } from '../src/rules/profiles';
+import { SPECIES_OVERRIDES, canSwim, habitatAllows, speciesProfile, traversalOf, validateProfiles } from '../src/rules/profiles';
 import { TAG_ACTIONS, tagLineOf } from '../src/rules/tags';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
@@ -31,9 +31,6 @@ test('capability, preference and restriction stay separate: a Water type swims b
   assert.ok(canSwim(poliwag), 'Water type swims (rules.hazards.water.safeTypes)');
   assert.ok(!canSwim(SPECIES_BY_ID.geodude));
   assert.ok(canSwim(SPECIES_BY_ID.geodude, [{ key: 'surf' }]), 'knowing Surf is a capability too');
-  // preference: odds only
-  assert.equal(habitatSpawnFactor('poliwag', HAB.water), defaultRules.spawning.preference.native);
-  assert.equal(habitatSpawnFactor('poliwag', HAB.dry), defaultRules.spawning.preference.foreign);
   // no restriction is derived from type: Poliwag may spawn on dry rock
   assert.ok(habitatAllows('poliwag', HAB.dry | HAB.rock));
   for (const sp of SPECIES) {
@@ -50,14 +47,9 @@ test('a hard restriction blocks a tile; a preference never does', () => {
     assert.ok(habitatAllows('__aquatic', HAB.water | HAB.rock));
     assert.ok(!habitatAllows('__aquatic', HAB.rock));
     assert.ok(!habitatAllows('__aquatic', HAB.water | HAB.dry), 'avoids wins over requires');
-    assert.equal(habitatSpawnFactor('__aquatic', HAB.rock), 1, 'no preference set, so the odds are neutral');
   } finally {
     delete SPECIES_OVERRIDES.__aquatic;
   }
-});
-
-test('menders come from profiles, not a hardcoded list', () => {
-  assert.deepEqual(SPECIES.filter((s) => speciesProfile(s).mender).map((s) => s.id).sort(), ['delibird', 'oddish', 'paras']);
 });
 
 test('an authored Tag Action wins; any other species gets a derived one from its own damaging moves', () => {
@@ -66,7 +58,7 @@ test('an authored Tag Action wins; any other species gets a derived one from its
     if (TAG_ACTIONS[sp.id]) continue;
     const line = tagLineOf(sp.id);
     if (!line) continue;
-    for (const d of [line.base, line.variant]) {
+    for (const d of [line.base]) {
       const m = MOVE_BY_KEY[d.move];
       assert.ok(m && m.power > 0 && m.cls !== 'status', `${sp.id}: ${d.move} is a damaging move`);
       // ...or, for a species that learns no damaging move (Cosmog), the basic attack (rules.moves.fallbackAttack)

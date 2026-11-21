@@ -137,7 +137,7 @@ test('locomotion: one body, two callers: the player controller and a plain body 
     const foot = partnerFootprint(P.species, ctx.rules);
     const t = tick({
       speed: P.derived.speed, foot, wide: navWide(foot, ctx.rules), stepUp: R.stepHeight,
-      tall: W.headroom && W.over ? partnerHeight(P.species, ctx.rules) : undefined, lift: traversalOf(P.species, ctx.rules).glide !== null,
+      tall: W.over ? partnerHeight(P.species, ctx.rules) : undefined, lift: traversalOf(P.species, ctx.rules).glide !== null,
     });
     let mx = inp.mx, mz = inp.mz;
     const ml = Math.hypot(mx, mz);

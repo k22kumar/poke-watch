@@ -13,7 +13,6 @@
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
-import { ROLE } from '../src/sim/pools';
 import { LOCATIONS } from '../src/world/locations';
 import { HABITATS } from '../src/world/habitat';
 import { navGrid, wideCore, pathBetween, enemyCore } from '../src/world/locgen/nav';
@@ -21,25 +20,26 @@ import { blockMask, blockNeighbours, blockNodes, DIAG_R } from '../src/world/nav
 import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
-/** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m), an Extra Large (0.88 m) and
- *  a Large elite (×2, capped at 0.95 m) */
-const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0], ['elite', 'heracross', ROLE.elite]];
+import { RANGE } from '../src/mods';
+import { assertRunning, endedNote, runEnded } from './lib/ended';
+/** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m) and an Extra Large (0.88 m).
+ *  The Large elite (×2, capped at 0.95 m) went with the elite role (pivot step 10) */
+const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0]];
 const TRAINERS: [string, string][] = [['small', 'totodile'], ['xl', 'feraligatr']];
 
 export interface WalkResult { map: string; seed: number; target: string; walker: string; expect: 'arrive' | 'refuse'; ok: boolean; t: number; note: string }
 
 // no spawns, no objectives, and no far-enemy relocation (rules.enemy.despawnDistance would teleport a walker that starts
 // more than 46 m from the player to a ring around it, skipping the very route under test; a holding wide body likewise)
-const calm = { director: { spawnBase: -99, swarmEvery: 1e9, eliteEvery: 1e9 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, enemy: { despawnDistance: 1e9, holdRelocate: 1e9 }, ...(process.env.NAVWALK_RULES ? JSON.parse(process.env.NAVWALK_RULES) : {}) };
+const calm = { enemy: { despawnDistance: 1e9, holdRelocate: 1e9 }, ...(process.env.NAVWALK_RULES ? JSON.parse(process.env.NAVWALK_RULES) : {}) };
 const at = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 
 export function freshRun(kind: 'location' | 'habitat', id: string, seed: number, species = 'totodile'): SimContext {
   const wg = kind === 'location'
     ? { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } }
     : { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } };
-  const ctx = createRun({ seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...sizeOverride() } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm } as never });
   const E = ctx.enemies;
   for (let e = 0; e < E.hi; e++) if (E.alive[e]) E.kill(e);
   return ctx;
@@ -51,8 +51,7 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
   P.x = P.px = x; P.z = P.pz = z; P.y = P.py = deck ? W.height(x, z, 1e9) : W.height(x, z); P.vx = P.vz = P.vy = P.kx = P.kz = 0; P.grounded = true;
 }
 
-/** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height (rules.size.headroom)
- *  its head clears deck slabs too */
+/** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height its head clears deck slabs too */
 const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
@@ -68,6 +67,7 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
   let pen = false, note = '';
   const ring: string[] = [];
   while (ctx.time - t0 < budget) {
+    assertRunning(ctx, 'navwalk enemy walker');
     P.iframes = 1; P.hp = P.maxHp; place(ctx, px, pz, deck);
     step(ctx, NO_INPUT);
     // NAVWALK_DEBUG=1: print the last 8 ticks before the first overlap
@@ -130,6 +130,7 @@ function driveTrainer(ctx: SimContext, path: [number, number][], budget: number)
   const P = ctx.player, t0 = ctx.time, foot = partnerFootprint(P.species, ctx.rules);
   let i = 0, pen = false, note = '', bestI = 0, lastProgress = ctx.time;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return { arrived: false, t: ctx.time - t0, pen, note: endedNote(ctx) };
     P.iframes = 1; P.hp = P.maxHp;
     // the nearest waypoint among the next few is where the trainer is along the route (the look-ahead cuts past some)
     // (only one it can walk to in a straight line: a waypoint a metre away across a face is further along the route)
@@ -244,7 +245,6 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
 }
 
 if (process.argv[1]?.endsWith('navwalk.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 5), first = Number(process.argv[4] ?? 1);
   const ids: ['location' | 'habitat', string][] = [];
   if (which === 'all' || which === 'location') for (const id of Object.keys(LOCATIONS)) ids.push(['location', id]);

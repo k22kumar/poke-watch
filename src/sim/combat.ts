@@ -7,11 +7,11 @@ import { SPECIES_BY_ID, weightClass } from '../rules/species';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { AG, agentIndex } from '../rules/reactions';
 import { ccApply, coatEnemy, shatter } from './coats';
-import { maybeOfferRecruit, onHpLoss } from './squad';
+import { onHpLoss } from './squad';
 import { applyAfterHit, creatureForce } from './capabilities';
 import { rec, setSrc, type LogKind } from './caplog';
-import { TB } from '../rules/build';
-import { guardWeight, onGuardDeflect } from './techniques';
+import { guardWeight } from './player';
+import { guardOf, type Channel } from '../rules/stats';
 
 const AB = (id: string) => ABILITY_IDS.indexOf(id) + 1;
 const A = { levitate: AB('levitate'), flash: AB('flash_fire'), wabsorb: AB('water_absorb'), dry: AB('dry_skin'), sturdy: AB('sturdy'), magma: AB('magma_armor'), early: AB('early_bird'), vital: AB('vital_spirit'), guts: AB('guts'), swarm: AB('swarm'), stat: AB('static'), spore: AB('effect_spore') };
@@ -41,7 +41,6 @@ export function enemyAttackMult(ctx: SimContext, e: number): number {
   if (a === A.flash && E.abilityFlag[e]) m *= 1.5;
   return m;
 }
-import { ROLE } from './pools';
 import type { Hit, SimContext } from './types';
 
 export const AILMENTS: Ailment[] = ['knock', 'burn', 'poison', 'sleep', 'root', 'confuse', 'chill', 'stun'];
@@ -115,6 +114,8 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   }
   const eff = effectiveness(ctx.chart, spec.element, enemyElements(ctx, e));
   amount *= eff;
+  // the target's guard on the hit's channel: m(Def) or m(SpD) (src/rules/stats.ts; docs/hero-shooter-pivot.md Q37)
+  amount /= Math.max(0.05, guardOf(ctx.speciesIndex[E.species[e]], spec.cls === 'special' ? 'special' : 'physical', ctx.rules));
   // coats: Fire into a Soaked creature is damped; a physical hit shatters a frozen one
   if (E.coat[e] === AG.wet && spec.element === 'blaze') amount *= ctx.rules.reactions.soakedFire;
   if (spec.cls === 'physical' && E.frozen[e] > 0) amount *= shatter(ctx, e);
@@ -144,11 +145,6 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   ctx.stats.damageDealt += amount;
   if (amount > ctx.stats.maxHit) ctx.stats.maxHit = amount;
 
-  // a Bulwark's shield breaks for 4 s under a Fighting blow, a hold, or a shove strong enough to move it
-  if (E.roles[e] & ROLE.shielder && E.guardDown[e] <= 0 && ((spec.element === 'brawl' && spec.cls === 'physical') || spec.hold || spec.knock >= 8)) {
-    E.guardDown[e] = ctx.rules.roles.bulwarkBreak;
-    ctx.events.push({ t: 'ability', name: 'Guard broken', x: E.x[e], z: E.z[e], enemy: e });
-  }
   // knockback (bosses mostly ignore it) or a Hold that reels it in: the shared creature force rule
   creatureForce(ctx, e, spec);
   // status roll
@@ -159,9 +155,8 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
   ctx.events.push({ t: 'hit', x: E.x[e], y: E.y[e] + E.tall[e], z: E.z[e], amount, crit, eff, element: spec.element, enemy: e });
   if (E.hp[e] <= 0) { killEnemy(ctx, e); return amount; }
   // the hit's agent coats the creature, or reacts with the coat it already carries
-  if (spec.depth) coatEnemy(ctx, e, agentIndex(spec.element), spec.depth, amount, true);
+  if (spec.depth) coatEnemy(ctx, e, agentIndex(spec.element), spec.depth, amount);
   // Phase 8b: Undertow (your Pushes also Apply Wet) and Slipstream (the next Move carries a copied coat)
-  if (spec.depth && spec.push && E.alive[e] && ctx.player.techMask & TB.undertow) applyAfterHit(ctx, e, AG.wet, spec.depth, amount, 'Undertow');
   if (spec.extra && E.alive[e]) applyAfterHit(ctx, e, spec.extra, 2, amount, 'Slipstream');
   return amount;
 }
@@ -169,15 +164,14 @@ export function damageEnemy(ctx: SimContext, e: number, base: number, spec: Dama
 export function applyAilment(ctx: SimContext, e: number, a: Ailment, hitAmount: number, rootT?: number) {
   const E = ctx.enemies;
   const T = ctx.rules.damage.statusTime;
-  const bossy = E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.3 : 1;
   switch (a) {
     case 'burn': E.burn[e] = T.burn; E.dot[e] = Math.max(E.dot[e], hitAmount * ctx.rules.damage.burnDps * 10); break;
     case 'poison': E.poison[e] = T.poison; E.dot[e] = Math.max(E.dot[e], hitAmount * ctx.rules.damage.poisonDps * 10); break;
-    case 'sleep': if (E.ability[e] === A.vital) break; E.sleep[e] = T.sleep * bossy * (E.ability[e] === A.early ? 0.5 : 1); break;
-    case 'root': E.root[e] = Math.max(E.root[e], ccApply(ctx, e, (rootT ?? T.root) * bossy)); break;
-    case 'confuse': E.confuse[e] = T.confuse * bossy; break;
+    case 'sleep': if (E.ability[e] === A.vital) break; E.sleep[e] = T.sleep * (E.ability[e] === A.early ? 0.5 : 1); break;
+    case 'root': E.root[e] = Math.max(E.root[e], ccApply(ctx, e, rootT ?? T.root)); break;
+    case 'confuse': E.confuse[e] = T.confuse; break;
     case 'chill': if (E.ability[e] === A.magma) break; E.chill[e] = T.chill; break;
-    case 'stun': E.stun[e] = Math.max(E.stun[e], ccApply(ctx, e, T.stun * bossy)); break;
+    case 'stun': E.stun[e] = Math.max(E.stun[e], ccApply(ctx, e, T.stun)); break;
   }
 }
 
@@ -195,67 +189,15 @@ export function killEnemy(ctx: SimContext, e: number) {
   ctx.stats.kills++;
   ctx.events.push({ t: 'kill', x: E.x[e], y: E.y[e], z: E.z[e], species: E.species[e], roles: E.roles[e], element: sp.elements[0] });
   for (const h of ctx.hooks.onKill) h(ctx, e);
-  // xp drop
-  dropXp(ctx, E.x[e], E.z[e], E.xp[e], E.roles[e]);
-  if (E.roles[e] & ROLE.boss) {
-    ctx.stats.bosses++;
-    ctx.director.bossDead = true;
-    ctx.director.bossIndex = -1;
-    ctx.events.push({ t: 'bossDead', species: sp.id, x: E.x[e], z: E.z[e] });
-    ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopBossKill });
-    ctx.events.push({ t: 'shake', amount: 1, x: E.x[e], z: E.z[e] });
-    ctx.projectiles.clearHostile();
-    const [px, pz] = ctx.world.walkable(E.x[e], E.z[e]) ? [E.x[e], E.z[e]] : ctx.world.nearestWalkable(E.x[e], E.z[e]);
-    ctx.portal = { active: true, x: px, z: pz };
-    ctx.events.push({ t: 'portal', x: E.x[e], z: E.z[e] });
-  } else if (E.roles[e] & (ROLE.elite | ROLE.alpha)) {
-    ctx.events.push({ t: 'hitstop', dur: ctx.rules.feel.hitstopKillBig });
-    maybeOfferRecruit(ctx);
-  }
   E.kill(e);
-}
-
-export function dropXp(ctx: SimContext, x: number, z: number, value: number, roles: number) {
-  const Pk = ctx.pickups;
-  const big = roles & (ROLE.elite | ROLE.alpha | ROLE.boss);
-  const pieces = roles & ROLE.boss ? 12 : roles & ROLE.alpha ? 6 : big ? 3 : 1;
-  for (let k = 0; k < pieces; k++) {
-    const v = value / pieces;
-    // merge when the floor is crowded [C] (> 260 gems)
-    if (Pk.count > ctx.rules.pickups.mergeThreshold) {
-      let best = -1, bd = 1e9;
-      const start = (ctx.tick * 7) % Math.max(1, Pk.hi);
-      for (let s = 0; s < Math.min(Pk.hi, 64); s++) {
-        const j = (start + s) % Pk.hi;
-        if (!Pk.alive[j] || Pk.kind[j] !== 0) continue;
-        const d = Math.abs(Pk.x[j] - x) + Math.abs(Pk.z[j] - z);
-        if (d < bd) { bd = d; best = j; }
-      }
-      if (best >= 0) { Pk.value[best] += v; continue; }
-    }
-    const i = Pk.spawn();
-    if (i < 0) return;
-    const a = ctx.rng.combat.range(0, Math.PI * 2), r = pieces > 1 ? ctx.rng.combat.range(0.3, 2.2) : 0;
-    Pk.x[i] = x + dcos(a) * r;
-    Pk.z[i] = z + dsin(a) * r;
-    Pk.y[i] = ctx.world.height(Pk.x[i], Pk.z[i]);
-    Pk.value[i] = v;
-    Pk.kind[i] = 0;
-  }
-  // occasional heal / magnet drops
-  if (ctx.rng.combat.next() < (big ? 0.25 : ctx.rules.pickups.healChance)) {
-    const i = Pk.spawn();
-    if (i >= 0) {
-      Pk.x[i] = x + 0.8; Pk.z[i] = z; Pk.y[i] = ctx.world.height(x + 0.8, z);
-      Pk.kind[i] = big && ctx.rng.combat.next() < 0.4 ? 2 : 1; Pk.value[i] = 0;
-    }
-  }
 }
 
 /** Damage to the player from enemies / hostile projectiles / boss attacks.
  *  `weight` is the attacker's weight class: a Guard deflect window parries attacks no heavier than the
  *  player's own class; Brace halves damage and cancels knockback. Returns 'parry' | 'brace' | 'hit' | 'none'. */
-export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ: number, knockMult = 1, weight = 1, element?: Element, src?: HurtSrc): 'parry' | 'brace' | 'hit' | 'none' {
+/** A hit on the player. `cls` is the attack's channel (src/rules/stats.ts): the damage is divided by m(Def) for
+ *  physical and m(SpD) for special. */
+export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ: number, knockMult = 1, weight = 1, element?: Element, src?: HurtSrc, cls: Channel = 'physical'): 'parry' | 'brace' | 'hit' | 'none' {
   const P = ctx.player;
   if (P.iframes > 0 || P.dashT > 0 || ctx.state !== 'play') return 'none';
   let eff = 1;
@@ -282,7 +224,6 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
   if (P.guardT >= 0) {
     if (P.guardT <= G.guardWindow && weight <= guardWeight(ctx)) {
       P.guardHit = true;
-      onGuardDeflect(ctx);
       ctx.events.push({ t: 'parry', x: P.x, z: P.z, enemy: -1 });
       ctx.events.push({ t: 'hitstop', dur: 0.05 });
       logHurt(ctx, 'parry', 0, eff, weight, element, src, fromX, fromZ);
@@ -293,7 +234,7 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
     ctx.events.push({ t: 'brace', x: P.x, z: P.z, amount: raw });
   }
   const R = ctx.rules.player;
-  let amt = raw * ctx.rules.mode.difficulty * (R.defenseRef / (R.defenseRef + P.derived.def));
+  let amt = raw / Math.max(0.05, cls === 'special' ? P.derived.spd : P.derived.def);
   // Sturdy: once per region, a hit from full health leaves it at 1 HP
   if (pa === A.sturdy && !P.m.sturdyUsed && P.hp >= P.maxHp - 0.01 && amt >= P.hp) { amt = P.hp - 1; P.m.sturdyUsed = true; abilityPop(ctx, 'Sturdy'); }
   logHurt(ctx, P.guardT >= 0 ? 'brace' : 'hit', amt, eff, weight, element, src, fromX, fromZ);
@@ -302,7 +243,6 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
   P.hurtFlash = 0.25;
   ctx.stats.damageTaken += amt;
   const dx = P.x - fromX, dz = P.z - fromZ, L = dhypot(dx, dz) || 1;
-  if (P.techMask & TB.heavy) knockMult *= ctx.rules.build.tech.heavyFooting.knock;
   P.kx += (dx / L) * R.knockback * knockMult;
   P.kz += (dz / L) * R.knockback * knockMult;
   ctx.events.push({ t: 'playerHurt', amount: amt, x: P.x, z: P.z });

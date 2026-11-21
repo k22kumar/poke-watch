@@ -10,10 +10,11 @@ import { learnMove } from '../src/sim/progression';
 import { createRun, step } from '../src/sim/run';
 import { BTN, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
 function calm(species: string, mode: 'aimed' | 'assist' | 'auto' = 'aimed'): SimContext {
-  const ctx = createRun({ seed: 3, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, combat: { mode } } as never });
+  const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { combat: { mode } } as never });
   for (let i = 0; i < 30; i++) step(ctx, NONE); // let the stage settle
   return ctx;
 }
@@ -137,7 +138,7 @@ test('primary fire: a press only during the cooldown is dropped (fireBuffer 0, o
   // accept is still ~27 ticks from ready, outside the window, so it is dropped too (tests/primaryfire.test.ts has the
   // buffered cases)
   for (const fireBuffer of [[0, 0, 0, 0], undefined]) {
-    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, combat: fireBuffer ? { fireBuffer } : {} } as never });
+    const ctx = createRun({ mode: RANGE, seed: 3, species: 'cyndaquil', ruleOverrides: { combat: fireBuffer ? { fireBuffer } : {} } as never });
     steps(ctx, 30);
     const aim = target(ctx);
     basicLog(ctx, [{ ...aim, btn: BTN.basic, press: BTN.basic }]);
@@ -149,7 +150,7 @@ test('primary fire: a press only during the cooldown is dropped (fireBuffer 0, o
 
 test('primary fire: a click at empty ground fires along the aim; basicNeedsTarget restores the old rule', () => {
   for (const [needs, expect] of [[false, true], [true, false]] as const) {
-    const ctx = createRun({ seed: 3, species: 'cyndaquil', ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, combat: { basicNeedsTarget: needs } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 3, species: 'cyndaquil', ruleOverrides: { combat: { basicNeedsTarget: needs } } as never });
     steps(ctx, 30);
     const P = ctx.player;
     let shots = 0;
@@ -188,6 +189,7 @@ test('primary fire: the same scripted presses give the same state', () => {
 test('manual moves wait for their button', () => {
   const ctx = calm('totodile');
   const P = ctx.player;
+  P.moves.length = 1; // the range kit fills Q and E (heroKit); this test teaches its own Move A
   learnMove(ctx, 'bite'); // Move A
   assert.equal(P.moves[1].key, 'bite');
   const [ex, ez] = spot(ctx, 1, 0, 2.5);

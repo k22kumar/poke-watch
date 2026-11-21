@@ -11,10 +11,11 @@ import { T, type ArenaPropKind } from '../src/world/tiles';
 import { getArena } from '../src/world/arenas';
 import type { InputFrame, SimContext } from '../src/sim/types';
 
+import { RANGE } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
-const QUIET = { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 }, beats: { enabled: false }, objectives: { enabled: false } };
+const QUIET = { bodies: { looseRocks: 0 } };
 function calm(extra: object = {}): SimContext {
-  const ctx = createRun({ seed: 2, species: 'totodile', ruleOverrides: { ...QUIET, surfaces: { inAuthored: true, ...((extra as { surfaces?: object }).surfaces ?? {}) }, ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'surfaces')) } as never });
+  const ctx = createRun({ mode: RANGE, seed: 2, species: 'totodile', ruleOverrides: { ...QUIET, surfaces: { inAuthored: true, ...((extra as { surfaces?: object }).surfaces ?? {}) }, ...Object.fromEntries(Object.entries(extra).filter(([k]) => k !== 'surfaces')) } as never });
   for (let i = 0; i < 6; i++) step(ctx, NONE);
   return ctx;
 }
@@ -135,18 +136,6 @@ test('bridges are terrain, not props: heat on a bridge does nothing', () => {
   applyAgent(ctx, 'heat', x, z, 0.4);
   assert.equal(ctx.world.cells.state[k], CS.none);
   assert.equal(ctx.world.propField!.at[k], -1);
-});
-
-test('flags off: no overlay, the shared map itself, and trees do not burn', () => {
-  const ctx = calm({ surfaces: { enabled: false } });
-  assert.equal(ctx.world.propField, null);
-  assert.equal(ctx.world.map, getArena('meadow'));
-  const M = ctx.world.map;
-  const i = M.props.findIndex((p) => p.kind === 'tree' && p.x > 20 && p.y > 20);
-  const [x, z] = centre(ctx, M.props[i].y * M.w + M.props[i].x);
-  applyAgent(ctx, 'heat', x, z, 0.4);
-  secs(ctx, 8);
-  assert.equal(M.wall[M.props[i].y * M.w + M.props[i].x], 1);
 });
 
 test('the overlay is deterministic and part of the state hash', () => {

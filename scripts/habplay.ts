@@ -4,9 +4,9 @@
 // (baseline walking, no jump), triggers the Hold objective on the generated point, holds it to completion, then
 // retreats to its staging. With --route both (default) it does this once along each of the side's two approaches
 // (the second run is forced to keep away from the first route). Prints arrival times, Hold result and any stall.
-// Default: geometry only (the director spawns nothing and the Hold's raid party is removed). --raid: the raid party
+// Default: geometry only (no crowd, and the Hold's raid party is removed). --raid: the raid party
 // leaves team B's staging and walks to the point (the trainer cannot be hurt; pass = a Raider reached the point, so
-// team B's approaches work in the sim). --enemies: everything live; the trainer only moves and holds (it does not fight).
+// team B's approaches work in the sim). --enemies: a chasing crowd of 80 (scripts/lib/crowd.ts) and the raid party; the trainer only moves and holds (it does not fight).
 import { createRun, step } from '../src/sim/run';
 import { startObjective } from '../src/sim/objectives';
 import { HABITATS } from '../src/world/habitat';
@@ -17,8 +17,10 @@ import { ROLE } from '../src/sim/pools';
 import { shoreFor, ventPhase } from '../src/sim/hazards';
 import { partnerFootprint } from '../src/rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
 
+import { RANGE } from '../src/mods';
+import { runEnded } from './lib/ended';
+import { crowd } from './lib/crowd';
 export interface PlayResult { recipe: string; seed: number; route: string; reach: number | null; held: boolean; holdT: number | null; back: number | null; stalls: number; hp: number; note: string; raidAt: number | null;
   /** damage the trainer took from everything (a stampede can arrive) and environment hits (vent ticks, cold dunks, burning or charged tiles) on anyone: none on required travel */
   dmg: number; hazardHits: number; ventSeconds: number;
@@ -60,12 +62,15 @@ export function routeTo(ctx: SimContext, from: number, to: number, avoid?: Set<n
 }
 
 /** drive the player along a node path; returns seconds taken or null if it stalls past the budget */
-export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void): number | null {
+/** `arrived`: an extra condition on arriving (default none: within 1.2 m of the route's end); until it holds the driver
+ *  keeps walking at the end of the route (habtide's warning escape: standing on a dry tile) */
+export function drive(ctx: SimContext, path: number[], budget: number, stall: { n: number }, each?: () => void, arrived?: () => boolean): number | null {
   const W = ctx.world, n = W.w * W.h, P = ctx.player, t0 = ctx.time, Bd = ctx.bodies;
   // the straight-line test samples the trainer's footprint (0.45 m with size geometry off) and keeps clear of resting bodies
   const pf = Math.max(0.45, trainerFoot(ctx)), probes = [[0, 0], [pf, 0], [-pf, 0], [0, pf], [0, -pf]];
   let i = 0, lastProgress = ctx.time, best = Infinity;
   while (ctx.time - t0 < budget) {
+    if (runEnded(ctx)) return null; // ended: no arrival (drive's callers report a missing time as a failure)
     // shoved into a liquid (hazards on: crowds and knockback can do that): swim to the nearest shore, then re-plan the
     // rest of the route from wherever that is
     const shore = shoreFor(ctx);
@@ -91,7 +96,7 @@ export function drive(ctx: SimContext, path: number[], budget: number, stall: { 
       if (d < nd) { nd = d; near = j; }
     }
     i = near;
-    if (i >= path.length - 2 && nd < 1.2) return ctx.time - t0;
+    if (i >= path.length - 2 && nd < 1.2 && (!arrived || arrived())) return ctx.time - t0;
     // steer at the farthest of the next few nodes reachable in a straight walkable line (never cut a corner over water)
     let tk = path[Math.min(path.length - 1, i + 1)] % n;
     for (let ahead = 4; ahead >= 1; ahead--) {
@@ -134,7 +139,7 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
   const routes = opts.route === 'direct' ? ['direct'] : opts.route === 'flank' ? ['flank'] : ['direct', 'flank'];
   let first: number[] | null = null;
   for (const which of routes) {
-    const ctx = createRun({ seed: 1, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, ...(opts.enemies ? {} : { director: { spawnBase: -99 } }), ...sizeOverride(), ...(opts.rules ?? {}) } as never });
+    const ctx = createRun({ mode: opts.enemies ? undefined : RANGE, seed: 1, species: 'totodile', mods: opts.enemies ? [crowd(80)] : [], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, ...(opts.rules ?? {}) } as never });
     const W = ctx.world, H = W.hab!, n = W.w * W.h, m = W.map;
     const res: PlayResult = { recipe, seed, route: which, reach: null, held: false, holdT: null, back: null, stalls: 0, hp: 0, note: '', raidAt: null, dmg: 0, hazardHits: 0, ventSeconds: 0, trainerHits: 0, raiderHits: 0 };
     ctx.hooks.onTick.push((c) => { for (const e of c.events) {
@@ -167,7 +172,6 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
       if (opts.raid) { ctx.player.iframes = 1; /* raid mode */ ctx.player.hp = ctx.player.maxHp; }
       else if (!opts.enemies) for (let e = 0; e < E.alive.length; e++) if (E.alive[e]) E.kill(e);
       step(ctx, L > 1 ? { ...NO_INPUT, mx: dx / L * 0.5, mz: dz / L * 0.5 } : NO_INPUT);
-      if (ctx.cards.offer) step(ctx, { ...NO_INPUT, card: { action: 'skip', index: 0 } });
       if (res.raidAt === null) for (let e = 0; e < E.alive.length; e++) if (E.alive[e] && E.roles[e] & ROLE.raider && Math.hypot(E.x[e] - O.x, E.z[e] - O.z) < ctx.rules.objectives.hold.radius) { res.raidAt = +(ctx.time - t0).toFixed(1); break; }
     }
     res.held = O.phase === 'done';
@@ -185,7 +189,6 @@ export function playHabitat(recipe: string, seed: number, opts: { enemies?: bool
 }
 
 if (process.argv[1]?.endsWith('habplay.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), first = Number(process.argv[4] ?? 1);
   const enemies = process.argv.includes('--enemies'), raid = process.argv.includes('--raid');
   const ri = process.argv.indexOf('--route'), route = (ri > 0 ? process.argv[ri + 1] : 'both') as 'direct' | 'flank' | 'both';

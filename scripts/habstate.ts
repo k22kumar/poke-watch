@@ -25,13 +25,14 @@ import { pathBetween } from '../src/world/locgen/nav';
 import { ICE_LIFT, T } from '../src/world/tiles';
 import { playHabitat } from './habplay';
 
+import { RANGE } from '../src/mods';
 export interface Check { id: string; recipe: 'volcanic-ridge' | 'river-gorge' | 'tropical-lagoon'; coverage: 'static' | 'live'; transition: string; ok: boolean; detail: string }
 
 type Hit = Extract<SimEvent, { t: 'hazardHit' }> & { step: number };
 const N4: [number, number][] = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
 export function mk(recipe: string, seed: number, species = 'totodile'): SimContext {
-  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99 } } as never });
+  return createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } } } as never });
 }
 const centre = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 const place = (ctx: SimContext, k: number) => { const P = ctx.player, [x, z] = centre(ctx, k); P.x = x; P.z = z; P.y = ctx.world.height(x, z); P.vx = P.vz = P.kx = P.kz = 0; P.vy = 0; P.grounded = true; };

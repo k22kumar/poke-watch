@@ -9,6 +9,8 @@ import { botInput } from '../src/sim/bot';
 import { getArena } from '../src/world/arenas';
 import { PROP_RULES, T } from '../src/world/tiles';
 
+import { runEnded as ended } from '../scripts/lib/ended';
+import { crowd } from '../scripts/lib/crowd';
 const rules = defaultRules as typeof defaultRules;
 
 test('every arena is one connected walkable region with reachable chests and landmarks', () => {
@@ -35,7 +37,6 @@ test('arenas are handcrafted: identical on every load, with designed landmarks',
   assert.equal(new World(rules, BIOMES.meadow, 3).map, a, 'by default the authored arena is used as is');
   assert.equal(a.props, b.props);
   assert.deepEqual(a.wall, b.wall);
-  assert.equal(new World({ ...rules, surfaces: { ...rules.surfaces, enabled: false } }, BIOMES.meadow, 7).map, a, 'materials off: the cached map itself');
   const names = a.landmarks.map((l) => l.name);
   for (const n of ['Old Shrine Ruins', 'Mirror Pond', 'Elder Oak', 'Petal Terrace', 'Battle Glade']) assert.ok(names.includes(n), n);
   assert.ok(a.props.some((p) => p.kind === 'elder'), 'elder oak placed');
@@ -59,13 +60,11 @@ test('the player climbs the bluff stairs and cannot walk up a cliff face', () =>
   const P = ctx.player;
   // start two tiles south of the flight, walk north
   P.x = P.px = si - W.half + 0.5; P.z = P.pz = bottom + 2 - W.half + 0.5; P.y = P.py = W.height(P.x, P.z);
-  ctx.rules.director.spawnBase = -99;
   for (let t = 0; t < 120; t++) step(ctx, { mx: 0, mz: -1, jump: false, dash: false });
   assert.ok(P.y > 1.9, `reached the bluff top (y=${P.y.toFixed(2)})`);
   // a column west of the flight ends in a sheer 2 m face: walking north there is blocked
   const ctx2 = createRun({ seed: 1, species: 'charmander' });
   const P2 = ctx2.player;
-  ctx2.rules.director.spawnBase = -99;
   const col = si - 4;
   let edge = M.h - 1; while (edge > 0 && M.elev[edge * M.w + col] < 2) edge--;
   P2.x = P2.px = col - W.half + 0.5; P2.z = P2.pz = edge + 3 - W.half + 0.5; P2.y = P2.py = W.height(P2.x, P2.z);
@@ -75,9 +74,9 @@ test('the player climbs the bluff stairs and cannot walk up a cliff face', () =>
 });
 
 test('ground enemies never finish a tick inside a wall, and are in water only when knocked in (the exposure rule has them)', () => {
-  const ctx = createRun({ seed: 11, species: 'bulbasaur', ruleOverrides: { player: { hpBase: 5000 }, director: { spawnBase: 6 } } });
+  const ctx = createRun({ seed: 11, species: 'bulbasaur', mods: [crowd(60)], ruleOverrides: { hero: { health: 5000 } } });
   let checked = 0;
-  while (ctx.time < 90) {
+  while (ctx.time < 90 && !ended(ctx)) {
     step(ctx, botInput(ctx));
     if (ctx.tick % 30) continue;
     const E = ctx.enemies, W = ctx.world;
@@ -111,11 +110,10 @@ test('flow field routes around obstacles and is deterministic', () => {
 
 test('every region loads and plays a minute without errors', () => {
   for (let s = 0; s < 4; s++) {
-    const ctx = createRun({ seed: 2, species: 'squirtle', ruleOverrides: { player: { hpBase: 4000 } } });
+    const ctx = createRun({ seed: 2, species: 'squirtle', mods: [crowd(40)], ruleOverrides: { hero: { health: 4000 } } });
     if (s) startStage(ctx, s);
     let casts = 0;
     while (ctx.stageTime < 60 && ctx.state !== 'over') casts += step(ctx, botInput(ctx)).filter((e) => e.t === 'cast').length;
-    // later regions carry the stage HP multiplier (x5.5 / x13 / x20), so a level-1 partner may not KO yet
     assert.ok(ctx.enemies.count > 20 && casts > 40, `region ${s}: spawning and fighting (${ctx.enemies.count} wild, ${casts} casts)`);
     assert.ok(ctx.state !== 'over', `region ${s}: survived`);
   }

@@ -14,12 +14,13 @@
 // first, then the highest Power wins; every pool is walked in index order.
 
 import { datan2, dhypot, dsin, dcos } from '../core/detmath';
+import { channelOf } from '../rules/stats';
 import { type CapVerb, type Cap } from '../rules/capabilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { AGENT_NAMES, type AgentName } from '../rules/reactions';
 import { BODY_TEMPLATES } from '../rules/materials';
 import { weightClass } from '../rules/species';
-import { ROLE, PK } from './pools';
+import { PK } from './pools';
 import { TEAM, bodyWeight, breakBody, damageBody, holdBody, pushBody, spawnBody, deflectBody } from './bodies';
 import { applyAgent } from './cells';
 import { coatEnemy } from './coats';
@@ -27,7 +28,6 @@ import { rec, setSrc, type LogKind } from './caplog';
 import { BTN, type SimContext } from './types';
 import type { DamageSpec } from './combat';
 import { brambleAt } from './cells';
-import { holdSeconds } from './techniques';
 import { ccApply } from './coats';
 
 export type SrcKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'guard';
@@ -56,9 +56,9 @@ export interface CapEvent {
   slot?: number;
 }
 
-/** the master switch and one feature flag */
+/** one capability feature flag */
 export function capsOn(ctx: SimContext, f: 'interception' | 'suspendHold' | 'bodyCollisions'): boolean {
-  return ctx.rules.caps.enabled && ctx.rules.caps[f];
+  return ctx.rules.caps[f];
 }
 
 // ------------------------------------------------------------------ cast context
@@ -108,7 +108,7 @@ function onBody(ctx: SimContext, ev: CapEvent): Outcome {
       return ok ? (combines && ev.power < bodyWeight(ctx, b) ? 'combined' : 'ok') : 'fail';
     }
     case 'hold': return holdBody(ctx, b, ev.power, ev.dx, ev.dz, ev.owner, holdButton(ctx, ev.slot ?? -1)) ? 'ok' : 'fail';
-    case 'hit': damageBody(ctx, b, ev.amount ?? 0, ev.type, ev.owner === TEAM.player); return 'ok';
+    case 'hit': damageBody(ctx, b, ev.amount ?? 0, ev.type); return 'ok';
     case 'deflect': {
       if (bodyWeight(ctx, b) > ev.power) return 'fail';
       const L = dhypot(ev.dx, ev.dz) || 1;
@@ -123,7 +123,7 @@ function onCreature(ctx: SimContext, ev: CapEvent): Outcome {
   const e = ev.target.id, E = ctx.enemies;
   if (!E.alive[e]) return 'none';
   if (ev.verb === 'apply' && ev.agent) {
-    coatEnemy(ctx, e, AGENT_NAMES.indexOf(ev.agent), ev.depth ?? 2, ev.amount ?? 0, ev.owner === TEAM.player);
+    coatEnemy(ctx, e, AGENT_NAMES.indexOf(ev.agent), ev.depth ?? 2, ev.amount ?? 0);
     const r = rec(ctx, 'apply', 'ok');
     if (r) { r.tgt = 'creature'; r.tgtName = ctx.speciesIndex[E.species[e]].name; r.x = E.x[e]; r.z = E.z[e]; }
     return 'ok';
@@ -132,7 +132,7 @@ function onCreature(ctx: SimContext, ev: CapEvent): Outcome {
   if (ev.verb === 'push') {
     // a bare Push on a creature (no move behind it) follows the body rule: Power >= Weight knocks it away at
     // 8 x (1 + 0.5 x (Power - Weight)) m/s, less does nothing; moves keep their own knockback in damageEnemy
-    const w = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
+    const w = weightClass(ctx.speciesIndex[E.species[e]]);
     if (ev.power < w) return 'fail';
     FORCE.hold = 0; FORCE.knock = 8 * (1 + 0.5 * (ev.power - w)); FORCE.kx = ev.dx; FORCE.kz = ev.dz;
     return creatureForce(ctx, e, FORCE) ? 'ok' : 'fail';
@@ -169,7 +169,6 @@ export function createBody(ctx: SimContext, template: string, x: number, z: numb
   const B = ctx.bodies;
   const b = spawnBody(ctx, template, x, z, 0, 0, TEAM.neutral);
   if (b < 0) return -1;
-  if (!ctx.rules.caps.enabled) return b;
   B.made[b] = 1;
   let n = 0, oldest = -1, age = -1;
   for (let i = 0; i < B.hi; i++) {
@@ -184,18 +183,18 @@ export function createBody(ctx: SimContext, template: string, x: number, z: numb
 }
 
 // ------------------------------------------------------------------ creatures
-/** Push / Hold on a creature: a Hold no lighter than the creature reels it in 2 m; otherwise a knockback that
- *  bosses, alphas and elites resist. (v10's rule, moved here unchanged so every source shares it.) Returns true if
+/** Push / Hold on a creature: a Hold no lighter than the creature reels it in 2 m; otherwise a knockback. (v10's
+ *  rule, moved here so every source shares it.) Returns true if
  *  a force was applied. */
 export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec, 'hold' | 'knock' | 'kx' | 'kz' | 'lasso'>): boolean {
   const E = ctx.enemies, P = ctx.player;
   if (spec.lasso && spec.hold) {
     // Phase 8b Lasso: a Light creature (Weight 1 or less) is suspended in front of you, then thrown along your aim;
     // anything heavier is only hit
-    const w = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
+    const w = weightClass(ctx.speciesIndex[E.species[e]]);
     if (w > 1 || w > spec.hold || E.heldT[e] > 0) return false;
-    if (ccApply(ctx, e, ctx.rules.build.lassoHold) <= 0) return false; // crowd-control immune: it slips the lasso
-    E.heldT[e] = Math.max(ctx.rules.build.lassoHold, holdSeconds(ctx) - ctx.rules.caps.holdTime + ctx.rules.build.lassoHold);
+    if (ccApply(ctx, e, ctx.rules.caps.lassoHold) <= 0) return false; // crowd-control immune: it slips the lasso
+    E.heldT[e] = ctx.rules.caps.lassoHold;
     E.heldP[e] = spec.hold; E.heldBtn[e] = holdButton(ctx, castSlot);
     E.stun[e] = Math.max(E.stun[e], E.heldT[e]);
     setSrc('move', 'Lasso');
@@ -203,7 +202,7 @@ export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec,
     if (r) { r.power = spec.hold; r.weight = w; r.tgt = 'creature'; r.tgtName = ctx.speciesIndex[E.species[e]].name; r.x = E.x[e]; r.z = E.z[e]; }
     return true;
   }
-  if (spec.hold && spec.hold >= weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0)) {
+  if (spec.hold && spec.hold >= weightClass(ctx.speciesIndex[E.species[e]])) {
     // Vine Whip, Wrap, Confusion…: reel it in, 2 m toward you
     const dx = P.x - E.x[e], dz = P.z - E.z[e], L = dhypot(dx, dz) || 1;
     const k = Math.min(L - 1.2, 2) * 5;
@@ -211,8 +210,7 @@ export function creatureForce(ctx: SimContext, e: number, spec: Pick<DamageSpec,
     return true;
   } else if (spec.knock > 0) {
     const L = dhypot(spec.kx, spec.kz) || 1;
-    const resist = E.roles[e] & ROLE.boss ? 0.05 : E.roles[e] & ROLE.alpha ? 0.3 : E.roles[e] & ROLE.elite ? 0.6 : 1;
-    const k = spec.knock * ctx.rules.damage.knockMult * resist;
+    const k = spec.knock * ctx.rules.damage.knockMult;
     E.kx[e] += (spec.kx / L) * k;
     E.kz[e] += (spec.kz / L) * k;
     return true;
@@ -228,10 +226,14 @@ export function launchShot(ctx: SimContext, i: number, ux: number, uz: number) {
   const sp = Math.max(10, dhypot(Pr.vx[i], Pr.vz[i])) * G.deflectSpeed;
   Pr.kind[i] = PK.straight; Pr.traj[i] = 0; // a launched (deflected, released) shot is planar again
   Pr.vx[i] = ux * sp; Pr.vz[i] = uz * sp; Pr.speed[i] = sp;
-  Pr.dmg[i] = G.deflectDmg * (1 + 0.04 * (P.level - 1));
+  // damage: the deflector is now the attacker, on the deflected shot's channel (the shooter's), so the player damage
+  // pipeline scales it by the deflector's m of that channel (docs/hero-shooter-pivot.md Q40). A shot with no shooter
+  // (the player's own, held and released) keeps its own channel.
+  Pr.dmg[i] = G.deflectDmg;
   Pr.pierce[i] = 1; Pr.radius[i] = Math.max(Pr.radius[i], 0.5);
   Pr.life[i] = Pr.maxLife[i] = 1.4; Pr.t[i] = 0;
-  Pr.cls[i] = 1; Pr.knock[i] = 4; Pr.chance[i] = 0; Pr.drain[i] = 0; Pr.move[i] = -1;
+  if (Pr.src[i] >= 0) Pr.cls[i] = channelOf(ctx.speciesIndex[Pr.src[i]]) === 'special' ? 1 : 0;
+  Pr.knock[i] = 4; Pr.chance[i] = 0; Pr.drain[i] = 0; Pr.move[i] = -1;
   Pr.ox[i] = Pr.x[i]; Pr.oz[i] = Pr.z[i];
   Pr.depth[i] = 255; Pr.fx[i] = 0; Pr.extra[i] = 0; // a deflected shot coats deep, as before
 }
@@ -242,7 +244,7 @@ export function tickHeldEnemy(ctx: SimContext, e: number, dt: number): boolean {
   const E = ctx.enemies, P = ctx.player, W = ctx.world;
   E.heldT[e] -= dt;
   const [ux, uz] = holdAim(ctx);
-  const w = weightClass(ctx.speciesIndex[E.species[e]], (E.roles[e] & ROLE.boss) !== 0);
+  const w = weightClass(ctx.speciesIndex[E.species[e]]);
   if (P.paraT > 0 || P.faintT >= 0 || ctx.state !== 'play') { E.heldT[e] = 0; E.stun[e] = 0; return false; }
   const btnUp = E.heldBtn[e] !== 0 && !((ctx.input.btn ?? 0) & E.heldBtn[e]);
   if (E.heldT[e] <= 0 || btnUp) {
@@ -296,7 +298,7 @@ function onShot(ctx: SimContext, ev: CapEvent): Outcome {
     case 'hold': {
       if (ev.power < w) { logShot(ctx, 'hold', 'fail', i, ev.power); return 'fail'; }
       Pr.kind[i] = PK.straight; Pr.traj[i] = 0; Pr.vx[i] = Pr.vx[i] * 0.1; Pr.vz[i] = Pr.vz[i] * 0.1;
-      Pr.heldT[i] = holdSeconds(ctx); Pr.heldBtn[i] = holdButton(ctx, ev.slot ?? -1); Pr.move[i] = -1;
+      Pr.heldT[i] = ctx.rules.caps.holdTime; Pr.heldBtn[i] = holdButton(ctx, ev.slot ?? -1); Pr.move[i] = -1;
       ctx.events.push({ t: 'push', x: Pr.x[i], z: Pr.z[i], ok: true, combined: false });
       logShot(ctx, 'hold', 'catch', i, ev.power);
       return 'caught';

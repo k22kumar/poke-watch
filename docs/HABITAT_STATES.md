@@ -37,7 +37,7 @@ rounding. Dormant: safe. Warn (1.5 s): steam on every third vent tile, and a hos
 at the onset step and every 0.5 s after it (5 ticks) every grounded actor whose centre is in a vent tile loses `vent.pct` = 2 %
 of its **maximum HP** (10 % per eruption). One rule for the trainer and every creature. Not affected: anything more than
 0.3 m above the ground (3D contact), flyers, Fire types (as for a burning tile), a dashing trainer (dash i-frames). Not read:
-the trainer's attack, buffs, crits, hooks, the combat RNG, hit i-frames or Guard. Bosses and alphas take `vent.bossMult` of it.
+the trainer's attack, buffs, crits, hooks, the combat RNG, hit i-frames or Guard.
 Late entry: an actor in the field at the onset step takes that tick, however late it walked in; one that has left before it
 takes nothing; there is no grace and no skipped tick. After the last tick the field is safe at once (steam lingers 2 s, cosmetic).
 Required travel: the validator keeps every essential route out of the field (`hazardExit` ≤ 4 tiles to safe ground, `reach` and

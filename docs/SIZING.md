@@ -44,33 +44,33 @@ What was dropped:
 
 1. **`sizeClass`** in `SPECIES_OVERRIDES` (`src/rules/profiles.ts`) pins the class. The Pokémon sits at the class centre, with no tilt.
 2. **`NEUTRAL_CORE_EXTENT_M`** (`src/rules/sizing.ts`) is a reviewed figure for a Pokémon whose listed extent measures the wrong axis. Onix's 8.8 m, for example, is the serpent's length. Each entry is owner-reviewed and records its basis. Today there is one: Falinks, 0.5 m (the game draws one trooper; the listed 3.0 m is the six-trooper formation), Small instead of Extra Large.
-3. **`canon.heightM`** is the published figure, imported from PokéAPI. With `rules.size.axis` on (the default), a figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
+3. **`canon.heightM`** is the published figure, imported from PokéAPI. A figure whose axis is `length` counts `rules.size.lengthRise` (0.5) × itself ("Measurement axis" below).
 4. **`SpeciesDef.height`** is the old sprite-derived number. It is used only by a species with no canonical record.
 
-Bosses (`SpeciesDef.scale`, authored 2–3×) keep their encounter scale. The class rules don't change how they are drawn, and their sim body is the drawn one.
+Authored-scale species (`SpeciesDef.scale`, 2–3×: the four former bosses, ordinary species since pivot step 9) keep that scale. The class rules don't change how they are drawn, and their sim body is the drawn one.
 
-### Measurement axis (on by default)
+### Measurement axis
 
 A listed figure measures one of three things: standing height, body length or span. The official body shape decides which, through one data table, `SHAPE_AXIS` in `src/rules/shapes.ts`. `squiggle` (serpents) and `fish` (fins, flippers) list a length. Every other shape, and any shape added by a future generation, lists a height until a row says otherwise. The content build carries the shape into `canon.shape` from the pinned PokéAPI CSV snapshot (`pokemon_species.shape_id` → `pokemon_shapes`). `canon.axis` is derived from it when the roster loads. Catalogue records carry `shape` too. A species whose figure measures another axis than its shape says gets a reviewed row in `SPECIES_AXIS` (same file). The row names the axis only, never metres, so the shared rule still sets the extent. Eternatus (`wings`, 20 m of body length) is the one row, approved by the owner on 2026-11-18.
 
-PokéAPI has no span figures, so no shape or `SPECIES_AXIS` row maps to `span`. Only an approved `NEUTRAL_CORE_EXTENT_M` entry written as `{ m, axis: 'span' }` can select it. An approved entry wins with or without the flag.
+PokéAPI has no span figures, so no shape or `SPECIES_AXIS` row maps to `span`. Only an approved `NEUTRAL_CORE_EXTENT_M` entry written as `{ m, axis: 'span' }` can select it. An approved entry always wins.
 
-`rules.size.axis` is on by default since the size-extremes flip (owner 2026-11-18; `docs/size-extremes-plan.md` "Default flip"). Against the flag off:
+The rule landed with the size-extremes flip (owner 2026-11-18; `docs/size-extremes-plan.md` "Default flip") and is hard-wired since pivot step 10. Against reading every figure as a height:
 - Onix's 8.8 m length reads as 4.4 m and it stays Extra Large.
 - Lapras drops from Extra Large to Large, and Silicobra from Extra Large to Medium.
 - Ekans drops from Large to Medium.
-- Slugma and Magcargo drop from Medium to Small; Magcargo's authored boss body is unchanged.
-- Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with both classes. The decisions are recorded in `docs/size-extremes-plan.md`.
+- Slugma and Magcargo drop from Medium to Small; Magcargo's authored body is unchanged.
+- Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with its listed-figure class and its class. The decisions are recorded in `docs/size-extremes-plan.md`.
 
-### Giants: continuous Extra Large (on by default)
+### Giants: continuous Extra Large
 
-With `rules.size.xlContinuous` on (the default), an Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xlExponent)`. The values are cap 4.0 m (provisional), floor 2.69 × 0.92 (today's lowest XL draw) and exponent 0.30. The exponent is a fixed constant, never fitted to the largest species, so a new generation's giant can't change every other XL draw. The cap is reached at about 10.2 m of extent. 2.05 m is Large's cut, so the floor stays above Large's largest draw and the classes never overlap. Only the drawn size changes. XL radius and footprint keep the class values and tilt. On its own (without `xlTall`) no sim system reads `visualM`, so the flag alone moves no replay hash. Tiny to Large are unchanged.
+An Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xlExponent)`. The values are cap 4.0 m (provisional), floor 2.69 × 0.92 (today's lowest XL draw) and exponent 0.30. The exponent is a fixed constant, never fitted to the largest species, so a new generation's giant can't change every other XL draw. The cap is reached at about 10.2 m of extent. 2.05 m is Large's cut, so the floor stays above Large's largest draw and the classes never overlap. XL radius and footprint keep the class values and tilt; the sim height follows the draw (below). Tiny to Large are unchanged.
 
-### Tall giants (on by default)
+### Tall giants
 
-With `rules.size.xlTall` on as well as `xlContinuous` (both the default), an Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored bosses keep their encounter body; elite and alpha role sizes multiply the new height. `xlTall` without `xlContinuous` changes nothing, bit for bit (`tests/sizing.test.ts`). Owner decision 2026-11-18 (`docs/size-extremes-plan.md` §S3.10 A, xlTall section).
+An Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored-scale bodies keep their own. Owner decision 2026-11-18 (`docs/size-extremes-plan.md` §S3.10 A, xlTall section).
 
-Heights with all three flags on (`axis`, `xlContinuous`, `xlTall`, the defaults): Onix 2.78 m (2.59 with the flags off; 3.42 without `axis`), Hariyama and Feraligatr 2.29, Snorlax 2.22; the capture-only giants Wailord 3.23 and Eternatus 3.55. Layouts and the worldgen gates read footprints, not sim heights, so no `HAB_VERSION` or `LOC_VERSION` moves with it.
+Heights: Onix 2.78 m, Hariyama and Feraligatr 2.29, Snorlax 2.22; the capture-only giants Wailord 3.23 and Eternatus 3.55. Layouts and the worldgen gates read footprints, not sim heights, so no `HAB_VERSION` or `LOC_VERSION` moves with it.
 
 ## Who reads what
 
@@ -78,17 +78,16 @@ Heights with all three flags on (`axis`, `xlContinuous`, `xlTall`, the defaults)
 |---|---|---|
 | Drawn size | `visualM ÷` the asset's neutral core, under the drawn run's `rules.size` (re-sized when a run's size rules differ) | `src/render/renderer.ts` (`speciesSizing`, `useSizeRules`) |
 | Class label in the developer roster | the run on screen's `rules.size` (the defaults before a run) | `src/ui/ui.ts` (`UIHooks.sizeRules`) |
-| Spawn pool `sizeClasses` filter | the run's `rules.size` | `src/rules/spawning.ts` (`spawnTableFor`, `passes`) |
-| Enemy collision and hurt radius | class radius × role size (elite ×2, alpha ×3) | `src/sim/enemies.ts` (`enemyRadius`) |
-| Enemy vertical hit window, hit-number height | class height × role size (`E.tall`) | `src/sim/effects.ts`, `combat.ts`, `hazards.ts`, `cells.ts`, `coats.ts` |
+| Enemy collision and hurt radius | class radius × body size (`E.size`, 1 since the elite and alpha roles went) | `src/sim/enemies.ts` (`enemyRadius`) |
+| Enemy vertical hit window, hit-number height | class height (`E.tall`) | `src/sim/effects.ts`, `combat.ts`, `hazards.ts`, `cells.ts`, `coats.ts` |
 | Partner collision and hurt radius | class radius clamped to `rules.size.playerRadius` (0.48–0.72 m) | `partnerRadius`, read by `effects.ts`, `enemies.ts`, `bodies.ts`, `objectives.ts`, `cells.ts`, `hazards.ts` |
 | Partner vertical hurt window | class height | `partnerHeight`, `effects.ts` |
 | Spatial shot and beam muzzle (Phase 2B, beams Phase 2C) | class height × `rules.aim.muzzle.up` (0.6) above the feet, footprint × `muzzle.fwd` (0.9) ahead | `src/sim/aim.ts` (`resolveSpatial`); beams `src/sim/moves.ts` (`beam3D`) |
-| Spatial beam contact (Phase 2C) | enemy cylinder `E.y .. E.y + E.tall` × `E.radius` (class × role) met by the beam's half-width, up and sideways | `src/sim/moves.ts` (`beam3D`) through `src/sim/spatial.ts` `sweep` |
+| Spatial beam contact (Phase 2C) | enemy cylinder `E.y .. E.y + E.tall` × `E.radius` (class) met by the beam's half-width, up and sideways | `src/sim/moves.ts` (`beam3D`) through `src/sim/spatial.ts` `sweep` |
 | Wall and terrain collision | footprint (`footprintOf`, `partnerFootprint`) | `World.moveBody`, read by `player.ts`, `enemies.ts`, `bodies.ts` (resting-body contact) |
-| Headroom under decks (R1) | sim height: partner `partnerHeight`, enemy `E.tall` (class height × tilt × role size) | `World.collides` / `moveBody` / `fits` / `nearestFit`, `World.headroomAt` (jump clamp in `player.ts`), wide fields per height class (`World.wideDir`, `wideGoalDir`, `wideReached`), `director.ts` spawn gate |
-| Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/director.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
-| Habitat navigation profiles | partner and enemy footprints from the spawn pools | `src/world/habitat/mode.ts` (`profilesFor`) |
+| Headroom under decks (R1) | sim height: partner `partnerHeight`, enemy `E.tall` (class height × tilt) | `World.collides` / `moveBody` / `fits` / `nearestFit`, `World.headroomAt` (jump clamp in `player.ts`), wide fields per height class (`World.wideDir`, `wideGoalDir`, `wideReached`), the spawn gate in `placement.ts` |
+| Navigation class | footprint ≥ `rules.size.heavyRadius` (0.5 m) is wide (`navWide`) | `src/sim/world.ts` (wide field), `src/sim/placement.ts` (spawn room), `src/world/locgen/validate.ts` (`wide` gate) |
+| Habitat navigation profiles | frozen validated constants (`VALIDATED_PROFILES`, pivot step 3; they no longer read species) | `src/world/habitat/mode.ts` (`profilesFor`) |
 | Weight class (guard, push, knockback) | canonical mass, not size | `weightClass` in `src/rules/species.ts` |
 | Third-person camera framing (2026-11-18) | `visualM` sets the boom (one law, `CHASE_CONFIG.frame`) and so the shoulder offset; class height × 0.8 sets the pivot | `src/render/chaseinput.ts` (`chaseSubject`), `src/render/camera.ts` (`chaseBoom`, `chasePivot`); `docs/THIRD_PERSON.md` "Size" |
 
@@ -101,7 +100,7 @@ Planar (legacy) shots still leave a partner from a fixed +0.8 m, so muzzle and e
 
 Partners are size-aware too. Small starter forms get a 0.48 m hurt radius (it used to be a shared 0.55 m), and evolved Large and Extra Large forms grow to 0.72 m. Evolving trades a bigger target for more push. The clamp keeps the change modest.
 
-Measured over 36 bot runs (6 partners × 6 seeds, 7 minutes, `rules.size.geometry` on versus off):
+Measured on the survivor build over 36 bot runs (6 partners × 6 seeds, 7 minutes, size classes against the old shared radius):
 
 | Partner radius floor | Bot survival |
 |---|---|
@@ -113,19 +112,20 @@ The partner's footprint is its class `body`, uncapped: an Extra Large partner (F
 
 ## Footprint
 
-Every ground body collides with solid geometry as a circle of its footprint (`World.moveBody`, `src/sim/world.ts`), with size geometry on. One rule decides what is solid: `World.collides` read at the centre and at the circle's nearest point inside each tile it covers.
+Every ground body collides with solid geometry as a circle of its footprint (`World.moveBody`, `src/sim/world.ts`). One rule decides what is solid: `World.collides` read at the centre and at the circle's nearest point inside each tile it covers.
 
 - **Values.** A one-tile passage (1.0 m) fits Tiny, Small and Medium bodies (footprint < 0.5 m) and stops Large and Extra Large ones. Medium's footprint (0.46 m) sits under its 0.52 m hurtbox on purpose, so the most common wild class keeps using the locations' chokepoints. There is no tilt: passability belongs to the class.
-- **Role sizes.** An elite (×2), an alpha (×3) or a boss scales its footprint up to `rules.size.bodyCap` (0.95 m). Pursuers must fit the two-tile routes the location and habitat gates guarantee to every mandatory space. Three-tile routes reach the boss hall on only 6–14 of 30 location seeds, and widening every essential route would flatten the locations. So an elite Tiny is 0.60 m, an elite Small 0.80 m, an elite Medium 0.92 m and anything bigger 0.95 m, smaller than its hurtbox. Raising the cap means a config value plus a three-tile gate (the lattice takes the block size as a parameter).
+- **The cap.** A footprint scaled by a body size (`E.size`; every spawner uses 1 since the elite, alpha and boss roles went at pivot step 10) stops at `rules.size.bodyCap` (0.95 m). Pursuers must fit the two-tile routes the location and habitat gates guarantee to every mandatory space. Three-tile routes reach the hall on only 6–14 of 30 location seeds, and widening every essential route would flatten the locations. Raising the cap means a config value plus a three-tile gate (the lattice takes the block size as a parameter).
 - **Substeps.** A move is cut into steps of at most 0.25 m, so a dash (24 m/s) or a knockback never tunnels through a corner.
 - **Corners and pinholes.** The circle is pushed out of what it overlaps, so it glides round a corner into a passage it fits. Two walls touching only at a corner are closed: the point collision let the trainer through that zero-width gap.
 - **Where faces are measured from.** While grounded (feet within a step of the surface), faces are measured from the surface under the centre. The feet lag a tick on a slope, and a terrace beside a ramp read as a step from them. While airborne (a jump, a ledge drop, a fall), faces are measured from the feet. A tile diagonal to the centre's tile is measured from the higher of the two orthogonal tiles between them, which is the block rule below.
 - **Drops and landings.** A body only drops off a ledge where it fits once it lands, and it lands clear of the lip it left. A body landing from a fall has its footprint cleared on the landing tick, because faces were measured from its feet on the way down.
+  - The landing push applies only to a drop within the map's drop rule (`World.dropNav`, 4 m on habitat and location maps; maps with no drop rule keep the older reading). From the floor of a deeper chasm the whole bank reads as a wall, and the summed push shoved a body whose centre grazed a chasm's corner 0.91 m out over it in one tick (navwalk location seed 4, 2026-11-20; `tests/footprint.test.ts` "grazing a chasm").
+  - A body still airborne after the tick's vertical move has its footprint cleared at its new feet in the same tick. Once its feet come within a step of the floor below, the ledge it drops past becomes a face, and the planar move had been resolved at the tick's starting feet. An Extra Large body ended a tick 0.13 m inside the ledge (navwalk location seed 3; `tests/footprint.test.ts` "falling Extra Large").
 - **Escape.** A move is accepted when the overlap does not grow, so a body left in a tight spot (an evolution inside a corridor) walks out of it and never further in. A push is applied only when it clears something.
 - **Resting bodies.** A loose rock pushes the partner out by rock radius plus footprint. The hurtbox only decides what a thrown body hits. Loose rocks (`seedBodies`) are only scattered where a 7 × 7 patch is walkable, so a wide route always goes round one.
 
-With size geometry off, every footprint is 0 and the old point collision runs unchanged. Headroom is a separate flag
-(`rules.size.headroom`); every older checksum layer turns it off too.
+
 
 ### Navigation classes
 
@@ -156,17 +156,17 @@ Earlier both the sim and the validator accepted a 2 × 2 block only when the spr
 
 ## Headroom
 
-A body's sim height meets deck slabs (`rules.size.headroom`, on by default; R1 of the spatial roadmap, ledger Stage 6C in
+A body's sim height meets deck slabs (R1 of the spatial roadmap, ledger Stage 6C in
 `docs/THIRD_PERSON_IMPLEMENTATION.md`). The height is the one the hurt window already uses: the class height with its tilt,
-times the role size for enemies (`E.tall`), the class height for the partner (`partnerHeight`).
+for enemies (`E.tall`) and the partner (`partnerHeight`).
 
 - **Gaps.** A deck is a 0.6 m slab (`DECK_SLAB`). The generators keep every deck top 2.9 m above the ground under it
   (`CLEARANCE` in `locgen/decks.ts` and `habitat/validate.ts`, a rule against hopping on from below), so the gap under the
   slab is at least 2.3 m. On the shipped maps it is exactly 2.40 m on Viridian Forest, Chargestone Cave, River Gorge and
   Tidal Cave (a 3.0 m deck on flat ground) and at least 2.9 m on Mt. Moon and Volcanic Ridge (5 seeds each, 2026-11-16).
-- **Who fits.** Every Tiny, Small, Medium and Large body, and every Extra Large one except Onix (2.78 m; 2.59 with the size flags off), fits a 2.4 m
-  gap. An Extra Large body at exactly the class height (2.4 m) fits it (`HEAD_EPS`, 1 mm, absorbs float32 heights). Elites
-  from Medium up (2.26–5.18 m), alphas and bosses (3.4–4.5 m) do not.
+- **Who fits.** Every Tiny, Small, Medium and Large body, and every Extra Large one except Onix (2.78 m), fits a 2.4 m
+  gap. An Extra Large body at exactly the class height (2.4 m) fits it (`HEAD_EPS`, 1 mm, absorbs float32 heights). The
+  four authored-scale bodies (3.4–4.5 m) do not.
 - **Movement.** `World.collides` treats a deck tile as solid for a body whose head would be in the slab: it stands at its
   feet or on the ground there, whichever is higher, plus its height. Through `World.moveBody` the footprint test applies
   it to every tile the circle covers, so a tall body stops with its edge at the deck's edge, walking or in the air.
@@ -176,15 +176,12 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
 - **Routing.** The wide fields come in height classes. Each wide block knows its lowest gap under a deck; the distinct
   gaps of the map are the class steps, and a body's class is how many of them it is taller than. The fields for class
   *c* leave out the blocks whose gap is one of the *c* lowest. So a body routes under a deck it fits and round one it does
-  not, and the director's spawn gate (`allowedAt`) and placement (`nearestFit`) judge reach the same way. Maps without
+  not, and the spawn gate (`allowedAt`, `src/sim/placement.ts`) and placement (`nearestFit`) judge reach the same way. Maps without
   decks, and bodies that fit every gap, have one class (0), which is the field from before.
 - **The ordinary field has no height classes.** That is sound while no narrow body (footprint under `heavyRadius`) is
-  taller than the lowest gap the generators allow. `tests/headroom.test.ts` asserts it for every species and role size.
-- **What it changed.** `navwalk all 5`: every mandatory space is still reached by every class, including Onix and a
-  Heracross elite (3.38 m); no mandatory route needs the space under a deck. Only the `gen` checksum set moves (two of its
-  four runs): an elite reroutes round a low gap, and a generated map's spawn spot drops Onix from the pool where its
-  height class has no route (the same draw then picks another species). `gen-headroom-off` prints the earlier `gen`
-  hashes.
+  taller than the lowest gap the generators allow. `tests/headroom.test.ts` asserts it for every species.
+- **What it changed.** `navwalk all 5`: every mandatory space is still reached by every class, including Onix; no
+  mandatory route needs the space under a deck. (On the survivor build only the `gen` checksum set moved.)
 - **Not covered here.** Enemy fliers hover with no wall or slab test (R7 moves them onto the shared movement).
 - **The chase camera (F5, fixed 2026-11-18).** The camera's pivot used to follow the drawn sprite (0.8 × 2.7 m for Extra
   Large), above a 2.4 m slab's lens clearance, so an Extra Large partner that fits the gap folded the lens onto its back
@@ -196,7 +193,7 @@ times the role size for enemies (`E.tall`), the class height for the partner (`p
 ## Wall tops
 
 A wall prop (tree, fence, boulder, building) is solid only up to its measured height, for every reader that opts in
-(`rules.world.wallTops`, on by default; R1b of the spatial roadmap, ledger §23 in `docs/THIRD_PERSON_IMPLEMENTATION.md`).
+(R1b of the spatial roadmap, ledger §23 in `docs/THIRD_PERSON_IMPLEMENTATION.md`).
 Before it every wall tile was a column of infinite height for bodies, shots and the lens.
 
 - **One height per kind.** `PROP_RULES[kind].top` (`world/tiles.ts`): the tallest drawn variant over the eight biome
@@ -221,7 +218,7 @@ Who reads the tops (everyone else keeps every wall infinite):
 
 | Reader | How it opts in |
 |---|---|
-| The player's attack traces: the camera trace, the muzzle, bolt and orb flight, beams, device assist, and the aimbot of the `aim` sets | `QF.tops` from `combatFlags` (`sim/aim.ts`) on `sim/spatial.ts`'s wall column |
+| The player's attack traces: the camera trace, the muzzle, bolt and orb flight, beams, device assist, and the aimbot (`scripts/lib/aimbot.ts`) | `QF.tops` from `combatFlags` (`sim/aim.ts`) on `sim/spatial.ts`'s wall column |
 | The chase lens | `render/chaseinput.ts`: it no longer reads `wallTop`. No prop stops the lens (trees, boulders, fences, buildings dissolve around it; owner decision 2026-11-18, which replaces Q10). Only a bare wall is solid for it, at every height, or up to the underside of a deck over it |
 | A body with the crossing permission | `over` on `World.blocks` / `collides` / `fits` / `moveBody` and `LocoTick.over`. **No driver passes it before R6d** (a traversal template grants it); walking, jumping, gliding and every enemy meet walls as before |
 
@@ -243,21 +240,15 @@ Who reads the tops (everyone else keeps every wall infinite):
   planar player families (homing, boomerang, lob…) until R4; enemy fliers skip every wall (R7); the habitat and location
   validators (`sightAbs`, `laneField`, `sightTiles`) keep infinite walls, so on some lines combat and validation now
   disagree (the cover report, `scripts/covercheck.ts`).
-- **Hashes.** Only `aim` moves (one run, a Water Gun bolt passing 6.6 m over a border tree); `aim-tops-off` prints the
-  `aim` hashes from before, and every older set turns the flag off.
+- **Hashes.** On the survivor build only the `aim` checksum set moved (one run, a Water Gun bolt passing 6.6 m over a
+  border tree).
 
-## Turning it off
+## The flags that were here
 
-`rules.size.geometry: false` brings back the pre-size-class sim:
-- radius `clamp(sprite height × 0.4, 0.35, 3.2)`;
-- the role size as the hit height;
-- one shared 0.55 m partner radius and a fixed 1.2 m hurt window;
-- point collision (no footprint) and no wide-body routing;
-- the older pursuit rules (no step check on the field, no hysteresis or field agreement) and the older bot probes.
-
-`rules.size.axis`, `rules.size.xlContinuous` and `rules.size.xlTall` are on by default since the size-extremes flip (owner 2026-11-18), so `on`, `gen` and `deck` include all three. `checksum.ts giants-off` / `gen-giants-off` / `deck-giants-off` turn all three off and print the `on` / `gen` / `deck` hashes from before the flip exactly; every older layer turns them off too. `aim` is not reached by the flags (its four replays print the same either way), and `aim-off` keeps printing the current `on`. `deck` and `deck-tall` replay their own config (Totodile, Mt. Moon in every region, Onix in the pool and as the elite, 240 s). `deck-tall` keeps the axis off with `xlContinuous` + `xlTall` on, pinned: only there is Onix (3.42 m) taller than the 2.9 m gaps, so it is the replay that covers `xlTall`'s routing. With the axis on Onix is 2.78 m and fits every gap the generators make (2.4 m or at least 2.9 m). The hit window above the class height is covered by `tests/spatial.test.ts` ("giants"), not by a replay. The single-flag sets `axis`, `gen-axis`, `xl`, `tall`, `gen-tall`, `giants`, `gen-giants` and `deck-giants` were retired with the flip: each printed the same as a current set.
-
-`npx tsx scripts/checksum.ts size-off` prints those hashes. With the classic region tables it reproduces the earlier `on` set. The only exception is the `World.shore` fix that landed with this work: a bank behind a wall is no longer preferred. Every older layer (`off`, `build-off`, `world-off`, `hazards-off`) turns size geometry off too.
+`rules.size.geometry`, `size.headroom`, `size.axis`, `size.xlContinuous`, `size.xlTall` and `rules.world.wallTops` were
+hard-wired on, with their off paths deleted, at pivot step 10 (docs/hero-shooter-pivot.md Q18). The pre-size-class sim
+(a radius from the sprite height, one shared partner radius, point collision), the giants before the flip and the
+infinite wall props are on the `survivor-final` tag, with the checksum sets that pinned each layer.
 
 ## Checking it
 
@@ -265,10 +256,8 @@ Who reads the tops (everyone else keeps every wall infinite):
 - `npx tsx scripts/covercheck.ts [seeds] [pairs]` reports what wall tops change for cover: the census, which barrier props
   each class fires over level, sampled lines of fire opened by the tops, and the objective sightlines where combat and the
   validators now disagree. Report only.
-- `npx tsx scripts/navwalk.ts [location|habitat|all] [seeds]` drives real walkers of every class (Medium, Large, Extra Large, an elite) and the trainer (Small and Extra Large) to every target. Mandatory targets must be reached. A size-restricted optional target must be reached by the narrow body and refused by the wide ones. No grounded walker may end a tick overlapping solid geometry.
-- `npx tsx scripts/stuckwatch.ts [map|all] [seeds] [seconds]` watches live bot runs for movement deadlocks of the bot and of enemies that have a route. A relocated enemy (far or holding) starts a new episode. A bot episode is `pinned` when the bot also walked under 2 m in the 5 s; the others are the bot walking back and forth between threats or shoved in a crowd. Every bot episode is also checked for a way out (`escapeOf`, with the partner's own footprint through `World.moveBody`). It is `TRAPPED` when no heading moves it onto ground it may stand on, or when the ground it can walk to is a pocket under 48 tiles (`World.shore`'s trap size). The walk is a flood over the world's 0.5 m points (tile centres and corners, the middles of one- and two-tile passages), so a one-tile exit lets a Small partner out but not an Extra Large one (`tests/footprint.test.ts`). The probe only reads: `STUCK_PROBE_ALL=1` runs it every window, and the end states match a run without it. `TRAPPED` must be 0. `all 3` on 2026-11-16: 34 bot episodes (1 pinned, 0 trapped), 1 enemy episode in 114,805 enemy-seconds; with `STUCK_RULES='{"size":{"geometry":false}}'`, 55 bot and 796 enemy episodes.
-  - The pinned one (tropical-lagoon seed 3, Totodile, at -24.4,-21.4) is the bot's heading search: the only way out is a one-tile strip due south, and none of the sampled turns points down it. The partner fits the strip (`escapeOf`: 9 of 16 headings free, 48+ tiles). This is a limit of the bot (`?autoplay` and the test driver, not play), and the bot is left as it is: changing it would move every bot-driven replay hash to make a harness look better.
-  - The enemy one (river-gorge seed 2, a Poliwag) is a route change: Totodile's ice bridge melted (27 tiles) and the route to the player grew by 54 steps, so the walker turned back.
-- `navwalk`, `stuckwatch`, `habplay` and `perf-sim` take `--size a,b=false` (`scripts/lib/sizeflags.ts`): those boolean `rules.size` flags set in every run they create, a bare name on and `name=false` off. The three size flags are on by default, so `--size axis=false` is the no-axis worst case (Onix 3.42 m) and `--size axis=false,xlContinuous=false,xlTall=false` the game before the flip.
+- `npx tsx scripts/navwalk.ts [location|habitat|all] [seeds]` drives real walkers of every class (Medium, Large, Extra Large) and the trainer (Small and Extra Large) to every target. Mandatory targets must be reached. A size-restricted optional target must be reached by the narrow body and refused by the wide ones. No grounded walker may end a tick overlapping solid geometry.
+- `npx tsx scripts/stuckwatch.ts [map|all] [seeds] [seconds]` watches live bot runs for movement deadlocks of the bot and of enemies that have a route. A relocated enemy (far or holding) starts a new episode. A bot episode is `pinned` when the bot also walked under 2 m in the 5 s; the others are the bot walking back and forth between threats or shoved in a crowd. Every bot episode is also checked for a way out (`escapeOf`, with the partner's own footprint through `World.moveBody`; since 2026-11-20 a jump up to the real apex plus the step, and swimming in a liquid the partner is safe in, count as ways out). It is `TRAPPED` when no heading moves it onto ground it may stand on, or when the ground it can walk to is a pocket under 48 tiles (`World.shore`'s trap size). The walk is a flood over the world's 0.5 m points (tile centres and corners, the middles of one- and two-tile passages), so a one-tile exit lets a Small partner out but not an Extra Large one (`tests/footprint.test.ts`). The probe only reads: `STUCK_PROBE_ALL=1` runs it every window, and the end states match a run without it. `TRAPPED` must be 0. `all 3` on 2026-11-20, against a chasing crowd of 120 (`scripts/lib/crowd.ts`): 14 bot episodes (4 pinned, 3 TRAPPED, all at River Gorge seed 3 (−28.6, 16.4), an open pocket), 31 enemy episodes in 217,415 enemy-seconds. The 31 are navigation (crowd jams at chokes, the wide field against `moveBody` at prop corners, the walkers above the Gorge pocket), classified and left for the co-op wave in docs/hero-shooter-pivot.md §11.
+  - A pinned episode is often the bot's heading search, not geometry: on tropical-lagoon seed 3 the only way out is a one-tile strip due south, and none of the sampled turns points down it, though the partner fits it. This is a limit of the bot (`?autoplay` and the gate driver, not play).
 - `pokewatch.renderer.sizes()` in the browser prints class, target, multiplier and the Wide flag for every loaded sheet.
 - `node tools/cap.mjs <html> tools/sizescenes.json <outdir> size-` captures a one-per-class row (`size-class-row`), a same-class row (`size-same-class-small`) and each region's newer Pokémon (`size-wave-*`). Build to a private folder first (CLAUDE.md).

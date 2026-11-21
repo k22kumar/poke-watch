@@ -75,7 +75,7 @@ frame saw it. A press shorter than one frame still falls between two polls; noth
   give it at most one meaning; `takeoff` only on a fly or levitate row (both reserved until R6d / R6e). No shipped
   template sets one, so today an airborne press means nothing and waits for the landing.
 
-**Legacy rule.** An `InputFrame` without `jumpPressed` (the bot, the checksum sets, older replays, tests that send
+**Legacy rule.** An `InputFrame` without `jumpPressed` (the bot, older replays, tests that send
 `jump: true`) keeps the pre-R6c rule bit for bit: held Jump jumps whenever the body is supported, so holding repeats a
 jump on every landing (8 jumps in 300 ticks), and a tap shorter than a sample is lost. `Player.ctl` stays zero, so the
 state hash is unchanged.
@@ -104,9 +104,9 @@ pins the pre-R6c tables).
 
 | Device | Defaults |
 |---|---|
-| Keyboard | W A S D / arrows move, Space jump, **V descend**, Shift dash, J attack, K Move A, R Move B, Q Signature / Tag, E / L Guard, 1–4 pick, F reroll, X skip, Z banish, **C cursor / camera (`cardPointer`, kept)**, Esc / P pause, M mute, \` tuning |
+| Keyboard | W A S D / arrows move, Space jump, **V descend**, Shift dash, J attack, K Move A, R Move B, Q Signature / Tag, E / L Guard, F Touch (hold: Breakthrough), Esc / P pause, M mute, \` tuning (the card picks, reroll, skip, banish and the C cursor toggle went with the cards at hero-shooter pivot step 9) |
 | Mouse (fixed) | left attack, right Move A; captured mouse looks and aims |
-| Gamepad | A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**, d-pad ← ↑ → pick and ↓ reroll while the card tray is open; left stick moves, right stick looks (axes, fixed). X, Back and right-stick click are free |
+| Gamepad | A jump, B dash, Y Signature, LB Guard, RB Move B, LT Move A, RT attack, Start pause, **left-stick click descend**; left stick moves, right stick looks (axes, fixed). X, Back and right-stick click are free |
 | Touch | Atk, A, B, Sig, Guard, Jump, Dash; Descend (hidden until R6d) |
 
 Ctrl is not a default anywhere: Ctrl + W / S / D are browser shortcuts while moving, and Ctrl + W cannot be intercepted.
@@ -118,7 +118,7 @@ added later reaches an old save. `resolveBindings(defaults, overrides)` builds t
 exactly its override's codes, and a code an override claims leaves every action that was not overridden. One code drives
 one action: `assignBinding` moves a code from the action that had it (the screen says from where), and
 `bindingConflicts` of any resolved table is empty (checked over a seeded storm of 400 random assignments).
-`loadSettings` cuts whatever was saved down to known actions and valid codes.
+`loadSettings` cuts whatever was saved down to known actions and valid codes, then gives any action left with no code its default codes where they are free (`restoreUnbound`: no override claims them). That repairs saves whose keys moved to actions that no longer exist (the survivor build's card keys); it also brings back a default the player cleared on purpose, if nothing else holds it.
 
 **Settings → Controls → Bindings.** Every action with two keyboard and two gamepad slots. Choose a slot, then press a key
 or a pad button; Esc cancels, Delete or Backspace clears the slot; Reset bindings restores the defaults (so does Settings

@@ -1,7 +1,6 @@
 // Phase 8a: capability tags, the shared resolver, projectile interception, suspend-and-release Hold,
 // body-on-body impacts, the burning-tile flow cost, the death recap, and determinism (blueprint sections 7,
 // 10, 12 and 16). Rule tests, property tests, micro-scene scenario tests and regression tests.
-import { CLASSIC_REGIONS } from '../src/rules/spawning';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
@@ -9,8 +8,8 @@ import { breakBody, holdBody, holdPower, moveOnBody, pushBody, pushPower, spawnB
 import { createBody, forceOnShots, interceptPass, resolve } from '../src/sim/capabilities';
 import { shootHostile, spawnEnemy } from '../src/sim/enemies';
 import { compileMove } from '../src/sim/moves';
-import { tagSpec } from '../src/sim/squad';
-import { addMember } from '../src/sim/squad';
+import { tagSpec } from '../src/sim/swap';
+import { addLoadoutMember } from '../src/sim/squad';
 import { CS } from '../src/sim/cells';
 import { PK } from '../src/sim/pools';
 import { stateHash } from '../src/sim/checksum';
@@ -22,11 +21,13 @@ import { BODY_TEMPLATES } from '../src/rules/materials';
 import { defaultRules } from '../src/rules/defaults';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
+import { RANGE, swap } from '../src/mods';
 const NONE: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
-const QUIET = { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, eliteEvery: 9999, swarmEvery: 9999 }, bodies: { looseRocks: 0 }, beats: { enabled: false }, objectives: { enabled: false } };
+// hero.respawn 0: a knockout ends the run, as these death-recap tests need (the range otherwise respawns)
+const QUIET = { bodies: { looseRocks: 0 }, hero: { respawn: 0 } };
 
 function calm(species = 'totodile', extra: object = {}): SimContext {
-  const ctx = createRun({ seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
+  const ctx = createRun({ mode: RANGE, mods: [swap], seed: 5, species, ruleOverrides: deep(QUIET, extra) as never });
   for (let i = 0; i < 20; i++) step(ctx, NONE);
   return ctx;
 }
@@ -91,8 +92,8 @@ test('regression: compiled Push and Hold Power equal the v10 derivation for ever
 });
 
 test('a Create Tag Action carries create:rock; shots weigh 0 and lobs or heavy shots 1', () => {
-  const ctx = calm('cyndaquil');
-  const m = addMember(ctx, 'geodude')!;
+  const ctx = calm('cyndaquil', { hero: { loadout: 2 } });
+  const m = addLoadoutMember(ctx, 'geodude')!;
   const spec = tagSpec(ctx, m)!;
   assert.ok(capTags(spec.caps).includes('create:rock'));
   assert.equal(capOf(compileCaps({ key: 'x', element: 'tide', cls: 'special', archetype: 'beam', power: 110 }), 'push'), 3);
@@ -441,21 +442,11 @@ test('death recap: shots name their shooter, contact names the species and the p
   assert.ok(recs(ctx).every((r) => debugLine(r, ctx.time).length > 0));
 });
 
-test('the log is passive: with the capability layer off nothing is recorded and no recap is written', () => {
-  const ctx = calm('totodile', { caps: { enabled: false } });
-  const P = ctx.player;
-  P.hp = 3;
-  spawnBody(ctx, 'boulder', P.x + 5, P.z, -11, 0, TEAM.enemy, 40);
-  for (let t = 0; t < 120 && ctx.state === 'play'; t++) step(ctx, NONE);
-  assert.equal(ctx.caplog.n, 0);
-  assert.equal(ctx.recap, null);
-});
-
 // ------------------------------------------------------------------ determinism and regression
 /** scripted inputs that exercise aim, Move A/B holds, Guard taps and dashes */
 function scripted(ctx: SimContext, t: number): InputFrame {
   const P = ctx.player, a = t * 0.013;
-  return { mx: Math.sin(a * 0.7), mz: Math.cos(a * 0.5), jump: t % 400 === 0, dash: t % 170 === 0, aimX: P.x + Math.sin(a) * 8, aimZ: P.z + Math.cos(a) * 8, btn: (t % 90 < 50 ? BTN.a : 0) | (t % 130 < 40 ? BTN.b : 0) | (t % 75 < 6 ? BTN.guard : 0), card: ctx.cards.offer ? { action: 'pick', index: 0 } : undefined };
+  return { mx: Math.sin(a * 0.7), mz: Math.cos(a * 0.5), jump: t % 400 === 0, dash: t % 170 === 0, aimX: P.x + Math.sin(a) * 8, aimZ: P.z + Math.cos(a) * 8, btn: (t % 90 < 50 ? BTN.a : 0) | (t % 130 < 40 ? BTN.b : 0) | (t % 75 < 6 ? BTN.guard : 0) };
 }
 
 test('determinism: the same seed and inputs give the same state hash with every Phase 8a feature on', () => {
@@ -469,42 +460,6 @@ test('determinism: the same seed and inputs give the same state hash with every 
     const a = hashes(), b = hashes();
     assert.deepEqual(a.out, b.out, species);
     assert.equal(a.n, b.n);
-  }
-});
-
-test('regression: with the capability layer off, replay hashes equal the v10 build (commit cedd7e7)', async () => {
-  const { botInput } = await import('../src/sim/bot');
-  const { MODES } = await import('../src/mods');
-  const { StateHasher } = await import('../src/sim/checksum');
-  // The legacy hash from scripts/checksum.ts. These marks were recorded from this source with the
-  // capability and build layers off, after Joltik and Onix joined content/roster.json: a replay
-  // depends on the roster (the spawn tables and the species registry are module state, not run
-  // options), so the values recorded against the v10 source with the 38-species roster can no
-  // longer reproduce, and commit cedd7e7 is not in this repository's history to re-record from.
-  // What the test still proves is that the flags-off path is frozen: any later change to the sim
-  // that moves these marks has changed v10 behaviour. Re-pin only together with a roster change.
-  const legacy = (ctx: SimContext) => {
-    const h = new StateHasher(), P = ctx.player;
-    h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken).num(ctx.stats.xp);
-    h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level).num(P.xp).num(P.hp).num(P.maxHp);
-    for (const s of P.moves) h.num(s.cd).num(s.level);
-    const E = ctx.enemies; for (let i = 0; i < E.hi; i++) if (E.alive[i]) h.num(i).num(E.x[i]).num(E.z[i]).num(E.hp[i]);
-    const B = ctx.bodies; for (let i = 0; i < B.hi; i++) if (B.alive[i]) h.num(B.x[i]).num(B.z[i]);
-    return h.h.toString(16);
-  };
-  const V10: [string, number, string, number, string[]][] = [
-    ['cyndaquil', 2, 'classic', 150, ['da40abba', '527648f9', 'ded890d3', 'd90d2a3e', '10cf4c80']],
-    ['bulbasaur', 3, 'survival', 120, ['d2972424', 'faaf1cf0']],
-    ['charmander', 11, 'boss-rush', 120, ['77d4e243', 'abe356a0', '3332f7fa', 'bf643a3b']],
-    ['totodile', 7, 'classic', 120, ['aa01151d', 'fb355485', '4b89fa50']],
-  ];
-  for (const [species, seed, mode, seconds, want] of V10) {
-    // v10 had neither the capability layer nor the Phase 8b build layer (nor liquid exposure and falls), and its basic
-    // attack cast only at a target
-    const ctx = createRun({ seed, species, mode: MODES.find((m) => m.id === mode), ruleOverrides: { caps: { enabled: false }, build: { enabled: false }, surfaces: { enabled: false }, hazards: { enabled: false }, size: { geometry: false }, spawning: { regions: CLASSIC_REGIONS }, combat: { basicNeedsTarget: true } } as never });
-    const got: string[] = [];
-    while (ctx.time < seconds && ctx.state !== 'over' && ctx.state !== 'victory') { step(ctx, botInput(ctx)); if (ctx.tick % 1800 === 0) got.push(legacy(ctx)); }
-    assert.deepEqual(got, want, `${species} seed ${seed} ${mode}`);
   }
 });
 

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { defaultRules } from '../src/rules/defaults';
 import { BIOMES } from '../src/rules/stages';
 import { createRun, step } from '../src/sim/run';
-import { objectiveDue, startObjective } from '../src/sim/objectives';
+import { startObjective } from '../src/sim/objectives';
 import { NO_INPUT } from '../src/sim/types';
 import { attemptHabitat, CONTROL_POINT, findHabitat, generateHabitat, HABITATS, HAB_VERSION, profilesFor } from '../src/world/habitat';
 import { HabCtx, HK } from '../src/world/habitat/ctx';
@@ -42,8 +42,6 @@ test('the sanctuary launches through the regular map flow: loose names, ?loc=, t
   assert.equal(ctx.world.map.id, `${ID}@5h${H.version}`);
   assert.ok(ctx.world.los, 'habitat maps use the location rules (line of sight, drop navigation)');
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
-  ctx.stageTime = ctx.rules.objectives.secondAfter + 1; ctx.beat.objectives = 1;
-  assert.equal(objectiveDue(ctx), 'hold', 'every objective on a habitat map is the shared control point');
   assert.ok(startObjective(ctx, 'hold'));
   assert.ok(Math.abs(ctx.objective!.x - (H.contest.x - ctx.world.half)) < 0.01 && Math.abs(ctx.objective!.z - (H.contest.y - ctx.world.half)) < 0.01, 'on the generated court');
   const out: [number, number] = [0, 0];

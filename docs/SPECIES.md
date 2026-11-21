@@ -18,17 +18,19 @@ Poke-Watch preserves recognizable evolution lines but compresses progression to 
 
 ## Two registries: game species and the reference catalogue
 
-`SPECIES` (`src/rules/species.ts`) is the game's roster: 234 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority. It holds canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 203 identities: the 7 that already had a role, then `joltik` and `onix`, then the 32 of the 2026-11 wave, then the 162 of the catalogue wave (below). For those, the pokedex stays the gameplay authority and the catalogue the reference one. `tests/catalogue.test.ts` asserts the two agree on types, canonical height and canonical weight for all 203. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
+`SPECIES` (`src/rules/species.ts`) is the game's roster: 244 Pokémon with art, moves, behaviour and roles. The reference catalogue (`src/rules/catalogue.ts`, 269 records over 210 species) is a separate authority. It holds canonical facts for Pokémon the game can *describe* but does not play. The two overlap on 203 identities: the 7 that already had a role, then `joltik` and `onix`, then the 32 of the 2026-11 wave, then the 162 of the catalogue wave (below). For those, the pokedex stays the gameplay authority and the catalogue the reference one. `tests/catalogue.test.ts` asserts the two agree on types, canonical height and canonical weight for all 203. An overlap is created only by giving a species a role in `content/roster.json` and regenerating; a catalogue record never becomes a game species on its own.
 
-The split is structural, not stylistic. A reference record inside `SPECIES` would join `all-wild` spawn pools and the habitat navigation profiles (`profilesFor()`, `src/world/habitat/mode.ts`), which would change which habitat layouts are accepted and move every replay hash. Nothing in `src/sim/`, `src/world/`, `src/render/`, `src/ui/` or `src/rules/species.ts` imports the catalogue.
+The split is structural, not stylistic. A reference record inside `SPECIES` would take a registry index and move every replay hash (it also joined the spawn pools and the habitat navigation profiles before both were frozen or deleted at the pivot). Nothing in `src/sim/`, `src/world/`, `src/render/`, `src/ui/` or `src/rules/species.ts` imports the catalogue.
 
-Canonical families live only in the catalogue, as complete chains with every branch kept. The game's paced progression remains `evolvesTo` / `evolveLevel` on a `SpeciesDef` — the only thing `progression.ts`, `lineage()`, `starterFamilyRoot()` and `playableLine()` read. A canonical edge never becomes an in-run evolution: of the catalogue's 102 directed edges, only `charmander>charmeleon` and `charmeleon>charizard` also exist as in-run pacing, and the ten other in-run edges (the five non-Charmander starter lines) are outside the catalogue's scope. `docs/PIPELINE.md` covers how the catalogue is generated and what its measurement qualifiers mean.
+Canonical families live only in the catalogue, as complete chains with every branch kept. The game's evolution link is `evolvesTo` on a `SpeciesDef` (a Breakthrough follows it, docs/RANGE.md; the level trigger and `evolveLevel` pacing went at pivot step 9) — the only thing `lineage()` and `starterFamilyRoot()` read. A canonical edge never becomes an in-run evolution: of the catalogue's 102 directed edges, only `charmander>charmeleon` and `charmeleon>charizard` also exist as in-run pacing, and the ten other in-run edges (the five non-Charmander starter lines) are outside the catalogue's scope. `docs/PIPELINE.md` covers how the catalogue is generated and what its measurement qualifiers mean.
 
 ## Why the catalogue Pokémon were not in the game
 
 The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). Since the catalogue wave, every catalogue species with SpriteCollab art is a game species; the 66 catalogue-only records are the 59 varieties (Gigantamax, regional and other forms; F2 in docs/pokemon-integration-plan.md) and 7 species with no usable art yet.
 
 ## The 2026-11 wave (32 wild Pokémon)
+
+> Historical since hero-shooter pivot step 9: the region spawn pools, presets and roster-wave switch this section names were deleted (`survivor-final` has them). The species stay game species; what stands on a map now comes from docs/SPAWNING.md.
 
 32 catalogue species became ordinary wild encounters: `content/roster.json` `wild` entries, `npm run content` from `fetch-sources` clones, and a place in each region's preset (`src/rules/spawning.ts`, composed over the `*-classic` tables). They needed no new mechanics. Tag Actions are derived from each Pokémon's own moves (`tagLineOf`, `src/rules/tags.ts`); Snorlax has an authored one. Habitat preferences are in `src/rules/profiles.ts`. None has a hard restriction.
 
@@ -40,7 +42,7 @@ The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 cat
 | Duskwood Hollow | Litwick (T), Murkrow (S, flies), Impidimp (S), Noibat (S, flies), Dreepy (T, flies), Honedge (M), Haunter (L, flies), Gengar (L) |
 
 Notes:
-- **Size letters** are the default classes since the size-extremes flip (measurement axis on, `docs/SIZING.md` "Measurement axis"): Ekans and Silicobra are Medium, Lapras Large and Dreepy Tiny by their listed body lengths. With the axis off they are Large, Extra Large, Extra Large and Small.
+- **Size letters** are the classes under the measurement axis (`docs/SIZING.md` "Measurement axis"): Ekans and Silicobra are Medium, Lapras Large and Dreepy Tiny by their listed body lengths.
 - **All 32 have SpriteCollab sheets.** Pikachu's `latest` cry upstream is an MP3 under an `.ogg` name. The importer now treats a recording in the wrong format as missing and takes the `legacy` one, and `fetch-sources` checks out both eras.
 - **Electric Pokémon in a wet region make Charge floods** (see Joltik below). With Pichu swarming in fours and Pikachu at full weight, Meadow Charge hits doubled and tank-bot deaths appeared. Pichu now `chase`s at weight 0.5 and Pikachu sits at 0.7. Over 16 seeds, deaths match the classic tables, with about 30 % more Charge hits.
 - **Doduo** is a Flying type that cannot fly, so the roster sets `"flying": false`.
@@ -48,6 +50,8 @@ Notes:
 - **Balance.** Over 36 bot runs, survival matches the classic tables (313 s each). Deaths are 12 vs 14, and kills are about the same. Fewer runs clear region 1 by 7:00 (stage mean 0.39 vs 0.53).
 
 ## The catalogue wave (162 wild Pokémon) and default roles
+
+> Historical since hero-shooter pivot step 9: the region spawn pools, presets and roster-wave switch this section names were deleted (`survivor-final` has them). The species stay game species; what stands on a map now comes from docs/SPAWNING.md.
 
 The 169 species of the catalogue's families that had no role came in on 2026-11-18 (docs/size-extremes-plan.md §S2) as
 `wild` entries with `"wave": "catalogue"` and no authored role. Keys are PokéAPI Pokémon slugs, the catalogue's id
@@ -111,7 +115,7 @@ Two ordinary wild Pokémon added through the normal pipeline — `content/roster
 | Native habitat tags (`rules/habitats.ts`) | grass, forest | rock, dry |
 | Sprite-derived height (`SpeciesDef.height`) | 0.9 m (clamp floor) | 3.02 m |
 | Weight class | Light (0.6 kg) | Massive (210 kg) |
-| Size class (`rules/sizing.ts`) | Tiny, drawn 0.64 m, body r 0.30 m | Extra Large, drawn 3.11 m, body r 0.93 m, 2.78 m tall (with the size flags off: 2.91 m, r 0.97 m, 2.59 m) |
+| Size class (`rules/sizing.ts`) | Tiny, drawn 0.64 m, body r 0.30 m | Extra Large, drawn 3.11 m, body r 0.93 m, 2.78 m tall |
 
 Neither has a `Faint` animation in SpriteCollab; both fall back through `src/assets/art.ts` like the rest of the roster. Onix has `Slam` where the importer wants `Strike`, so it uses seven states.
 
@@ -119,13 +123,13 @@ Neither has a `Faint` animation in SpriteCollab; both fall back through `src/ass
 
 **Joltik shoots Bug, not Electric.** A `volt` projectile lays the Charge agent (`sim/cells.ts`), which floods up to 30
 connected wet or water cells; the Meadow has ponds and a river, so a Joltik line of fire turned most of the region into
-a repeating flood. Measured on the bot with a 4000 HP partner: with `volt` every seed tried (1–7) ended in a Charge
+a repeating flood. Measured on the survivor build's bot with a 4000 HP partner: with `volt` every seed tried (1–7) ended in a Charge
 flood before the 5:00 boss, 500–1500 damage in the last five seconds; with `hive` the same seeds clear region 1
 normally. Bug is Joltik's first type slot and its early STAB (Bug Bite, Signal Beam, Bug Buzz), so the shot stays
 canonical. Its Electric identity is intact elsewhere: typing, weakness chart, the Electroweb / Discharge Tag Action,
 and the type rule that makes any Electric creature discharge while it stands in water.
 
-Onix is not in any region's `elites`, so it never spawns at elite or alpha scale. `profilesFor()` (`src/world/habitat/mode.ts`) applies the elite multiplier only to elite-capable species and keeps the validated 1.42 m headroom as a floor. With size classes, Onix's body is 0.97 m, under that floor.
+No body is role-scaled since the elite and alpha roles went (pivot step 10). The habitat navigation profiles (`profilesFor()`, `src/world/habitat/mode.ts`) were frozen at their validated numbers at pivot step 3 (1.42 m headroom); docs/hero-shooter-pivot.md §11 lists the 54 ready species that exceed them.
 
 ## Ability adaptations
 
@@ -137,7 +141,7 @@ Each species keeps all listed abilities in canonical data. `abilityOf` (`src/rul
 | Levitate | Immune to Ground damage. |
 | Flash Fire | Immune to Fire damage; absorbing it boosts attacks. |
 | Water Absorb / Dry Skin | Water interactions heal. |
-| Sturdy | Once per run, a lethal hit from full health leaves the Pokémon at 1 HP. |
+| Sturdy | Once per match, a lethal hit from full health leaves the Pokémon at 1 HP. |
 | Magma Armor | Immune to chill. |
 | Early Bird / Vital Spirit | Sleep ends sooner or is prevented. |
 | Guts / Swarm | Contact damage is stronger under the relevant status or health condition. |

@@ -109,9 +109,9 @@ export interface LocoTick {
   airPress: AirPress;
   /** m: the step this tick's planar move walks up (stepHeight, or climbing out of a liquid) */
   stepUp: number;
-  /** m: footprint radius against walls (0 = the centre-point look-ahead rule, size geometry off) */
+  /** m: footprint radius against walls (World.moveBody) */
   foot: number;
-  /** m: body height against deck slabs, undefined = heads pass through slabs (headroom off) */
+  /** m: body height against deck slabs, undefined on a map with no decks */
   tall: number | undefined;
   /** navigation lattice for the rock recovery (wide footprints route on navblocks) */
   wide: boolean;
@@ -126,8 +126,6 @@ export interface LocoTick {
 /** what the step did, for the caller's events */
 export interface LocoResult { jumped: boolean }
 
-/** m: centre-point look-ahead of the legacy planar move (size geometry off) */
-const AHEAD = 0.35;
 /** m: a grounded body going down a slope sticks to it within this drop */
 const STICK = 0.35;
 /** m: a fall or drop deeper than this clears the footprint on landing */
@@ -208,8 +206,8 @@ export function driveScripted(b: LocoBody, dx: number, dz: number, speed: number
 
 /** a body that dropped onto the ground at `ground` may stand in the lip (faces were measured from its feet on the way
  *  down): push its footprint clear (World.moveBody's push). Shared by the player and the enemy pool */
-export function clearLanding(W: World, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number]) {
-  W.moveBody(x, z, 0, 0, ground, step, foot, out, undefined, tall);
+export function clearLanding(W: World, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number], over?: boolean) {
+  W.moveBody(x, z, 0, 0, ground, step, foot, out, undefined, tall, over);
 }
 
 /** the planar move with the terrain step rule, axis-separated sliding. Only solid geometry stops it (World.collides):
@@ -217,29 +215,10 @@ export function clearLanding(W: World, x: number, z: number, ground: number, ste
 function movePlanar(W: World, b: LocoBody, t: LocoTick, dt: number) {
   const stepX = (b.vx + b.kx) * dt, stepZ = (b.vz + b.kz) * dt;
   const feet = b.y, stepUp = t.stepUp, tall = t.tall;
-  let nx = b.x + stepX, nz = b.z + stepZ;
-  if (t.foot > 0) {
-    // size geometry on: the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides
-    // round corners, never cuts one, and a Large or Extra Large body does not fit a one-tile gap
-    W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
-    nx = MOVE[0]; nz = MOVE[1];
-  } else {
-    const over = t.over;
-    const blocked = (x: number, z: number) => W.collides(x, z, feet, stepUp, tall, over);
-    const ax = Math.sign(stepX) * AHEAD, az = Math.sign(stepZ) * AHEAD;
-    if (blocked(nx + ax, nz + az)) {
-      if (!blocked(nx + ax, b.z)) nz = b.z;
-      else if (!blocked(b.x, nz + az)) nx = b.x;
-      else { nx = b.x; nz = b.z; }
-    }
-    // location maps: the look-ahead test can pass on a diagonal while the landing point itself is a wall (corner
-    // cutting); beside a chasm that would drop the body into it, so test where the step actually lands too
-    if (W.los && blocked(nx, nz)) {
-      if (!blocked(nx, b.z)) nz = b.z;
-      else if (!blocked(b.x, nz)) nx = b.x;
-      else { nx = b.x; nz = b.z; }
-    }
-  }
+  // the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides round corners, never
+  // cuts one, and a Large or Extra Large body does not fit a one-tile gap
+  W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
+  const nx = MOVE[0], nz = MOVE[1];
   const bd = W.bound;
   b.x = clamp(nx, -bd, bd);
   b.z = clamp(nz, -bd, bd);
@@ -284,6 +263,11 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
     b.y = g; b.vy = 0; // stick to slopes going down
   } else {
     b.grounded = false;
+    // still airborne: faces are measured from the feet as they fall (World.overlap), so the ledge a body is dropping past
+    // becomes a face during the tick its feet come within a step of the floor below. The planar move was resolved at the
+    // tick's starting feet, so push the footprint clear at its new feet now, not on the next tick's move (navwalk
+    // location seed 3: an Extra Large body ended a tick 0.13 m inside the ledge)
+    if (t.foot > 0) { clearLanding(W, b.x, b.z, b.y, t.stepUp, t.foot, tall, MOVE, t.over); b.x = MOVE[0]; b.z = MOVE[1]; }
   }
 }
 

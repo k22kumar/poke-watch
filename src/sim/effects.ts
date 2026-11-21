@@ -1,5 +1,6 @@
 // Projectile and zone systems.
 import { partnerHeight, partnerRadius } from '../rules/sizing';
+import { channelOf } from '../rules/stats';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { ELEMENTS } from '../rules/elements';
 import { AILMENTS, damageEnemy, damagePlayer, type DamageSpec } from './combat';
@@ -23,12 +24,12 @@ function effectOnBody(ctx: SimContext, b: number, slot: number, dmg: number, ele
   const s = sourceSpec(ctx, slot);
   if (s) moveOnBody(ctx, b, s, dmg, dx, dz, slot);
   else {
-    if ((push || hold) && ctx.rules.caps.enabled && ctx.bodies.alive[b] && ctx.bodies.hitCd[b] <= ctx.time) {
+    if ((push || hold) && ctx.bodies.alive[b] && ctx.bodies.hitCd[b] <= ctx.time) {
       ctx.bodies.hitCd[b] = ctx.time + 0.2;
       setSrc(slot === TAG_SLOT ? 'tag' : 'shot', slot === TAG_SLOT ? 'Tag Action' : 'deflected shot');
       forceOnBody(ctx, b, push, hold, dx, dz, slot);
     }
-    damageBody(ctx, b, dmg * ctx.rules.damage.playerMult, ELEMENTS[element], true);
+    damageBody(ctx, b, dmg * ctx.rules.damage.playerMult, ELEMENTS[element]);
   }
 }
 import { aimDir } from './moves';
@@ -37,14 +38,13 @@ import { aimDir } from './moves';
 function deflectShot(ctx: SimContext, i: number) {
   const Pr = ctx.projectiles, P = ctx.player;
   const [ux, uz] = aimDir(ctx, Pr.x[i] - P.x, Pr.z[i] - P.z, -Pr.vx[i], -Pr.vz[i]);
-  if (ctx.rules.caps.enabled) {
+  {
     setSrc('player', P.species.name);
     const r = rec(ctx, 'deflect', 'ok');
-    if (r) { r.power = guardWeight(ctx); r.weight = Pr.weight[i]; r.tgt = 'shot'; r.tgtName = Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : 'shot'; r.x = Pr.x[i]; r.z = Pr.z[i]; }
+    r.power = guardWeight(ctx); r.weight = Pr.weight[i]; r.tgt = 'shot'; r.tgtName = Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : 'shot'; r.x = Pr.x[i]; r.z = Pr.z[i];
   }
   launchShot(ctx, i, ux, uz);
   P.guardHit = true;
-  onGuardDeflect(ctx);
   P.aimFacing = datan2(ux, uz); P.aimT = 0.2;
   ctx.events.push({ t: 'deflect', x: Pr.x[i], z: Pr.z[i], element: ELEMENTS[Pr.element[i]] });
 }
@@ -52,8 +52,8 @@ import type { SimContext } from './types';
 import { capsOn, forceOnShots, interceptPass, launchShot, tickHeldShot } from './capabilities';
 import { rec, setSrc } from './caplog';
 import { forceOnBody, TEAM } from './bodies';
-import { TAG_SLOT } from './squad';
-import { guardWeight, onGuardDeflect } from './techniques';
+import { TAG_SLOT } from './swap';
+import { guardWeight } from './player';
 import { brambleAt } from './cells';
 import { resolve } from './capabilities';
 import { Contacts, MASK, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
@@ -133,13 +133,6 @@ function flyLinear(ctx: SimContext, i: number, dt: number) {
   const x0 = Pr.x[i], y0 = Pr.y[i], z0 = Pr.z[i];
   if (!(v > 0) || !(rem > 0)) { shotEnd(ctx, i, 'range', 0, x0, y0, z0); return; }
   const seg = Math.min(v * dt, rem), ux = vx / v, uy = vy / v, uz = vz / v;
-  // a Bulwark's shield stops shots coming at its front (the legacy rule, at the end of the tick's motion)
-  if (ctx.director.bulwarks.length) {
-    Pr.x[i] = x0 + ux * seg; Pr.z[i] = z0 + uz * seg;
-    const b = blockedByBulwark(ctx, i);
-    Pr.x[i] = x0; Pr.z[i] = z0;
-    if (b) { shotEnd(ctx, i, 'actor', SK.enemy, x0 + ux * seg, y0 + uy * seg, z0 + uz * seg); return; }
-  }
   LINQ.actorR = Pr.radius[i]; LINQ.actorH = Pr.radius[i]; LINQ.worldR = ctx.rules.aim.worldRadius; LINQ.flags = combatFlags(ctx);
   const n = sweep(ctx, x0, y0, z0, ux, uy, uz, seg, LINQ, LIN);
   const E = ctx.enemies;
@@ -206,7 +199,7 @@ export const projectileSystem = {
         if (dx * dx + dz * dz < reach * reach && Math.abs(P.y + ph * 0.5 - Pr.y[i]) < 1.0 + ph * 0.5) {
           if (canDeflect) { deflectShot(ctx, i); continue; }
           if (dx * dx + dz * dz < rr * rr) {
-            const res = damagePlayer(ctx, Pr.dmg[i], Pr.x[i], Pr.z[i], 0.5, lightBodies ? Pr.weight[i] : 0, ELEMENTS[Pr.element[i]], { kind: 'shot', name: Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : '' });
+            const res = damagePlayer(ctx, Pr.dmg[i], Pr.x[i], Pr.z[i], 0.5, lightBodies ? Pr.weight[i] : 0, ELEMENTS[Pr.element[i]], { kind: 'shot', name: Pr.src[i] >= 0 ? ctx.speciesIndex[Pr.src[i]].name : '' }, Pr.src[i] >= 0 ? channelOf(ctx.speciesIndex[Pr.src[i]]) : 'physical');
             // an enemy shot of Fire, Water, Ice or Electric coats the Pokémon it hits (light)
             if (res === 'hit') coatMember(ctx, P.m, agentIndex(ELEMENTS[Pr.element[i]]), 1);
             Pr.kill(i);
@@ -263,8 +256,6 @@ export const projectileSystem = {
         Pr.y[i] = Math.max(ground + 0.7, prev - 7 * dt);
       } else Pr.y[i] = Math.max(ground + 0.7, P.y + 0.8);
 
-      // a Bulwark's shield stops shots coming at its front (lobs go over it, orbits are melee)
-      if (kind !== PK.orbit && ctx.director.bulwarks.length && blockedByBulwark(ctx, i)) { endShot(ctx, i); continue; }
 
       // collisions
       const n = ctx.grid.query(Pr.x[i], Pr.z[i], Pr.radius[i] + 2.5);
@@ -343,7 +334,7 @@ export const zoneSystem = {
         }
         if (kind === ZK.hostileSlam) {
           const dx = P.x - Z.x[i], dz = P.z - Z.z[i];
-          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - ctx.world.height(P.x, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' });
+          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - ctx.world.height(P.x, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' }, Z.src[i] >= 0 ? channelOf(ctx.speciesIndex[Z.src[i]]) : 'physical');
           ctx.events.push({ t: 'ring', x: Z.x[i], z: Z.z[i], r: Z.radius[i], element: ELEMENTS[Z.element[i]], life: 0.5 });
           ctx.events.push({ t: 'shake', amount: 0.5, x: Z.x[i], z: Z.z[i] });
           Z.kill(i);
@@ -397,21 +388,3 @@ export const zoneSystem = {
   },
 };
 
-/** true when projectile i meets a raised Bulwark shield head-on (blueprint section 9: Protect) */
-export function blockedByBulwark(ctx: SimContext, i: number): boolean {
-  const Pr = ctx.projectiles, E = ctx.enemies, R = ctx.rules.roles;
-  for (const b of ctx.director.bulwarks) {
-    if (!E.alive[b]) continue;
-    const dx = Pr.x[i] - E.x[b], dz = Pr.z[i] - E.z[b];
-    const reach = R.bulwarkRadius * E.size[b];
-    const d2 = dx * dx + dz * dz;
-    if (d2 > reach * reach || d2 < 1e-6) continue;
-    const d = Math.sqrt(d2);
-    // in front of it, and flying toward it
-    if ((dx * dsin(E.facing[b]) + dz * dcos(E.facing[b])) / d < R.bulwarkArc) continue;
-    if (Pr.vx[i] * dx + Pr.vz[i] * dz >= 0) continue;
-    if (ctx.tick % 4 === 0) ctx.events.push({ t: 'block', x: E.x[b] + (dx / d) * 1.2, z: E.z[b] + (dz / d) * 1.2, enemy: b });
-    return true;
-  }
-  return false;
-}

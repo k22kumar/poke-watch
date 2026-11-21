@@ -2113,6 +2113,206 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   }
  },
  {
+  "id": "caterpie",
+  "name": "Caterpie",
+  "dex": 10,
+  "types": [
+   "bug"
+  ],
+  "elements": [
+   "hive"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 30,
+   "def": 35,
+   "spa": 20,
+   "spd": 20,
+   "spe": 45
+  },
+  "height": 1.12,
+  "art": "pokemon:caterpie",
+  "playable": true,
+  "blurb": "Bug type. Evolves at Lv 7. Imported from PokéAPI and PMD SpriteCollab.",
+  "starter": "bug_bite",
+  "learnset": [
+   [
+    3,
+    "tackle"
+   ]
+  ],
+  "evolvesTo": "metapod",
+  "evolveLevel": 7,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     9,
+     "bug_bite"
+    ]
+   ],
+   "levelUpOther": [
+    "string_shot"
+   ],
+   "abilities": [
+    "shield_dust",
+    "run_away"
+   ],
+   "heightM": 0.3,
+   "weightKg": 2.9,
+   "evolveLevel": 7,
+   "evolveTrigger": "level-up",
+   "shape": "armor"
+  }
+ },
+ {
+  "id": "metapod",
+  "name": "Metapod",
+  "dex": 11,
+  "types": [
+   "bug"
+  ],
+  "elements": [
+   "hive"
+  ],
+  "stats": {
+   "hp": 50,
+   "atk": 20,
+   "def": 55,
+   "spa": 25,
+   "spd": 25,
+   "spe": 30
+  },
+  "height": 1.12,
+  "art": "pokemon:metapod",
+  "blurb": "Bug type. Evolves at Lv 10. Imported from PokéAPI and PMD SpriteCollab.",
+  "learnset": [],
+  "evolvesTo": "butterfree",
+  "evolveLevel": 10,
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "harden"
+    ]
+   ],
+   "levelUpOther": [],
+   "abilities": [
+    "shed_skin"
+   ],
+   "heightM": 0.7,
+   "weightKg": 9.9,
+   "evolveLevel": 10,
+   "evolveTrigger": "level-up",
+   "shape": "squiggle"
+  }
+ },
+ {
+  "id": "butterfree",
+  "name": "Butterfree",
+  "dex": 12,
+  "types": [
+   "bug",
+   "flying"
+  ],
+  "elements": [
+   "hive",
+   "gale"
+  ],
+  "stats": {
+   "hp": 60,
+   "atk": 45,
+   "def": 50,
+   "spa": 90,
+   "spd": 80,
+   "spe": 70
+  },
+  "height": 1.71,
+  "art": "pokemon:butterfree",
+  "flying": true,
+  "blurb": "Bug/Flying type. Imported from PokéAPI and PMD SpriteCollab.",
+  "learnset": [
+   [
+    20,
+    "psybeam"
+   ],
+   [
+    26,
+    "silver_wind"
+   ],
+   [
+    32,
+    "air_slash"
+   ]
+  ],
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "gust"
+    ],
+    [
+     1,
+     "bug_bite"
+    ],
+    [
+     1,
+     "confusion"
+    ],
+    [
+     1,
+     "harden"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     16,
+     "psybeam"
+    ],
+    [
+     19,
+     "silver_wind"
+    ],
+    [
+     22,
+     "quiver_dance"
+    ],
+    [
+     24,
+     "air_slash"
+    ],
+    [
+     31,
+     "bug_buzz"
+    ]
+   ],
+   "levelUpOther": [
+    "captivate",
+    "poison_powder",
+    "rage_powder",
+    "safeguard",
+    "sleep_powder",
+    "string_shot",
+    "stun_spore",
+    "supersonic",
+    "tailwind",
+    "whirlwind"
+   ],
+   "abilities": [
+    "compound_eyes",
+    "tinted_lens"
+   ],
+   "heightM": 1.1,
+   "weightKg": 32,
+   "shape": "bug-wings"
+  }
+ },
+ {
   "id": "rattata",
   "name": "Rattata",
   "dex": 19,
@@ -2132,6 +2332,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:rattata",
+  "evolvesTo": "raticate",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -2224,6 +2425,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.92,
   "art": "pokemon:geodude",
+  "evolvesTo": "graveler",
   "wild": true,
   "behaviour": "tank",
   "canon": {
@@ -2741,6 +2943,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.98,
   "art": "pokemon:slugma",
+  "evolvesTo": "magcargo",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -3298,6 +3501,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.97,
   "art": "pokemon:gastly",
   "flying": true,
+  "evolvesTo": "haunter",
   "wild": true,
   "behaviour": "ranged",
   "shot": "wisp",
@@ -3483,6 +3687,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.05,
   "art": "pokemon:houndour",
+  "evolvesTo": "houndoom",
   "wild": true,
   "behaviour": "charger",
   "canon": {
@@ -3720,6 +3925,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.9,
   "art": "pokemon:joltik",
+  "evolvesTo": "galvantula",
   "wild": true,
   "behaviour": "ranged",
   "shot": "hive",
@@ -3815,6 +4021,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 3.02,
   "art": "pokemon:onix",
+  "evolvesTo": "steelix",
   "wild": true,
   "behaviour": "tank",
   "canon": {
@@ -3945,6 +4152,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:pichu",
+  "evolvesTo": "pikachu",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -4023,6 +4231,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.58,
   "art": "pokemon:pikachu",
+  "evolvesTo": "raichu",
   "wild": true,
   "behaviour": "charger",
   "canon": {
@@ -4135,6 +4344,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.05,
   "art": "pokemon:togepi",
+  "evolvesTo": "togetic",
   "wild": true,
   "behaviour": "healer",
   "canon": {
@@ -4227,6 +4437,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 2.03,
   "art": "pokemon:sentret",
+  "evolvesTo": "furret",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -4411,6 +4622,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:budew",
+  "evolvesTo": "roselia",
   "wild": true,
   "behaviour": "ranged",
   "shot": "bloom",
@@ -4489,6 +4701,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.58,
   "art": "pokemon:cutiefly",
   "flying": true,
+  "evolvesTo": "ribombee",
   "wild": true,
   "behaviour": "swarm",
   "canon": {
@@ -4568,6 +4781,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.12,
   "art": "pokemon:turtwig",
+  "evolvesTo": "grotle",
   "wild": true,
   "behaviour": "tank",
   "canon": {
@@ -4669,6 +4883,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.25,
   "art": "pokemon:doduo",
   "flying": false,
+  "evolvesTo": "dodrio",
   "wild": true,
   "behaviour": "charger",
   "canon": {
@@ -4930,6 +5145,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.9,
   "art": "pokemon:diglett",
+  "evolvesTo": "dugtrio",
   "wild": true,
   "behaviour": "swarm",
   "canon": {
@@ -5028,6 +5244,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:ekans",
+  "evolvesTo": "arbok",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -5128,6 +5345,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.58,
   "art": "pokemon:koffing",
   "flying": true,
+  "evolvesTo": "weezing",
   "wild": true,
   "behaviour": "ranged",
   "shot": "venom",
@@ -5289,6 +5507,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.9,
   "art": "pokemon:sizzlipede",
+  "evolvesTo": "centiskorch",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -5377,6 +5596,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:silicobra",
+  "evolvesTo": "sandaconda",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -5458,6 +5678,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:makuhita",
+  "evolvesTo": "hariyama",
   "wild": true,
   "behaviour": "charger",
   "canon": {
@@ -5773,6 +5994,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.92,
   "art": "pokemon:snom",
+  "evolvesTo": "frosmoth",
   "wild": true,
   "behaviour": "ranged",
   "shot": "frost",
@@ -5926,6 +6148,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:bergmite",
+  "evolvesTo": "avalugg",
   "wild": true,
   "behaviour": "tank",
   "canon": {
@@ -6032,6 +6255,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:cetoddle",
+  "evolvesTo": "cetitan",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -6219,6 +6443,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.31,
   "art": "pokemon:murkrow",
   "flying": true,
+  "evolvesTo": "honchkrow",
   "wild": true,
   "behaviour": "ranged",
   "shot": "gloom",
@@ -6335,6 +6560,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:litwick",
+  "evolvesTo": "lampent",
   "wild": true,
   "behaviour": "ranged",
   "shot": "wisp",
@@ -6428,6 +6654,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.58,
   "art": "pokemon:haunter",
   "flying": true,
+  "evolvesTo": "gengar",
   "wild": true,
   "behaviour": "ranged",
   "shot": "wisp",
@@ -6624,6 +6851,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:impidimp",
+  "evolvesTo": "morgrem",
   "wild": true,
   "behaviour": "chase",
   "canon": {
@@ -6703,6 +6931,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.71,
   "art": "pokemon:noibat",
   "flying": true,
+  "evolvesTo": "noivern",
   "wild": true,
   "behaviour": "swarm",
   "canon": {
@@ -6801,6 +7030,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.71,
   "art": "pokemon:honedge",
+  "evolvesTo": "doublade",
   "wild": true,
   "behaviour": "charger",
   "canon": {
@@ -6895,6 +7125,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   "height": 1.18,
   "art": "pokemon:dreepy",
   "flying": true,
+  "evolvesTo": "drakloak",
   "wild": true,
   "behaviour": "swarm",
   "canon": {
@@ -6927,6 +7158,213 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "evolveLevel": 50,
    "evolveTrigger": "level-up",
    "shape": "squiggle"
+  }
+ },
+ {
+  "id": "tauros",
+  "name": "Tauros",
+  "dex": 128,
+  "types": [
+   "normal"
+  ],
+  "elements": [
+   "plain"
+  ],
+  "stats": {
+   "hp": 75,
+   "atk": 100,
+   "def": 95,
+   "spa": 40,
+   "spd": 70,
+   "spe": 110
+  },
+  "height": 1.51,
+  "art": "pokemon:tauros",
+  "wild": true,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "rage"
+    ],
+    [
+     5,
+     "work_up"
+    ],
+    [
+     8,
+     "horn_attack"
+    ],
+    [
+     10,
+     "payback"
+    ],
+    [
+     15,
+     "assurance"
+    ],
+    [
+     15,
+     "pursuit"
+    ],
+    [
+     21,
+     "stomp"
+    ],
+    [
+     29,
+     "zen_headbutt"
+    ],
+    [
+     34,
+     "take_down"
+    ],
+    [
+     35,
+     "raging_bull"
+    ],
+    [
+     42,
+     "thrash"
+    ],
+    [
+     46,
+     "double_edge"
+    ],
+    [
+     50,
+     "outrage"
+    ],
+    [
+     55,
+     "giga_impact"
+    ]
+   ],
+   "levelUpOther": [
+    "focus_energy",
+    "leer",
+    "rest",
+    "scary_face",
+    "swagger",
+    "tail_whip"
+   ],
+   "abilities": [
+    "intimidate",
+    "anger_point",
+    "sheer_force"
+   ],
+   "heightM": 1.4,
+   "weightKg": 88.4,
+   "shape": "quadruped"
+  }
+ },
+ {
+  "id": "mewtwo",
+  "name": "Mewtwo",
+  "dex": 150,
+  "types": [
+   "psychic"
+  ],
+  "elements": [
+   "mind"
+  ],
+  "stats": {
+   "hp": 106,
+   "atk": 110,
+   "def": 90,
+   "spa": 154,
+   "spd": 90,
+   "spe": 130
+  },
+  "height": 1.71,
+  "art": "pokemon:mewtwo",
+  "wild": true,
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "barrier"
+    ],
+    [
+     1,
+     "confusion"
+    ],
+    [
+     1,
+     "psychic"
+    ],
+    [
+     1,
+     "psywave"
+    ],
+    [
+     1,
+     "swift"
+    ],
+    [
+     8,
+     "ancient_power"
+    ],
+    [
+     15,
+     "future_sight"
+    ],
+    [
+     16,
+     "psycho_cut"
+    ],
+    [
+     22,
+     "psybeam"
+    ],
+    [
+     32,
+     "amnesia"
+    ],
+    [
+     40,
+     "aura_sphere"
+    ],
+    [
+     72,
+     "psystrike"
+    ],
+    [
+     88,
+     "agility"
+    ],
+    [
+     99,
+     "calm_mind"
+    ]
+   ],
+   "levelUpOther": [
+    "confuse_ray",
+    "disable",
+    "guard_swap",
+    "laser_focus",
+    "life_dew",
+    "me_first",
+    "miracle_eye",
+    "mist",
+    "power_swap",
+    "psych_up",
+    "recover",
+    "safeguard",
+    "teleport"
+   ],
+   "abilities": [
+    "pressure",
+    "unnerve"
+   ],
+   "heightM": 2,
+   "weightKg": 122,
+   "shape": "upright",
+   "special": "legendary"
   }
  },
  {
@@ -7869,6 +8307,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.51,
   "art": "pokemon:tentacool",
+  "evolvesTo": "tentacruel",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -8105,6 +8544,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.05,
   "art": "pokemon:magnemite",
+  "evolvesTo": "magneton",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -8209,6 +8649,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:magneton",
+  "evolvesTo": "magnezone",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -8429,6 +8870,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.05,
   "art": "pokemon:exeggcute",
+  "evolvesTo": "exeggutor",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -8976,6 +9418,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:porygon",
+  "evolvesTo": "porygon2",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9078,6 +9521,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:dratini",
+  "evolvesTo": "dragonair",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9167,6 +9611,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.64,
   "art": "pokemon:dragonair",
+  "evolvesTo": "dragonite",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9373,6 +9818,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:togetic",
+  "evolvesTo": "togekiss",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9479,6 +9925,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.98,
   "art": "pokemon:natu",
+  "evolvesTo": "xatu",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9632,6 +10079,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:marill",
+  "evolvesTo": "azumarill",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -9872,6 +10320,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.98,
   "art": "pokemon:dunsparce",
+  "evolvesTo": "dudunsparce-two-segment",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -10244,6 +10693,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:porygon2",
+  "evolvesTo": "porygon-z",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -10980,6 +11430,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:azurill",
+  "evolvesTo": "marill",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -11045,6 +11496,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:roselia",
+  "evolvesTo": "roserade",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -11138,6 +11590,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:wailmer",
+  "evolvesTo": "wailord",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -11810,6 +12263,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:grotle",
+  "evolvesTo": "torterra",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -12236,6 +12690,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:munchlax",
+  "evolvesTo": "snorlax",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -12357,6 +12812,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:mantyke",
+  "evolvesTo": "mantine",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -13585,6 +14041,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:tynamo",
+  "evolvesTo": "eelektrik",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -13635,6 +14092,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.64,
   "art": "pokemon:eelektrik",
+  "evolvesTo": "eelektross",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -13800,6 +14258,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:lampent",
+  "evolvesTo": "chandelure",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -13977,6 +14436,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:mienfoo",
+  "evolvesTo": "mienshao",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -14186,6 +14646,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.64,
   "art": "pokemon:flabebe",
+  "evolvesTo": "floette",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -14267,6 +14728,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.84,
   "art": "pokemon:floette",
+  "evolvesTo": "florges",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -14421,6 +14883,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.51,
   "art": "pokemon:doublade",
+  "evolvesTo": "aegislash-shield",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -14609,6 +15072,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:inkay",
+  "evolvesTo": "malamar",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -15931,6 +16395,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.58,
   "art": "pokemon:cosmog",
+  "evolvesTo": "cosmoem",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -16710,6 +17175,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.12,
   "art": "pokemon:meltan",
+  "evolvesTo": "melmetal",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -16856,6 +17322,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:grookey",
+  "evolvesTo": "thwackey",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -16929,6 +17396,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.71,
   "art": "pokemon:thwackey",
+  "evolvesTo": "rillaboom",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17091,6 +17559,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:scorbunny",
+  "evolvesTo": "raboot",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17170,6 +17639,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.51,
   "art": "pokemon:raboot",
+  "evolvesTo": "cinderace",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17335,6 +17805,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.18,
   "art": "pokemon:sobble",
+  "evolvesTo": "drizzile",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17408,6 +17879,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:drizzile",
+  "evolvesTo": "inteleon",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17564,6 +18036,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.9,
   "art": "pokemon:rookidee",
+  "evolvesTo": "corvisquire",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -17635,6 +18108,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:corvisquire",
+  "evolvesTo": "corviknight",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18106,6 +18580,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:toxel",
+  "evolvesTo": "toxtricity-amped",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18364,6 +18839,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 0.98,
   "art": "pokemon:clobbopus",
+  "evolvesTo": "grapploct",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18513,6 +18989,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.25,
   "art": "pokemon:sinistea",
+  "evolvesTo": "polteageist",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18657,6 +19134,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.38,
   "art": "pokemon:hatenna",
+  "evolvesTo": "hattrem",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18726,6 +19204,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.77,
   "art": "pokemon:hattrem",
+  "evolvesTo": "hatterene",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -18879,6 +19358,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:morgrem",
+  "evolvesTo": "grimmsnarl",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -19308,6 +19788,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.77,
   "art": "pokemon:duraludon",
+  "evolvesTo": "archaludon",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -19392,6 +19873,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.58,
   "art": "pokemon:drakloak",
+  "evolvesTo": "dragapult",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -19868,6 +20350,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:kubfu",
+  "evolvesTo": "urshifu-single-strike",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -20224,6 +20707,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.12,
   "art": "pokemon:pawmi",
+  "evolvesTo": "pawmo",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -20316,6 +20800,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:pawmo",
+  "evolvesTo": "pawmot",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -20685,6 +21170,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:wiglett",
+  "evolvesTo": "wugtrio",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -21553,6 +22039,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.44,
   "art": "pokemon:dipplin",
+  "evolvesTo": "hydrapple",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -21638,6 +22125,7 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
   },
   "height": 1.31,
   "art": "pokemon:poltchageist",
+  "evolvesTo": "sinistcha",
   "wild": true,
   "wave": "catalogue",
   "canon": {
@@ -22222,6 +22710,552 @@ export const POKEDEX_SPECIES: SpeciesDef[] = [
    "weightKg": 6.5,
    "shape": "quadruped",
    "special": "legendary"
+  }
+ },
+ {
+  "id": "graveler",
+  "name": "Graveler",
+  "dex": 75,
+  "types": [
+   "rock",
+   "ground"
+  ],
+  "elements": [
+   "stone",
+   "quake"
+  ],
+  "stats": {
+   "hp": 55,
+   "atk": 95,
+   "def": 115,
+   "spa": 45,
+   "spd": 45,
+   "spe": 35
+  },
+  "height": 1.44,
+  "art": "pokemon:graveler",
+  "evolvesTo": "golem",
+  "wild": true,
+  "wave": "heroes",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "bide"
+    ],
+    [
+     1,
+     "defense_curl"
+    ],
+    [
+     1,
+     "rock_polish"
+    ],
+    [
+     1,
+     "rock_throw"
+    ],
+    [
+     1,
+     "rollout"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "sandstorm"
+    ],
+    [
+     9,
+     "mud_slap"
+    ],
+    [
+     12,
+     "bulldoze"
+    ],
+    [
+     12,
+     "harden"
+    ],
+    [
+     12,
+     "magnitude"
+    ],
+    [
+     15,
+     "iron_defense"
+    ],
+    [
+     15,
+     "take_down"
+    ],
+    [
+     18,
+     "self_destruct"
+    ],
+    [
+     18,
+     "smack_down"
+    ],
+    [
+     21,
+     "rock_slide"
+    ],
+    [
+     22,
+     "rock_blast"
+    ],
+    [
+     31,
+     "earthquake"
+    ],
+    [
+     37,
+     "double_edge"
+    ],
+    [
+     38,
+     "explosion"
+    ],
+    [
+     49,
+     "stone_edge"
+    ]
+   ],
+   "levelUpOther": [
+    "mud_sport",
+    "sand_attack",
+    "stealth_rock"
+   ],
+   "abilities": [
+    "rock_head",
+    "sturdy",
+    "sand_veil"
+   ],
+   "heightM": 1,
+   "weightKg": 105,
+   "evolveTrigger": "trade",
+   "shape": "humanoid"
+  }
+ },
+ {
+  "id": "golem",
+  "name": "Golem",
+  "dex": 76,
+  "types": [
+   "rock",
+   "ground"
+  ],
+  "elements": [
+   "stone",
+   "quake"
+  ],
+  "stats": {
+   "hp": 80,
+   "atk": 120,
+   "def": 130,
+   "spa": 55,
+   "spd": 65,
+   "spe": 45
+  },
+  "height": 1.38,
+  "art": "pokemon:golem",
+  "wild": true,
+  "wave": "heroes",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "bide"
+    ],
+    [
+     1,
+     "defense_curl"
+    ],
+    [
+     1,
+     "heavy_slam"
+    ],
+    [
+     1,
+     "magnitude"
+    ],
+    [
+     1,
+     "mega_punch"
+    ],
+    [
+     1,
+     "rock_polish"
+    ],
+    [
+     1,
+     "rock_throw"
+    ],
+    [
+     1,
+     "rollout"
+    ],
+    [
+     1,
+     "tackle"
+    ],
+    [
+     4,
+     "sandstorm"
+    ],
+    [
+     9,
+     "mud_slap"
+    ],
+    [
+     10,
+     "steamroller"
+    ],
+    [
+     12,
+     "harden"
+    ],
+    [
+     15,
+     "iron_defense"
+    ],
+    [
+     15,
+     "take_down"
+    ],
+    [
+     18,
+     "self_destruct"
+    ],
+    [
+     18,
+     "smack_down"
+    ],
+    [
+     21,
+     "rock_slide"
+    ],
+    [
+     22,
+     "bulldoze"
+    ],
+    [
+     22,
+     "rock_blast"
+    ],
+    [
+     31,
+     "earthquake"
+    ],
+    [
+     37,
+     "double_edge"
+    ],
+    [
+     38,
+     "explosion"
+    ],
+    [
+     49,
+     "stone_edge"
+    ]
+   ],
+   "levelUpOther": [
+    "mud_sport",
+    "sand_attack",
+    "stealth_rock"
+   ],
+   "abilities": [
+    "rock_head",
+    "sturdy",
+    "sand_veil"
+   ],
+   "heightM": 1.4,
+   "weightKg": 300,
+   "shape": "humanoid"
+  }
+ },
+ {
+  "id": "bagon",
+  "name": "Bagon",
+  "dex": 371,
+  "types": [
+   "dragon"
+  ],
+  "elements": [
+   "wyrm"
+  ],
+  "stats": {
+   "hp": 45,
+   "atk": 75,
+   "def": 60,
+   "spa": 40,
+   "spd": 30,
+   "spe": 50
+  },
+  "height": 1.44,
+  "art": "pokemon:bagon",
+  "evolvesTo": "shelgon",
+  "wild": true,
+  "wave": "heroes",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "ember"
+    ],
+    [
+     1,
+     "rage"
+    ],
+    [
+     5,
+     "bite"
+    ],
+    [
+     10,
+     "dragon_breath"
+    ],
+    [
+     15,
+     "headbutt"
+    ],
+    [
+     25,
+     "crunch"
+    ],
+    [
+     29,
+     "dragon_claw"
+    ],
+    [
+     34,
+     "zen_headbutt"
+    ],
+    [
+     44,
+     "flamethrower"
+    ],
+    [
+     49,
+     "double_edge"
+    ],
+    [
+     50,
+     "outrage"
+    ]
+   ],
+   "levelUpOther": [
+    "focus_energy",
+    "leer",
+    "scary_face"
+   ],
+   "abilities": [
+    "rock_head",
+    "sheer_force"
+   ],
+   "heightM": 0.6,
+   "weightKg": 42.1,
+   "evolveLevel": 30,
+   "evolveTrigger": "level-up",
+   "shape": "humanoid"
+  }
+ },
+ {
+  "id": "shelgon",
+  "name": "Shelgon",
+  "dex": 372,
+  "types": [
+   "dragon"
+  ],
+  "elements": [
+   "wyrm"
+  ],
+  "stats": {
+   "hp": 65,
+   "atk": 95,
+   "def": 100,
+   "spa": 60,
+   "spd": 50,
+   "spe": 50
+  },
+  "height": 1.44,
+  "art": "pokemon:shelgon",
+  "evolvesTo": "salamence",
+  "wild": true,
+  "wave": "heroes",
+  "canon": {
+   "levelUp": [
+    [
+     1,
+     "bite"
+    ],
+    [
+     1,
+     "dragon_breath"
+    ],
+    [
+     1,
+     "ember"
+    ],
+    [
+     1,
+     "headbutt"
+    ],
+    [
+     1,
+     "rage"
+    ],
+    [
+     25,
+     "crunch"
+    ],
+    [
+     29,
+     "dragon_claw"
+    ],
+    [
+     35,
+     "zen_headbutt"
+    ],
+    [
+     49,
+     "flamethrower"
+    ],
+    [
+     56,
+     "double_edge"
+    ],
+    [
+     60,
+     "outrage"
+    ]
+   ],
+   "levelUpOther": [
+    "focus_energy",
+    "leer",
+    "protect",
+    "scary_face"
+   ],
+   "abilities": [
+    "rock_head",
+    "overcoat"
+   ],
+   "heightM": 1.1,
+   "weightKg": 110.5,
+   "evolveLevel": 50,
+   "evolveTrigger": "level-up",
+   "shape": "quadruped"
+  }
+ },
+ {
+  "id": "salamence",
+  "name": "Salamence",
+  "dex": 373,
+  "types": [
+   "dragon",
+   "flying"
+  ],
+  "elements": [
+   "wyrm",
+   "gale"
+  ],
+  "stats": {
+   "hp": 95,
+   "atk": 135,
+   "def": 80,
+   "spa": 110,
+   "spd": 80,
+   "spe": 100
+  },
+  "height": 1.71,
+  "art": "pokemon:salamence",
+  "wild": true,
+  "wave": "heroes",
+  "canon": {
+   "levelUp": [
+    [
+     0,
+     "fly"
+    ],
+    [
+     1,
+     "bite"
+    ],
+    [
+     1,
+     "double_edge"
+    ],
+    [
+     1,
+     "dragon_breath"
+    ],
+    [
+     1,
+     "dragon_tail"
+    ],
+    [
+     1,
+     "dual_wingbeat"
+    ],
+    [
+     1,
+     "ember"
+    ],
+    [
+     1,
+     "fire_fang"
+    ],
+    [
+     1,
+     "headbutt"
+    ],
+    [
+     1,
+     "rage"
+    ],
+    [
+     1,
+     "thunder_fang"
+    ],
+    [
+     25,
+     "crunch"
+    ],
+    [
+     29,
+     "dragon_claw"
+    ],
+    [
+     35,
+     "zen_headbutt"
+    ],
+    [
+     49,
+     "flamethrower"
+    ],
+    [
+     64,
+     "outrage"
+    ]
+   ],
+   "levelUpOther": [
+    "focus_energy",
+    "leer",
+    "protect",
+    "roost",
+    "scary_face"
+   ],
+   "abilities": [
+    "intimidate",
+    "moxie"
+   ],
+   "heightM": 1.5,
+   "weightKg": 102.6,
+   "shape": "quadruped"
   }
  }
 ];
@@ -22927,6 +23961,82 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/agility"
  },
  {
+  "key": "bug_bite",
+  "name": "Bug Bite",
+  "element": "hive",
+  "cls": "physical",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-bite"
+ },
+ {
+  "key": "harden",
+  "name": "Harden",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/harden"
+ },
+ {
+  "key": "gust",
+  "name": "Gust",
+  "element": "gale",
+  "cls": "special",
+  "power": 40,
+  "accuracy": 100,
+  "source": "pokeapi move/gust"
+ },
+ {
+  "key": "confusion",
+  "name": "Confusion",
+  "element": "mind",
+  "cls": "special",
+  "power": 50,
+  "accuracy": 100,
+  "source": "pokeapi move/confusion",
+  "ailment": "confuse",
+  "ailmentChance": 10
+ },
+ {
+  "key": "psybeam",
+  "name": "Psybeam",
+  "element": "mind",
+  "cls": "special",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/psybeam",
+  "ailment": "confuse",
+  "ailmentChance": 10
+ },
+ {
+  "key": "silver_wind",
+  "name": "Silver Wind",
+  "element": "hive",
+  "cls": "special",
+  "power": 60,
+  "accuracy": 100,
+  "source": "pokeapi move/silver-wind"
+ },
+ {
+  "key": "quiver_dance",
+  "name": "Quiver Dance",
+  "element": "hive",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/quiver-dance"
+ },
+ {
+  "key": "bug_buzz",
+  "name": "Bug Buzz",
+  "element": "hive",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/bug-buzz"
+ },
+ {
   "key": "hyper_fang",
   "name": "Hyper Fang",
   "element": "plain",
@@ -23031,15 +24141,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "harden",
-  "name": "Harden",
-  "element": "plain",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/harden"
- },
- {
   "key": "magnitude",
   "name": "Magnitude",
   "element": "quake",
@@ -23138,15 +24239,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "dash"
  },
  {
-  "key": "silver_wind",
-  "name": "Silver Wind",
-  "element": "hive",
-  "cls": "special",
-  "power": 60,
-  "accuracy": 100,
-  "source": "pokeapi move/silver-wind"
- },
- {
   "key": "struggle_bug",
   "name": "Struggle Bug",
   "element": "hive",
@@ -23155,15 +24247,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 100,
   "source": "pokeapi move/struggle-bug",
   "archetype": "nova"
- },
- {
-  "key": "bug_buzz",
-  "name": "Bug Buzz",
-  "element": "hive",
-  "cls": "special",
-  "power": 90,
-  "accuracy": 100,
-  "source": "pokeapi move/bug-buzz"
  },
  {
   "key": "poison_sting",
@@ -23585,15 +24668,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "gust",
-  "name": "Gust",
-  "element": "gale",
-  "cls": "special",
-  "power": 40,
-  "accuracy": 100,
-  "source": "pokeapi move/gust"
- },
- {
   "key": "leech_life",
   "name": "Leech Life",
   "element": "hive",
@@ -23899,15 +24973,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "archetype": "nova"
  },
  {
-  "key": "bug_bite",
-  "name": "Bug Bite",
-  "element": "hive",
-  "cls": "physical",
-  "power": 60,
-  "accuracy": 100,
-  "source": "pokeapi move/bug-bite"
- },
- {
   "key": "bind",
   "name": "Bind",
   "element": "plain",
@@ -24081,15 +25146,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/covet"
- },
- {
-  "key": "quiver_dance",
-  "name": "Quiver Dance",
-  "element": "hive",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/quiver-dance"
  },
  {
   "key": "leafage",
@@ -24687,6 +25743,105 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "ailmentChance": 100
  },
  {
+  "key": "work_up",
+  "name": "Work Up",
+  "element": "plain",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/work-up"
+ },
+ {
+  "key": "stomp",
+  "name": "Stomp",
+  "element": "plain",
+  "cls": "physical",
+  "power": 65,
+  "accuracy": 100,
+  "source": "pokeapi move/stomp"
+ },
+ {
+  "key": "raging_bull",
+  "name": "Raging Bull",
+  "element": "plain",
+  "cls": "physical",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/raging-bull"
+ },
+ {
+  "key": "outrage",
+  "name": "Outrage",
+  "element": "wyrm",
+  "cls": "physical",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/outrage"
+ },
+ {
+  "key": "barrier",
+  "name": "Barrier",
+  "element": "mind",
+  "cls": "status",
+  "power": 0,
+  "statusKind": "buff",
+  "source": "pokeapi move/barrier"
+ },
+ {
+  "key": "psychic",
+  "name": "Psychic",
+  "element": "mind",
+  "cls": "special",
+  "power": 90,
+  "accuracy": 100,
+  "source": "pokeapi move/psychic"
+ },
+ {
+  "key": "psywave",
+  "name": "Psywave",
+  "element": "mind",
+  "cls": "special",
+  "power": 0,
+  "accuracy": 100,
+  "source": "pokeapi move/psywave"
+ },
+ {
+  "key": "future_sight",
+  "name": "Future Sight",
+  "element": "mind",
+  "cls": "special",
+  "power": 120,
+  "accuracy": 100,
+  "source": "pokeapi move/future-sight"
+ },
+ {
+  "key": "psycho_cut",
+  "name": "Psycho Cut",
+  "element": "mind",
+  "cls": "physical",
+  "power": 70,
+  "accuracy": 100,
+  "source": "pokeapi move/psycho-cut"
+ },
+ {
+  "key": "aura_sphere",
+  "name": "Aura Sphere",
+  "element": "brawl",
+  "cls": "special",
+  "power": 80,
+  "accuracy": null,
+  "source": "pokeapi move/aura-sphere"
+ },
+ {
+  "key": "psystrike",
+  "name": "Psystrike",
+  "element": "mind",
+  "cls": "special",
+  "power": 100,
+  "accuracy": 100,
+  "source": "pokeapi move/psystrike"
+ },
+ {
   "key": "wood_hammer",
   "name": "Wood Hammer",
   "element": "bloom",
@@ -24766,15 +25921,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/constrict"
  },
  {
-  "key": "barrier",
-  "name": "Barrier",
-  "element": "mind",
-  "cls": "status",
-  "power": 0,
-  "statusKind": "buff",
-  "source": "pokeapi move/barrier"
- },
- {
   "key": "acid_armor",
   "name": "Acid Armor",
   "element": "venom",
@@ -24851,46 +25997,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "accuracy": 85,
   "source": "pokeapi move/barrage",
   "hits": 4
- },
- {
-  "key": "confusion",
-  "name": "Confusion",
-  "element": "mind",
-  "cls": "special",
-  "power": 50,
-  "accuracy": 100,
-  "source": "pokeapi move/confusion",
-  "ailment": "confuse",
-  "ailmentChance": 10
- },
- {
-  "key": "psybeam",
-  "name": "Psybeam",
-  "element": "mind",
-  "cls": "special",
-  "power": 65,
-  "accuracy": 100,
-  "source": "pokeapi move/psybeam",
-  "ailment": "confuse",
-  "ailmentChance": 10
- },
- {
-  "key": "psychic",
-  "name": "Psychic",
-  "element": "mind",
-  "cls": "special",
-  "power": 90,
-  "accuracy": 100,
-  "source": "pokeapi move/psychic"
- },
- {
-  "key": "stomp",
-  "name": "Stomp",
-  "element": "plain",
-  "cls": "physical",
-  "power": 65,
-  "accuracy": 100,
-  "source": "pokeapi move/stomp"
  },
  {
   "key": "egg_bomb",
@@ -25115,15 +26221,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/dragon-rush"
  },
  {
-  "key": "outrage",
-  "name": "Outrage",
-  "element": "wyrm",
-  "cls": "physical",
-  "power": 120,
-  "accuracy": 100,
-  "source": "pokeapi move/outrage"
- },
- {
   "key": "dragon_dance",
   "name": "Dragon Dance",
   "element": "wyrm",
@@ -25160,15 +26257,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 60,
   "accuracy": 100,
   "source": "pokeapi move/ominous-wind"
- },
- {
-  "key": "future_sight",
-  "name": "Future Sight",
-  "element": "mind",
-  "cls": "special",
-  "power": 120,
-  "accuracy": 100,
-  "source": "pokeapi move/future-sight"
  },
  {
   "key": "hidden_power",
@@ -25340,15 +26428,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "source": "pokeapi move/fly"
  },
  {
-  "key": "aura_sphere",
-  "name": "Aura Sphere",
-  "element": "brawl",
-  "cls": "special",
-  "power": 80,
-  "accuracy": null,
-  "source": "pokeapi move/aura-sphere"
- },
- {
   "key": "shock_wave",
   "name": "Shock Wave",
   "element": "volt",
@@ -25420,24 +26499,6 @@ export const POKEDEX_MOVES: (MoveData & { archetype?: string; source?: string })
   "power": 0,
   "accuracy": 100,
   "source": "pokeapi move/grass-knot"
- },
- {
-  "key": "psywave",
-  "name": "Psywave",
-  "element": "mind",
-  "cls": "special",
-  "power": 0,
-  "accuracy": 100,
-  "source": "pokeapi move/psywave"
- },
- {
-  "key": "psycho_cut",
-  "name": "Psycho Cut",
-  "element": "mind",
-  "cls": "physical",
-  "power": 70,
-  "accuracy": 100,
-  "source": "pokeapi move/psycho-cut"
  },
  {
   "key": "boomburst",

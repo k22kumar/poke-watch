@@ -2,9 +2,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
-import { addMember, maybeOfferRecruit, onHpLoss, tagDefOf, tagSpec } from '../src/sim/squad';
+import { addLoadoutMember as addMember, onHpLoss } from '../src/sim/squad';
+import { tagDefOf, tagSpec } from '../src/sim/swap';
 import { damagePlayer } from '../src/sim/combat';
-import { gainXp, lineage } from '../src/sim/progression';
+import { lineage } from '../src/rules/heroes';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { SPECIES } from '../src/rules/species';
 import { STAGES } from '../src/rules/stages';
@@ -12,7 +13,7 @@ import { tagLineOf } from '../src/rules/tags';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 function calm(species = 'totodile'): SimContext {
-  const ctx = createRun({ seed: 5, species, ruleOverrides: { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0 }, bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ seed: 5, species, ruleOverrides: { bodies: { looseRocks: 0 }, hero: { loadout: 3 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NO_INPUT);
   return ctx;
 }
@@ -21,15 +22,13 @@ const secs = (ctx: SimContext, s: number, inp: InputFrame = NO_INPUT) => { for (
 /** tap Tag: one tick down, then up */
 function tap(ctx: SimContext) { step(ctx, press(BTN.sig)); step(ctx, NO_INPUT); }
 
-test('every partner and recruitable wild line has a Tag Action whose moves exist', () => {
-  const recruitable = new Set(STAGES.flatMap((s) => s.spawns.map(([id]) => id)));
+test('every partner line has a Tag Action whose moves exist', () => {
   for (const sp of SPECIES) {
     const base = lineage(sp)[0].id;
-    if (!sp.playable && !recruitable.has(base)) continue;
+    if (!sp.playable) continue;
     const line = tagLineOf(base);
     assert.ok(line, `${sp.id} has a Tag Action`);
     assert.ok(MOVE_BY_KEY[line.base.move], `${base} base ${line.base.move}`);
-    assert.ok(MOVE_BY_KEY[line.variant.move], `${base} variant ${line.variant.move}`);
   }
 });
 
@@ -101,38 +100,6 @@ test('a faint brings in the next Pokémon; the run ends only when all have faint
   P.m.hp = 1; P.iframes = 0;
   damagePlayer(ctx, 500, P.x + 1, P.z);
   assert.equal(ctx.state, 'dead');
-});
-
-test('without objectives (v8 pacing), recruits are offered after an elite once enough time has passed, and join at squad level', () => {
-  const ctx = calm();
-  ctx.rules.objectives.enabled = false;
-  maybeOfferRecruit(ctx);
-  assert.equal(ctx.recruit.pending, null, 'not in the first two minutes');
-  ctx.time = 130;
-  maybeOfferRecruit(ctx);
-  const pending = ctx.recruit.pending as string[] | null;
-  assert.ok(pending && pending.length === 2);
-  step(ctx, NO_INPUT);
-  assert.equal(ctx.cards.source, 'recruit');
-  step(ctx, { ...NO_INPUT, card: { action: 'pick', index: 0 } });
-  assert.equal(ctx.player.squad.length, 2);
-  const m = ctx.player.squad[1];
-  assert.ok(m.moves.length >= 1, 'it arrives with a move');
-  assert.ok(m.maxHp > 0 && m.hp === m.maxHp);
-});
-
-test('the first evolution offers the Tag variant', () => {
-  const ctx = calm('cyndaquil');
-  const P = ctx.player;
-  while (P.level < 15) gainXp(ctx, P.xpNext - P.xp + 0.01);
-  for (let i = 0; i < 400 && P.species.id === 'cyndaquil'; i++) step(ctx, { ...NO_INPUT, card: ctx.cards.source === 'level' && ctx.cards.offer ? { action: 'pick', index: 0 } : undefined });
-  assert.equal(P.species.id, 'quilava');
-  for (let i = 0; i < 400 && ctx.cards.source !== 'tag'; i++) step(ctx, { ...NO_INPUT, card: ctx.cards.offer ? { action: 'pick', index: 0 } : undefined });
-  assert.equal(ctx.cards.source, 'tag');
-  step(ctx, { ...NO_INPUT, card: { action: 'pick', index: 0 } });
-  assert.equal(P.m.tagVariant, 1);
-  assert.equal(tagDefOf(P.m)!.move, 'lava_plume');
-  assert.ok(tagSpec(ctx, P.m)!.dmg > 0);
 });
 
 test('grey health never exceeds the missing health', () => {

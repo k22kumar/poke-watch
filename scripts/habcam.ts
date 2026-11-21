@@ -19,6 +19,7 @@ import { pathBetween } from '../src/world/locgen/nav';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 
+import { RANGE } from '../src/mods';
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const D2R = Math.PI / 180;
 
@@ -29,7 +30,7 @@ interface Frame { px: number; pz: number; yaw: number; kind: Kind; boom: number;
 
 /** a calm run on a habitat map (every region is the recipe), as the Hold approach walks use it */
 export function habitatRun(recipe: string, seed: number, species: string): SimContext {
-  return createRun({ seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } }, objectives: { firstAfter: 1e9, secondAfter: 1e9 }, director: { spawnBase: -99 } } as never });
+  return createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: recipe, dusk: recipe, badlands: recipe, frost: recipe } } } as never });
 }
 
 /** walk the trainer from the spawn to the contest point along the direct or the flank approach with the real player

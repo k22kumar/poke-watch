@@ -500,23 +500,23 @@ whether the bank reads as a bank at chase-camera height (the lens collapses agai
 
 ## Roster assumptions (body profiles)
 
-From `rules.player`, `rules.size`, `rules.enemy.roles` and the spawn pools (`profilesFor`). Bodies are movement footprints from the size classes (`body`, docs/SIZING.md "Footprint"), the circle the sim collides with (`World.moveBody`), not the hurtboxes. The species counted are the ones a spawn pool can field (`spawnableSpecies`, src/rules/spawning.ts: region presets, every named preset, every map source's own pool), not the whole roster. Eyes and muzzles stay on the sprite-derived heights, because the sim fires every partner's shots from a fixed +0.8 m.
+**Frozen (2026-11-19, `docs/hero-shooter-pivot.md` §8 step 3).** The sizes, eyes and trainer speed below are constants (`VALIDATED_PROFILES` in `src/world/habitat/mode.ts`), the numbers every shipped map and `docs/habaudit/baseline.json` were accepted against. `profilesFor` no longer reads the roster or the spawn pools, so importing species or deleting the pools can't move a layout. Step, climb and the jump apex still come from `rules.player`. `tests/habitat.test.ts` pins the numbers and fails when the playable roster outgrows the trainer (`measuredProfileInputs`). Changing a constant needs a `HAB_VERSION` bump and a new baseline. The rest of this section records how the numbers were measured when they were accepted.
+
+From `rules.player`, `rules.size`, `rules.enemy.roles` and the spawn pools (`profilesFor`, as it was). Bodies are movement footprints from the size classes (`body`, docs/SIZING.md "Footprint"), the circle the sim collides with (`World.moveBody`), not the hurtboxes. The species counted are the ones a spawn pool can field (`spawnableSpecies`, src/rules/spawning.ts: region presets, every named preset, every map source's own pool), not the whole roster. Eyes and muzzles stay on the sprite-derived heights, because the sim fires every partner's shots from a fixed +0.8 m.
 
 | Profile | Radius | Step / climb | Eyes | Gated |
 | --- | --- | --- | --- | --- |
 | trainer (all 18 playable species; jump and glide off; drops ≤ 4 m) | 0.88 m (the widest partner footprint, an Extra Large partner) | 0.6 / 0.6 m | 0.7–1.42 m | yes |
 | trainer-jump (ordinary jump, apex 1.84 m, any drop) | 0.88 m | 0.6 / 2.44 m | 0.7–1.42 m | only for the no-player-only-perch gate |
 | wild-small (narrowest ground footprint a pool fields) | 0.30 m | 0.6 m | 0.5–0.9 m | yes |
-| wild-elite (widest ground body the director spawns: an elite at ×2, any other ground wild Pokémon at ×1, never below the validated 1.42 m floor) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
+| wild-elite (the widest ground body the survivor director spawned, an elite at ×2; frozen at the validated 1.42 m floor at pivot step 3, and no spawner scales a body since the elite role went) | 1.42 m | 0.6 m | 0.9–1.4 m | yes |
 | boss (widest ground boss footprint, capped at `rules.size.bodyCap`) | 0.95 m | 0.6 m | 1.2–2.5 m | reported (bosses arrive after objectives close) |
-
-With `rules.size.geometry: false` the old figures come back: trainer 0.55 m, wild-small 0.36 m.
 
 When the size classes landed (2026-11), the trainer body grew from 0.55 m to 0.72 m. `scripts/habaudit.ts` was re-run: every accepted seed, layout checksum, geometry hash and route metric for all six recipes was identical, so `HAB_VERSION` stayed 2.
 
 When the profiles moved to movement footprints (2026-11-15: trainer 0.72 → 0.88 m, wild-small 0.29 → 0.30 m, boss 1.8 → 0.95 m), every recipe was regenerated for seeds 1–30: 0 of 180 accepted attempts or layouts changed, so `HAB_VERSION` stayed 2. `scripts/navwalk.ts habitat` then drives real walkers of every class and the trainer (Small and Extra Large) from team B's staging and the spawn to the contest on the built map.
 
-The widest ordinary wild body is Onix's Extra Large 0.93 m (0.97 m with the size flags off; footprints, which the profiles read, are the class `body` and did not move with the size-extremes flip), which is under the 1.42 m floor. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against, so roster edits cannot quietly loosen the approaches. Raising it needs a `HAB_VERSION` bump and a new baseline. Treads are 5 tiles wide so the 2.84 m elite fits on diagonals.
+The widest ordinary wild body is Onix's Extra Large 0.93 m, which is under the 1.42 m floor. The 1.42 m floor is the headroom every shipped map and `docs/habaudit/baseline.json` was accepted against, so roster edits cannot quietly loosen the approaches. Raising it needs a `HAB_VERSION` bump and a new baseline. Treads are 5 tiles wide so the 2.84 m elite the profile was validated with fits on diagonals.
 
 Swim, flight, glide and burrow add nothing essential: flyers already ignore terrain, and frozen water is the only extra-edge state and is optional by construction.
 

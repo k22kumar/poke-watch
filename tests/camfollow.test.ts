@@ -16,13 +16,13 @@ import { World } from '../src/sim/world';
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { botInput } from '../src/sim/bot';
-import { ROLE } from '../src/sim/pools';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { CHASE_CONFIG, ChaseRig, chaseArm, type ViewSample } from '../src/render/camera';
 /** the back distance the framing law gives a subject with no measured art (the fallback outline of its size class) */
 const chaseBoom = (visual: number) => chaseArm({ height: visual, visual }).back;
 
 import { chaseFrameFor } from '../src/render/chaseinput';
+import { addCrowd } from '../scripts/lib/crowd';
 
 /** an authored world whose map is replaced by a private flat plain at height 0 (arrays copied: the base map is shared) */
 function flatWorld() {
@@ -35,7 +35,6 @@ function flatWorld() {
 }
 function scene(species: string) {
   const ctx = createRun({ seed: 1, species });
-  ctx.rules.director.spawnBase = -99;
   ctx.world = flatWorld();
   ctx.enemies.clear(); ctx.bodies.clear(); ctx.projectiles.clear(); ctx.zones.clear();
   const P = ctx.player;
@@ -163,7 +162,7 @@ test('other Pokémon never move the camera: a crowd and a boss arriving around a
     const busy = drive(ctx, 60, 6, look, (t) => {
       // one Pokémon walks in 15 m ahead (the old rig's Combat state), then a crowd of 24 at 9 m and a boss at 12 m (Pressure)
       if (!a && t >= 2) { a = true; put('rattata', 0.5, -14.5); }
-      if (!b && t >= 4) { b = true; for (let k = 0; k < 24; k++) { const g = (k / 24) * Math.PI * 2; put('rattata', 0.5 + Math.cos(g) * 9, 0.5 + Math.sin(g) * 9); } put('sudowoodo', 12.5, 0.5, ROLE.boss); }
+      if (!b && t >= 4) { b = true; for (let k = 0; k < 24; k++) { const g = (k / 24) * Math.PI * 2; put('rattata', 0.5 + Math.cos(g) * 9, 0.5 + Math.sin(g) * 9); } put('sudowoodo', 12.5, 0.5); }
     });
     assert.ok(ctx.enemies.count >= 26, `${sp}: they are there (${ctx.enemies.count})`);
     for (let i = 0; i < quiet.length; i++) assert.deepEqual(busy[i].sample, quiet[i].sample, `${sp}: frame ${i} (t ${busy[i].t.toFixed(2)} s) differs`);
@@ -173,7 +172,7 @@ test('other Pokémon never move the camera: a crowd and a boss arriving around a
 test('a fight on open ground never changes the framing: 20 s of bot combat moves the Pokémon, never the lens against it, the boom or the FOV', () => {
   for (const sp of ['cyndaquil', 'feraligatr']) {
     const ctx = scene(sp);
-    ctx.rules.director.spawnBase = 1.5; // the director spawns a stage-1 wave around the bot
+    addCrowd(ctx, 30); // a chasing crowd around the bot (scripts/lib/crowd.ts)
     const fr = drive(ctx, 60, 20, () => botInput(ctx));
     assert.ok(ctx.enemies.count > 5, `${sp}: enemies came (${ctx.enemies.count})`);
     // the lens offset against the Pokémon: only the stair smoothing of a landing may move it (the bot never jumps here)

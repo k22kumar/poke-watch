@@ -7,12 +7,13 @@ import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { spawnEnemy } from '../src/sim/enemies';
 import { controlReadiness, controlRoster, selectableSpecies, type ReadinessCheck } from '../src/sim/playability';
-import { firstAttacks, openingMove } from '../src/sim/progression';
+import { firstAttacks, openingMove } from '../src/rules/heroes';
 import { SPECIES, SPECIES_BY_ID, starterEligibleSpecies } from '../src/rules/species';
 import { MOVE_BY_KEY } from '../src/rules/moves';
 import { defaultRules } from '../src/rules/defaults';
 import { tagLineOf } from '../src/rules/tags';
 
+import { RANGE } from '../src/mods';
 const art = (ART as unknown as { species: Record<string, { art?: { atlas?: unknown; portrait?: unknown; anims?: Record<string, { frames?: unknown[][] }> } }> }).species;
 
 test('every species in the registry is graded, with a reason for anything short of ready', () => {
@@ -54,9 +55,9 @@ test('opening move: starters keep their curated move, evolved partners take thei
 });
 
 test('every selectable species starts a run with a move and damages an enemy under bot control', () => {
-  const calm = { director: { spawnBase: -99, spawnPerMin: 0, spawnPerStage: 0, swarmEvery: 1e9, eliteEvery: 1e9 }, objectives: { firstAfter: 1e9, secondAfter: 1e9 } };
+  const calm = { };
   for (const r of selectableSpecies()) {
-    const ctx = createRun({ seed: 3, species: r.id, ruleOverrides: calm as never });
+    const ctx = createRun({ mode: RANGE, seed: 3, species: r.id, ruleOverrides: calm as never });
     assert.ok(ctx.player.moves.length >= 1, `${r.id} has an opening move`);
     assert.equal(ctx.player.moves[0].key, r.opening, r.id);
     const P = ctx.player;
@@ -86,6 +87,6 @@ test('host checks extend the grading: a failing block check makes a species unav
   assert.equal(controlReadiness(SPECIES_BY_ID.totodile, undefined, [noArt]).tier, 'ready');
 });
 
-test('the production starter offer is still the six partner lines (the dev roster does not touch `playable`)', () => {
-  assert.deepEqual(starterEligibleSpecies().map((s) => s.id), ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil', 'totodile']);
+test('the production starter offer is the six partner lines and the Caterpie test line (the dev roster does not touch `playable`)', () => {
+  assert.deepEqual(starterEligibleSpecies().map((s) => s.id), ['bulbasaur', 'charmander', 'squirtle', 'chikorita', 'cyndaquil', 'totodile', 'caterpie']);
 });

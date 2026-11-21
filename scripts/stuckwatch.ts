@@ -1,5 +1,6 @@
 // Movement deadlock watch over live runs (docs/SIZING.md "Checking it"): the autoplay bot (src/sim/bot.ts, the playable
-// AI) on every habitat recipe and location, everything live (spawns, swarms, elites, objectives, Hold Raid parties).
+// AI) on every habitat recipe and location, against a chasing crowd of 120 (scripts/lib/crowd.ts; the survivor director
+// was deleted at pivot step 9).
 //   npx tsx scripts/stuckwatch.ts [recipe|location|all] [seeds] [seconds] [firstSeed]
 // A stuck episode is 5 s with less than 0.5 m of net movement while the actor is trying to move:
 //   player  the bot asks to move (|input| > 0.5); `pinned` when it also walked under 2 m in those 5 s (against geometry
@@ -22,8 +23,9 @@ import { navWide, partnerFootprint, partnerHeight } from '../src/rules/sizing';
 import { DIAG_R } from '../src/world/navblocks';
 import { stateHash } from '../src/sim/checksum';
 import { safeIn } from '../src/sim/hazards';
+import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
-import { sizeLabel, sizeOverride } from './lib/sizeflags';
+import { crowd } from './lib/crowd';
 
 export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
 
@@ -34,32 +36,53 @@ export const TRAP_ROOM = 48;
 /** Can the partner get out from where it stands? Both answers move its own footprint with World.moveBody, as the player
  *  system does, so a one-tile exit counts for a Small partner and not for an Extra Large one.
  *    free  of 16 headings, those along which a 0.3 m move goes at least 0.2 m onto ground it may stand on
- *    room  ground it can walk to, in tiles: a flood over the world's 0.5 m lattice from where it stands, each step a 0.5 m
- *          move that arrives (faces it cannot step up stop it; it may drop off a ledge), never into open air or a liquid it is not
- *          safe in (hazards.safeIn); it stops at TRAP_ROOM
+ *    room  ground it can get to, in tiles: a flood over the world's 0.5 m lattice from where it stands, each step a 0.5 m
+ *          move that arrives, walking (faces it cannot step up stop it; it may drop off a ledge) or jumping (a face up to
+ *          the real jump apex, rules.player jumpVelocity² / 2 gravity, plus the step: the trainer-jump climb the habitat
+ *          profiles use), never into open air or a liquid it is not safe in (hazards.safeIn). A liquid it is safe in is a
+ *          way through: a swimmer floats at its surface. It stops at TRAP_ROOM
  *  Reads the world only: moveBody and support write nothing, and the wide field (which a query could rebuild early, and
  *  so change later steering) is never touched. */
 export function escapeOf(ctx: SimContext): { free: number; room: number; trapped: boolean } {
-  const W = ctx.world, P = ctx.player, r = partnerFootprint(P.species, ctx.rules), st = ctx.rules.player.stepHeight, tall = partnerHeight(P.species, ctx.rules);
+  const W = ctx.world, P = ctx.player, R = ctx.rules.player, r = partnerFootprint(P.species, ctx.rules), st = R.stepHeight, tall = partnerHeight(P.species, ctx.rules);
+  const climb = st + (R.jumpVelocity * R.jumpVelocity) / (2 * R.gravity);
+  const contact = ctx.rules.hazards.contact;
   const standable = (x: number, z: number, feet: number) => {
     const g = W.support(x, z, feet);
-    if (g === -Infinity) return -Infinity;
-    const kind = W.liquidAt(x, z, g, ctx.rules.hazards.contact);
-    return kind && !safeIn(ctx, kind, P.species) ? -Infinity : g;
+    const kind = W.liquidAt(x, z, g === -Infinity ? feet : g, contact);
+    if (kind) {
+      if (!safeIn(ctx, kind, P.species)) return -Infinity;
+      // swimming: a liquid it is safe in carries it at the surface, floor or none
+      const k = W.tile(x, z), top = W.map.wlevel ? W.map.wlevel[k] : WATER_Y;
+      return g === -Infinity ? top : Math.max(g, top);
+    }
+    return g;
+  };
+  // a move of (dx, dz) from (x, z) at `feet` that arrives within `tol` of its target: walking first, then jumping
+  const arrives = (x: number, z: number, feet: number, dx: number, dz: number, tol: number) => {
+    for (const up of [st, climb]) {
+      W.moveBody(x, z, dx, dz, feet, up, r, OUT, undefined, tall);
+      if (Math.hypot(OUT[0] - (x + dx), OUT[1] - (z + dz)) <= tol) return true;
+    }
+    return false;
   };
   let free = 0;
   for (let h = 0; h < 16; h++) {
-    const a = (h * Math.PI) / 8;
-    W.moveBody(P.x, P.z, Math.sin(a) * 0.3, Math.cos(a) * 0.3, P.y, st, r, OUT, undefined, tall);
-    if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], P.y) > -Infinity) free++;
+    const a = (h * Math.PI) / 8, dx = Math.sin(a) * 0.3, dz = Math.cos(a) * 0.3;
+    // as before, a heading is free when a 0.3 m move goes at least 0.2 m (sliding along a face counts), walking or jumping
+    for (const up of [st, climb]) {
+      W.moveBody(P.x, P.z, dx, dz, P.y, up, r, OUT, undefined, tall);
+      if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], up === st ? P.y : P.y + climb) > -Infinity) { free++; break; }
+    }
   }
   // the lattice is the world's 0.5 m points (tile centres and corners: the middle of a one-tile and of a two-tile passage,
   // where a footprint with little room to spare fits), seeded with those within 0.75 m the partner reaches from where it is
   const key = (i: number, j: number) => (i + 2048) * 4096 + (j + 2048);
   const cap = TRAP_ROOM * 4, seen = new Map<number, number>(), Q: number[] = [];
   const reach = (x: number, z: number, feet: number, tx: number, tz: number) => {
-    W.moveBody(x, z, tx - x, tz - z, feet, st, r, OUT, undefined, tall);
-    return Math.hypot(OUT[0] - tx, OUT[1] - tz) <= 0.05 ? standable(tx, tz, feet) : -Infinity;
+    if (!arrives(x, z, feet, tx - x, tz - z, 0.05)) return -Infinity;
+    // walked or jumped: it stands on whatever is under it there, up to a jump's height above its feet
+    return standable(tx, tz, feet + climb);
   };
   const i0 = Math.round(P.x * 2), j0 = Math.round(P.z * 2);
   for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) {
@@ -82,7 +105,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
 }
 
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
-  const ctx: SimContext = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...sizeOverride(), ...extra } as never });
+  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra } as never });
   const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;
@@ -92,7 +115,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     const inp = botInput(ctx);
     step(ctx, inp);
     // player
-    if (Math.hypot(inp.mx, inp.mz) > 0.5 && P.faintT < 0 && !ctx.cards.offer) pTrying++;
+    if (Math.hypot(inp.mx, inp.mz) > 0.5 && P.faintT < 0) pTrying++;
     pPath += Math.hypot(P.x - pLx, P.z - pLz); pLx = P.x; pLz = P.z;
     if (ctx.tick % WIN === 0) {
       if (pAnchor && pTrying > WIN * 0.8 && Math.hypot(P.x - pAnchor[0], P.z - pAnchor[1]) < 0.5) { R.playerStuck++;
@@ -114,7 +137,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     for (let e = 0; e < E.hi; e++) {
       if (!E.alive[e]) continue;
       const key = e + ':' + E.gen[e], roles = E.roles[e];
-      const skip = E.hover[e] > 0 || roles & (ROLE.boss | ROLE.ranged | ROLE.hexer | ROLE.healer) || E.heldT[e] > 0 || E.fallV[e] > 0 || E.hzKind[e]
+      const skip = E.hover[e] > 0 || roles & (ROLE.ranged | ROLE.healer) || E.heldT[e] > 0 || E.fallV[e] > 0 || E.hzKind[e]
         || E.sleep[e] > 0 || E.stun[e] > 0 || E.root[e] > 0 || Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 4;
       if (skip) { eAnchor.delete(key); continue; }
       const wide = E.foot[e] > 0 && navWide(E.foot[e], ctx.rules);
@@ -142,7 +165,6 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
 }
 
 if (process.argv[1]?.endsWith('stuckwatch.ts')) {
-  console.log(sizeLabel);
   const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), secs = Number(process.argv[4] ?? 120), first = Number(process.argv[5] ?? 1);
   const extra = process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {};
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];

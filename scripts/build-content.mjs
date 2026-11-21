@@ -6,8 +6,7 @@
 //
 // Reads content/roster.json (which Pokémon play which role), runs scripts/import-pack.mjs for
 // the partners (with their evolutions) and for the wild Pokémon and bosses, then writes:
-//   src/content/pokedex.ts  species, moves and the type chart (imported by the sim; spawn pools are authored in
-//                           src/rules/spawning.ts, so changing one needs no content rebuild)
+//   src/content/pokedex.ts  species, moves and the type chart (imported by the sim)
 //   src/content/art.json    sprite atlases, animation frames, portraits, cries, credits
 //                           (loaded by the browser at boot)
 //   content/report.json     provenance of every source file (URL + SHA-256) and warnings
@@ -126,6 +125,24 @@ for (const s of enemies.pack.species) {
   }
   species.push(out);
 }
+// evolution links for every species, not only the partner lines (which carry theirs from the importer's chain): a
+// species whose single canonical next form was also imported links to it. No evolveLevel is written for these, so the
+// survivor level trigger never fires on them; the Breakthrough reads evolvesTo alone. A branching species stays
+// unlinked (how a Breakthrough would choose a branch is an open design question, docs/hero-shooter-pivot.md §11).
+{
+  const byDex = new Map();
+  for (const s of species) { const l = byDex.get(s.dex) ?? []; l.push(s); byDex.set(s.dex, l); }
+  const unlinked = [];
+  for (const s of species) {
+    if (s.evolvesTo || !s.evoNext) continue;
+    const to = (byDex.get(s.evoNext.toDex) ?? []);
+    const hit = to.find((t) => t.id === s.evoNext.to) ?? (to.length === 1 ? to[0] : undefined);
+    if (!hit) continue;
+    if (s.evoNext.branches > 1) { unlinked.push(`${s.id} (${s.evoNext.branches} branches)`); continue; }
+    s.evolvesTo = hit.id;
+  }
+  if (unlinked.length) console.log(`  branching, left unlinked: ${unlinked.join(', ')}`);
+}
 // cries: keep the original OGG (Vorbis) recording and add an MP3 transcode for browsers that
 // can't decode Vorbis; measure each recording's mean loudness for the report
 const ffmpeg = (() => { try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); return true; } catch { return false; } })();
@@ -211,23 +228,6 @@ fs.writeFileSync(path.join(ROOT, 'content/report.json'), JSON.stringify({ genera
 if (skipped.length) console.log(`\n${skipped.length} roster species skipped (no usable art; a later fetch picks them up):\n  ` + skipped.map((k) => `${k.id}: ${k.reason}`).join('\n  '));
 // canonical catalogue (built above): its provenance is appended to the report the role lane just wrote
 reportCatalogue(catalogue);
-// music slots: licensed recordings listed in content/music/manifest.json (none ship by default)
-{
-  const man = path.join(ROOT, 'content/music/manifest.json');
-  const out = {};
-  if (fs.existsSync(man)) {
-    const M = JSON.parse(fs.readFileSync(man, 'utf8')).slots ?? {};
-    for (const [state, sl] of Object.entries(M)) {
-      const f = path.join(ROOT, 'content/music', sl.file);
-      if (!fs.existsSync(f)) { console.log(`  music slot ${state}: ${sl.file} not found, skipped`); continue; }
-      const ext = path.extname(f).slice(1).toLowerCase();
-      const mime = ext === 'mp3' ? 'audio/mpeg' : ext === 'wav' ? 'audio/wav' : 'audio/ogg';
-      out[state] = { src: `data:${mime};base64,${fs.readFileSync(f).toString('base64')}`, loopStart: sl.loopStart ?? 0, loopEnd: sl.loopEnd ?? 0, gain: sl.gain, title: sl.title, source: sl.source, license: sl.license };
-    }
-  }
-  fs.writeFileSync(path.join(ROOT, 'src/content/music.json'), JSON.stringify(out));
-  console.log(`music slots: ${Object.keys(out).length} recording(s) embedded; other states use the original tracks`);
-}
 // UI icons (PokeAPI/sprites checkout: types + items listed in content/icons.json)
 {
   const spec = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/icons.json'), 'utf8'));

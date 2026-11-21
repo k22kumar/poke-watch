@@ -25,7 +25,7 @@ export interface PropRule {
   w: number; h: number;
   /** wall = never passable; platform height (m) = can be jumped onto; 0 = walkable */
   wall?: boolean; platform?: number;
-  /** wall props (R1b, rules.world.wallTops; docs/SIZING.md "Wall tops"): the physical height (m) of the prop above its
+  /** wall props (R1b; docs/SIZING.md "Wall tops"): the physical height (m) of the prop above its
    *  footing, the one height every reader that opts in shares (World.wallTop). It is the tallest drawn variant over every
    *  biome palette, unstretched (the sprite's opaque rows ÷ 16 px per m, the shader's alpha cut), rounded up to 0.05 m;
    *  tests/walltops.test.ts measures the painters and fails when art and table drift apart. Billboard stretch and lean at
@@ -90,6 +90,9 @@ export interface ArenaMap {
   /** habitat maps only (src/world/habitat): the fluid surface height per water tile (m), so a river can run on a
    *  plateau and fall into a pool, or a lava lake sit in a crater. Absent = every water surface at WATER_Y. */
   wlevel?: Float32Array;
+  /** authored arenas only: tiles where a throwable body (the `cobble` template, src/rules/materials.ts) lies at the start
+   *  (the training range, docs/RANGE.md) */
+  throwables?: [number, number][];
   /** procedural regions only (src/world/gen): how the map was made, its habitat and encounter spaces */
   gen?: import('./gen/context').GenMeta;
 }

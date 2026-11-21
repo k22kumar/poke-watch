@@ -18,7 +18,6 @@ import { applyAilment } from './combat';
 import { AG } from '../rules/reactions';
 import { ccApply, coatEnemy, coatMember } from './coats';
 import { onHpLoss } from './squad';
-import { ROLE } from './pools';
 import type { SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { propAgent, propPass } from './props';
@@ -114,7 +113,7 @@ const WET_TIME = 30, BURN_TIME = 4, FROZEN_TIME = 12, ASH_TIME = 45, RUBBLE_TIME
 function react(ctx: SimContext, k: number, agent: Agent) {
   const C = ctx.world.cells;
   // W4: a material prop on the tile takes the agent by the same table (rules/surfaces.ts)
-  if (ctx.rules.surfaces.enabled) propAgent(ctx, k, agent);
+  propAgent(ctx, k, agent);
   if (ctx.world.map.wall[k]) return;
   const s = C.state[k], water = C.isWater(k), grass = C.isGrass(k);
   const wetTime = ctx.world.biome.id === 'badlands' ? 8 : WET_TIME;
@@ -189,14 +188,14 @@ function freezeCreatures(ctx: SimContext, k: number) {
     const e = ctx.grid.result[q];
     if (!E.alive[e] || E.hover[e] > 0 || C.tile(E.x[e], E.z[e]) !== k) continue;
     if (ctx.speciesIndex[E.species[e]].elements.includes('frost')) continue;
-    const t = ccApply(ctx, e, E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.3 : 1.2);
+    const t = ccApply(ctx, e, 1.2);
     if (t > 0) { E.stun[e] = Math.max(E.stun[e], t); E.frozen[e] = Math.max(E.frozen[e], t); }
   }
 }
 
 /** Phase 8b Burrow (Create): a Grass patch of radius r on open ground; returns the tiles it covered */
 export function brambleAt(ctx: SimContext, x: number, z: number, r: number): number {
-  const C = ctx.world.cells, B = ctx.rules.build;
+  const C = ctx.world.cells, B = ctx.rules.reactions;
   let n = 0;
   const ri = Math.ceil(r);
   for (let dz = -ri; dz <= ri; dz++) for (let dx = -ri; dx <= ri; dx++) {
@@ -227,7 +226,7 @@ export function footing(ctx: SimContext, x: number, z: number, elements: readonl
   const s = ctx.world.cells.at(x, z);
   if (s === CS.frozen) return F_ICE;
   if (s === CS.rubble && !elements.some((e) => HARD.includes(e))) return F_RUBBLE;
-  if (s === CS.bramble && enemy && !elements.includes('bloom')) return [ctx.rules.build.brambleSlow, 1];
+  if (s === CS.bramble && enemy && !elements.includes('bloom')) return [ctx.rules.reactions.brambleSlow, 1];
   const k = ctx.world.tile(x, z);
   if (!ctx.world.map.gen || k < 0) return F_NONE;
   const terrain = ctx.world.map.terrain[k], habitat = ctx.world.habitatAt(x, z), biome = ctx.world.biome.id;
@@ -296,7 +295,7 @@ export const cellSystem = {
     if (C.navDirty) { C.navDirty = false; ctx.world.refreshNav(); }
     if (C.melted.length) settleMelted(ctx);
     // W4: burning props tick, spread and burn out; the watchdog checks reachability
-    if (ctx.rules.surfaces.enabled) propPass(ctx, pdt);
+    propPass(ctx, pdt);
     // Phase 8a: fire changes the flow field (burning tiles cost rules.caps.burnNavCost), so enemies route around it
     if (ctx.world.burnCost > 1 && (nBurn !== C.burning || sig !== C.burnSig)) {
       C.burning = nBurn; C.burnSig = sig;
@@ -310,10 +309,10 @@ export const cellSystem = {
       const k = C.tile(E.x[e], E.z[e]);
       if (k < 0) continue;
       const els = ctx.speciesIndex[E.species[e]].elements;
-      if (C.state[k] === CS.burning && !els.includes('blaze') && E.burn[e] <= 0) applyAilment(ctx, e, 'burn', 6 + P.level * 0.8);
+      if (C.state[k] === CS.burning && !els.includes('blaze') && E.burn[e] <= 0) applyAilment(ctx, e, 'burn', ctx.rules.reactions.tileBurn);
       // Electric types ignore the flood, and so do Ground types (Electric does nothing to Ground)
       const charged = C.charge[k] > 0 && !els.includes('volt') && !els.includes('quake') && E.y[e] - W.height(E.x[e], E.z[e]) < 0.4;
-      if (charged) { const t = ccApply(ctx, e, E.roles[e] & (ROLE.boss | ROLE.alpha) ? 0.2 : 0.6); if (t > 0) E.stun[e] = Math.max(E.stun[e], t); }
+      if (charged) { const t = ccApply(ctx, e, 0.6); if (t > 0) E.stun[e] = Math.max(E.stun[e], t); }
       // tiles coat what stands on them (deep), once a second per creature
       if ((passN + e) % 10 === 0) {
         const ag = tileAgent(C, k, charged);
@@ -367,7 +366,7 @@ function settleMelted(ctx: SimContext) {
       const pf = partnerFootprint(ctx.player.species, ctx.rules);
       const [x, z] = W.shore(P.x, P.z, pf || partnerRadius(ctx.player.species, ctx.rules), P.y) ?? (pf > 0 ? W.nearestFit(P.x, P.z, pf, navWide(pf, ctx.rules), true, partnerHeight(ctx.player.species, ctx.rules)) : W.nearestWalkable(P.x, P.z));
       P.x = x; P.z = z; P.y = W.height(x, z); P.vx = P.vz = P.kx = P.kz = 0; P.vy = 0; P.grounded = true;
-      const amt = Math.min(P.maxHp * I.dunk, Math.max(0, (P.hp - 1) / ctx.rules.mode.difficulty));
+      const amt = Math.min(P.maxHp * I.dunk, Math.max(0, P.hp - 1));
       if (amt > 0) { const before = P.hp; hurtPlayer(ctx, amt, 'dunk'); if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'dunk', who: 'player', id: -1, amount: before - P.hp, x, z }); }
     }
     for (let e = 0; e < E.hi && actors; e++) {
@@ -392,15 +391,15 @@ function settleMelted(ctx: SimContext) {
 /** environmental damage to the player: no Guard, no knockback; it still respects dash i-frames */
 export function hurtPlayer(ctx: SimContext, amount: number, kind: string) {
   const P = ctx.player;
-  if (P.dashT > 0 || P.m.fainted || P.faintT >= 0) return;
+  if (P.dashT > 0 || P.m.fainted || P.faintT >= 0 || P.breakT > 0) return; // a Breakthrough is invulnerable (sim/evolution.ts)
   setSrc('tile', kind);
   const r = rec(ctx, 'tile', 'hit', true);
-  if (r) { r.amount = amount * ctx.rules.mode.difficulty; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }
-  P.hp -= amount * ctx.rules.mode.difficulty;
+  if (r) { r.amount = amount; r.tgt = 'player'; r.tgtName = P.species.name; r.type = kind === 'burn' || kind === 'vent' ? 'blaze' : kind === 'dunk' ? 'frost' : 'volt'; r.x = P.x; r.z = P.z; }
+  P.hp -= amount;
   P.hurtFlash = 0.2;
   ctx.stats.damageTaken += amount;
   ctx.events.push({ t: 'playerHurt', amount, x: P.x, z: P.z });
   ctx.events.push({ t: 'cellHurt', kind });
   if (P.hp <= 0) P.hp = 0;
-  onHpLoss(ctx, amount * ctx.rules.mode.difficulty);
+  onHpLoss(ctx, amount);
 }
