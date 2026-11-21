@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRun, step } from '../src/sim/run';
-import { addMember, onHpLoss } from '../src/sim/squad';
+import { addLoadoutMember as addMember, onHpLoss } from '../src/sim/squad';
 import { tagDefOf, tagSpec } from '../src/sim/swap';
 import { damagePlayer } from '../src/sim/combat';
 import { lineage } from '../src/rules/heroes';
@@ -13,7 +13,7 @@ import { tagLineOf } from '../src/rules/tags';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 function calm(species = 'totodile'): SimContext {
-  const ctx = createRun({ seed: 5, species, ruleOverrides: { bodies: { looseRocks: 0 } } as never });
+  const ctx = createRun({ seed: 5, species, ruleOverrides: { bodies: { looseRocks: 0 }, hero: { loadout: 3 } } as never });
   for (let i = 0; i < 6; i++) step(ctx, NO_INPUT);
   return ctx;
 }

@@ -15,7 +15,7 @@
 import { writeFileSync } from 'node:fs';
 import { createRun, startStage, step } from '../src/sim/run';
 import { startObjective } from '../src/sim/objectives';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember } from '../src/sim/squad';
 import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
 import { STAGES } from '../src/rules/stages';
@@ -166,9 +166,9 @@ export function playHold(o: TacOpts): TacResult {
   const stage = o.stage ?? (isHab ? biomeStage(HABITATS[map].biomeFit[0]) : map === 'viridian-forest' ? biomeStage('meadow') : map === 'mt-moon' ? biomeStage('dusk') : 0);
   const horde = o.horde ?? true;
   const locations: Record<string, string> = map === 'classic' ? { meadow: '', dusk: '', badlands: '', frost: '' } : { meadow: map, dusk: map, badlands: map, frost: map };
-  const ctx = createRun({ mode: horde ? undefined : RANGE, mods: horde ? [swap, crowd(120)] : [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}) } as never });
+  const ctx = createRun({ mode: horde ? undefined : RANGE, mods: horde ? [swap, crowd(120)] : [swap], seed: o.runSeed ?? 1, species: (o.squad ?? ['bulbasaur'])[0], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: o.seed, locations }, ...(o.recycle === false ? { enemy: { despawnDistance: 1e9 } } : {}), hero: { loadout: 3 } } as never });
   if (stage) startStage(ctx, stage);
-  for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addMember(ctx, id);
+  for (const id of (o.squad ?? ['bulbasaur', 'mareep', 'geodude']).slice(1)) addLoadoutMember(ctx, id);
   ctx.player.hp = ctx.player.maxHp;
   for (const m of ctx.player.squad) m.hp = m.maxHp;
   const W = ctx.world, H = W.hab, E = ctx.enemies, P = ctx.player, n = W.w * W.h;

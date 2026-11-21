@@ -63,6 +63,7 @@ more than one, the squad strip shows each Pokémon, its HP and grey health, its 
 
 ## Test hooks
 
-`RANGE_SWAP` has no URL or menu entry; its replay scenario (`range-swap`) and `tests/squad.test.ts` drive it. In the
-browser, `?go=1&species=totodile&squad=mareep,geodude` adds the members to a `range` run, where nothing swaps them.
+`RANGE_SWAP` has no URL or menu entry; its replay scenario (`range-swap`) and `tests/squad.test.ts` drive it. Harnesses add
+members with `addLoadoutMember` under `hero.loadout` > 1 (the `?squad=` URL parameter and `addMember`, the recruit path,
+went at the merge check).
 Survivor-era measurements (the G4 refactor gate, H2 rotation damage, bot survival) are on the `survivor-final` tag.

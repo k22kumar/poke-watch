@@ -19,7 +19,6 @@ import { HABITAT_TARGETS, RANGE_TARGETS } from './rules/targets';
 import { controlRoster, type ReadinessCheck } from './sim/playability';
 import { defaultRules } from './rules/defaults';
 import { runSizeRules } from './rules/sizing';
-import { addMember } from './sim/squad';
 import { startObjective } from './sim/objectives';
 import { createRun, startStage, step } from './sim/run';
 import { artMetrics } from './render/metrics';
@@ -249,7 +248,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       case 'cast': audio.release(e.key, e.archetype, e.element); break;
       case 'hit': audio.impact(e.element, e.crit, e.eff); break;
       case 'kill': audio.kill(); break;
-      case 'levelUp': audio.levelUp(); audio.cry(c.player.species.id, { volume: 0.35, gate: 2 }); break;
       case 'playerHurt':
         ui.hurt(); audio.hurt();
         if (god) c.player.hp = Math.max(c.player.hp, c.player.maxHp * 0.5);
@@ -277,11 +275,10 @@ function onEvents(c: SimContext, events: SimEvent[]) {
       // squad (blueprint section 6): the incoming Pokémon calls out as it tags in
       case 'tag': audio.dash(); audio.cry(e.to, { volume: e.free ? 0.6 : 0.4, gate: 0.25 }); break;
       case 'faint': if (!e.out) { audio.cry(e.species, { volume: 0.6, pitch: 0.85, gate: 0 }); ui.banner(`${SPECIES_BY_ID[e.species].name} fainted!`, 'The next Pokémon is coming in', 1.6); } break;
-      case 'recruit': audio.levelUp(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.banner(`${SPECIES_BY_ID[e.species].name} joined your squad!`, 'Tag it in with Q (tap) or hold Q + click', 2.6); break;
       // objectives and the director (blueprint section 9)
       case 'objective': {
         if (e.phase === 'offer') { ui.banner('Hold the pad!', 'Stand on it for 30 s', 2.6); audio.chest(); }
-        else if (e.phase === 'done') { ui.banner('Pad charged!', '', 2.2); audio.levelUp(); audio.onMusicClimax(); }
+        else if (e.phase === 'done') { ui.banner('Pad charged!', '', 2.2); audio.onMusicClimax(); }
         else if (e.phase === 'expired') ui.banner('The objective slipped away', 'Here they come…', 1.8);
         else if (e.phase === 'failed') audio.brace();
         break;
@@ -300,7 +297,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
           else if (e.phase === 'recover') renderer.snapCamera(c);
         }
         break;
-      case 'benchEvolve': audio.evolveDone(); ui.banner(`${SPECIES_BY_ID[e.from].name} evolved into ${SPECIES_BY_ID[e.to].name}!`, 'On the bench', 2); break;
     }
   }
 }
@@ -544,8 +540,6 @@ async function boot() {
     if (params.has('stage') && ctx) { startStage(ctx, Number(params.get('stage'))); renderer.setStage(ctx); audio.setBiome(ctx.world.biome); }
     if (params.has('stageTime') && ctx) { const t = Number(params.get('stageTime')); (ctx as SimContext).stageTime = t; (ctx as SimContext).time = t; }
     if (params.has('tp') && ctx) { const [tx, ty] = params.get('tp')!.split(',').map(Number); const c = ctx as SimContext; const h = c.world.half; c.player.x = c.player.px = tx - h + 0.5; c.player.z = c.player.pz = ty - h + 0.5; c.player.y = c.player.py = c.world.height(c.player.x, c.player.z); renderer.setStage(c); }
-    // squad=mareep,geodude: recruits join at once, at squad level (testing)
-    if (params.has('squad') && ctx) { for (const id of params.get('squad')!.split(',')) addMember(ctx, id); }
   } else { ui.title(); audio.titleMusic(); }
   (window as any).pokewatch.ready = true;
   document.title = 'Poke-Watch';

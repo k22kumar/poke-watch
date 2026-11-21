@@ -9,7 +9,7 @@ import { createBody, forceOnShots, interceptPass, resolve } from '../src/sim/cap
 import { shootHostile, spawnEnemy } from '../src/sim/enemies';
 import { compileMove } from '../src/sim/moves';
 import { tagSpec } from '../src/sim/swap';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember } from '../src/sim/squad';
 import { CS } from '../src/sim/cells';
 import { PK } from '../src/sim/pools';
 import { stateHash } from '../src/sim/checksum';
@@ -92,8 +92,8 @@ test('regression: compiled Push and Hold Power equal the v10 derivation for ever
 });
 
 test('a Create Tag Action carries create:rock; shots weigh 0 and lobs or heavy shots 1', () => {
-  const ctx = calm('cyndaquil');
-  const m = addMember(ctx, 'geodude')!;
+  const ctx = calm('cyndaquil', { hero: { loadout: 2 } });
+  const m = addLoadoutMember(ctx, 'geodude')!;
   const spec = tagSpec(ctx, m)!;
   assert.ok(capTags(spec.caps).includes('create:rock'));
   assert.equal(capOf(compileCaps({ key: 'x', element: 'tide', cls: 'special', archetype: 'beam', power: 110 }), 'push'), 3);

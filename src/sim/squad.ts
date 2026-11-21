@@ -95,23 +95,6 @@ export function addLoadoutMember(ctx: SimContext, id: string): Member | null {
   return m;
 }
 
-// ------------------------------------------------------------------ squad members
-/** add a Pokémon to the squad with its first moves (harnesses and the ?squad= dev parameter; recruiting was deleted at
- *  hero-shooter pivot step 9) */
-export function addMember(ctx: SimContext, id: string): Member | null {
-  const P = ctx.player;
-  const sp = SPECIES_BY_ID[id];
-  if (!sp || P.squad.length >= ctx.rules.squad.max) return null;
-  const m = makeMember(sp);
-  P.squad.push(m);
-  recomputeMember(ctx, m);
-  m.hp = m.maxHp;
-  // its first two attacks from its cross-game level-up moves, the earliest first (it becomes the basic attack)
-  for (const k of firstAttacks(sp, P.level, 2)) { m.moves.push({ key: k, level: ctx.rules.hero.moveLevel, cd: 0.3, spec: compileMove(ctx.rules, k) }); m.learned.add(k); }
-  ctx.events.push({ t: 'recruit', species: id });
-  return m;
-}
-
 /** the squad's core, any size: the field timer and each member's Flash Fire timer. Swapping (Tag input, Tag Actions,
  *  the faint replacement, grey health and the bench) is the opt-in swap system (src/sim/swap.ts). */
 export const squadSystem = {

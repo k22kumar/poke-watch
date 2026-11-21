@@ -474,10 +474,6 @@ export class Renderer {
           this.rings.push({ x: e.x, z: e.z, r: 2.4, c: ELC[e.element], life: 0.4, max: 0.4, kind: 1, grow: true });
           break;
         }
-        case 'levelUp':
-          for (let k = 0; k < 24; k++) { const a = rnd(0, TAU); this.px.spawn('star', P.x + Math.cos(a) * 0.8, P.y + 0.2, P.z + Math.sin(a) * 0.8, Math.cos(a) * 1.5, rnd(3, 7), Math.sin(a) * 1.5, 0.9, 1, 2, rnd(-4, 4)); }
-          this.rings.push({ x: P.x, z: P.z, r: 3, c: [1, 0.95, 0.5], life: 0.5, max: 0.5, kind: 1, grow: true });
-          break;
         case 'evolveEnd':
           for (let k = 0; k < 70; k++) { const a = rnd(0, TAU); this.px.spawn(k % 3 ? 'star' : 'impact', P.x, P.y + 1, P.z, Math.cos(a) * rnd(2, 9), rnd(1, 9), Math.sin(a) * rnd(2, 9), rnd(0.6, 1.2), 1, 4, rnd(-5, 5)); }
           this.rings.push({ x: P.x, z: P.z, r: 7, c: [1, 1, 1], life: 0.8, max: 0.8, kind: 1, grow: true });

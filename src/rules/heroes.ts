@@ -33,7 +33,7 @@ export function lineage(sp: SpeciesDef): SpeciesDef[] {
 }
 
 /** The first attacks of a Pokémon arriving at `level`: its earliest non-status level-up moves (the first becomes the
- *  basic attack), else any non-status move it learns. Recruits join with these (sim/squad.ts addMember). */
+ *  basic attack), else any non-status move it learns. */
 export function firstAttacks(sp: SpeciesDef, level: number, count = 2): string[] {
   const keys = learnsetOf(sp).filter(([lv, k]) => lv <= Math.max(level, 1) && MOVE_BY_KEY[k] && MOVE_BY_KEY[k].cls !== 'status').map(([, k]) => k);
   const out = [...new Set(keys)].slice(0, count);

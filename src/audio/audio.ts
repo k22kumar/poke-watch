@@ -118,16 +118,12 @@ export class Audio {
   charge(_key: string, _dur: number) {}
   release(_key: string, _archetype: string, _element: Element) {}
   impact(_element: Element, _crit: boolean, _eff: number) {}
-  cast(_arch: string) {}
-  hit(_crit: boolean) {}
   kill() {}
   /** the overworld's warp (src/overworld/game.ts): a silent hook since the SFX cut */
   portal() {}
   pickup() {}
-  levelUp() {}
   hurt() {}
   boss() {}
-  evolve() {}
   evolveDone() {}
   ui() {}
   uiMove() {}
@@ -173,7 +169,6 @@ export class Audio {
   /** start of a run or a region */
   setBiome(b: BiomeDef) { clearTimeout(this.victoryTimer); if (this.state === 'title' || this.state === 'ended') { this.scoreDirector.reset(); this.adaptive?.cancelCues(); } const changed = b.id !== this.biome; this.biome = b.id; if (changed || this.state !== 'explore') this.go('explore', changed ? 'region ' + b.id : 'run start'); }
   onBossSpawn() { this.go('boss', 'boss appears'); }
-  onBossDead() { this.scoreDirector.reset(); this.stingerPlay('victory'); this.go('explore', 'boss defeated'); }
   onMusicClimax() { this.scoreDirector.emphasize(); this.adaptive?.setState('climax'); }
   onEvolveStart() { this.resumeAfterEvolution = this.state === 'evolution' ? 'explore' : this.state; this.go('evolution', 'evolution'); }
   onEvolveEnd() { this.stingerPlay('evolved'); this.go(this.resumeAfterEvolution === 'none' ? 'explore' : this.resumeAfterEvolution, 'evolution done'); }

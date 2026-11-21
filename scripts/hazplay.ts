@@ -9,7 +9,7 @@ import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import { applyAgent } from '../src/sim/cells';
 import { spawnEnemy } from '../src/sim/enemies';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember as addMember } from '../src/sim/squad';
 import { compileMove } from '../src/sim/moves';
 import { DECK_REACH } from '../src/sim/world';
 
@@ -19,7 +19,7 @@ export interface Case { id: string; map: string; seed: number; tile: string; ok:
 /** a calm run on one map for every stage (no spawns, no objectives); `hz` changes the sim cadence */
 export function mkRun(map: string, seed: number, species: string, extra: Record<string, unknown> = {}): SimContext {
   // knockouts end the run here (hero.respawn 0): these cases measure the hazard's knockout, not the range's respawn
-  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra, hero: { respawn: 0, ...((extra as { hero?: object }).hero ?? {}) } } as never });
+  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra, hero: { respawn: 0, loadout: 3, ...((extra as { hero?: object }).hero ?? {}) } } as never });
 }
 const centre = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 const tileName = (ctx: SimContext, k: number) => `${k % ctx.world.w},${(k / ctx.world.w) | 0}`;

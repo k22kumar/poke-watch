@@ -32,7 +32,7 @@ import { startObjective } from '../src/sim/objectives';
 import { spawnEnemy } from '../src/sim/enemies';
 import { shoreFor, tidePhase } from '../src/sim/hazards';
 import { compileMove } from '../src/sim/moves';
-import { addMember } from '../src/sim/squad';
+import { addLoadoutMember as addMember } from '../src/sim/squad';
 import { ROLE } from '../src/sim/pools';
 import { SPECIES } from '../src/rules/species';
 import { defaultRules } from '../src/rules/defaults';
@@ -57,7 +57,7 @@ export function mkTide(seed: number, species = 'cyndaquil', tide?: Tide): SimCon
   return ctx;
 }
 function mkRaw(seed: number, species: string, tide?: Tide): SimContext {
-  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, ...(tide ? { habitat: { tide } } : {}) } as never });
+  return createRun({ mode: RANGE, mods: [swap], seed: 1, species, ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: RECIPE, dusk: RECIPE, badlands: RECIPE, frost: RECIPE } }, ...(tide ? { habitat: { tide } } : {}), hero: { loadout: 3 } } as never });
 }
 const ALWAYS_HIGH: Tide = { low: 0, warn: 0 };
 const ALWAYS_LOW: Tide = { low: 1e6 };

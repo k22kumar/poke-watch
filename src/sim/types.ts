@@ -300,7 +300,6 @@ export type SimEvent =
   | { t: 'smite'; x: number; z: number; element: Element }
   | { t: 'playerHurt'; amount: number; x: number; z: number }
   | { t: 'heal'; amount: number }
-  | { t: 'levelUp'; level: number }
   | { t: 'evolveStart'; from: string; to: string }
   | { t: 'evolveEnd'; species: string }
   | { t: 'respawn'; species: string }
@@ -337,8 +336,6 @@ export type SimEvent =
   | { t: 'tag'; from: string; to: string; free: boolean }
   | { t: 'tagAction'; species: string; key: string; element: Element; x: number; z: number }
   | { t: 'faint'; species: string; out: boolean }
-  | { t: 'recruit'; species: string }
-  | { t: 'benchEvolve'; from: string; to: string }
   | { t: 'objective'; kind: ObjectiveKind; phase: 'offer' | 'active' | 'done' | 'failed' | 'expired'; x: number; z: number; reward?: string }
   | { t: 'block'; x: number; z: number; enemy: number }
   | { t: 'react'; kind: 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel'; x: number; z: number; r: number; deep: boolean; n: number };
