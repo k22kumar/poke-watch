@@ -189,7 +189,8 @@ function startRun(mode: Mode, species: string, seed: number) {
   current = { mode, species, seed };
   // the URL beats the saved settings: ?loc= names the map, and ?world= asks for handcrafted or classic regions, so the
   // saved Map (Settings → World → Map) applies only when the URL says neither
-  const loc = params.get('loc') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
+  // ?map= is the same as ?loc= (a habitat recipe or a Pokémon location, `id` or `id/variant`)
+  const loc = params.get('loc') ?? params.get('map') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
   const world = loc ? 'locations' : params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
   // the range Mode plays the training range arena with its target set (docs/hero-shooter-pivot.md Q16); a map named in
   // the URL (?loc=, ?world=) keeps that map, with the habitat target set anchored on a habitat map's contest
@@ -535,10 +536,11 @@ async function boot() {
   renderer.setStage(attract);
   ui.loading(1);
   requestAnimationFrame(frame);
-  // URL shortcuts for testing: ?species=hootz&mode=classic&seed=3&go=1&autoplay=1&speed=4
+  // URL shortcuts for testing: ?go=1&species=charmander&mode=range&seed=3&autoplay=1&speed=4; ?go=1&mode=hold&map=river-gorge
   if (params.has('go')) {
     const mode = MODES.find((m) => m.id === params.get('mode')) ?? MODES[0];
     startRun(mode, params.get('species') ?? DEFAULT_SPECIES, Number(params.get('seed') ?? 1));
+    if (mode.id === 'hold' && ctx && !(ctx as SimContext).world.hab) console.warn('mode=hold opens a Hold only on a habitat map: add &map=river-gorge (or another habitat recipe)');
     if (params.has('stage') && ctx) { startStage(ctx, Number(params.get('stage'))); renderer.setStage(ctx); audio.setBiome(ctx.world.biome); }
     if (params.has('stageTime') && ctx) { const t = Number(params.get('stageTime')); (ctx as SimContext).stageTime = t; (ctx as SimContext).time = t; }
     if (params.has('tp') && ctx) { const [tx, ty] = params.get('tp')!.split(',').map(Number); const c = ctx as SimContext; const h = c.world.half; c.player.x = c.player.px = tx - h + 0.5; c.player.z = c.player.pz = ty - h + 0.5; c.player.y = c.player.py = c.world.height(c.player.x, c.player.z); renderer.setStage(c); }

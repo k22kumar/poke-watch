@@ -6,7 +6,7 @@ import { Hasher } from '../src/core/util';
 import { defaultRules } from '../src/rules/defaults';
 import { MOVES } from '../src/rules/moves';
 import { SPECIES, SPECIES_BY_ID } from '../src/rules/species';
-import { MODES, RANGE } from '../src/mods';
+import { MODES, RANGE, TITLE_MODES } from '../src/mods';
 import type { Mod } from '../src/mods/types';
 import { classify, compileMove } from '../src/sim/moves';
 import { botInput } from '../src/sim/bot';
@@ -92,6 +92,7 @@ test('mods and modes plug in without engine changes', () => {
   assert.equal(ctx.rules.damage.stab, 1.8, 'a mod\'s rules merge over the mode\'s');
   assert.equal(ctx.hooks.modifyDamage.length, 1);
   assert.deepEqual(MODES.map((m) => m.id), ['range', 'hold'], 'the shipped modes (Q48)');
+  assert.deepEqual(TITLE_MODES.map((m) => m.id), ['range'], 'Hold is URL-only until T2 (?go=1&mode=hold&map=<habitat>)');
   while (ctx.time < 60 && !ended(ctx)) step(ctx, botInput(ctx));
   assert.equal(kills, ctx.stats.kills);
   assert.ok(kills > 0 && hits > 0);

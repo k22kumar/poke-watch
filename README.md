@@ -23,7 +23,7 @@ The survivor game this grew out of (waves, XP gems, cards, bosses, stages) is on
 
 Or run it yourself: `npm ci && npm run build`, then open `dist/index.html` in Chrome, Edge, Firefox or Safari (WebGL2 required, keyboard / mouse, gamepad or touch; no server needed). For live editing use `npm run dev`.
 
-Title → mode (**Training range** or **Hold**) → hero pick (the prototype list, featured lines first: `PROTOTYPE` and `FEATURED` in `src/rules/heroes.ts`) → the match. The range has no fail state and no end: targets stand, patrol and strafe, respawn on fixed tick counts, and a fainted hero comes back at the spawn after 3 s (`docs/RANGE.md`). Hold opens a point on a habitat map (pick one in Settings → World → Map, or `?loc=river-gorge`): stand on it for 30 s while the raid party comes from team B's staging (`src/sim/modes/hold.ts`, `docs/HABITATS.md`).
+Title → **Training range** → hero pick (the prototype list, featured lines first: `PROTOTYPE` and `FEATURED` in `src/rules/heroes.ts`) → the match. The range has no fail state and no end: targets stand, patrol and strafe, respawn on fixed tick counts, and a fainted hero comes back at the spawn after 3 s (`docs/RANGE.md`). **Hold** is off the title screen until the 3v3 (T2) and reached by URL: `?go=1&mode=hold&map=river-gorge` (any habitat recipe) opens a point on a habitat map; stand on it for 30 s while the raid party comes from team B's staging (`src/sim/modes/hold.ts`, `docs/HABITATS.md`).
 
 | Action | Keys |
 |---|---|
@@ -59,7 +59,7 @@ npm run build
 
 ### URL parameters (testing)
 
-`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range` or `hold`). Also: `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=gen|authored` (the classic generator or the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
+`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range`, or `hold` with a habitat `map`). Also: `map=river-gorge` or `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=gen|authored` (the classic generator or the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
 
 ## Combat
 
@@ -124,7 +124,7 @@ src/
              enemies.ts (behaviours, navigation), targets.ts, modes/hold.ts, evolution.ts (Breakthrough), swap.ts,
              moves.ts, aim.ts and spatial.ts (3D aim and queries), effects.ts, combat.ts, bodies.ts, capabilities.ts,
              caplog.ts, carry.ts, actions.ts, cells.ts, coats.ts, hazards.ts, weather.ts, placement.ts, checksum.ts, bot.ts
-  mods/      Mode and Mod: RANGE, HOLD (MODES), RANGE_SWAP; the noSurvivorLoop, solo, swap and hold mods
+  mods/      Mode and Mod: RANGE and HOLD (MODES; the title offers TITLE_MODES, the range), RANGE_SWAP; the mods
   assets/    creature asset layer: art.ts (CreatureArt, 8 states, fallback table), clips.ts, builtin.ts, pack.ts, cries.ts
   render/    WebGL2: renderer.ts, camera.ts (the third-person rig), framing.ts, chaseinput.ts, tilestage.ts, tileart.ts, …
   overworld/ Maplebrook (DS-style town + route); its painters are shared with the arenas
@@ -171,7 +171,7 @@ export const lifesteal: Mod = {
 };
 ```
 
-**Add a mode.** Add a `Mode` to `MODES` in `src/mods/index.ts` with rule overrides and a list of mods. It appears on the title screen automatically.
+**Add a mode.** Add a `Mode` to `MODES` in `src/mods/index.ts` with rule overrides and a list of mods (reached with `?go=1&mode=<id>`), and to `TITLE_MODES` to offer it on the title screen.
 
 **Reskin.** Biome palettes and prop art are in `src/render/tileart.ts`.
 

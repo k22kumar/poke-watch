@@ -19,7 +19,7 @@ import type { ControlReadiness } from '../sim/playability';
 import { BIOMES, STAGES } from '../rules/stages';
 import { MOVE_BY_KEY } from '../rules/moves';
 import { ABILITIES, abilityOf } from '../rules/abilities';
-import { MODES } from '../mods';
+import { MODES, TITLE_MODES } from '../mods';
 import type { Mode } from '../mods/types';
 import { compileMove, levelled, slotSpec } from '../sim/moves';
 import { pinchActive } from '../sim/combat';
@@ -112,7 +112,7 @@ export class UI {
   private backs: Record<string, () => void> = {};
   private hud!: Record<string, HTMLElement>;
   private slots: HTMLElement[] = [];
-  private mode: Mode = MODES[0];
+  private mode: Mode = TITLE_MODES[0];
   private species = 'charmander';
   private bannerT = 0;
   private hpLagTimer = 0;
@@ -329,7 +329,7 @@ export class UI {
       for (const c of modes.children) c.setAttribute('aria-checked', 'false');
       el.setAttribute('aria-checked', 'true');
     };
-    for (const m of MODES) {
+    for (const m of TITLE_MODES) {
       const el: HTMLElement = h('button', { type: 'button', class: 'box choice mode', role: 'radio', 'aria-checked': String(m === this.mode), 'data-follow': '1', onclick: () => choose(m, el) }, h('b', {}, m.name), h('span', {}, m.description));
       modes.append(el);
     }

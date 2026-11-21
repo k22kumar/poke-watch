@@ -1,4 +1,5 @@
-// Modes = rule overrides + mods. Add a file, register it in MODES, it appears on the title screen.
+// Modes = rule overrides + mods. Register a mode in MODES to reach it by URL (?go=1&mode=<id>), and in TITLE_MODES to
+// offer it on the title screen.
 import { swapSystem } from '../sim/swap';
 import { startObjective } from '../sim/objectives';
 import type { System } from '../sim/types';
@@ -78,4 +79,8 @@ export const RANGE_SWAP: Mode = {
  *  Survival, Glass Cannon, Boss Rush) and their example mods were deleted at pivot step 9; the Mode / Mod mechanism
  *  stays (src/mods/types.ts). RANGE_SWAP is the swap system's own mode, used by its replay scenario. */
 export const MODES: Mode[] = [RANGE, HOLD];
+
+/** The modes the title screen offers. Hold is hidden until T2 (owner, 2026-11-21): it only does something on a habitat
+ *  map, and the title's default world is not one. Reach it with `?go=1&mode=hold&map=river-gorge` (any habitat recipe). */
+export const TITLE_MODES: Mode[] = [RANGE];
 

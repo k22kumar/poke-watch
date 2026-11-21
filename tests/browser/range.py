@@ -52,7 +52,7 @@ with sync_playwright() as p:
     time.sleep(1)
     pg.screenshot(path=f'{out}/1-title.png')
     check(pg.locator('.tagline', has_text='A Pokémon hero shooter fan game').count() == 1, 'title: the hero-shooter tagline')
-    check(pg.locator('.mode').count() == 2, 'title: two modes (Training range, Hold)')
+    check(pg.locator('.mode').count() == 1, 'title: one mode, the Training range (Hold is URL-only until T2)')
 
     # a featured hero: Charmander
     pick('Charmander')
