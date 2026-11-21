@@ -39,8 +39,9 @@ hashes exactly (all four configurations, every 60 s mark). Those sets retired at
 
 `generateRegion` runs one attempt, validates it, repairs up to 3 times, and re-rolls the seed (`mixSeed(seed, n)`) up
 to 12 attempts. Every stage draws from its own named `Rng` stream (`gen:plan`, `gen:terrain`, …), trig goes through
-`core/detmath`, heap ties break by index, and no object-key or Set order is iterated where it changes output. A test
-greps the generator for `Math.sin/cos/atan/hypot/exp/log/pow/random`.
+`core/detmath`, heap ties break by index, and no object-key or Set order is iterated where it changes output. The
+determinism guard in `tests/worldgen.test.ts` allows the generator no `Math.sin/cos/atan/hypot/exp/log/pow/random`
+(its allow-list covers every sim and world source).
 
 | Stage | File | What it does |
 | --- | --- | --- |

@@ -212,7 +212,9 @@ budget has two attempts of headroom on this batch.
 
 - **One machine.** Fresh processes and a Chromium agree with each other and with Node (V8 both times); no other CPU, OS or JS engine
   was tried. The generator draws from named RNG streams and its own trig (`detmath`), and a test forbids `Math.random` and clocks in the
-  output, which is why agreement is expected, but one CPU is not a proof of cross-platform agreement.
+  output, which is why agreement is expected, but one CPU is not a proof of cross-platform agreement. (Correction, 2026-11-21:
+  the habitat generator's trig still calls `Math` at 68 sites, allow-listed in `tests/worldgen.test.ts`; only the classic
+  generator and locgen use `detmath`. Moving them is P2c in `docs/ROADMAP.md`.)
 - **The browser failure dialog.** `main.ts`'s `failMap` (and the new catch around `step`) are typechecked and built; `ui.error`'s
   text is `mapErrorMessage`, tested, but no browser run triggered a failing map (the shipped recipes do not fail).
 - **Playing quality.** The sheets and metrics show that layouts differ; whether the differences change how a match plays needs people
