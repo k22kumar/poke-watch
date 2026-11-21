@@ -118,7 +118,7 @@ added later reaches an old save. `resolveBindings(defaults, overrides)` builds t
 exactly its override's codes, and a code an override claims leaves every action that was not overridden. One code drives
 one action: `assignBinding` moves a code from the action that had it (the screen says from where), and
 `bindingConflicts` of any resolved table is empty (checked over a seeded storm of 400 random assignments).
-`loadSettings` cuts whatever was saved down to known actions and valid codes.
+`loadSettings` cuts whatever was saved down to known actions and valid codes, then gives any action left with no code its default codes where they are free (`restoreUnbound`: no override claims them). That repairs saves whose keys moved to actions that no longer exist (the survivor build's card keys); it also brings back a default the player cleared on purpose, if nothing else holds it.
 
 **Settings → Controls → Bindings.** Every action with two keyboard and two gamepad slots. Choose a slot, then press a key
 or a pad button; Esc cancels, Delete or Backspace clears the slot; Reset bindings restores the defaults (so does Settings

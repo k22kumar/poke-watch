@@ -1,7 +1,7 @@
 // Saved settings: the defaults and how a browser's saved copy is brought up to date. Pure (no DOM), so tests/settings.test.ts
 // can pin the camera default down. main.ts reads and writes localStorage around it.
 import { CAMERA_DEFAULT, CAMERA_PRESETS } from '../render/camera';
-import { sanitizeKeyOverrides, sanitizePadOverrides, type KeyBindings, type PadBindings } from '../input/bindings';
+import { DEFAULT_KEYS, DEFAULT_PAD, restoreUnbound, sanitizeKeyOverrides, sanitizePadOverrides, type KeyBindings, type PadBindings } from '../input/bindings';
 
 export const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: CAMERA_DEFAULT, shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'locations' as 'authored' | 'generated' | 'locations', worldV: 2,
   /** Settings → World → Map: '' = the default region rotation, else a Pokémon location or habitat recipe (`id`, or
@@ -29,8 +29,9 @@ export function loadSettings(saved: unknown): Settings {
   // ≥ 0 (-1 = from the run seed); a saved copy that holds anything else gets the default rotation and the run seed
   s.map = typeof o.map === 'string' ? o.map : '';
   s.mapSeed = typeof o.mapSeed === 'number' && Number.isInteger(o.mapSeed) && o.mapSeed >= 0 ? o.mapSeed : -1;
-  // bindings: whatever was saved is cut down to known actions and valid codes (a fresh object, never the default's)
-  s.keys = sanitizeKeyOverrides(o.keys);
-  s.pad = sanitizePadOverrides(o.pad);
+  // bindings: whatever was saved is cut down to known actions and valid codes (a fresh object, never the default's), and
+  // an action left with no code gets its free defaults back (restoreUnbound)
+  s.keys = restoreUnbound(DEFAULT_KEYS, sanitizeKeyOverrides(o.keys));
+  s.pad = restoreUnbound(DEFAULT_PAD, sanitizePadOverrides(o.pad));
   return s;
 }

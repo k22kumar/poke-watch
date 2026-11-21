@@ -298,6 +298,27 @@ test('a survivor build\'s saved settings load: the card keys and the C toggle dr
   assert.equal(f.btn ?? 0, 0, 'C presses nothing'); assert.equal(f.mx, 0); assert.equal(f.mz, 0);
   // saving it back writes the clean copy, and it loads to the same settings
   assert.deepEqual(loadSettings(JSON.parse(JSON.stringify(s))), s);
+
+  // the moved-default case: in the survivor build the player bound Q to Reroll and Y to Pick 1, which moved them off the
+  // Signature (assignBinding leaves `sig: []`); they also cleared Guard's keys and moved L to Move B, so Guard's E is free
+  // but L is not. On load every live action left with no code gets its free defaults back
+  const moved = loadSettings(JSON.parse(JSON.stringify({
+    ...SETTINGS_DEFAULT, camV: 2, worldV: 2,
+    keys: { reroll: ['KeyQ'], sig: [], guard: [], moveB: ['KeyR', 'KeyL'], dash: [] },
+    pad: { pick1: [PAD.y], sig: [] },
+  })));
+  assert.deepEqual(moved.keys, { moveB: ['KeyR', 'KeyL'] }, 'the empty overrides went: their defaults are free again');
+  assert.deepEqual(moved.pad, {});
+  const m = await stubInput();
+  m.input.setBindings(moved.keys, moved.pad);
+  assert.deepEqual(m.input.bindings.sig, ['KeyQ'], 'Q is the Signature again');
+  assert.deepEqual(m.input.bindings.guard, ['KeyE'], 'Guard gets E back; L stays on Move B');
+  assert.deepEqual(m.input.bindings.dash, DEFAULT_KEYS.dash);
+  assert.deepEqual(m.input.padBindings.sig, [PAD.y], 'Y is the Signature again on the pad');
+  assert.deepEqual(bindingConflicts(m.input.bindings), []);
+  assert.deepEqual(bindingConflicts(m.input.padBindings), []);
+  // an empty override whose defaults are all claimed stays empty (nothing free to give it)
+  assert.deepEqual(loadSettings({ keys: { jump: [], dash: ['Space'] } }).keys, { jump: [], dash: ['Space'] });
 });
 
 test('names for the bindings screen', () => {

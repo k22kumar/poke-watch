@@ -78,6 +78,24 @@ function sanitize<T extends string | number>(saved: unknown, ok: (c: unknown) =>
 export const sanitizeKeyOverrides = (saved: unknown) => sanitize(saved, okKey);
 export const sanitizePadOverrides = (saved: unknown) => sanitize(saved, okPad);
 
+/** On load: an action the overrides leave with no code gets its default codes back where they are free (no override
+ *  claims them). A save from an older build can hold an empty override for a live action whose key had moved to an
+ *  action that no longer exists (the survivor build's card keys): that action would otherwise stay unbound. Returns new
+ *  overrides; the input is not changed. Note it also brings back a default the player cleared on purpose, when free. */
+export function restoreUnbound<T extends string | number>(defaults: Record<string, readonly T[]>, overrides: Record<string, readonly NoInfer<T>[]>): Record<string, T[]> {
+  const out: Record<string, T[]> = {};
+  for (const [a, cs] of Object.entries(overrides)) out[a] = [...cs];
+  const claimed = new Set<T>();
+  for (const a of ACTIONS) for (const c of out[a.id] ?? []) claimed.add(c);
+  for (const a of ACTIONS) {
+    const o = out[a.id];
+    if (!o || o.length) continue;
+    // an empty override: drop it when a default code is free, so resolveBindings gives the action its free defaults
+    if ((defaults[a.id] ?? []).some((c) => !claimed.has(c))) delete out[a.id];
+  }
+  return out;
+}
+
 /** The table in use: the defaults with the player's overrides on top. An overridden action has exactly its override's
  *  codes; a code an override claims leaves every action the player did not override, so a default added later (or
  *  one the player moved) never silently drives two actions. */
