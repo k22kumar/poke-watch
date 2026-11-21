@@ -513,6 +513,12 @@ or both (once), and a throwing or missing API is a refusal too. Repeated Resume 
 flight (one the browser never answers expires after 1.5 s). `releaseLock` (pause, menus, quit) withdraws a request in
 flight: its refusal is dropped, and a late grant is handed straight back, so the menu keeps the cursor and the game does
 not resume. Pinned by `tests/pointerlock.test.ts`.
+**Locked clicks stop at the window** (2026-11-21, `Input` constructor): while the pointer is locked, `mousedown` and
+`mouseup` are handled by window listeners in the capture phase, which then stop propagation, so no listener after them
+(a browser extension's page-level one) sees a game click. Ghostery's `whotracksme.js` listens at window (bubble phase) and
+serialises the `innerHTML` of the clicked element's three nearest ancestors on every mousedown; on the canvas that reaches
+`<body>` and its inline 26 MB script: a 100–350 ms main-thread stall per click (docs/ROADMAP.md item 2). Unlocked clicks
+(menus, the capturing click) propagate as before, and still pay it.
 Right stick turns the camera (radial dead zone, response curve: `docs/CONTROLS.md` "Look"). If the mouse is not captured,
 holding the right mouse button and dragging still turns the camera.
 Look never changes altitude, and moving never reads the pitch: keys, buttons and their bindings (Settings → Controls →

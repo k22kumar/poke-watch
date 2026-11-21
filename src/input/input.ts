@@ -102,8 +102,7 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
-    // the camera is fixed (DS-style), so the mouse no longer grabs the pointer
-    el.addEventListener('mousedown', (e) => {
+    const mouseDown = (e: MouseEvent) => {
       if (e.button === 2) this.dragging = true;
       if (this.context !== 'play') return;
       this.aimSource = 'mouse'; this.mouseSeen = true;
@@ -112,11 +111,21 @@ export class Input {
       const bit = mouseBits(e.button);
       this.mouseBtn |= bit; this.btnLatch |= bit; this.pressLatch |= bit;
       this.capture();
-    });
-    window.addEventListener('mouseup', (e) => {
+    };
+    const mouseUp = (e: MouseEvent) => {
       if (e.button === 2) this.dragging = false;
       this.mouseBtn &= ~mouseBits(e.button);
-    });
+    };
+    // While the pointer is locked, game clicks are taken at the window in the capture phase and go no further: the
+    // listeners of browser extensions never see them. Ghostery's content script, for one, serialises the innerHTML of
+    // the clicked element's ancestors on every mousedown (window, bubble phase); on the canvas that reaches <body> and
+    // its inline 26 MB script, a 100-350 ms stall per click (docs/ROADMAP.md item 2). Unlocked (menus, the capture
+    // click) events propagate as before.
+    window.addEventListener('mousedown', (e) => { if (!this.locked) return; e.stopPropagation(); mouseDown(e); }, true);
+    window.addEventListener('mouseup', (e) => { if (!this.locked) return; e.stopPropagation(); mouseUp(e); }, true);
+    // the camera is fixed (DS-style), so the mouse no longer grabs the pointer
+    el.addEventListener('mousedown', (e) => { if (!this.locked) mouseDown(e); });
+    window.addEventListener('mouseup', (e) => { if (!this.locked) mouseUp(e); });
     window.addEventListener('blur', () => this.clearButtons());
     document.addEventListener('pointerlockerror', () => {
       if (this.pendingReq) { this.answeredReq = this.pendingReq; this.pendingReq = 0; this.lockRefused(); return; }
