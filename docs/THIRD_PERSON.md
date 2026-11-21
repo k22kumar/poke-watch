@@ -518,7 +518,7 @@ not resume. Pinned by `tests/pointerlock.test.ts`.
 (a browser extension's page-level one) sees a game click. Ghostery's `whotracksme.js` listens at window (bubble phase) and
 serialises the `innerHTML` of the clicked element's three nearest ancestors on every mousedown; on the canvas that reaches
 `<body>` and its inline 26 MB script: a 100–350 ms main-thread stall per click (docs/ROADMAP.md item 2). Unlocked clicks
-(menus, the capturing click) propagate as before, and still pay it.
+(menus, the capturing click) propagate as before; they no longer pay it because the inline script removes itself from the DOM once it has started (`index.html`, ROADMAP F13), so `<body>` holds no 26 MB of text.
 Right stick turns the camera (radial dead zone, response curve: `docs/CONTROLS.md` "Look"). If the mouse is not captured,
 holding the right mouse button and dragging still turns the camera.
 Look never changes altitude, and moving never reads the pitch: keys, buttons and their bindings (Settings → Controls →
