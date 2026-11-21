@@ -161,3 +161,31 @@ test('pointer lock: a cancelled failure does not affect the next gameplay entry'
   input.capture(true); grant();
   assert.equal(ev.gained, 1);
 });
+
+test('pointer lock: an unanswered request expires after 1.5 s; the next click asks afresh and a late grant still counts', async (t) => {
+  let clock = 1000;
+  t.mock.method(performance, 'now', () => clock);
+  // the next click asks afresh once the silent request has expired, and does not attack
+  {
+    const { input, el, ev, grant, click } = await stub();
+    input.capture(true);
+    assert.equal(el.requests, 1);
+    clock += 1000; click();
+    assert.equal(el.requests, 1, 'still in flight at 1 s: the click shares it');
+    clock += 600; click();
+    assert.equal(el.requests, 2, 'expired at 1.6 s: the click issues a fresh request');
+    assert.equal(input.sample(0).btn, 0, 'and does not attack');
+    grant();
+    assert.equal(ev.gained, 1);
+    assert.equal(input.locked, true);
+  }
+  // a grant that arrives after the expiry, with no new request, is still accepted
+  {
+    const { input, ev, grant } = await stub();
+    input.capture(true);
+    clock += 2000;
+    grant();
+    assert.equal(ev.gained, 1, 'the late grant is not treated as withdrawn');
+    assert.equal(input.locked, true);
+  }
+});

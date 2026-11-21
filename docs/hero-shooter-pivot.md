@@ -496,7 +496,7 @@ The owner's answers. They override §1–§9 where they differ. `docs/STATS_GROW
 - **Q1 Match shape.** Offline, human against bots: T0 targets, then T2 hero bots (players in `ctx.players[]` driven by `InputFrame`s). Netcode out of scope, but per-player systems are built so a remote player could slot in later.
 - **Q2 Hero unit.** One Pokémon per player. Built modular, so a future mode or mechanic with swapping is easy to add, change and maintain.
 - **Q3 Baseline first.** The new replay baseline exists before anything is deleted, and each deletion holds it.
-- **Q4 Branch.** All pivot work on `hero-core`. The live site stays on `survivor-final`. Merge when title → hero pick → training range works end to end and the kept gates pass: `npm run check`, `navwalk all 5`, `hazplay`, `habstate` and the new replay test.
+- **Q4 Branch.** All pivot work on `hero-core`. The live site was meant to stay on `survivor-final`; in fact it stayed on `dfbb99c` (2026-11-16), because every deploy failed from `b89fb55` (2026-11-18) on (the four red `tests/pointerlock.test.ts` cases; fixed 2026-11-21). Merge when title → hero pick → training range works end to end and the kept gates pass: `npm run check`, `navwalk all 5`, `hazplay`, `habstate` and the new replay test.
 - **Q5 Old checksum layers.** All 19 flag-off sets retire in one commit once the director is gone; `survivor-final` reproduces them. The deck coverage moves into T0 scenarios first.
 - **Q49 `main` during the pivot.** `main` is merged into `hero-core` at each step boundary, and a `main` change that moves layouts, hashes or gates is re-gated there. Survivor-only work stops.
 - **Q50 Record.** This section, then `hero-core`, then go.
