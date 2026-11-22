@@ -23,7 +23,7 @@ The content is generated at build time and shipped inside the game; nothing is d
  scripts/build-content.mjs      runs scripts/import-pack.mjs for partners (+1 evolution) and enemies,
         │                       sizes bosses, builds the type chart, then writes:
         ├─ src/content/pokedex.ts   species, moves, TYPE_CHART                    (imported by the sim)
-        ├─ src/content/art.json     atlases, frames, anchors, portraits, cries, credits  (loaded at boot)
+        ├─ src/content/art.json     atlases, frames, anchors, portraits, cries, credits  (split into dist/art/ by the build)
         └─ content/report.json      every source file with URL + SHA-256; content/preview/ contact sheets
 
  content/catalogue.json         which PokéAPI identities the reference catalogue covers (269 records)
@@ -32,8 +32,11 @@ The content is generated at build time and shipped inside the game; nothing is d
         │                       canonical families and form/region conditions (no art, cries, moves)
         └─ src/content/catalogue.ts  read only through src/rules/catalogue.ts; not game species
 
- runtime: src/assets/builtin.ts  art.json -> buildArt -> resolveClips (fallback table) -> registry,
-                                 renderer textures, CryBank samples (synth fallback)
+ build:   scripts/lib/artfiles.mjs  art.json -> dist/art/: per species atlas PNG, frame table, portrait, cry;
+                                   heroes.<hash>.png (PROTOTYPE portraits); manifest.<hash>.json
+ runtime: src/assets/loader.ts   boot: manifest + hero sheet -> registry records, CryBank file names;
+                                 a match's species (sim/matchart.ts) before it starts, a dev-spawned one on first
+                                 sight: atlas + frames -> buildArt -> resolveClips (fallback table) -> renderer textures
           src/rules/*            SPECIES, MOVES, element chart and stages read pokedex.ts
 ```
 
@@ -42,12 +45,12 @@ The content is generated at build time and shipped inside the game; nothing is d
 | Roster and roles | `content/roster.json` |
 | Reference catalogue | `content/catalogue.json` → `catalogue-pack.mjs` (`defaultForm`, families, conditions) → `build-content.mjs --catalogue-only` → `src/content/catalogue.ts` → `rules/catalogue.ts` |
 | Species data provider | importer (`importOne`, `toMoveRow`, `evolutionInfo`) → `build-content.mjs` → `src/content/pokedex.ts` → `rules/species.ts` |
-| Visual asset provider | importer `importSprites` (PMD) → `art.json` → `src/assets/builtin.ts` / `pack.ts buildArt` |
+| Visual asset provider | importer `importSprites` (PMD) → `art.json` → `scripts/lib/artfiles.mjs` (`dist/art/`) → `src/assets/loader.ts` / `pack.ts buildArt` |
 | Audio provider | `src/assets/cries.ts` (`CryBank`: samples with loudness normalisation, synthesised calls as fallback) |
 | Animation system | `src/assets/art.ts` (states, fallbacks, `frameAt`, `dirIndex`), `src/assets/clips.ts` (`resolveClips`), renderer animation controller |
 | Combat and abilities | moves become `MoveData` rows; behaviour comes from `classify()` (hand-picked shapes for partner moves, then archetype hints from canonical targeting, then name rules) |
 | Rendering integration | `Renderer.addArt` uploads any `CreatureArt`; `CREATURE_VS` draws per-frame rects with anchors; bosses at a whole-number scale |
-| Manifest and registry | `art.json` is the manifest; `src/assets/registry.ts` holds per-Pokémon records (source, licence, credits, clip mapping, cry, status, checksum) shown on the Credits screen |
+| Manifest and registry | `dist/art/manifest.<hash>.json` (written from `art.json`) is the manifest; `src/assets/registry.ts` holds per-Pokémon records (source, licence, credits, clip mapping, cry, status, checksum) shown on the Credits screen |
 
 ## Rebuilding the content
 

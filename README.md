@@ -11,7 +11,7 @@ The Pokémon are built in, generated from four sources by `scripts/build-content
 
 - Zero runtime dependencies: TypeScript + a hand-written WebGL2 renderer.
 - Deterministic fixed-step simulation (60 Hz, seeded RNG streams): the same seed and inputs always give the same match, so it runs headless in Node for tests, replay hashes and bots.
-- The output is a single self-contained `dist/index.html`. Open it directly in a browser; no server needed.
+- The output is a static site: `dist/index.html` (the code, under 3 MB) with the Pokémon art in `dist/art/` and the music in `dist/music/`, fetched as needed. Serve the folder (`npm run dev`, GitHub Pages); opened from `file://` the browser refuses the fetches.
 
 > **Fan-made, non-commercial project. Not affiliated with Nintendo, Creatures, GAME FREAK or The Pokémon Company.** Pokémon names, designs, cries and data are © those companies. The sprites are CC BY-NC 4.0 (most are credited to CHUNSOFT, from the Pokémon Mystery Dungeon games). Do not sell or monetise it. Read [Licensing and takedown](#licensing-and-takedown) before sharing it.
 
@@ -90,7 +90,7 @@ The project needs Node 18+ and three dev tools: esbuild, TypeScript and tsx.
 
 ```bash
 npm install          # esbuild, typescript, tsx
-npm run build        # -> dist/index.html (single file, with the Pokémon art, cries and icons)
+npm run build        # -> dist/index.html (code, UI icons, font), dist/art/ (sprites, portraits, cries), dist/music/; fails if the page is over 3 MB
 npm run dev          # rebuild-on-change server at http://localhost:5173
 npm run check        # typecheck, tests, and production build
 npm test             # every tests/*.test.ts suite (headless, deterministic); one suite: npx tsx --test tests/<name>.test.ts
@@ -234,9 +234,9 @@ materials: they burn, break and leave stumps or rubble. `docs/WORLDGEN.md` has t
 
 ## Deploying (GitHub Pages)
 
-The game is one static file (`dist/index.html`, about 2 MB, all sprites, cries and fonts embedded). It makes no network requests and has no backend, so GitHub Pages hosts it for free.
+The game is a static site: `dist/index.html` (about 1.4 MB: code, UI icons and the font), `dist/art/` (every Pokémon's atlas, frame table, portrait and cry, plus a manifest and the hero pick's portrait sheet, all content-hashed) and `dist/music/` (the adaptive score). The page fetches the manifest and the hero sheet at boot and a match's Pokémon before the match starts (docs/ROADMAP.md "Item 3: A1 plan"). It has no backend, so GitHub Pages hosts it for free.
 
-`.github/workflows/deploy.yml` runs on every push to `main`: `npm ci`, `npm test`, `npm run build`, then publishes the page. One-time setup: repository **Settings → Pages → Build and deployment → Source: GitHub Actions**. Progress shows under the **Actions** tab. To publish an update: commit and `git push`.
+`.github/workflows/deploy.yml` runs on every push to `main`: `npm ci`, `npm test`, `npm run build`, then publishes `index.html`, `art/` and `music/`. One-time setup: repository **Settings → Pages → Build and deployment → Source: GitHub Actions**. Progress shows under the **Actions** tab. To publish an update: commit and `git push`.
 
 `dist/` is not committed; CI rebuilds it.
 

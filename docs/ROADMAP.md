@@ -15,7 +15,7 @@ record.
 |---|---|---|---|
 | 1 | Housekeeping | done | `chore/housekeeping` (`df5c465`, `4571d2d`): this file, CLAUDE.md "Working with the owner", P7, P2(a). |
 | 2 | P5: the live stutter and real-GPU frame time | done | `perf/stutter`. **Cause: not our code.** The owner's Chrome trace: every mousedown ran Ghostery's content script `whotracksme.js` for 325–363 ms (4 of 4 clicks); held fire, with no new mousedowns, was smooth. The script listens at window (bubble phase) and serialises the `innerHTML` of the clicked element's three nearest ancestors; on the canvas that reaches `<body>`, which holds the inline 26 MB script, and sends the string to the extension. Fix: while the pointer is locked, game clicks are handled at window in the capture phase and stop there (`e577720`; forced on, Ghostery loaded: 0 ms per click, was 103–132 ms). Unlocked clicks on the canvas (the capturing click, every click in the fixed views) paid it too until F13 (done). Also: the `?perf=1` overlay and `tools/stutter.mjs` (`ddf0b8b`), a session long-task count in the overlay (`cb6cd4e`), no per-prop garbage in `TileStage.draw` (`99d4650`). Mouse-look smoothing parked (F14). `tools/perf.mjs` still has no crowd to time (F8). |
-| 3 | A1: Pokémon art outside the HTML | next | `perf/a1-art`. Plan: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
+| 3 | A1: Pokémon art outside the HTML | review | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
 | 4 | P2b: sim determinism | queued | The 8 sim and rules call sites on the allow-list (`tests/worldgen.test.ts`): `Math.hypot` in `sim/bot.ts`, `sim/spatial.ts`, `sim/targets.ts`, `sim/world.ts`; `Math.tan` in `sim/moves.ts`; `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
 | 5 | T2 planning: P1 and P6 | queued | **P1**: per-player systems, and teams in damage (today one player, one enemy side). **P6**: spikes and navigation faults on the Hold maps (F1, F2). Also F12: hero bots must not see through wall corners. |
 | 6 | The next `HAB_VERSION` bump | queued | Two parts in one bump, with `docs/habaudit/baseline.json` regenerated: the navigation profiles (F3), and P2c, the 68 habitat-generator `Math` call sites on the allow-list (`world/habitat/`: landforms 33, dress 9, families 9, sanctuary-checks 5, validate 5, graves 2, index 2, ruins 2, lagoon 1). |
@@ -58,6 +58,30 @@ use.
 9. **Gates.** `dist/index.html` ≤ 3 MB (the build fails above it); the Pages workflow stages `dist/art/` and
    `dist/music/`; capture parity (the same frames with inline and loaded art); boot-to-title and pick-to-play before
    and after; the Ghostery click cost before and after; no replay hash moves; `range.py` passes.
+
+**Results (2026-11-22, `perf/a1-art`, not merged).** `dist/index.html` 1,425 KB (was 26,040 KB); `dist/art/` 976 files,
+9.4 MB; `dist/music/` 7 files, 9.9 MB. Beyond the plan: the title's backdrop run draws Charmander, so boot also loads
+that one species; the hero pick prefetches the picked hero's line and the mode's species (Start still waits for the
+run's real set); the score's MP3s are fetched one at a time at low priority, so they do not crowd out a match's art;
+`node scripts/build.mjs --out <dir>` replaces copying the build script for private builds (its art writer is a sibling
+module).
+
+| Gate | Before (`main`, `e72ded5`) | After |
+|---|---|---|
+| Page size | 26.7 MB, 1 request | 1.43 MB; boot fetches 1.77 MB in 6 requests (manifest 242 KB, hero sheet) |
+| Boot to title, local http (median of 5) | 1,302 ms | 596 ms |
+| Boot to title, 20 Mbps / 40 ms (median of 3) | 12,072 ms | 1,422 ms |
+| Pick to play, local, Start 1.5 s after the pick opens | 368 ms | 430 ms (the score still downloading and decoding in the background) |
+| Pick to play, local, Start after 6 s | 377 ms | 392 ms |
+| Pick to play, 20 Mbps / 40 ms | 365 ms | 435 ms (1,150 ms before the score's fetches were serialised) |
+| Ghostery, canvas clicks (`?go=1`, 6) | 0 ms each, no long task | 0 ms each, no long task |
+| Ghostery, title clicks (4) | first click 192 ms long task | first click 144 ms long task; without the extension 175 → 134 ms: the game's own first click (audio unlock), not Ghostery |
+| Capture parity, 19 scenes, 60 game-canvas frames | | 60/60 identical (a second `main` run: 60/60) |
+| Capture parity, 128 page screenshots | | 114 identical; the rest are the camframe `open-*` scenes and one Breakthrough banner, which differ between two runs of the same `main` build too (CSS fades and slides on wall-clock time) |
+| Replay hashes | | 10/10 as recorded |
+| `range.py` | PASS | PASS (Snorlax dummy 320.9 → 163.9 in both) |
+
+The Ghostery stall itself was already gone after F13; A1 does not change the canvas-click cost.
 
 ## Open follow-ups
 
@@ -102,6 +126,19 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
 
 - **F13. Unlocked clicks paid the Ghostery stall too** [2] — **done** (2026-11-21, `perf/stutter`). The capturing click and every click in the fixed views (no lock) target the canvas, whose third ancestor is `<body>`. The inline `<script>` now removes itself at the end of its synchronous start (`index.html`: `document.currentScript?.remove()` after the bundle, so the bundle's `"use strict"` stays first; the engine keeps the source). Nothing reads the element: no `currentScript`, `document.scripts`, script query or page serialisation in `src`, `tools`, `tests`, `scripts` or the bundle; the deploy copies `dist/index.html` only. With Ghostery, 26.7 MB page: unlocked canvas clicks 0–1 ms (were 103–132 ms), the capturing click no long task (was 121 ms), locked clicks 0 ms (as with the window-capture fix alone). Title-menu buttons never reached `<body>` within three ancestors: 0 ms before and after.
 - **F14. Mouse-look gaps** [2, parked by the owner]: the overlay's "mouse look gaps" (a frame with no look movement while the mouse moves) read as judder. A timestamp-based look resampler would add up to a frame of latency; an owner decision, parked.
+
+### Found in A1 (2026-11-22)
+
+- **F15. Page screenshots are not repeatable** [tools, no slot yet]: two `cap.mjs` runs of the same build differ in the
+  camframe `open-*` scenes and in DOM layers animated on wall-clock time (the map plaque's slide, the hurt vignette, the
+  Breakthrough banner, the HP bar's transition). The game canvas is repeatable (`raw` steps: 60/60). Parity checks
+  should compare `raw` frames, or capture mode should freeze CSS animations.
+- **F16. The art manifest is 242 KB** [no slot yet]: every species' provenance (SHA-256 per source file, fetch date)
+  rides in it for the Credits screen's checksum column. It could move to a second file fetched by the Credits screen.
+- **F17. Cries are OGG only** [pre-existing, no slot yet]: the bundle carries no MP3 transcodes (docs/ASSETS.md), so a
+  browser without Vorbis (Safari) plays no cries. Unchanged by A1.
+- **F18. No Python `playwright` on this machine**: `range.py` ran from a scratchpad venv (`pip install
+  playwright==1.65.0`, the Node package's version).
 
 ### Found in housekeeping (2026-11-21)
 

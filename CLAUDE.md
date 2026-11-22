@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:test` via tsx. One Pokémon per player; the shipped modes are the training range and Hold (`src/mods/index.ts`), with co-op waves (T1) and 3v3 hero bots (T2) next. The build is a single static `dist/index.html` deployed to GitHub Pages (`.github/workflows/deploy.yml`). The README has the full picture. This file lists only what a session needs up front. The work queue and its status are in `docs/ROADMAP.md`. The pivot from the survivor game is recorded in `docs/hero-shooter-pivot.md` (a closed record: decisions §10, progress §11; its open items moved to the roadmap); the survivor game is on the `survivor-final` tag.
+Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:test` via tsx. One Pokémon per player; the shipped modes are the training range and Hold (`src/mods/index.ts`), with co-op waves (T1) and 3v3 hero bots (T2) next. The build is a static site deployed to GitHub Pages (`.github/workflows/deploy.yml`): `dist/index.html` holds the code (≤ 3 MB, the build fails above it), and the Pokémon art (`dist/art/`) and music (`dist/music/`) are fetched files, so serve the folder; browser tools open `file://` with `--allow-file-access-from-files` (`tools/README.md`). The README has the full picture. This file lists only what a session needs up front. The work queue and its status are in `docs/ROADMAP.md`. The pivot from the survivor game is recorded in `docs/hero-shooter-pivot.md` (a closed record: decisions §10, progress §11; its open items moved to the roadmap); the survivor game is on the `survivor-final` tag.
 
 ## Working with the owner
 - One task per chat, on its own branch off `main`.
@@ -49,7 +49,7 @@ Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:tes
 
 ## Parallel sessions
 - Several Claude sessions often work in this checkout at once. Check `git status` before editing, and leave alone uncommitted changes you didn't make.
-- `npm run build`, `npm run dev` and `npm run check` all write `dist/`. For screenshot captures, build into a private directory instead: copy `scripts/build.mjs` to your scratchpad with the output path changed, then pass that HTML to `tools/cap.mjs`. This keeps you from overwriting another session's build.
+- `npm run build`, `npm run dev` and `npm run check` all write `dist/`. For screenshot captures, build into a private directory instead: `node scripts/build.mjs --out <scratchpad dir>`, then pass its `index.html` to `tools/cap.mjs` (the page needs the `art/` and `music/` written beside it). This keeps you from overwriting another session's build.
 
 ## Agent skills
 - `/grilling` before committing to a change with undecided design questions whose wrong answer is expensive to undo — e.g. a `HAB_VERSION` bump, a regenerated baseline, moved replay hashes, or a contract other systems read (hazards × objectives × enemies). Not for mechanical work — the decisions are already made and only transcription is left.

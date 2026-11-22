@@ -86,7 +86,7 @@ Cries mark moments: choosing a hero, the start of a match, a Breakthrough (the o
 
 ### Playback fixes (`src/assets/cries.ts`)
 
-- **First play.** Cries decode on first use. A request made while decoding is now queued and plays when the buffer is ready, unless it is more than 0.6 s late or a newer request replaced it. (Before, the first request was dropped.)
+- **First play.** Cries are side files (`dist/art/<id>.<hash>.ogg`, docs/ROADMAP.md "Item 3: A1 plan"), fetched and decoded on first use; a match's species are fetched ahead of it (`cries.want`, from `startRun`). A request made while decoding is queued and plays when the buffer is ready, unless it is more than 0.6 s late or a newer request replaced it. (Before, the first request was dropped.)
 - **Failed decode.** The OGG is tried first, then the MP3. If both fail, the cry is marked `failed` and the Pokémon is silent. There is no synthesised fallback voice (Q51).
 - **No recording.** A species with no cry is not registered and is silent (`status` `none`).
 - **Status.** `cries.status(id)` returns `idle`, `pending`, `ready`, `failed` or `none`; `cries.stats` counts plays, queued, played from queue, dropped and failures.
@@ -104,7 +104,7 @@ None. The synthesised move, hit, UI, level-up, pickup and alarm sounds were remo
 
 The game now loads the four local stems in `content/music/adaptive/`, using the source selected by the user: [Trainer Battle (1997–1998-M56B)](https://www.youtube.com/watch?v=4ZrdWpWqVpQ). The original recorded mix retains the lead at its original pitch and timing. Added synthesized percussion builds through anticipation, combat, surge and climax. This is a **prototype reference remix, not a finished reorchestration or isolated melody transcription**.
 
-See [the score notes](../content/music/adaptive/README.md) for files, thresholds, limitations and reproduction. `src/audio/adaptive.ts` controls the shared sample clock, inferred bar boundaries, gain ramps and end cues. `src/audio/audio.ts` connects it to combat, health, objectives, bosses, pause, mute, ducking and the existing mixer. The default score works offline and has no YouTube player. If the stems can't load, the music stays silent: there is no fallback score.
+The build writes the MP3s to `dist/music/` (content-hashed names) and the page fetches them after the audio unlock; they are no longer inlined. See [the score notes](../content/music/adaptive/README.md) for files, thresholds, limitations and reproduction. `src/audio/adaptive.ts` controls the shared sample clock, inferred bar boundaries, gain ramps and end cues. `src/audio/audio.ts` connects it to combat, health, objectives, bosses, pause, mute, ducking and the existing mixer. The default score works offline and has no YouTube player. If the stems can't load, the music stays silent: there is no fallback score.
 
 ### What plays
 
