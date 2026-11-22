@@ -15,7 +15,7 @@ record.
 |---|---|---|---|
 | 1 | Housekeeping | done | `chore/housekeeping` (`df5c465`, `4571d2d`): this file, CLAUDE.md "Working with the owner", P7, P2(a). |
 | 2 | P5: the live stutter and real-GPU frame time | done | `perf/stutter`. **Cause: not our code.** The owner's Chrome trace: every mousedown ran Ghostery's content script `whotracksme.js` for 325–363 ms (4 of 4 clicks); held fire, with no new mousedowns, was smooth. The script listens at window (bubble phase) and serialises the `innerHTML` of the clicked element's three nearest ancestors; on the canvas that reaches `<body>`, which holds the inline 26 MB script, and sends the string to the extension. Fix: while the pointer is locked, game clicks are handled at window in the capture phase and stop there (`e577720`; forced on, Ghostery loaded: 0 ms per click, was 103–132 ms). Unlocked clicks on the canvas (the capturing click, every click in the fixed views) paid it too until F13 (done). Also: the `?perf=1` overlay and `tools/stutter.mjs` (`ddf0b8b`), a session long-task count in the overlay (`cb6cd4e`), no per-prop garbage in `TileStage.draw` (`99d4650`). Mouse-look smoothing parked (F14). `tools/perf.mjs` still has no crowd to time (F8). |
-| 3 | A1: load sprites separately | queued | Proposal: `docs/size-extremes-plan.md` "Proposed stage A1". `dist/index.html` is 26.7 MB. Owner decisions owed before it starts: the inline single-file variant, inline portraits for the partner screen, the dev roster's "All Pokémon" view. Render and audio only, no hash moves. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scales with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduces it, so it is the DOM text, not the script's parse. |
+| 3 | A1: Pokémon art outside the HTML | next | `perf/a1-art`. Plan: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
 | 4 | P2b: sim determinism | queued | The 8 sim and rules call sites on the allow-list (`tests/worldgen.test.ts`): `Math.hypot` in `sim/bot.ts`, `sim/spatial.ts`, `sim/targets.ts`, `sim/world.ts`; `Math.tan` in `sim/moves.ts`; `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
 | 5 | T2 planning: P1 and P6 | queued | **P1**: per-player systems, and teams in damage (today one player, one enemy side). **P6**: spikes and navigation faults on the Hold maps (F1, F2). Also F12: hero bots must not see through wall corners. |
 | 6 | The next `HAB_VERSION` bump | queued | Two parts in one bump, with `docs/habaudit/baseline.json` regenerated: the navigation profiles (F3), and P2c, the 68 habitat-generator `Math` call sites on the allow-list (`world/habitat/`: landforms 33, dress 9, families 9, sanctuary-checks 5, validate 5, graves 2, index 2, ruins 2, lagoon 1). |
@@ -23,6 +23,41 @@ record.
 
 Done before this file: the hero-shooter pivot (`docs/hero-shooter-pivot.md`, merged `ad0cdc7`); pointer-lock request
 handling, which unblocked the Pages deploy (`da19699`).
+
+## Item 3: A1 plan (2026-11-22)
+
+For the hero shooter. It replaces `docs/size-extremes-plan.md` "Proposed stage A1", whose loader keyed on stages,
+spawn tables, elites, bosses, recruits and regions (all deleted at the pivot). Owner decisions, 2026-11-22: no
+single-file variant; the hero pick is one portrait sheet fetched at boot, nothing inlined; the dev roster's "All
+Pokémon" portraits load as rows scroll into view; a match starts only when its art has loaded; cries may load on first
+use.
+
+1. **Build.** `scripts/build.mjs` writes `dist/art/` from `src/content/art.json`, every name content-hashed: per species
+   the atlas PNG, a frame table (JSON), the portrait PNG and the cry (OGG and its MP3 transcode); `heroes.<hash>.png`,
+   one sheet of every `PROTOTYPE` portrait; `manifest.<hash>.json`, with each species' file names, credits, licences,
+   cry facts and the clip report the Credits table shows. The bundle is given the manifest's and the sheet's names at
+   build time. `dist/poke-watch-artifact.html` is no longer written.
+2. **Boot.** The manifest and the hero sheet, fetched together. The title and the hero pick need nothing else. Cries
+   are registered with their file names and fetched and decoded on first use.
+3. **Match.** `startRun` builds the run as today (the pointer lock is still asked for inside the Start click); the sim
+   does not step until the match's art has loaded, behind a short loading line. The set comes from the run itself
+   (`matchArt`, `src/sim/matchart.ts`, runs in Node): every squad member's whole line, the run's target set, and the
+   Raid party's species when the mode holds a point. A test plays the range and a Hold and checks that every species
+   that appears, and every form a Breakthrough reaches, is in the set.
+4. **Placeholders** only for a species nothing can know in advance (`pokewatch.spawn` and other dev parameters): it
+   draws as a placeholder of its size class while its art loads on first sight.
+5. **Dev roster.** Each "All Pokémon" row fetches its portrait when it scrolls into view. Its art check reads the
+   manifest, not the loaded art.
+6. **Music.** The adaptive score's seven MP3s (9.9 MB, about 13 MB as data URLs) leave the page too, as `dist/music/`
+   files: the 3 MB budget cannot hold with them inline. They were already fetched and decoded after the audio unlock.
+7. **Unchanged.** The sim (no replay hash moves), Node tests and scripts (they keep reading `src/content/art.json`), the
+   content build.
+8. **Tools.** The page fetches its art, so it no longer runs from `file://` in a plain browser. The tools that open
+   `file://` launch Chromium with `--allow-file-access-from-files`. `pokewatch.ready` waits for a `?go=1` match's art,
+   and `pokewatch.loading` is true while art is in flight (`cap.mjs` and `range.py` wait on it).
+9. **Gates.** `dist/index.html` ≤ 3 MB (the build fails above it); the Pages workflow stages `dist/art/` and
+   `dist/music/`; capture parity (the same frames with inline and loaded art); boot-to-title and pick-to-play before
+   and after; the Ghostery click cost before and after; no replay hash moves; `range.py` passes.
 
 ## Open follow-ups
 
