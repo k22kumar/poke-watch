@@ -17,7 +17,7 @@ record.
 | 2 | P5: the live stutter and real-GPU frame time | done | `perf/stutter`. **Cause: not our code.** The owner's Chrome trace: every mousedown ran Ghostery's content script `whotracksme.js` for 325–363 ms (4 of 4 clicks); held fire, with no new mousedowns, was smooth. The script listens at window (bubble phase) and serialises the `innerHTML` of the clicked element's three nearest ancestors; on the canvas that reaches `<body>`, which holds the inline 26 MB script, and sends the string to the extension. Fix: while the pointer is locked, game clicks are handled at window in the capture phase and stop there (`e577720`; forced on, Ghostery loaded: 0 ms per click, was 103–132 ms). Unlocked clicks on the canvas (the capturing click, every click in the fixed views) paid it too until F13 (done). Also: the `?perf=1` overlay and `tools/stutter.mjs` (`ddf0b8b`), a session long-task count in the overlay (`cb6cd4e`), no per-prop garbage in `TileStage.draw` (`99d4650`). Mouse-look smoothing parked (F14). `tools/perf.mjs` still has no crowd to time (F8). |
 | 3 | A1: Pokémon art outside the HTML | done | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
 | 4 | P2b: sim determinism | queued | Narrowed to the sim code that survives the 3D overhaul (decision D7): the allow-list call sites (`tests/worldgen.test.ts`) `Math.hypot` in `sim/bot.ts` and `sim/targets.ts`, `Math.tan` in `sim/moves.ts`, `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. `sim/world.ts` and `sim/spatial.ts` are skipped: the overhaul replaces them (deleted at X1b). Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
-| 5 | T2 planning: P1 | queued | After X1c (decisions D6, D7). **P1**: per-player systems, and teams in damage (today one player, one enemy side); not the overhaul's task P1 (WorldModel types). **P6** (spikes and navigation faults on the Hold maps, F1, F2) and **F12** (hero bots must not see through wall corners) are folded into the acceptance of the overhaul's I1a and I3 (decision D7). |
+| 5 | T2 planning: P1 | queued | After X1c (decisions D6, D7). **P1**: per-player systems, and teams in damage (today one player, one enemy side). **F12** (hero bots must not see through wall corners) folded into I1a and **P6** (spikes and navigation faults on the Hold maps, F1, F2) into I3 (decision D7). |
 | 6 | The next `HAB_VERSION` bump | dropped | The habitat generator is replaced by the 3D overhaul (decision D7). Was: two parts in one bump, with `docs/habaudit/baseline.json` regenerated: the navigation profiles (F3), and P2c, the 68 habitat-generator `Math` call sites on the allow-list (`world/habitat/`: landforms 33, dress 9, families 9, sanctuary-checks 5, validate 5, graves 2, index 2, ruins 2, lagoon 1). |
 | 7 | T1 co-op wave, T2 3v3, exp → Candy, the dream shop | queued | After X1c (decision D6). T1 takes the navigation faults it pays for (F1) and Hold balance (F4); T2 needs item 5 first. |
 
@@ -28,22 +28,22 @@ handling, which unblocked the Pages deploy (`da19699`).
 
 The tile world is replaced by a fully 3D one: a three.js renderer, a mesh world (WorldModel) and Rapier physics. The
 plan, the WorldModel contract, the migration rules and the decisions are in `docs/OVERHAUL_3D.md`. Until the cutover
-(X1a), new systems land behind flags that default off and every existing replay scenario prints "as recorded". The
-task IDs are the overhaul's own: its P1 and P2 are not the queue's P1 (item 5) or P2b (item 4).
+(X1a), new systems land behind flags that default off and every existing replay scenario prints "as recorded".
+The overhaul's WM and WS were named P1 and P2 before the C0 review.
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| C0 | Record this plan | review | Done on `docs/c0-overhaul-plan`: `docs/OVERHAUL_3D.md`, this section, the CLAUDE.md pointer. |
+| C0 | Record this plan | done | Done on `docs/c0-overhaul-plan`: `docs/OVERHAUL_3D.md`, this section, the CLAUDE.md pointer. |
 | C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | queued | |
-| P1 | WorldModel types and the tile adapter | queued | |
+| WM | WorldModel types and the tile adapter | queued | |
 | C2 | Layering fix and the import guard test | queued | |
 | S1 | Rapier spike, record in docs/spikes/S1-physics.md | queued | |
 | S2 | three.js spike, record in docs/spikes/S2-renderer.md | queued | |
-| P2 | Sim world seam (hash-invariant refactor) | queued | |
+| WS | Sim world seam (hash-invariant refactor) | queued | |
 | G0 | 3D generator design, docs/WORLDGEN3D.md | queued | |
-| I1a | Physics world and queries | queued | Acceptance includes F12 and P6 (D7). |
+| I1a | Physics world and queries | queued | Acceptance includes F12 (D7). |
 | I1b | Character movement | queued | |
-| I3 | Navigation | queued | Acceptance includes F12 and P6 (D7). |
+| I3 | Navigation | queued | Acceptance includes P6: the F1 faults and the F2 shore search (D7). |
 | I1c | Enemies, bodies and bots on physics and navigation | queued | |
 | I4 | Hazards, surface states and destructibles | queued | |
 | I2a | three.js scene | queued | |
@@ -68,8 +68,8 @@ task IDs are the overhaul's own: its P1 and P2 are not the queue's P1 (item 5) o
   tile stack.
 - **D6** T1 co-op waves, T2 3v3 hero bots and multiplayer come after the overhaul. Netcode stays out of scope (pivot
   Q1) until the owner reopens it; the foundation keeps per-player input and physics that can be snapshotted.
-- **D7 Roadmap:** item 6 dropped, item 4 narrowed, P6 and F12 folded into I1a and I3, F1 to F3 closed at X1b, P1 after
-  X1c.
+- **D7 Roadmap:** item 6 dropped, item 4 narrowed, F12 folded into I1a and P6 into I3, F1 to F3 closed at X1b, P1
+  after X1c.
 
 ## Item 3: A1 plan (2026-11-22)
 
@@ -207,7 +207,7 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
   P2b replaces all 111 with `x * x`, and the guard counts `** 2` from then on.
 - **F12. The one `todo` test** (`tests/spatial.test.ts`, "World.sight (I2)"): the 0.5 m sampled sight line sees
   through a wall corner. Its note names Stage 7A (enemy line of fire on `segmentClear`, enemy hashes migrated once)
-  [5]. Owner, 2026-11-21: part of T2 planning; hero bots must not see through wall corners.
+  [I1a]. Owner, 2026-11-21: part of T2 planning; hero bots must not see through wall corners.
 
 Closed in §11 since it was written: Hold off the title (`81e7050`), the empty title plaque (`03f7d4b`), the dead
 survivor event paths (`5b6fcde`), the survivor scenes (Q45, `dacdda8`), the elite, alpha, boss and stampede roles

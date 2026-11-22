@@ -12,7 +12,7 @@ Every map today is an ArenaMap (src/world/tiles.ts): a 1 m tile grid with one he
 - D4 The fixed north-up camera views retire at X1a. Third person is the only view.
 - D5 The Pokémon-location generator (world/locations, world/locgen) stays until X1b and is deleted with the tile stack.
 - D6 T1 co-op waves, T2 3v3 hero bots and multiplayer come after the overhaul. Netcode stays out of scope (pivot Q1) until the owner reopens it; the foundation keeps per-player input and physics that can be snapshotted.
-- D7 Roadmap: item 6 dropped, item 4 narrowed, P6 and F12 folded into I1a and I3, F1 to F3 closed at X1b, P1 after X1c.
+- D7 Roadmap: item 6 dropped, item 4 narrowed, F12 folded into I1a and P6 into I3, F1 to F3 closed at X1b, P1 after X1c.
 
 ## Target layout
 - src/core: RNG streams, detmath, small vec3 maths, utils. No dependencies.
@@ -55,11 +55,11 @@ Render, physics and navigation each build their own runtime structures from it. 
 |---|---|
 | C0 | Record this plan |
 | C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) |
-| P1 | WorldModel types and the tile adapter |
+| WM | WorldModel types and the tile adapter |
 | C2 | Layering fix and the import guard test |
 | S1 | Rapier spike, record in docs/spikes/S1-physics.md |
 | S2 | three.js spike, record in docs/spikes/S2-renderer.md |
-| P2 | Sim world seam (hash-invariant refactor) |
+| WS | Sim world seam (hash-invariant refactor) |
 | G0 | 3D generator design, docs/WORLDGEN3D.md |
 | I1a | Physics world and queries |
 | I1b | Character movement |
