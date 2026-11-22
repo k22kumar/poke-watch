@@ -39,7 +39,16 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = () => rej(new Error(`${src}: image failed to load`)); im.src = src; });
 }
 
+/** fetch and decode one species' art (atlas, frame table, portrait) from the manifest's files */
+export async function fetchSpeciesArt(base: string, id: string, e: ArtManifestEntry): Promise<CreatureArt> {
+  const table = await fetchOk(base + e.frames).then((r) => r.json() as Promise<{ anims: Record<string, PackAnim>; shadowSize?: number }>);
+  const { art } = await buildArt(id, { source: e.art.source, atlas: base + e.atlas, anims: table.anims, shadowSize: table.shadowSize, portrait: e.portrait ? base + e.portrait : undefined, credits: e.art.credits, license: e.art.license, url: e.art.url });
+  return art;
+}
+
 export class ArtLoader {
+  /** `fetchArt` is the network and decode step (tests/loader.test.ts gives a fake one) */
+  constructor(private readonly fetchArt: typeof fetchSpeciesArt = fetchSpeciesArt) {}
   manifest: ArtManifest | null = null;
   /** the directory the manifest's file names are relative to */
   private base = '';
@@ -94,9 +103,12 @@ export class ArtLoader {
   /** art or a portrait is being fetched or decoded */
   get loading() { return this.inflight.size > 0 || this.portraitsPending > 0; }
 
-  /** Fetch these species' art (the ones not loaded yet); resolves when all have arrived or failed. */
+  /** Fetch these species' art (the ones not loaded yet); resolves when all have arrived or failed. A species whose
+   *  fetch failed earlier is tried again here (once per call: a match start, a hero pick), so one dropped request does
+   *  not leave it missing for the session; first sight (request) does not retry. */
   ensure(ids: Iterable<string>): Promise<void> {
     const list = [...new Set(ids)].filter((id) => this.has(id));
+    for (const id of list) this.failed.delete(id);
     return Promise.all(list.map((id) => this.load(id))).then(() => undefined);
   }
 
@@ -117,8 +129,7 @@ export class ArtLoader {
   private async fetchSpecies(id: string) {
     const e = this.manifest!.species[id];
     try {
-      const table = await fetchOk(this.base + e.frames).then((r) => r.json() as Promise<{ anims: Record<string, PackAnim>; shadowSize?: number }>);
-      const { art } = await buildArt(id, { source: e.art.source, atlas: this.base + e.atlas, anims: table.anims, shadowSize: table.shadowSize, portrait: e.portrait ? this.base + e.portrait : undefined, credits: e.art.credits, license: e.art.license, url: e.art.url });
+      const art = await this.fetchArt(this.base, id, e);
       registry.setArt(id, art);
       this.done.add(id);
       this.stats.species++;
