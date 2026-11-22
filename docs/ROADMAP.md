@@ -85,7 +85,7 @@ The Ghostery stall itself was already gone after F13; A1 does not change the can
 
 After the owner's review: a species whose fetch failed is fetched again on the next `ensure()` (a match start, a hero
 pick), once per call; first sight does not retry (`tests/loader.test.ts`). F18 closed. Deferring the score was
-measured and left out (F19).
+measured and declined (F19).
 
 ## Open follow-ups
 
@@ -143,7 +143,8 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
   browser without Vorbis (Safari) plays no cries. Unchanged by A1.
 - **F18. No Python `playwright` on this machine** — **done** (2026-11-22): `tests/browser/requirements.txt` pins
   `playwright==1.65.0`; setup in `tools/README.md` "Python checks" (a gitignored `.venv`).
-- **F19. Fetch the score after the first match's art?** [decision]: measured on `perf/a1-art` (Start 1.5 s after the
+- **F19. Fetch the score after the first match's art?** — **declined** (owner, 2026-11-22): about 40 ms of pick to play
+  is not worth silent menus; the music keeps playing on the title and hero pick. Measured on `perf/a1-art` (Start 1.5 s after the
   pick opens, same session): pick to play local 445 → 409 ms, 20 Mbps / 40 ms 430 → 391 ms (`main`: 368 / 365). The
   cost: the title and hero pick are silent until the first match starts, and `tools/musiccheck.mjs`, which waits for
   the score on the title, would need to start a match. Not applied. The change is small: `Audio.unlock` creates the
