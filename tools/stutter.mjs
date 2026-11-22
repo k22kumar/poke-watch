@@ -25,7 +25,7 @@ if (!file || !query) { console.error('usage: node tools/stutter.mjs <html> <labe
 
 const b = await chromium.launch({
   headless,
-  args: [...(opt('pos') ? [`--window-position=${opt('pos')}`] : []), `--window-size=${vw},${vh + 120}`, '--enable-precise-memory-info', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--autoplay-policy=no-user-gesture-required'],
+  args: ['--allow-file-access-from-files', ...(opt('pos') ? [`--window-position=${opt('pos')}`] : []), `--window-size=${vw},${vh + 120}`, '--enable-precise-memory-info', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--autoplay-policy=no-user-gesture-required'],
 });
 const p = await b.newPage({ viewport: { width: vw, height: vh } });
 const errors = [];

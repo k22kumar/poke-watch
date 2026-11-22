@@ -9,7 +9,7 @@ const reels = [
   { name: 'cast', query: 'go=1&species=squirtle&seed=3&calm=1&tp=50,62&autopick=1', pre: [{ advance: 0.3 }, { eval: "pokewatch.spawn('geodude',5,-3);pokewatch.spawn('rattata',6,1)" }, { advance: 0.3, frames: 2 }], secs: 3, input: { mx: 1, mz: 0, jump: false, dash: false } },
   { name: 'evolve', query: 'go=1&species=caterpie&seed=4', pre: [{ advance: 1 }, { eval: 'pokewatch.evolve()' }], secs: 6 }, // a Breakthrough
 ];
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files'] });
 for (const r of reels) {
   const dir = `${out}/${r.name}`; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
   const p = await b.newPage({ viewport: { width: 960, height: 540 } });

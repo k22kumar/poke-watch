@@ -7,7 +7,7 @@ import fs from 'node:fs';
 const [,, file, scenesFile, out, filter] = process.argv;
 const scenes = JSON.parse(fs.readFileSync(scenesFile, 'utf8')).filter((s) => !filter || s.name.includes(filter));
 fs.mkdirSync(out, { recursive: true });
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'] });
 for (const sc of scenes) {
   const p = await b.newPage({ viewport: { width: sc.w ?? 1280, height: sc.h ?? 720 } });
   const logs = [];
@@ -16,7 +16,10 @@ for (const sc of scenes) {
   await p.goto('file://' + file + '?capture=1&' + (sc.query ?? ''));
   await p.waitForFunction(() => window.pokewatch?.ready, null, { timeout: 90000 }).catch(() => logs.push('not ready'));
   await p.waitForTimeout(300);
+  // the page fetches Pokémon art (a match's before it starts, a spawned species' on request): each step waits for it
+  const settle = () => p.waitForFunction(() => !window.pokewatch?.loading, null, { timeout: 60000 }).catch(() => logs.push('art still loading'));
   for (const st of sc.steps ?? []) {
+    await settle();
     if (st.advance !== undefined) await p.evaluate((st) => window.pokewatch.advance(st.advance, st), st);
     if (st.wait) await p.waitForTimeout(st.wait);
     if (st.click) await p.click(st.click).catch(() => logs.push('clickfail ' + st.click));

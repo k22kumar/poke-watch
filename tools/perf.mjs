@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
 const file = process.argv[2];
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files'] });
 const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
 await p.goto('file://' + file + '?capture=1&go=1&species=cyndaquil&seed=5&autopick=1&stageTime=299.5&level=12');
 await p.waitForFunction(() => window.pokewatch?.ready, null, { timeout: 90000 });

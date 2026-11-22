@@ -31,6 +31,10 @@ jobs:
         run: |
           mkdir site
           cp dist/index.html site/index.html
+          cp -R dist/art site/art
+          cp -R dist/music site/music
+          test -f site/art/manifest.*.json
+          ls site/music/*.mp3
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

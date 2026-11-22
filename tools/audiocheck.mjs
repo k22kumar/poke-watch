@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs';
 const [,, file, out, phase] = process.argv;
 fs.mkdirSync(out, { recursive: true });
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 960, height: 540 } });
 const logs = [];
 p.on('console', (m) => { if (!/GPU stall|GL Driver|TUNNEL|Failed to load/.test(m.text())) logs.push(m.type() + ': ' + m.text()); });

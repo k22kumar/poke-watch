@@ -1,7 +1,7 @@
 // Navigation check with real key presses and a virtual gamepad. Prints PASS/FAIL per step.
 import { chromium } from 'playwright';
 const [,, file] = process.argv;
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'] });
 const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
 const errs = [];
 p.on('pageerror', (e) => errs.push(e.message));

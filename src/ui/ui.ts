@@ -65,6 +65,10 @@ export interface UIHooks {
   restart(): void;
   quit(): void;
   portrait(id: string): HTMLCanvasElement | undefined;
+  /** fetch a portrait not known yet (the dev roster's rows, as they scroll into view: assets/loader.ts) */
+  fetchPortrait?(id: string): Promise<HTMLCanvasElement | undefined>;
+  /** the hero pick's current choice: its match's art may be fetched ahead of Start (assets/loader.ts) */
+  prefetch?(mode: Mode, species: string): void;
   sound(kind: 'ui' | 'pick' | 'move' | 'back' | 'denied'): void;
   settings: UISettings;
   cry(id: string): void;
@@ -307,10 +311,15 @@ export class UI {
     );
     this.root.append(touchControls);
     this.root.append(h('div', { id: 'banner', role: 'status', 'aria-live': 'polite' }), h('div', { id: 'plaque' }));
+    // a match waits for its art (docs/ROADMAP.md "Item 3: A1 plan"): the sim does not step until it has arrived
+    this.root.append(h('div', { id: 'match-loading', class: 'box hidden', role: 'status', 'aria-live': 'polite' }, 'Loading Pokémon…'));
     this.add('overlay-evolve', h('div', { class: 'screen' }, h('div', { class: 'rays' }), h('div', { class: 'box txt', id: 'evotxt' })));
     for (const n of ['screen-pause', 'screen-end', 'screen-settings', 'screen-bindings', 'screen-help', 'screen-credits']) this.add(n, h('div', { class: 'screen dim' }));
     this.add('tuning', h('div', { class: 'box' }));
   }
+
+  /** the match's art is loading (main.ts startRun): a short line over the frozen first frame */
+  matchLoading(on: boolean) { document.getElementById('match-loading')?.classList.toggle('hidden', !on); }
 
   loading(f: number) {
     this.show('screen-loading', f < 1);
@@ -368,8 +377,9 @@ export class UI {
       if (!ok.includes(this.species)) this.species = ok[0] ?? offers[0];
     };
     fitView();
+    this.hooks.prefetch?.(this.mode, this.species);
     const choose = (id: string, card: HTMLElement) => {
-      this.species = id; this.hooks.sound('ui'); this.hooks.cry(id);
+      this.species = id; this.hooks.sound('ui'); this.hooks.cry(id); this.hooks.prefetch?.(this.mode, id);
       for (const c of roster.querySelectorAll('.mon')) { c.setAttribute('aria-checked', 'false'); (c as any)._armed = false; }
       card.setAttribute('aria-checked', 'true'); (card as any)._armed = true;
     };
@@ -392,6 +402,21 @@ export class UI {
       }
       if (!roster.querySelector('.mon')) roster.append(h('div', { class: 'dev-group' }, 'No Pokémon match the filter'));
     };
+    // "All Pokémon" (owner, 2026-11-22): a row's portrait is fetched when the row scrolls into view
+    const lazy = typeof IntersectionObserver === 'function' && this.hooks.fetchPortrait ? new IntersectionObserver((entries) => {
+      for (const en of entries) {
+        if (!en.isIntersecting) continue;
+        const pic = en.target as HTMLElement;
+        lazy!.unobserve(pic);
+        void this.hooks.fetchPortrait!(pic.dataset.id!).then((c) => { if (c) pic.replaceChildren(copyCanvas(c)); });
+      }
+    }, { root: null, rootMargin: '200px' }) : null;
+    const picOf = (id: string) => {
+      const have = this.hooks.portrait(id);
+      const pic = h('div', { class: 'pic' }, copyCanvas(have));
+      if (!have && lazy) { pic.dataset.id = id; lazy.observe(pic); }
+      return pic;
+    };
     const devCard = (r: ControlReadiness, size: SizeRules) => {
       const sp = SPECIES_BY_ID[r.id];
       const off = r.tier === 'unavailable';
@@ -409,7 +434,7 @@ export class UI {
           choose(sp.id, card);
         },
       },
-        h('div', { class: 'pic' }, copyCanvas(this.hooks.portrait(sp.id))),
+        picOf(sp.id),
         h('div', { class: 'info' },
           h('div', { class: 'mon-head' }, h('b', {}, sp.name), sp.dex ? h('span', { class: 'dex' }, `No.${String(sp.dex).padStart(3, '0')}`) : null),
           h('div', { class: 'types' }, ...sp.elements.map((e) => typeBadge(e))),

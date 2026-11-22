@@ -10,6 +10,10 @@
 //
 // Recordings only (docs/hero-shooter-pivot.md Q51): a species with no cry, or one whose sample
 // can't be decoded, is silent. There is no synthesised fallback voice.
+//
+// The samples are side files (docs/ROADMAP.md "Item 3: A1 plan"): every species is registered with
+// its file names at boot, and a sample is fetched and decoded on first use, or ahead of it for the
+// species a match is known to show (want()).
 
 interface Cry {
   src: string; alt?: string;
@@ -33,6 +37,9 @@ export class CryBank {
   /** called with the duration whenever a cry starts (the mixer ducks music under it) */
   onPlay: ((seconds: number) => void) | null = null;
   readonly stats = { played: 0, queued: 0, playedFromQueue: 0, droppedStale: 0, failures: 0 };
+  /** the species to decode ahead of first use (want()), and the audio context once it exists */
+  private wanted = new Set<string>();
+  private actx: AudioContext | null = null;
 
   /** register a recorded cry; `alt` is the MP3 transcode */
   sample(id: string, src: string, gain = 1, alt?: string) {
@@ -59,9 +66,19 @@ export class CryBank {
   }
   ids() { return [...this.cries.keys()]; }
 
-  /** decode every sample (call once the audio context exists, e.g. on unlock) */
+  /** the audio context exists (on unlock): decode the samples wanted so far; the rest wait for first use */
   async preload(ctx: AudioContext) {
-    await Promise.all([...this.cries.keys()].map((id) => this.decode(ctx, id)));
+    this.actx = ctx;
+    await Promise.all([...this.wanted].map((id) => this.decode(ctx, id)));
+  }
+
+  /** decode these species' samples ahead of first use (a match's species), now or once the audio context exists */
+  want(ids: Iterable<string>) {
+    for (const id of ids) {
+      if (!this.cries.has(id) || this.wanted.has(id)) continue;
+      this.wanted.add(id);
+      if (this.actx) void this.decode(this.actx, id);
+    }
   }
 
   private async decodeUrl(ctx: AudioContext, url: string): Promise<AudioBuffer> {

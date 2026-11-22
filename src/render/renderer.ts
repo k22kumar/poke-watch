@@ -15,9 +15,8 @@ import { tidePhase } from '../sim/hazards';
 import { MOVE_BY_KEY } from '../rules/moves';
 const MOVE_NAMES: Record<string, string> = new Proxy({}, { get: (_t, k: string) => MOVE_BY_KEY[k]?.name });
 import { CAST_CLIP, OVERLAY, TEXELS_PER_METRE, clipLength, dirIndex, frameAt, hitTime, type AnimState, type CreatureArt } from '../assets/art';
-import { loadBuiltinArt, type ArtBundle } from '../assets/builtin';
+import { artLoader, placeholderArt } from '../assets/loader';
 import { overlayReach } from '../assets/measure';
-import { registry } from '../assets/registry';
 import { InstanceBatch, QUAD_CENTER, QUAD_FEET } from './batches';
 import { hexToRgb, mat4, Program, type GL } from './gl';
 import { DECAL_FS, DECAL_VS, GLOW_FS, GLOW_VS, RIBBON_FS, RIBBON_VS } from './shaders';
@@ -121,6 +120,8 @@ const TAU = Math.PI * 2;
 
 interface SpriteSet {
   art: CreatureArt; tex: WebGLTexture; batch: InstanceBatch; tw: number; th: number; walkRate: number; size: SpeciesSizing;
+  /** drawn with the shared placeholder while the species' art loads (assets/loader.ts placeholderArt) */
+  placeholder?: boolean;
   /** the sprite's measured outline at its drawn scale: what the third-person rig frames (render/framing.ts); absent when
    *  the art was not measured */
   outline?: Outline;
@@ -234,16 +235,16 @@ export class Renderer {
     this.px = new PixelLayer(gl);
   }
 
-  /** Load the game's Pokémon (sprites, portraits, cries) from the generated art bundle. */
-  async loadArt(bundle: ArtBundle, onProgress?: (f: number) => void) {
-    await loadBuiltinArt(bundle, (id, art) => this.addArt(id, art), onProgress);
+  /** Upload a creature's atlas (baked or imported) and give it an instance batch. The art loader calls it as each
+   *  species' art arrives (assets/loader.ts). */
+  addArt(id: string, art: CreatureArt) {
+    const old = this.sheets.get(id);
+    if (old && !old.placeholder) this.gl.deleteTexture(old.tex);
+    this.putSheet(id, art, this.upload(art), old?.batch);
   }
 
-  /** Upload a creature's atlas (baked or imported) and give it an instance batch. */
-  addArt(id: string, art: CreatureArt) {
+  private upload(art: CreatureArt): WebGLTexture {
     const gl = this.gl;
-    const old = this.sheets.get(id);
-    if (old) gl.deleteTexture(old.tex);
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, art.atlas);
@@ -251,12 +252,31 @@ export class Renderer {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return tex;
+  }
+
+  /** the shared placeholder art and texture (made on first need) */
+  private ph: { art: CreatureArt; tex: WebGLTexture } | null = null;
+  /** A species drawn before its art arrived: one nothing could know in advance (a dev parameter; a match's species are
+   *  loaded before it starts). Its art is fetched now and it draws as a size-class placeholder until it arrives;
+   *  undefined when the game has no art for it at all. */
+  private sheetOf(id: string): SpriteSet | undefined {
+    const s = this.sheets.get(id);
+    if (s || !artLoader.has(id) || artLoader.failed.has(id)) return s;
+    artLoader.request(id);
+    if (!this.ph) { const art = placeholderArt(); this.ph = { art, tex: this.upload(art) }; }
+    this.putSheet(id, this.ph.art, this.ph.tex, undefined, true);
+    return this.sheets.get(id);
+  }
+
+  private putSheet(id: string, art: CreatureArt, tex: WebGLTexture, batch: InstanceBatch | undefined, placeholder = false) {
+    const gl = this.gl;
     const sp = SPECIES_BY_ID[id];
-    const batch = old?.batch ?? new InstanceBatch(gl, QUAD_FEET, 2, [4, 4, 4, 4, 4], sp?.boss || sp?.playable ? 4 : 128);
+    batch ??= new InstanceBatch(gl, QUAD_FEET, 2, [4, 4, 4, 4, 4], sp?.boss || sp?.playable ? 4 : 128);
     // walk cadence: 1.6 frames per metre travelled, whatever the source's frame count
     const walk = art.clips.walk;
     const walkRate = (clipLength(walk) / Math.max(1, walk.durations.length)) * 1.6;
-    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, ...this.sizedArt(id, art) });
+    this.sheets.set(id, { art, tex, batch, tw: art.atlas.width, th: art.atlas.height, walkRate, placeholder, ...this.sizedArt(id, art) });
   }
 
   /** visible size (rules/sizing.ts) under the current size rules: one multiplier per species, from its size class's
@@ -288,7 +308,7 @@ export class Renderer {
   }
 
   portrait(id: string): HTMLCanvasElement | undefined {
-    return registry.getArt(id)?.portrait;
+    return artLoader.portrait(id);
   }
 
   setStage(ctx: SimContext) {
@@ -792,7 +812,7 @@ export class Renderer {
     // the frame the last push() drew (row, frame, scale, procedural offset): read back for the player's own sprite
     let lastRow = 0, lastFrame = 0, lastScale = 1, lastDx = 0, lastDy = 0;
     const push = (id: string, x: number, y: number, z: number, scale: number, facing: number, state: AnimState, t: number, flash: number, dissolve: number, tint: number[], bias = 0) => {
-      const set = this.sheets.get(id);
+      const set = this.sheetOf(id);
       if (!set) return;
       scale *= set.size.scale;
       const clip = set.art.clips[state];
@@ -820,7 +840,7 @@ export class Renderer {
       const ddx = x - view.x, ddz = z - view.z;
       if (ddx * ddx + ddz * ddz > r2) continue;
       const sp = SPECIES[E.species[i]];
-      const set = this.sheets.get(sp.id);
+      const set = this.sheetOf(sp.id);
       if (!set) continue;
       const roles = E.roles[i];
       let tint = [1, 1, 1];
@@ -869,7 +889,7 @@ export class Renderer {
     let flash = P.hurtFlash > 0 ? 0.9 : 0;
     let id = P.species.id;
     let state: AnimState = P.moving || !P.grounded ? 'walk' : 'idle';
-    const pset = this.sheets.get(id);
+    const pset = this.sheetOf(id);
     let t = state === 'walk' ? P.animT * (pset?.walkRate ?? 0.22) : this.time;
     if (this.pAnim.until > this.time) { state = this.pAnim.state; const e = this.time - this.pAnim.start; t = state === 'hurt' ? e : this.attackClipTime(e); }
     if (ctx.state === 'over' || ctx.state === 'dead') { if (this.deadAt < 0) this.deadAt = this.time; state = 'faint'; t = this.time - this.deadAt; }

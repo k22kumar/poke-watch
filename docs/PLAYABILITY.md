@@ -47,7 +47,7 @@ Without `?dev`, the hero screen shows the prototype list (`PROTOTYPE`, `FEATURED
 - the current tiers (everything ready but the four authored-scale bodies, partial on `body`);
 - the opening-move rule (starters keep theirs, evolved partners take their line's);
 - every selectable species starts a run with its opening move and deals damage to nearby enemies under the bot within 8 s;
-- every species ships an atlas, a portrait and a Walk or Idle clip in `src/content/art.json` (every other animation state falls back to those);
+- every species ships an atlas, a portrait and a Walk or Idle clip in `src/content/art.json` (every other animation state falls back to those); in the browser the roster's art check reads the art manifest (`dist/art/`), not loaded art, which arrives only when a match needs it;
 - a failing host check makes a species unavailable;
 - `starterEligibleSpecies()` is the six partner lines and the Caterpie test line; the dev roster never reads `playable`.
 

@@ -18,7 +18,7 @@ const [scenesFile, out, filter] = argv;
 const overlaySrc = fs.readFileSync(new URL('./sizeoverlay.js', import.meta.url), 'utf8');
 const scenes = JSON.parse(fs.readFileSync(scenesFile, 'utf8')).filter((s) => !filter || s.name.includes(filter));
 fs.mkdirSync(out, { recursive: true });
-const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--autoplay-policy=no-user-gesture-required'] });
+const b = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--autoplay-policy=no-user-gesture-required'] });
 for (const sc of scenes) {
   const file = builds[sc.build ?? 'on'];
   if (!file) { console.log(`${sc.name}: no build '${sc.build ?? 'on'}' (pass --builds)`); continue; }
@@ -30,6 +30,8 @@ for (const sc of scenes) {
   await p.waitForFunction(() => window.pokewatch?.ready, null, { timeout: 60000 });
   let injected = false;
   for (const st of sc.steps) {
+    // the page fetches Pokémon art (a spawned species' on request): each step waits for it
+    await p.waitForFunction(() => !window.pokewatch?.loading, null, { timeout: 60000 });
     if (st.advance !== undefined) await p.evaluate((st) => window.pokewatch.advance(st.advance, st), st);
     if (st.eval) results.push(await p.evaluate(st.eval));
     if (st.overlay) {
