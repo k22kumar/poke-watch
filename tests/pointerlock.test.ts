@@ -7,10 +7,31 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BTN } from '../src/sim/types';
 
+type Listener = (e: unknown) => void;
 class Target {
-  l: Record<string, ((e: unknown) => void)[]> = {};
-  addEventListener(t: string, f: (e: unknown) => void) { (this.l[t] ??= []).push(f); }
-  fire(t: string, e: Record<string, unknown> = {}) { for (const f of this.l[t] ?? []) f({ preventDefault() {}, target: null, ...e }); }
+  l: Record<string, Listener[]> = {};
+  /** capture-phase listeners (addEventListener's third argument true or { capture: true }) */
+  c: Record<string, Listener[]> = {};
+  addEventListener(t: string, f: Listener, o?: boolean | { capture?: boolean }) {
+    const cap = o === true || (typeof o === 'object' && !!o.capture);
+    ((cap ? this.c : this.l)[t] ??= []).push(f);
+  }
+  /** every listener of the type, capture first, with no propagation (the window and document events) */
+  fire(t: string, e: Record<string, unknown> = {}) {
+    const ev = { preventDefault() {}, stopPropagation() {}, target: null, ...e };
+    for (const f of [...(this.c[t] ?? []), ...(this.l[t] ?? [])]) f(ev);
+  }
+}
+
+/** a mouse event's path as a browser runs it for a target directly under the window: window capture, the target
+ *  (its capture and bubble listeners), window bubble. stopPropagation() ends the path before the next target */
+function dispatch(win: Target, el: Target, type: string, init: Record<string, unknown>) {
+  let stopped = false;
+  const ev = { preventDefault() {}, stopPropagation() { stopped = true; }, target: el, ...init };
+  for (const fs of [win.c[type], [...(el.c[type] ?? []), ...(el.l[type] ?? [])], win.l[type]]) {
+    if (stopped) return;
+    for (const f of fs ?? []) f(ev);
+  }
 }
 
 /** an Input on a stubbed DOM whose canvas counts lock requests; grant() and refuse() answer the last one */
@@ -188,4 +209,38 @@ test('pointer lock: an unanswered request expires after 1.5 s; the next click as
     assert.equal(ev.gained, 1, 'the late grant is not treated as withdrawn');
     assert.equal(input.locked, true);
   }
+});
+
+test('pointer lock: while locked, game clicks stop at the window capture phase; unlocked clicks propagate as before', async () => {
+  // a browser extension's page-level listener (Ghostery's whotracksme.js: window, bubble phase) serialises the clicked
+  // element's ancestors on every mousedown, a 100-350 ms stall on this 26 MB page (docs/ROADMAP.md item 2)
+  const { input, el, win, grant, browserRelease } = await stub();
+  let seen = 0;
+  win.addEventListener('mousedown', () => seen++);
+  win.addEventListener('mouseup', () => seen++);
+  const down = (button: number) => dispatch(win, el, 'mousedown', { button });
+  const up = (button: number) => dispatch(win, el, 'mouseup', { button });
+  // unlocked: the capturing click reaches the canvas listener (it asks for the lock, no attack) and the page listener
+  down(0); up(0);
+  assert.equal(el.requests, 1, 'the capturing click asks for the lock');
+  assert.equal(input.sample(0).btn, 0, 'and does not attack');
+  assert.equal(seen, 2, 'unlocked clicks still reach page-level listeners');
+  grant();
+  seen = 0;
+  // locked: the game still gets the press, the hold and the release; nothing after the window capture phase sees them
+  down(0);
+  const a = input.sample(0);
+  assert.equal((a.btn ?? 0) & BTN.basic, BTN.basic, 'a locked click attacks');
+  assert.equal((a.press ?? 0) & BTN.basic, BTN.basic, 'as one press');
+  assert.equal((input.sample(0).btn ?? 0) & BTN.basic, BTN.basic, 'held');
+  up(0);
+  assert.equal((input.sample(0).btn ?? 0) & BTN.basic, 0, 'released');
+  down(2); up(2);
+  assert.equal((input.sample(0).btn ?? 0) & BTN.a, BTN.a, 'a right click between two samples still reaches the sim (Move A)');
+  assert.equal(input.dragging, false, 'right button released');
+  assert.equal(seen, 0, 'no page-level listener saw a locked click');
+  // the lock goes: clicks propagate again
+  browserRelease();
+  down(0); up(0);
+  assert.equal(seen, 2, 'after the lock is lost, clicks reach page-level listeners again');
 });

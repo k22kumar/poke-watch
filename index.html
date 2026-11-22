@@ -15,6 +15,12 @@
   <canvas id="fx2d"></canvas>
   <div id="ui"></div>
 </div>
-<script>/*__JS__*/</script>
+<!-- The game script takes itself out of the DOM once its synchronous start has run (the game keeps running; the
+     engine holds its source). The element held the whole 26 MB bundle as text, and extensions that read the page's
+     HTML on every click (Ghostery's whotracksme.js serialises <body>) stalled the main thread 100-350 ms per click.
+     Nothing reads the element. The removal comes last so the bundle's "use strict" stays its first statement.
+     docs/ROADMAP.md F13. -->
+<script>/*__JS__*/
+;document.currentScript?.remove();</script>
 </body>
 </html>

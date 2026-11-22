@@ -29,6 +29,7 @@ import { mapChecksum } from './world/maps';
 import { loadInfo, mapErrorMessage, worldgenFromQuery } from './world/replay';
 import type { InputFrame, SimContext, SimEvent } from './sim/types';
 import { UI } from './ui/ui';
+import { PerfHud } from './ui/perfhud';
 import { CHASE_CONFIG, RETICLE_Y, cameraPreset } from './render/camera';
 import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
@@ -59,6 +60,10 @@ let lastFrame = performance.now();
 let fps = 60, fpsAcc = 0, fpsN = 0;
 let god = false;
 const perf = { sim: 0, render: 0 };
+// ?perf=1: the dev frame-time overlay (ui/perfhud.ts). Without the query it is never built and frame() skips it
+const perfHud = params.has('perf') ? new PerfHud() : null;
+/** mouse look consumed this frame (|dx| + |dy|), for the overlay */
+let lookMoved = 0;
 const autoplay = params.has('autoplay');
 // ?capture=1: the loop stops advancing on its own; tools call pokewatch.advance(seconds) to step the sim at
 // exactly 60 Hz and draw one frame, and presentation randomness is seeded, so shots are repeatable.
@@ -304,6 +309,7 @@ function onEvents(c: SimContext, events: SimEvent[]) {
 /** third person: mouse deltas and the right stick turn the camera (and so the aim and the move direction) */
 function lookInput(dt: number, live: boolean) {
   const mouse = input.consumeMouse() as [number, number];
+  lookMoved = Math.abs(mouse[0]) + Math.abs(mouse[1]);
   if (!live) return; // paused, a menu, the run over: the movement is dropped, not saved for later
   const d = lookDelta(mouse, input.lookStick(), dt, settings.sens, settings.invertY);
   if (d) renderer.look(d[0], d[1]);
@@ -353,7 +359,9 @@ function frame(now: number) {
   ui.padTick(1 / 60);
   { const st = input.padHeld('pause'); if (st && !startPrev && ctx && ctx.state !== 'over' && (input.context === 'play' || paused)) setPaused(!paused); startPrev = st; }
   if (capture) return;
-  let real = Math.min(0.25, (now - lastFrame) / 1000);
+  const rawMs = now - lastFrame;
+  lookMoved = 0;
+  let real = Math.min(0.25, rawMs / 1000);
   lastFrame = now;
   fpsAcc += real; fpsN++;
   if (fpsAcc > 0.5) { fps = fpsN / fpsAcc; fpsAcc = 0; fpsN = 0; }
@@ -414,6 +422,7 @@ function frame(now: number) {
   ui.drawNumbers(renderer.nums, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale);
   if (ctx) drawAwareness(ctx);
   if (ctx && debugCaps) ui.capsDebug(ctx, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale);
+  if (perfHud) perfHud.frame({ t: now, frame: rawMs, sim: tSim1 - tSim0, render: tR - tSim1, ui: performance.now() - tR, ticks: fr.steps, mouse: lookMoved });
 }
 
 // music director input: how crowded the player's surroundings are (sampled 4x a second)
@@ -497,7 +506,7 @@ async function boot() {
     debug: (what = 'caps') => { debugCaps = what === 'caps' ? !debugCaps : false; return debugCaps; },
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
-    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
+    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, perfHud, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
     objective: (kind: 'hold' = 'hold') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species

@@ -95,7 +95,7 @@ test('wall tops: every wall prop carries its tallest unstretched drawn height, r
   // the conventions the measurement copies from the renderer, checked in its source so a change there fails here
   const stage = readFileSync(new URL('../src/render/tilestage.ts', import.meta.url), 'utf8');
   assert.ok(stage.includes("if (p.kind === 'tree') key = ['tree', 'tree3', 'tree'][p.variant % 3];"), 'tree variants: tree, tree3');
-  assert.ok(stage.includes('e.w / 16, e.h / 16'), 'a prop card is its sprite at 16 px per m');
+  assert.ok(stage.includes('d[o + 3] = e.w / 16; d[o + 4] = e.h / 16;'), 'a prop card is its sprite at 16 px per m');
   assert.ok(stage.includes('if (c.a < 0.5) discard;'), 'the billboard shader keeps alpha ≥ 0.5');
   assert.ok(stage.includes('const y = m.elev[(p.y + p.h - 1) * W + p.x];'), "a card stands on its bottom-left tile's elevation (wallTopsOf's footing)");
   assert.equal(TEXELS_PER_METRE, 16);
