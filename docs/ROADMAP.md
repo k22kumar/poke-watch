@@ -15,7 +15,7 @@ record.
 |---|---|---|---|
 | 1 | Housekeeping | done | `chore/housekeeping` (`df5c465`, `4571d2d`): this file, CLAUDE.md "Working with the owner", P7, P2(a). |
 | 2 | P5: the live stutter and real-GPU frame time | done | `perf/stutter`. **Cause: not our code.** The owner's Chrome trace: every mousedown ran Ghostery's content script `whotracksme.js` for 325–363 ms (4 of 4 clicks); held fire, with no new mousedowns, was smooth. The script listens at window (bubble phase) and serialises the `innerHTML` of the clicked element's three nearest ancestors; on the canvas that reaches `<body>`, which holds the inline 26 MB script, and sends the string to the extension. Fix: while the pointer is locked, game clicks are handled at window in the capture phase and stop there (`e577720`; forced on, Ghostery loaded: 0 ms per click, was 103–132 ms). Unlocked clicks on the canvas (the capturing click, every click in the fixed views) paid it too until F13 (done). Also: the `?perf=1` overlay and `tools/stutter.mjs` (`ddf0b8b`), a session long-task count in the overlay (`cb6cd4e`), no per-prop garbage in `TileStage.draw` (`99d4650`). Mouse-look smoothing parked (F14). `tools/perf.mjs` still has no crowd to time (F8). |
-| 3 | A1: Pokémon art outside the HTML | review | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
+| 3 | A1: Pokémon art outside the HTML | done | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
 | 4 | P2b: sim determinism | queued | The 8 sim and rules call sites on the allow-list (`tests/worldgen.test.ts`): `Math.hypot` in `sim/bot.ts`, `sim/spatial.ts`, `sim/targets.ts`, `sim/world.ts`; `Math.tan` in `sim/moves.ts`; `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
 | 5 | T2 planning: P1 and P6 | queued | **P1**: per-player systems, and teams in damage (today one player, one enemy side). **P6**: spikes and navigation faults on the Hold maps (F1, F2). Also F12: hero bots must not see through wall corners. |
 | 6 | The next `HAB_VERSION` bump | queued | Two parts in one bump, with `docs/habaudit/baseline.json` regenerated: the navigation profiles (F3), and P2c, the 68 habitat-generator `Math` call sites on the allow-list (`world/habitat/`: landforms 33, dress 9, families 9, sanctuary-checks 5, validate 5, graves 2, index 2, ruins 2, lagoon 1). |
@@ -59,7 +59,7 @@ use.
    `dist/music/`; capture parity (the same frames with inline and loaded art); boot-to-title and pick-to-play before
    and after; the Ghostery click cost before and after; no replay hash moves; `range.py` passes.
 
-**Results (2026-11-22, `perf/a1-art`, not merged).** `dist/index.html` 1,425 KB (was 26,040 KB); `dist/art/` 976 files,
+**Results (2026-11-22, `perf/a1-art`).** `dist/index.html` 1,425 KB (was 26,040 KB); `dist/art/` 976 files,
 9.4 MB; `dist/music/` 7 files, 9.9 MB. Beyond the plan: the title's backdrop run draws Charmander, so boot also loads
 that one species; the hero pick prefetches the picked hero's line and the mode's species (Start still waits for the
 run's real set); the score's MP3s are fetched one at a time at low priority, so they do not crowd out a match's art;
@@ -82,6 +82,10 @@ module).
 | `range.py` | PASS | PASS (Snorlax dummy 320.9 → 163.9 in both) |
 
 The Ghostery stall itself was already gone after F13; A1 does not change the canvas-click cost.
+
+After the owner's review: a species whose fetch failed is fetched again on the next `ensure()` (a match start, a hero
+pick), once per call; first sight does not retry (`tests/loader.test.ts`). F18 closed. Deferring the score was
+measured and left out (F19).
 
 ## Open follow-ups
 
@@ -137,8 +141,13 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
   rides in it for the Credits screen's checksum column. It could move to a second file fetched by the Credits screen.
 - **F17. Cries are OGG only** [pre-existing, no slot yet]: the bundle carries no MP3 transcodes (docs/ASSETS.md), so a
   browser without Vorbis (Safari) plays no cries. Unchanged by A1.
-- **F18. No Python `playwright` on this machine**: `range.py` ran from a scratchpad venv (`pip install
-  playwright==1.65.0`, the Node package's version).
+- **F18. No Python `playwright` on this machine** — **done** (2026-11-22): `tests/browser/requirements.txt` pins
+  `playwright==1.65.0`; setup in `tools/README.md` "Python checks" (a gitignored `.venv`).
+- **F19. Fetch the score after the first match's art?** [decision]: measured on `perf/a1-art` (Start 1.5 s after the
+  pick opens, same session): pick to play local 445 → 409 ms, 20 Mbps / 40 ms 430 → 391 ms (`main`: 368 / 365). The
+  cost: the title and hero pick are silent until the first match starts, and `tools/musiccheck.mjs`, which waits for
+  the score on the title, would need to start a match. Not applied. The change is small: `Audio.unlock` creates the
+  player but loads it only after an `allowScore()` that `main.ts loadMatchArt` calls once a match's art is in.
 
 ### Found in housekeeping (2026-11-21)
 
