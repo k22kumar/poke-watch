@@ -1,8 +1,9 @@
 # The merge check (docs/hero-shooter-pivot.md Q45): title -> Training range -> a featured hero -> spawn -> fire at a
 # dummy and see its health drop -> quit -> Caterpie -> hold F for a Breakthrough, in capture mode, with screenshots.
-# Run by hand at merge time, not in `npm run check`:
-#   npm i --no-save playwright            (Node, for the browser build; or have Python's `playwright` installed)
-#   python3 -I tests/browser/range.py <path/to/index.html> <outdir> [WxH]
+# Run by hand at merge time, not in `npm run check` (setup once: tools/README.md "Python checks"):
+#   python3 -m venv .venv && .venv/bin/pip install -r tests/browser/requirements.txt
+#   npx playwright install chromium         (only if the Chromium build is not downloaded yet)
+#   .venv/bin/python -I tests/browser/range.py <path/to/index.html> <outdir> [WxH]
 # Exits 1 when a step fails, printing what it saw. Console errors and page errors are listed at the end and fail it too.
 import sys, time, json, os
 from playwright.sync_api import sync_playwright

@@ -17,3 +17,4 @@ content/music/adaptive/production/candidates/
 
 # range.py merge-check screenshots (tests/browser/range.py), kept locally
 docs/merge-check/
+.venv/

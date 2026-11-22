@@ -44,7 +44,7 @@ Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:tes
 - Never read these whole. Use grep or targeted ranges: `src/content/art.json` (12.1 MB), `src/content/icons.json` (470 KB), `content/report.json` (1.6 MB), `docs/Pokemon_*_Specification.md` (90–230 KB). The `docs/*.xlsx` and `content/preview/*.png` files are binary.
 
 ## Browser checks
-- `tools/*.mjs` and `tests/browser/*.py` drive headless Chromium. Playwright is not a dependency: run `npm i --no-save playwright` first. Usage is in `tools/README.md`. `tests/browser/range.py` is the merge check (title, hero pick, fire at a dummy, a Breakthrough), run by hand, not in `npm run check`.
+- `tools/*.mjs` and `tests/browser/*.py` drive headless Chromium. Playwright is not a dependency: run `npm i --no-save playwright` first; the Python checks run from a `.venv` made from `tests/browser/requirements.txt` (setup in `tools/README.md` "Python checks"). Usage is in `tools/README.md`. `tests/browser/range.py` is the merge check (title, hero pick, fire at a dummy, a Breakthrough), run by hand, not in `npm run check`.
 - Capture mode (`?capture=1`): the sim only steps through `pokewatch.advance(seconds, {frames})`, which runs `round(seconds/frames/dt)` steps per frame. Pass `frames = seconds × 60` (one step per frame). Anything else silently under-steps (`advance(1.4, {frames: 70})` runs 1.17 s) and particles never appear.
 
 ## Parallel sessions

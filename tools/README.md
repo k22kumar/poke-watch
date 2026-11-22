@@ -4,7 +4,18 @@ Headless-Chromium scripts used to check the build. Each takes the path to `dist/
 
 The page fetches its Pokémon art and music (docs/ROADMAP.md "Item 3: A1 plan"), so the scripts that open it from `file://` launch Chromium with `--allow-file-access-from-files`. `pokewatch.ready` waits for a `?go=1` match's art; `pokewatch.loading` is true while art is in flight (a match started from the menus, or a species `pokewatch.spawn` asked for), and `pokewatch.advance` steps nothing while a match's art is loading: `cap.mjs`, `sizecap.mjs` and `range.py` wait for it.
 
-The merge check is `python3 -I tests/browser/range.py <html> <outdir>`: title, Training range, a featured hero, fire at a dummy and see its health drop, then Caterpie's Breakthrough on a held F, in capture mode, with screenshots; it exits 1 on any failed step or console error.
+### Python checks
+
+`tests/browser/*.py` need Python's `playwright` at the Node package's version, pinned in `tests/browser/requirements.txt`. Once, from the repo root:
+
+```bash
+npm i --no-save playwright                                  # the Node tools (tools/*.mjs)
+python3 -m venv .venv                                       # .venv/ is gitignored
+.venv/bin/pip install -r tests/browser/requirements.txt
+npx playwright install chromium                             # only if the Chromium build is not downloaded yet (both share it)
+```
+
+The merge check is `.venv/bin/python -I tests/browser/range.py <html> <outdir>`: title, Training range, a featured hero, fire at a dummy and see its health drop, then Caterpie's Breakthrough on a held F, in capture mode, with screenshots; it exits 1 on any failed step or console error.
 
 Scenes and tools from before the hero-shooter pivot were deleted at its merge check (the level-up, boss, card-tray, recruit, squad and swarm scenes, `menus.py`, `play.py`, `phase7scenes.json`, `squadscenes.json`, `traycheck.mjs`). A `go=1` query with no `loc` or `world` now starts the training range on the range arena.
 
