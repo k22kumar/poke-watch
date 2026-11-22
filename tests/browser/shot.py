@@ -6,7 +6,7 @@ wait_title = sys.argv[3] if len(sys.argv) > 3 else None
 w = int(sys.argv[4]) if len(sys.argv) > 4 else 1400
 h = int(sys.argv[5]) if len(sys.argv) > 5 else 900
 with sync_playwright() as p:
-    b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+    b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--ignore-gpu-blocklist'])
     pg = b.new_page(viewport={'width': w, 'height': h})
     logs = []
     pg.on('console', lambda m: logs.append(f'{m.type}: {m.text}'))

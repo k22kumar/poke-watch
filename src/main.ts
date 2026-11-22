@@ -33,8 +33,8 @@ import { PerfHud } from './ui/perfhud';
 import { CHASE_CONFIG, RETICLE_Y, cameraPreset } from './render/camera';
 import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
-import type { ArtBundle } from './assets/builtin';
-import ART from './content/art.json';
+import { artLoader } from './assets/loader';
+import { matchArt, wholeLine } from './sim/matchart';
 
 const params = new URLSearchParams(location.search);
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
@@ -83,8 +83,18 @@ const ui = new UI({
   start: (mode, species, seed) => { startRun(mode, species, seed); captureForPlay(); },
   resume: (via) => resumeFromMenu(via),
   restart: () => { if (current) { startRun(current.mode, current.species, (current.seed + 1) >>> 0); captureForPlay(); } },
-  quit: () => { cancelEnd(); ctx = null; (window as any).pokewatch.ctx = null; paused = false; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
+  quit: () => { cancelEnd(); artWait = null; ui.matchLoading(false); ctx = null; (window as any).pokewatch.ctx = null; paused = false; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
   portrait: (id) => renderer?.portrait(id),
+  fetchPortrait: (id) => artLoader.fetchPortrait(id),
+  // ahead of Start: the picked hero's line and what the mode shows (a guess at matchArt, which reads the run; Start still
+  // waits for the real set)
+  prefetch: (mode, species) => {
+    const sp = SPECIES_BY_ID[species];
+    if (!sp) return;
+    const ids = [...wholeLine(sp).map((s) => s.id), ...mode.mods?.flatMap((m) => m.shows ?? []) ?? []];
+    if (mode.id === 'range' || mode.id === 'range-swap') for (const set of [RANGE_TARGETS, HABITAT_TARGETS]) for (const t of set.targets) ids.push(t.species);
+    void artLoader.ensure(ids);
+  },
   sound: (k) => { audio.unlock(); if (k === 'ui' || k === 'move') audio.uiMove(); else if (k === 'back') audio.uiBack(); else if (k === 'denied') audio.uiDenied(); else audio.uiConfirm(); },
   settings,
   cry: (id) => { audio.unlock(); audio.cry(id, { volume: 0.5, gate: 0.25 }); },
@@ -109,8 +119,9 @@ const ui = new UI({
   become: (id) => become(id),
 });
 
-// developer roster (docs/PLAYABILITY.md): the sim grades every species; the browser adds that its sprite art loaded
-const ART_CHECK: ReadinessCheck = { id: 'art', severity: 'block', test: (sp) => (renderer?.portrait(sp.id) ? null : 'sprite art not loaded') };
+// developer roster (docs/PLAYABILITY.md): the sim grades every species; the browser adds that the game has its sprite
+// art (the manifest lists it: the art itself loads when a match needs it)
+const ART_CHECK: ReadinessCheck = { id: 'art', severity: 'block', test: (sp) => (artLoader.has(sp.id) ? null : 'no sprite art') };
 function playRoster() { return controlRoster(defaultRules, [ART_CHECK]); }
 /** restart the current run (same mode and seed) as another selectable species */
 function become(id: string): boolean {
@@ -180,10 +191,29 @@ let mapSum = 0;
 function failMap(e: unknown) {
   console.error(e);
   cancelEnd();
+  artWait = null; ui.matchLoading(false);
   ctx = null; current = null; paused = false;
   (window as any).pokewatch.ctx = null;
   audio.setPaused(false); input.releaseLock();
   ui.error(mapErrorMessage(e));
+}
+
+/** the current match's art while it loads (docs/ROADMAP.md "Item 3: A1 plan"): the sim does not step and the match is
+ *  not drawn until it has arrived */
+let artWait: Promise<void> | null = null;
+function loadMatchArt(c: SimContext, mode: Mode) {
+  const ids = matchArt(c, mode);
+  cries.want(ids);
+  const missing = ids.filter((id) => !artLoader.isLoaded(id));
+  if (!missing.length) { artWait = null; ui.matchLoading(false); return; }
+  const wait: Promise<void> = artLoader.ensure(missing).then(() => {
+    if (artWait !== wait) return;
+    artWait = null;
+    ui.matchLoading(false);
+    lastFrame = performance.now(); // the wait is not play time
+  });
+  artWait = wait;
+  ui.matchLoading(true);
 }
 
 function startRun(mode: Mode, species: string, seed: number) {
@@ -216,6 +246,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   renderer.resetView(ctx);
   acc = 0; hitstop = 0; paused = false;
   ui.startHud(ctx);
+  loadMatchArt(ctx, mode);
   audio.resetMusicRun();
   audio.setBiome(ctx.world.biome);
   audio.cry(species, { volume: 0.6 });
@@ -381,6 +412,8 @@ function frame(now: number) {
   }
   const c = ctx;
   updateLockHint(c);
+  // the match's art is still loading: no tick, no draw (the canvas keeps the last frame, the loading line is up)
+  if (artWait) { acc = 0; return; }
   const tSim0 = performance.now();
   let simDt = 0;
   const simulate = !paused && c.state !== 'over';
@@ -461,6 +494,8 @@ let attract: SimContext | null = null;
 function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFrame>; frames?: number } = {}) {
   const c = ctx ?? attract;
   if (!c) return;
+  // a match whose art is loading does not start: tools wait until pokewatch.loading is false (tools/cap.mjs)
+  if (ctx && artWait) { console.warn('pokewatch.advance: the match\'s art is still loading; nothing stepped (wait for !pokewatch.loading)'); return; }
   const frames = Math.max(1, opts.frames ?? 1);
   const per = seconds / frames;
   for (let f = 0; f < frames; f++) {
@@ -506,7 +541,7 @@ async function boot() {
     debug: (what = 'caps') => { debugCaps = what === 'caps' ? !debugCaps : false; return debugCaps; },
     caps: (seconds = 3) => (ctx ? ctx.caplog.since(ctx.time - seconds).map((r) => debugLine(r, ctx!.time)) : []),
     recap: () => (ctx ? buildRecap(ctx.caplog, ctx.time, ctx.rules.caps.recapSeconds) : []),
-    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => ctx ? spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role) : -1, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, perfHud, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
+    cries, advance, evolve: () => (ctx ? startEvolution(ctx) : false), damage: (n: number) => { if (ctx) { ctx.player.iframes = 0; damagePlayer(ctx, n, ctx.player.x + 1, ctx.player.z); } }, spawn: (id: string, dx: number, dz: number, role = 0) => { if (!ctx) return -1; artLoader.request(id); return spawnEnemy(ctx, id, ctx.player.x + dx, ctx.player.z + dz, role); }, agent: (a: 'heat' | 'wet' | 'cold' | 'charge', dx: number, dz: number, r = 1) => { if (ctx) applyAgent(ctx, a, ctx.player.x + dx, ctx.player.z + dz, r); }, body: (kind: string, dx: number, dz: number, vx = 0, vz = 0, team = 0) => ctx ? spawnBody(ctx, kind, ctx.player.x + dx, ctx.player.z + dz, vx, vz, team) : -1, perf, perfHud, renderer, ui, audio, rules: null, ctx: null, createRun, step, MODES,
     objective: (kind: 'hold' = 'hold') => !!ctx && startObjective(ctx, kind),
     // developer roster (docs/PLAYABILITY.md): pokewatch.roster() grades every species for player control (console.table
     // it); pokewatch.become('lapras') restarts the current run as that species
@@ -532,7 +567,15 @@ async function boot() {
       return { map: ctx!.world.map.id, recipe: L.source, kind: L.kind, requestedSeed: L.requested, loadedSeed: L.loaded, version: L.version, attempts: L.attempts, checksum: mapSum.toString(16), replay: L.replay, layoutOnly: L.layout, fallback: H.fallback, gates: H.gates.map((x) => `${x.ok ? 'ok ' : 'FAIL'} ${x.id}: ${x.value}`), metrics: H.metrics, repairs: H.repairs, rejections: H.rejections, optional: H.optional, approaches: H.approaches };
     },
     metrics: () => (ctx ? artMetrics(renderer, ctx) : null) };
-  await renderer.loadArt(ART as unknown as ArtBundle, (f) => ui.loading(f * 0.6));
+  // the art manifest and the hero sheet (docs/ROADMAP.md "Item 3: A1 plan"); species' art arrives as matches need it
+  artLoader.onArt = (id, art) => renderer.addArt(id, art);
+  Object.defineProperty((window as any).pokewatch, 'loading', { get: () => !!artWait || artLoader.loading, enumerable: true });
+  (window as any).pokewatch.art = artLoader;
+  ui.loading(0.2);
+  await artLoader.boot();
+  ui.loading(0.6);
+  // the title's backdrop run draws the default Pokémon
+  await artLoader.ensure([DEFAULT_SPECIES]);
   console.info(`[boot] Pokémon loaded at ${Math.round(performance.now())} ms`);
   // paint the first region now; the others are painted in the background (see below)
   { const pre = createRun({ seed: 7, species: DEFAULT_SPECIES }); renderer.prepareStage(pre); ui.loading(0.97); }
@@ -549,6 +592,8 @@ async function boot() {
     if (params.has('stage') && ctx) { startStage(ctx, Number(params.get('stage'))); renderer.setStage(ctx); audio.setBiome(ctx.world.biome); }
     if (params.has('stageTime') && ctx) { const t = Number(params.get('stageTime')); (ctx as SimContext).stageTime = t; (ctx as SimContext).time = t; }
     if (params.has('tp') && ctx) { const [tx, ty] = params.get('tp')!.split(',').map(Number); const c = ctx as SimContext; const h = c.world.half; c.player.x = c.player.px = tx - h + 0.5; c.player.z = c.player.pz = ty - h + 0.5; c.player.y = c.player.py = c.world.height(c.player.x, c.player.z); renderer.setStage(c); }
+    // ready means the match can start: its art has arrived
+    if (artWait) await artWait;
   } else { ui.title(); audio.titleMusic(); }
   (window as any).pokewatch.ready = true;
   document.title = 'Poke-Watch';

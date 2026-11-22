@@ -2,6 +2,7 @@
 // offer it on the title screen.
 import { swapSystem } from '../sim/swap';
 import { startObjective } from '../sim/objectives';
+import { RAID_PARTY } from '../sim/modes/hold';
 import type { System } from '../sim/types';
 import type { Mod, Mode } from './types';
 
@@ -54,6 +55,7 @@ const holdStart: System = {
 export const holdMod: Mod = {
   id: 'hold',
   name: 'Hold',
+  shows: [...new Set(RAID_PARTY.flatMap((m) => m.species))],
   systems: (list) => { const i = list.findIndex((s) => s.name === 'objectives'); return i < 0 ? [...list, holdStart] : [...list.slice(0, i), holdStart, ...list.slice(i)]; },
 };
 

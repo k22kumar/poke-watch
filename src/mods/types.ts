@@ -19,6 +19,8 @@ export interface Mod {
   hooks?: Partial<Hooks>;
   /** insert / remove / replace simulation systems */
   systems?: (list: System[]) => System[];
+  /** every species the mod's systems can put on the field: their art loads before the match starts (sim/matchart.ts) */
+  shows?: readonly string[];
 }
 
 export interface Mode {

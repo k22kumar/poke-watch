@@ -390,8 +390,10 @@ function count(ctx: SimContext, inp: InputFrame, cov: Coverage, held: Float64Arr
   for (let e = 0; e < E.hi; e++) if (E.alive[e] && E.roles[e] & ROLE.raider) { cov.raiders = Math.max(cov.raiders, 1); break; }
 }
 
-export function runScenario(s: Scenario): ScenarioResult {
+/** `observe` sees the run after createRun and after every tick (it must only read: tests/matchart.test.ts) */
+export function runScenario(s: Scenario, observe?: (ctx: SimContext) => void): ScenarioResult {
   const ctx = createRun({ mode: s.mode, seed: 1, species: s.species, loadout: s.loadout, targets: s.targets, ruleOverrides: { worldgen: s.worldgen } as never });
+  observe?.(ctx);
   const checkpoints: string[] = [];
   const cov = Object.fromEntries(COUNTERS.map((c) => [c, 0])) as Coverage;
   const held = new Float64Array(ctx.bodies.cap);
@@ -403,6 +405,7 @@ export function runScenario(s: Scenario): ScenarioResult {
       if (inp.aimX === undefined) { const [x, , z] = crosshairTarget(ctx); inp.aimX = x; inp.aimZ = z; }
     }
     step(ctx, inp);
+    observe?.(ctx);
     count(ctx, inp, cov, held);
     if ((t + 1) % (10 * S) === 0 && t + 1 < n) checkpoints.push(hex(replayHash(ctx)));
   }

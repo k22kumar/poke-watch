@@ -76,10 +76,16 @@ export class AdaptivePlayer {
     this.out = ctx.createGain(); this.out.connect(destination);
   }
   async load() {
+    // the score's files are fetched one at a time and at low priority (docs/ROADMAP.md "Item 3: A1 plan"): about 10 MB
+    // that must not crowd out a match's Pokémon art, which the match waits for; decoding still overlaps the next fetch
+    let queue: Promise<unknown> = Promise.resolve();
     const decode = async (src: string) => {
-      const response = await fetch(src);
-      if (!response.ok) throw new Error(`Score audio failed: ${response.status}`);
-      return this.ctx.decodeAudioData(await response.arrayBuffer());
+      const got = queue.then(() => fetch(src, { priority: 'low' } as RequestInit)).then(async (response) => {
+        if (!response.ok) throw new Error(`Score audio failed: ${response.status}`);
+        return response.arrayBuffer();
+      });
+      queue = got.catch(() => undefined);
+      return this.ctx.decodeAudioData(await got);
     };
     // Do not activate a half-loaded score; the existing score remains the fallback.
     const stems = await Promise.all(this.score.stems.map(async (stem) => {

@@ -18,7 +18,7 @@ def check(ok, what):
     if not ok: fails.append(what)
 
 with sync_playwright() as p:
-    b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'])
+    b = p.chromium.launch(args=['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--allow-file-access-from-files', '--ignore-gpu-blocklist'])
     pg = b.new_page(viewport={'width': W, 'height': H})
     logs = []
     pg.on('console', lambda m: logs.append(f'{m.type}: {m.text}') if m.type == 'error' and 'GPU stall' not in m.text else None)
@@ -28,6 +28,8 @@ with sync_playwright() as p:
         if pg.evaluate("() => !!(window.pokewatch && document.querySelector('.title-actions'))"): break
         time.sleep(0.5)
     # capture mode: nothing steps on its own; advance(s, {frames: s * 60}) runs one tick per drawn frame (CLAUDE.md)
+    # the page fetches a match's Pokémon art before the match starts (docs/ROADMAP.md "Item 3: A1 plan")
+    settle = lambda: pg.wait_for_function("() => window.pokewatch && !window.pokewatch.loading", timeout=60000)
     adv = lambda s, inp=None: pg.evaluate("([s, inp]) => window.pokewatch.advance(s, { frames: Math.round(s * 60), input: inp || undefined })", [s, inp])
     # the crosshair on enemy i: a ray from 4.5 m behind the hero's chest through the enemy's centre, and the ground point
     # under it, as the browser sends them (src/main.ts sampleInput); held for `s` seconds with `btn` down
@@ -60,6 +62,7 @@ with sync_playwright() as p:
     check(pg.locator('.mon.hero.featured').count() >= 4, 'hero pick: the featured lines are listed first')
     pg.locator('.select-actions button', has_text='Start').first.click()
     time.sleep(0.5)
+    settle()
     adv(1.0)
     s0 = state()
     pg.screenshot(path=f'{out}/3-spawn.png')
@@ -86,6 +89,7 @@ with sync_playwright() as p:
     pick('Caterpie')
     pg.locator('.select-actions button', has_text='Start').first.click()
     time.sleep(0.5)
+    settle()
     adv(1.0)
     c0 = state()
     check(bool(c0) and c0['species'] == 'caterpie', 'Caterpie playing')

@@ -1,6 +1,8 @@
 # Verification tools
 
-Headless-Chromium scripts used to check the build. Each takes the path to `dist/index.html` (or a private build: CLAUDE.md); they import `playwright`, which is not a project dependency: run `npm i --no-save playwright` first (the Python scripts in `tests/browser/` need Python's `playwright` package at the same version).
+Headless-Chromium scripts used to check the build. Each takes the path to `dist/index.html` (or a private build: CLAUDE.md; it needs its `art/` and `music/` beside it); they import `playwright`, which is not a project dependency: run `npm i --no-save playwright` first (the Python scripts in `tests/browser/` need Python's `playwright` package at the same version).
+
+The page fetches its Pokémon art and music (docs/ROADMAP.md "Item 3: A1 plan"), so the scripts that open it from `file://` launch Chromium with `--allow-file-access-from-files`. `pokewatch.ready` waits for a `?go=1` match's art; `pokewatch.loading` is true while art is in flight (a match started from the menus, or a species `pokewatch.spawn` asked for), and `pokewatch.advance` steps nothing while a match's art is loading: `cap.mjs`, `sizecap.mjs` and `range.py` wait for it.
 
 The merge check is `python3 -I tests/browser/range.py <html> <outdir>`: title, Training range, a featured hero, fire at a dummy and see its health drop, then Caterpie's Breakthrough on a held F, in capture mode, with screenshots; it exits 1 on any failed step or console error.
 
