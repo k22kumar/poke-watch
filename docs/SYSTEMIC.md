@@ -102,7 +102,7 @@ kind → material map. Tiles keep running in `sim/cells.ts`; props run in `sim/p
 
 | Rule | Value |
 | --- | --- |
-| Overlay | each `World` copies the map's `wall` and `platform` (the cached base map other runs share is never written); `World.setBlock` is the only writer and refreshes navigation |
+| Overlay | each `World` copies the map's `wall` and `platform` (the cached base map other runs share is never written); `World.setBlock` is the only writer and refreshes navigation (sim systems reach it as `W.tiles.setBlock`, a tile extension of the world seam: docs/OVERHAUL_3D.md "World seam") |
 | Heat on leaf / wood | burns 3 s / 6 s; its tiles burn (the existing fire overlay and flow-field cost apply) |
 | Spread | a burning prop lights tall grass beside it (0.18 per pass, as grass does) and props beside it (0.06 per pass for leaf, × 0.045 for wood: about 1 in 7 over a neighbour's burn, so a forest fire dies out instead of crossing the region); burning grass lights props beside it (0.02 per pass, wood × 0.045) |
 | Burn out | wood leaves a stump (0.65 m platform on one tile, the rest open ground); leaf leaves nothing; tiles go to ash |
