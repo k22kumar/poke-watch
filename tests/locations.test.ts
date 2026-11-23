@@ -14,9 +14,9 @@ import { shootHostile } from '../src/sim/enemies';
 import { PK } from '../src/sim/pools';
 import { generateLocation, LOC_VERSION } from '../src/world/locgen';
 import { enemyCore, playerReach } from '../src/world/locgen/nav';
-import { navOpen } from '../src/world/gen/util';
+import { navOpen } from '../src/world/tilenav';
 import { LOCATIONS, findLocation } from '../src/world/locations';
-import { mapChecksum, regionMap } from '../src/world/maps';
+import { mapChecksum } from '../src/world/maps';
 import { PROP_RULES, T } from '../src/world/tiles';
 
 const IDS = Object.keys(LOCATIONS);
@@ -133,17 +133,6 @@ test('the location generator and data follow the determinism rules', () => {
     const src = readFileSync(new URL(`../src/world/locgen/${f}`, import.meta.url), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
     assert.doesNotMatch(src, /'(viridian-forest|mt-moon|chargestone-cave)'|\b(rattata|zubat|geodude|paras)\b/i, f);
   }
-});
-
-test('rules seam: stage biomes map to locations; ?loc-style overrides; classic stays reachable', () => {
-  const wg = { ...defaultRules.worldgen, mode: 'generated' as const };
-  assert.equal(regionMap(wg, 'meadow', 5).gen!.loc!.id, 'viridian-forest');
-  assert.equal(regionMap(wg, 'dusk', 5).gen!.loc!.id, 'mt-moon');
-  assert.equal(regionMap(wg, 'frost', 5).gen!.loc, undefined, 'frost keeps the classic generator');
-  assert.equal(regionMap({ ...wg, locations: { meadow: 'chargestone-cave' } }, 'meadow', 5).gen!.loc!.id, 'chargestone-cave');
-  assert.equal(regionMap({ ...wg, locations: { meadow: '' } }, 'meadow', 5).gen!.loc, undefined);
-  const authored = new World(defaultRules, BIOMES.meadow, 5);
-  assert.equal(authored.dropNav, 0); assert.equal(authored.los, false); assert.equal(authored.anchors.length, 0);
 });
 
 test('drop navigation: enemies above a ledge path down onto the player; flow reaches every enemy tile', () => {

@@ -56,7 +56,7 @@ function h(tag: string, attrs: Attrs = {}, ...kids: Kid[]): HTMLElement {
 }
 const btn = (label: Kid | Kid[], onclick: () => void, cls = 'btn', extra: Attrs = {}) => h('button', { type: 'button', class: cls, onclick, ...extra }, ...(Array.isArray(label) ? label : [label]));
 
-export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'generated' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
+export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
 export interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
   /** `via`: 'click' from the Resume button (a user gesture, so the mouse can be captured in it), 'key' from Esc / Backspace
@@ -780,9 +780,9 @@ export class UI {
       h('p', { class: 'note' }, 'Third person: the mouse (click the game to capture it) or the right stick turns the camera and aims; Esc pauses and releases the mouse. Aimed: left mouse / RT fires your basic attack along the aim (hold to repeat); Move A and Move B fire on RMB / R (LT / RB). Assist: the same buttons, but the basic attack picks the nearest enemy. Auto (classic): every move fires on its own.'),
       h('h3', {}, 'World'),
       h('div', { class: 'settings' },
-        ...seg('Regions', [['Handcrafted', 'authored'], ['Generated (classic)', 'generated'], ['Pokémon locations', 'locations']], () => S.world, (v) => { S.world = v as UISettings['world']; })),
+        ...seg('Regions', [['Handcrafted', 'authored'], ['Pokémon locations', 'locations']], () => S.world, (v) => { S.world = v as UISettings['world']; })),
       h('div', { class: 'settings' }, ...this.mapPicker(S)),
-      h('p', { class: 'note' }, 'Pokémon locations: the first region is built from Viridian Forest and the last from Mt. Moon, new for every seed (tiers, ramps, bridges, overlooks, landmarks); the others use the classic generator. Generated (classic): every region is a generated meadow-style map. Same seed, same map. Takes effect on the next run.'),
+      h('p', { class: 'note' }, 'Pokémon locations: the first region is built from Viridian Forest and the last from Mt. Moon, new for every seed (tiers, ramps, bridges, overlooks, landmarks); the others stay handcrafted. Same seed, same map. Takes effect on the next run.'),
       h('h3', {}, 'Display'),
       h('div', { class: 'settings' },
         ...seg('Camera', cams, () => S.camera, (v) => { S.camera = v; }),

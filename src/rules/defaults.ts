@@ -370,19 +370,17 @@ export const defaultRules = {
     /** crowd-control meter: after `limit` s of stun / freeze / root inside the decay window, immune for `immune` s */
     cc: { limit: 2, decay: 1 / 3, immune: 4 },
   },
-  // [I] Procedural world (docs/WORLDGEN.md, Procedural Pokémon World Blueprint). `mode: 'authored'` keeps the
-  // handcrafted arenas exactly (replay checksums unchanged); 'generated' builds each listed biome's region from the
-  // stage seed (seed + stage*7919 + loop*104729) with src/world/gen. Biomes not listed stay authored.
+  // [I] Generated maps (src/world/maps.ts). `mode: 'authored'` keeps the handcrafted arenas exactly; 'generated' builds
+  // each stage biome that `locations` names from the stage seed (seed + stage*7919 + loop*104729). Other biomes stay
+  // authored (the classic generator was deleted at C1).
   worldgen: {
     mode: 'authored' as 'authored' | 'generated',
-    biomes: ['meadow', 'badlands', 'frost', 'dusk'] as string[],
     size: 128, // tiles (m) per side of a generated region
-    version: 2, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
     regionSeed: -1, // ≥ 0: use this region seed for every stage instead of the run's (experiments: hold the map, vary the run)
     /** an authored arena that replaces every stage's map: 'range' is the training range (src/world/arenas.ts) */
     arena: '',
-    /** Pokémon locations (src/world/locations, docs/LOCATIONS.md): a stage biome listed here is built by the location
-     *  generator (src/world/locgen) from that location's data instead of the classic generator. '' = classic. Chosen
+    /** Pokémon locations (src/world/locations, docs/LOCATIONS.md) or habitat recipes: a stage biome listed here is built
+     *  by the location generator (src/world/locgen) or the habitat generator from that data. '' = authored. Chosen
      *  where the stage's spawn table fits the place's canonical ecology; any location can be forced with ?loc=. */
     locations: { meadow: 'viridian-forest', dusk: 'mt-moon', badlands: '', frost: '' } as Record<string, string>,
   },

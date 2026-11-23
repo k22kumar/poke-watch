@@ -7,8 +7,8 @@
 //                         a loop to the boss…), quality metrics
 // Pure function of (location, seed, size): no Math.random, no clock in the output, every layer on its own Rng stream.
 // A failed attempt re-rolls with mixSeed(seed, attempt) up to MAX_ATTEMPTS; the best attempt is kept.
-import type { GenMeta } from '../gen/context';
-import { mixSeed } from '../gen/util';
+import type { GenMeta } from '../genmeta';
+import { mixSeed } from '../tilenav';
 import { LOCATIONS, type LocationDef } from '../locations';
 import type { ArenaMap } from '../tiles';
 import { K, LocCtx } from './ctx';
@@ -46,8 +46,8 @@ export function generateLocation(o: LocOptions): ArenaMap {
   const zones = g.zones.map((z) => ({ id: z.id, kind: z.kind, x: Math.round(z.x), y: Math.round(z.y), r: z.r, tier: z.tier, name: z.name }));
   const meta: GenMeta = {
     generator: 'poke-watch-locgen', version: LOC_VERSION, seed: o.seed >>> 0, attemptSeed: g.seed, attempts, repairs,
-    archetype: `${def.id}:${g.landform}`, places: [], lookouts: [], spaces: [], sites: [],
-    habitat: g.habitat, cliffOk: new Uint8Array(g.S * g.S), route: routeMask(g), gates: v.gates,
+    archetype: `${def.id}:${g.landform}`, sites: [],
+    habitat: g.habitat, route: routeMask(g), gates: v.gates,
     ms: typeof performance !== 'undefined' ? performance.now() - t0 : 0,
     loc: {
       id: def.id, art: def.art, particles: def.particles, dropNav: def.gameplay.dropNav, los: true,

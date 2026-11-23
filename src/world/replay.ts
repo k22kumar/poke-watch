@@ -50,7 +50,7 @@ export function parseMapSeed(raw: string | null | undefined, warn: (m: string) =
   return n >>> 0;
 }
 
-export interface ReplayQuery { world: 'authored' | 'generated' | 'locations'; loc: string | null; mapseed: string | null; hv?: string | null; biomes: string[] }
+export interface ReplayQuery { world: 'authored' | 'locations'; loc: string | null; mapseed: string | null; hv?: string | null; biomes: string[] }
 
 /** the worldgen rules a launch asks for: the World setting, `?loc=` (a map for every stage biome, or `biome:map,…`),
  *  `?mapseed=` and, when a replay link names one, the generator version it was made with */
@@ -58,7 +58,6 @@ export function worldgenFromQuery(q: ReplayQuery, warn: (m: string) => void = co
   const regionSeed = parseMapSeed(q.mapseed, warn);
   if (q.hv && Number(q.hv) !== HAB_VERSION) warn(`this replay link was made with habitat generator v${q.hv}; this build is v${HAB_VERSION}, so the layout can differ`);
   if (q.world === 'authored') return { mode: 'authored' as const };
-  if (q.world === 'generated') return { mode: 'generated' as const, regionSeed, locations: Object.fromEntries(q.biomes.map((b) => [b, ''])) };
   if (!q.loc) return { mode: 'generated' as const, regionSeed };
   const locations: Record<string, string> = {};
   for (const part of q.loc.split(',')) {

@@ -3,7 +3,7 @@
 import { CAMERA_DEFAULT, CAMERA_PRESETS } from '../render/camera';
 import { DEFAULT_KEYS, DEFAULT_PAD, restoreUnbound, sanitizeKeyOverrides, sanitizePadOverrides, type KeyBindings, type PadBindings } from '../input/bindings';
 
-export const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: CAMERA_DEFAULT, shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'locations' as 'authored' | 'generated' | 'locations', worldV: 2,
+export const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 0.85, muted: false, quality: 1, numbers: true, camera: CAMERA_DEFAULT, shake: 1, combat: 'aimed' as 'aimed' | 'assist' | 'auto', sens: 1, invertY: false, fov: 0, camV: 2, world: 'locations' as 'authored' | 'locations', worldV: 2,
   /** Settings → World → Map: '' = the default region rotation, else a Pokémon location or habitat recipe (`id`, or
    *  `id:variant`) for every region; mapSeed ≥ 0 holds that map seed for every region (replay a known layout) */
   map: '' as string, mapSeed: -1,

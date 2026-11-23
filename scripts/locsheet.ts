@@ -3,10 +3,10 @@
 // outlined, decks brown, chasms black, the zone graph (white = walkable link, yellow = hop shortcut), spawn (white),
 // boss hall (red), anchors (orange), chests (yellow), loose stones (cyan), one-tile pinch points (magenta) and
 // tiles the player can reach but enemies cannot (red, should be none).
-import { writePng } from './worldsheet';
+import { writePng } from './lib/rgbpng';
 import { generateLocation } from '../src/world/locgen';
 import { enemyCore, playerReach } from '../src/world/locgen/nav';
-import { navOpen } from '../src/world/gen/util';
+import { navOpen } from '../src/world/tilenav';
 import { LOCATIONS } from '../src/world/locations';
 import { PROP_RULES, T, type ArenaMap } from '../src/world/tiles';
 

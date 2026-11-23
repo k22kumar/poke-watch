@@ -179,9 +179,9 @@ function resize() {
 
 /** World setting and ?loc= → worldgen rules. ?loc=chargestone-cave builds every region from that location;
  *  ?loc=meadow:viridian-forest,dusk:mt-moon sets them per stage biome; ?loc=river-gorge (or volcanic-ridge,
- *  river-gorge/snow) builds every region from a habitat recipe. 'generated' is the classic generator. ?mapseed=N
+ *  river-gorge/snow) builds every region from a habitat recipe. ?mapseed=N
  *  (or Settings → World → Map seed) holds the map seed for every region, so a layout can be replayed. */
-function worldgenOverrides(world: 'authored' | 'generated' | 'locations', loc: string | null) {
+function worldgenOverrides(world: 'authored' | 'locations', loc: string | null) {
   const ms = params.get('mapseed') ?? (settings.mapSeed >= 0 ? String(settings.mapSeed) : null);
   return worldgenFromQuery({ world, loc, mapseed: ms, hv: params.get('hv'), biomes: Object.keys(BIOMES) }, (m) => console.warn(m.startsWith('unknown map') ? `${m}; known maps: ${[...Object.keys(LOCATIONS), ...Object.keys(HABITATS)].join(', ')}` : m));
 }
@@ -221,11 +221,11 @@ function startRun(mode: Mode, species: string, seed: number) {
   cancelEnd();
   audio.setPaused(false); // restarting from the pause menu must not keep the muffled pause mix
   current = { mode, species, seed };
-  // the URL beats the saved settings: ?loc= names the map, and ?world= asks for handcrafted or classic regions, so the
+  // the URL beats the saved settings: ?loc= names the map, and ?world=authored asks for handcrafted regions, so the
   // saved Map (Settings → World → Map) applies only when the URL says neither
   // ?map= is the same as ?loc= (a habitat recipe or a Pokémon location, `id` or `id/variant`)
   const loc = params.get('loc') ?? params.get('map') ?? (!params.has('world') && settings.map ? settings.map.replace(':', '/') : null);
-  const world = loc ? 'locations' : params.get('world') === 'gen' ? 'generated' : params.get('world') === 'authored' ? 'authored' : settings.world;
+  const world = loc ? 'locations' : params.get('world') === 'authored' ? 'authored' : settings.world;
   // the range Mode plays the training range arena with its target set (docs/hero-shooter-pivot.md Q16); a map named in
   // the URL (?loc=, ?world=) keeps that map, with the habitat target set anchored on a habitat map's contest
   const range = mode.id === 'range' || mode.id === 'range-swap';

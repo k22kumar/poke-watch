@@ -93,8 +93,8 @@ export interface ArenaMap {
   /** authored arenas only: tiles where a throwable body (the `cobble` template, src/rules/materials.ts) lies at the start
    *  (the training range, docs/RANGE.md) */
   throwables?: [number, number][];
-  /** procedural regions only (src/world/gen): how the map was made, its habitat and encounter spaces */
-  gen?: import('./gen/context').GenMeta;
+  /** location and habitat maps only (src/world/genmeta.ts): how the map was made, its habitat, gates and metrics */
+  gen?: import('./genmeta').GenMeta;
 }
 
 export const WATER_Y = -0.25;

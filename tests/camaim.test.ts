@@ -6,8 +6,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { SimContext } from '../src/sim/types';
-import { poseAim, stepAim } from '../scripts/camaim';
-import { HEADINGS, MODES, addCell, emptyCell, measure, modeTrack, type Cell } from '../scripts/lib/cambench';
+import { poseAim } from '../scripts/camaim';
 import { deckPose, openPose, wallPoses, type Pose } from '../scripts/lib/camposes';
 
 test('criteria E1-E3: in the open, under a deck, with rock behind, beside and both: the aim is on the crosshair, and a target on it is hit or reported blocked', () => {
@@ -26,41 +25,4 @@ test('criteria E1-E3: in the open, under a deck, with rock behind, beside and bo
     if (r.shot === 'hit') shots++;
   }
   assert.ok(shots >= 6, `${shots} poses had a clear shot, and it hit`);
-});
-
-test('criterion E2 across a 0.5 m tile step, firing: the stair smoothing moves the lens and the aim moves with it', () => {
-  for (const sp of ['cyndaquil', 'feraligatr']) {
-    const r = stepAim(sp);
-    assert.ok(r && r.steps >= 1, `${sp}: the walk crosses the step`);
-    assert.ok(r.unexplained <= 0.05, `${sp}: ${r.unexplained}° unexplained (largest error ${r.moving}°)`);
-  }
-});
-
-test('criteria A, C and D on generated maps, by movement mode: the camera keeps its distance, the keep-out stays clear, the view is the player\'s', () => {
-  // a reduced tuning set (scripts/camstats.ts --bench tuning is the whole one): seed 1, the four regions, four headings,
-  // forward / reverse / strafe left / strafe right / stop, a Small and an Extra Large
-  for (const sp of ['cyndaquil', 'feraligatr']) {
-    const cells: Record<string, Cell> = {};
-    for (const stage of [0, 1, 2, 3]) for (const h of [HEADINGS[0], HEADINGS[2], HEADINGS[4], HEADINGS[6]]) for (const m of MODES) addCell((cells[m] ??= emptyCell()), measure(modeTrack(sp, 1, stage, true, h, m)));
-    for (const [mode, c] of Object.entries(cells)) {
-      const tag = `${sp} ${mode}`, pct = (a: number, b: number) => (b ? (100 * a) / b : 0);
-      // C3: frames with the Pokémon more than 1.25 × its nominal size (the rig before: 39 to 74 % for a Small, 6 to 29 % for an Extra Large)
-      assert.ok(pct(c.big, c.frames) <= 25, `${tag}: ${pct(c.big, c.frames).toFixed(1)} % of frames over 1.25 ×`);
-      // A in motion: with nothing in the arm's way, the outline is never in the keep-out
-      assert.equal(c.clearIn, 0, `${tag}: ${c.clearIn} clear frames with the outline in the keep-out`);
-      // C4: and where something is, it is out of it or dissolved
-      assert.equal(c.clearUncovered + c.tightUncovered, 0, `${tag}: frames in the keep-out and undissolved`);
-      // P2: nothing but the player turns the view
-      assert.equal(c.turned, 0, tag);
-      // C1 / D1: with nothing in the arm's way the camera is where the framing puts it. (The criteria ask for every
-      // frame; what is left, under 0.5 %, is the tail of an arm easing back out after rock it met while pulled in,
-      // which the measure's 2 s of "clear" does not always outlast)
-      assert.ok(pct(c.clearScaleOff, c.clear) <= 0.5, `${tag}: ${pct(c.clearScaleOff, c.clear).toFixed(2)} % of clear frames off the nominal size`);
-      // (a Small's sprite takes 0.38 m of a 0.5 m tile step's offset, not all of it, so that it is not drawn half under
-      // the tile it climbed (CHASE_CONFIG.step.sprite, criterion F): the other 0.06 m shows as a move against the lens
-      // on that step's first frame, in up to 0.8 % of this terrain's clear frames. An Extra Large takes it whole)
-      const shiftLim = sp === 'cyndaquil' ? 1 : 0.5;
-      assert.ok(pct(c.clearShifted, c.clear) <= shiftLim, `${tag}: the Pokémon shifted on screen in ${pct(c.clearShifted, c.clear).toFixed(2)} % of clear frames`);
-    }
-  }
 });

@@ -205,7 +205,7 @@ test('playable run: spawn → objective → retreat through the real sim on both
 // ── how habitat maps meet the rest of the game: Settings → World → Map, ?loc=, the default rotation ───────────────────
 test('every Settings → World → Map choice resolves from its saved form and its ?loc= form and reaches the generator seam', () => {
   const choices = [...Object.keys(LOCATIONS), ...IDS.flatMap((id) => [id, ...Object.keys(HABITATS[id].variants).map((v) => `${id}:${v}`)])];
-  const wg = { mode: 'generated' as const, biomes: [], size: 128, version: defaultRules.worldgen.version };
+  const wg = { mode: 'generated' as const, size: 128 };
   for (const c of choices) {
     assert.equal(findMapSource(c), c, `${c} (saved form)`);
     assert.equal(findMapSource(c.replace(':', '/')), c, `${c} (URL form, as main.ts hands a saved choice over)`);
@@ -218,32 +218,9 @@ test('every Settings → World → Map choice resolves from its saved form and i
   assert.equal(findMapSource('river-gorge/snow'), 'river-gorge:snow');
   assert.equal(findMapSource('atlantis'), undefined);
   assert.equal(findMapSource(''), undefined);
-  // an id the seam does not know is treated as the classic generator, never as a half-built map
+  // an id the seam does not know leaves the biome authored, never a half-built map
   assert.equal(locationFor({ ...wg, locations: { meadow: 'atlantis' } }, 'meadow'), '');
   assert.equal(locationFor({ ...wg, mode: 'authored' as never, locations: { meadow: 'river-gorge' } }, 'meadow'), '', 'handcrafted regions ignore it');
-});
-
-test('habitat sources leave every other map alone: the default rotation, classic regions and the cache keys', () => {
-  const base = { ...defaultRules.worldgen, mode: 'generated' as const };
-  // default rotation (Settings → World → Regions → Pokémon locations, Map = Default rotation): Viridian Forest, then Mt. Moon
-  assert.equal(locationFor(base, 'meadow'), 'viridian-forest');
-  assert.equal(locationFor(base, 'dusk'), 'mt-moon');
-  assert.equal(locationFor(base, 'badlands'), ''); assert.equal(locationFor(base, 'frost'), '');
-  assert.equal(regionKey('badlands', 5, base), `badlands@5v${base.version}x${base.size}`, 'classic key unchanged');
-  assert.ok(regionKey('meadow', 5, base).startsWith('viridian-forest@5L'), 'location key unchanged');
-  // a habitat key names recipe, variant, seed and HAB_VERSION, so two layouts never share a cache slot or a ground texture
-  const keys = new Set<string>(), ids = new Set<string>();
-  for (const src of ['river-gorge', 'river-gorge:snow', 'volcanic-ridge', 'volcanic-ridge:ash']) for (const seed of [3, 4]) {
-    const wg = { ...base, locations: { meadow: src } };
-    keys.add(regionKey('meadow', seed, wg));
-    ids.add(regionMap(wg, 'meadow', seed).id);
-  }
-  assert.equal(keys.size, 8); assert.equal(ids.size, 8);
-  assert.ok(regionKey('meadow', 3, { ...base, locations: { meadow: 'river-gorge:snow' } }).startsWith(`river-gorge:snow@3H${HAB_VERSION}`));
-  // an existing map carries no fluid levels, so the checksum's habitat term is absent (the replay hashes themselves:
-  // `npx tsx scripts/checksum.ts` prints the same lines with and without the habitat patch)
-  assert.equal(regionMap({ ...base, locations: { meadow: '' } }, 'meadow', 5).wlevel, undefined);
-  assert.ok(regionMap({ ...base, locations: { meadow: 'river-gorge' } }, 'meadow', 3).wlevel, 'a habitat map does');
 });
 
 test('settings: Map and Map seed survive a save and load; anything else in a saved copy falls back to the default rotation and the run seed', () => {

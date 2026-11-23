@@ -4,7 +4,7 @@
 // The enemy graph is directed (drops), so connectivity means strong connectivity: every enemy tile must be able to
 // reach the spawn and be reached from it, or enemies get trapped and the player finds unreachable perches.
 import { mapExposureClear } from '../../sim/spatial';
-import { DIRS4, canStep as symStep, navOpen, navTop } from '../gen/util';
+import { DIRS4, canStep as symStep, navOpen, navTop } from '../tilenav';
 import { T, type ArenaMap } from '../tiles';
 import { blockMask, blockNeighbours, blockNodes, type NavGrid } from '../navblocks';
 

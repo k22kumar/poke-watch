@@ -29,7 +29,7 @@ import { PROP_MATERIALS } from '../src/rules/surfaces';
 import { PROP_RULES, T, type ArenaMap, type ArenaPropKind } from '../src/world/tiles';
 import { registerPoisoned, registerRecipe, scriptedAttempt, unregister } from './lib/habfixtures';
 import { renderHab } from './habsheet';
-import { writePng } from './worldsheet';
+import { writePng } from './lib/rgbpng';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 

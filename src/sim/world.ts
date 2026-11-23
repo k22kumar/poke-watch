@@ -101,8 +101,8 @@ export class World {
   readonly tide: { tiles: Int32Array; terrain: Uint8Array; wlevel: Float32Array; high: number; mask: Uint8Array } | null = null;
   tideHigh = false;
 
-  constructor(rules: Rules, biome: BiomeDef, seed: number, species: string[] = []) {
-    const base = regionMap(rules.worldgen, biome.id, seed, species);
+  constructor(rules: Rules, biome: BiomeDef, seed: number) {
+    const base = regionMap(rules.worldgen, biome.id, seed);
     // W4: wall and platform become this world's own overlay over the cached base map, so burning and breaking change
     // one run without touching the map other runs (and the renderer cache) share
     const materials = !!base.gen || rules.surfaces.inAuthored;

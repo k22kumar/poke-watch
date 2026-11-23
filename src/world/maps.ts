@@ -1,18 +1,17 @@
 // Map factory (procedural world W0 seam): which map a region uses. Authored mode returns the handcrafted arena for the
-// biome (cached, seed-independent, unchanged). Generated mode builds the region from its seed with src/world/gen for
-// the biomes listed in rules.worldgen.biomes; others stay authored. Generated maps are cached by (biome, seed, version)
-// in a small LRU, so a prewarm (portal transition, attract screen) makes the stage start instant.
+// biome (cached, seed-independent, unchanged). Generated mode builds a stage biome that names a Pokémon location or a
+// habitat recipe (rules.worldgen.locations) from its seed; other biomes stay authored (the classic generator was
+// deleted at C1). Generated maps are cached by (source, seed, version) in a small LRU.
 import { getArena } from './arenas';
-import { GEN_VERSION, generateRegion } from './gen';
 import { LOC_VERSION, generateLocation } from './locgen';
 import { LOCATIONS, findLocation } from './locations';
 import { HAB_VERSION, HABITATS, findHabitat, generateHabitat } from './habitat';
 import type { ArenaMap } from './tiles';
 
-export interface WorldgenRules { mode: 'authored' | 'generated'; biomes: string[]; size: number; version: number; locations?: Record<string, string>; arena?: string }
+export interface WorldgenRules { mode: 'authored' | 'generated'; size: number; locations?: Record<string, string>; arena?: string }
 
 /** the Pokémon location or habitat recipe (`id` or `id:variant`, src/world/habitat) a stage biome is built from in
- *  generated mode, or '' for the classic generator */
+ *  generated mode, or '' when it stays authored */
 export const locationFor = (wg: WorldgenRules | undefined, biome: string) => {
   const id = wg?.mode === 'generated' ? wg.locations?.[biome] ?? '' : '';
   return id && (LOCATIONS[id] || HABITATS[id.split(':')[0]]) ? id : '';
@@ -33,25 +32,24 @@ export function findMapSource(q: string): string | undefined {
 const cache = new Map<string, ArenaMap>();
 const CACHE_MAX = 6;
 
-export const usesGenerator = (wg: WorldgenRules | undefined, biome: string) => !!wg && wg.mode === 'generated' && (wg.biomes.includes(biome) || !!locationFor(wg, biome));
+export const usesGenerator = (wg: WorldgenRules | undefined, biome: string) => !!locationFor(wg, biome);
 
 export function regionKey(biome: string, seed: number, wg: WorldgenRules) {
   const loc = locationFor(wg, biome);
   if (loc && isHabitat(loc)) return `${loc}@${seed >>> 0}H${HAB_VERSION}x${wg.size}`;
-  return loc ? `${loc}@${seed >>> 0}L${LOC_VERSION}x${wg.size}` : `${biome}@${seed >>> 0}v${wg.version}x${wg.size}`;
+  return `${loc}@${seed >>> 0}L${LOC_VERSION}x${wg.size}`;
 }
 
-export function regionMap(wg: WorldgenRules | undefined, biome: string, seed: number, species: string[] = []): ArenaMap {
+export function regionMap(wg: WorldgenRules | undefined, biome: string, seed: number): ArenaMap {
   // an authored arena named outright (the training range: rules.worldgen.arena 'range') wins over the stage's biome
   if (wg?.arena) return getArena(wg.arena);
   if (!usesGenerator(wg, biome)) return getArena(biome);
   const loc = locationFor(wg, biome);
-  if (!loc && wg!.version !== GEN_VERSION) throw new Error(`worldgen version ${wg!.version} requested; this build generates version ${GEN_VERSION}`);
   const key = regionKey(biome, seed, wg!);
   let m = cache.get(key);
   if (m) { cache.delete(key); cache.set(key, m); return m; }
-  if (loc && isHabitat(loc)) { const [recipe, variant] = loc.split(':'); m = generateHabitat({ recipe, variant, seed, size: wg!.size }); }
-  else m = loc ? generateLocation({ location: loc, seed, size: wg!.size }) : generateRegion({ biome, seed, size: wg!.size, version: wg!.version, species });
+  if (isHabitat(loc)) { const [recipe, variant] = loc.split(':'); m = generateHabitat({ recipe, variant, seed, size: wg!.size }); }
+  else m = generateLocation({ location: loc, seed, size: wg!.size });
   cache.set(key, m);
   while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value as string);
   return m;

@@ -4,7 +4,7 @@
 // decks (causeways, arches) brown, hazard tiles purple, team A's approaches cyan (direct) / blue (flank), team B's
 // yellow (direct) / orange (flank), the contest disc white, staging A white and B red, any perch that watches both of
 // a side's approaches magenta. --raw draws a single attempt without retries (what a raw seed looks like).
-import { writePng } from './worldsheet';
+import { writePng } from './lib/rgbpng';
 import { attemptHabitat, generateHabitat, HABITATS, profilesFor } from '../src/world/habitat';
 import { CONTROL_POINT } from '../src/world/habitat/mode';
 import type { HabCtx } from '../src/world/habitat/ctx';

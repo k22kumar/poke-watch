@@ -20,8 +20,8 @@
 //   joins       bridges, causeways and arches are supported at both ends and clear what passes under (spec R02)
 //   drainage    every fluid tile drains, through culverts and falls, to an outlet or a declared sink (spec R03)
 import { mapExposureClear, mapSegmentClear } from '../../sim/spatial';
-import { navOpen, navTop } from '../gen/util';
-import type { GateResult } from '../gen/context';
+import { navOpen, navTop } from '../tilenav';
+import type { GateResult } from '../genmeta';
 import { enemyCore, pathBetween, playerReach } from '../locgen/nav';
 import { defaultRules } from '../../rules/defaults';
 import { PROP_MATERIALS } from '../../rules/surfaces';

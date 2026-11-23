@@ -2,8 +2,8 @@
 // Hard gates must all pass or the attempt is re-rolled; quality metrics are measured on every map and some are gated
 // at thresholds calibrated on the first 30 seeds of each location (see the doc for the numbers and why).
 import { dcos, dsin } from '../../core/detmath';
-import type { GateResult } from '../gen/context';
-import { navOpen } from '../gen/util';
+import type { GateResult } from '../genmeta';
+import { navOpen } from '../tilenav';
 import { T } from '../tiles';
 import { K, type LocCtx } from './ctx';
 import { enemyCore, pathBetween, playerReach, sightTiles, wideCore } from './nav';

@@ -121,8 +121,6 @@ export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
 export function startStage(ctx: SimContext, stage: number) {
   ctx.stage = stage;
   const biome = BIOMES[STAGES[stage % STAGES.length].biome];
-  // no spawn species: the classic generator's habitat gate read only their `requires`, which no species sets, so every
-  // layout is the same without them (pivot §11, 48/48 mapChecksums)
   enterMap(ctx, biome, ctx.rules.worldgen.regionSeed >= 0 ? ctx.rules.worldgen.regionSeed : (ctx.seed + stage * 7919) >>> 0);
   ctx.stageTime = 0;
   ctx.objective = null;
