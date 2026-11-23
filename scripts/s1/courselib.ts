@@ -82,6 +82,7 @@ export function makeCharacter(R: Rapier, w: RWorld, r: number, h: number, x: num
   ctl.setMaxSlopeClimbAngle((opt.maxSlopeDeg * Math.PI) / 180);
   ctl.setMinSlopeSlideAngle((opt.maxSlopeDeg * Math.PI) / 180);
   ctl.setSlideEnabled(true);
+  if (process.env.S1NUDGE) ctl.setNormalNudgeFactor(Number(process.env.S1NUDGE));
   return { body, col, ctl, r, h };
 }
 
