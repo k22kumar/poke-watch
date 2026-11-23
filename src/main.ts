@@ -35,6 +35,7 @@ import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
 import { artLoader } from './assets/loader';
 import { matchArt, wholeLine } from './sim/matchart';
+import { bootRapier } from './physics/web';
 
 const params = new URLSearchParams(location.search);
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
@@ -613,3 +614,21 @@ boot().catch((e) => {
   console.error(e);
   document.body.insertAdjacentHTML('beforeend', `<pre style="position:fixed;inset:20px;color:#fff;background:#300;padding:20px;white-space:pre-wrap;z-index:9">Poke-Watch failed to start:\n${String(e?.stack ?? e)}</pre>`);
 });
+
+// S1 spike (docs/spikes/S1-physics.md): ?physics=rapier fetches and instantiates the Rapier wasm at boot and steps a
+// throwaway world, so the page-side init time can be measured. Nothing in the game reads it.
+if (params.get('physics') === 'rapier') {
+  bootRapier().then(({ R, ms, url }) => {
+    const t0 = performance.now();
+    const w = new R.World({ x: 0, y: -9.81, z: 0 });
+    w.createCollider(R.ColliderDesc.cuboid(10, 0.5, 10));
+    const b = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(0, 5, 0));
+    w.createCollider(R.ColliderDesc.ball(0.5), b);
+    for (let i = 0; i < 120; i++) w.step();
+    const y = b.translation().y;
+    w.free();
+    const info = { version: R.version(), initMs: ms, stepMs: performance.now() - t0, ballY: y, url };
+    (window as any).pokewatchRapier = info;
+    console.log('[S1] rapier', JSON.stringify(info));
+  }).catch((e) => { (window as any).pokewatchRapier = { error: String(e) }; console.error('[S1] rapier failed', e); });
+}

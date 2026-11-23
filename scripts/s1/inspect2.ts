@@ -1,0 +1,10 @@
+import { defaultRules } from '../../src/rules/defaults';
+import { BIOMES } from '../../src/rules/stages';
+import { World } from '../../src/sim/world';
+import { fromArenaMap } from '../../src/world/adapter';
+const range = { ...defaultRules, worldgen: { ...defaultRules.worldgen, arena: 'range' } };
+const Wd = new World(range as any, BIOMES.meadow, 1), m = Wd.map, M = fromArenaMap(m);
+for (const c of M.colliders) if (c.shape === 'trimesh') console.log('ramp', Array.from(c.positions).join(','), Array.from(c.indices).join(','));
+const row = (j: number) => { let s = ''; for (let i = 16; i < 92; i++) { const k = j * m.w + i; s += m.wall[k] ? '#' : m.stairs[k] ? 'S' : m.elev[k] === 2 ? '2' : m.elev[k] === 1.5 ? 'B' : m.elev[k] > 0 ? '+' : m.terrain[k] === 3 ? '~' : m.platform[k] > 0 ? 'p' : '.'; } console.log(String(j).padStart(3), s); };
+for (let j = 30; j < 74; j++) row(j);
+console.log('x0 = tile 16 → world', 16 - 56);

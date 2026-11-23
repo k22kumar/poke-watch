@@ -7,6 +7,7 @@ import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeArt } from './lib/artfiles.mjs';
+import { rapierWasm } from './lib/rapierwasm.mjs';
 
 /** dist/index.html's size budget (bytes): the page is code; art and music are side files */
 const PAGE_BUDGET = 3_000_000;
@@ -21,6 +22,7 @@ const out = await esbuild.build({
   // the music is fetched from dist/music/ (content-hashed names)
   loader: { '.mp3': 'file' }, outdir: OUT, assetNames: 'music/[name].[hash]', publicPath: '.',
   define: { __ART__: JSON.stringify({ manifest: art.manifest, heroes: art.heroes }) },
+  plugins: [rapierWasm(OUT)],
 });
 const js = out.outputFiles.find((f) => f.path.endsWith('.js')).text;
 fs.rmSync(path.join(OUT, 'music'), { recursive: true, force: true });

@@ -1,0 +1,40 @@
+# S1 spike (docs/spikes/S1-physics.md §4): runs the 60 s controller course on Linux and prints its per-tick hashes, to
+# compare with the same script on the owner's Mac. Spike branch only; never merged.
+# workflow_dispatch only fires for a workflow that exists on the default branch, and main is not to be pushed, so the
+# job also runs on a push to the spike branch.
+name: S1 determinism
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [spike/s1-rapier]
+
+permissions:
+  contents: read
+
+jobs:
+  course:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Platform
+        run: node -p "process.platform + '-' + process.arch + ' ' + process.version + ' ' + require('os').cpus()[0].model"
+      - name: Course, rapier3d-deterministic
+        run: npx tsx scripts/s1/course.ts deterministic | tee course-deterministic.txt
+      - name: Course, rapier3d-simd
+        run: npx tsx scripts/s1/course.ts simd | tee course-simd.txt
+      - name: Digest
+        run: grep -h "HASH\|hash" course-*.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: s1-course-node${{ matrix.node }}
+          path: course-*.txt

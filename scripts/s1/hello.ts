@@ -1,0 +1,11 @@
+import { initRapierNode, type Variant } from '../../src/physics/node';
+const v = (process.argv[2] ?? 'deterministic') as Variant;
+const { R, ms, wasmBytes } = await initRapierNode(v);
+console.log(v, 'version', R.version(), 'init', ms.toFixed(1), 'ms', 'wasm', wasmBytes);
+const w = new R.World({ x: 0, y: -9.81, z: 0 });
+w.createCollider(R.ColliderDesc.cuboid(10, 0.5, 10));
+const b = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(0, 5, 0));
+w.createCollider(R.ColliderDesc.ball(0.5), b);
+for (let i = 0; i < 120; i++) w.step();
+console.log('ball y', b.translation().y);
+w.free();
