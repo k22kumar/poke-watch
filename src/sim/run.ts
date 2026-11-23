@@ -21,7 +21,7 @@ import { cellSystem } from './cells';
 import { exposureSystem, hazardSystem, tideSystem } from './hazards';
 import { coatSystem } from './coats';
 import { addLoadoutMember, squadSystem } from './squad';
-import { learnMove, makePlayer, progressionSystem, recompute } from './progression';
+import { learnMove, makePlayer, recompute } from './progression';
 import { heroKit } from '../rules/heroes';
 import { NO_INPUT, freshAimState, type HookRunner, type InputFrame, type SimContext, type System } from './types';
 import { World } from './world';
@@ -50,7 +50,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem, progressionSystem];
+export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];

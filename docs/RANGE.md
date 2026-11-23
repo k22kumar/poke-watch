@@ -6,11 +6,11 @@ The match foundation the hero shooter's replay baseline is built on (`docs/hero-
 
 | Mode | Systems | Rules |
 |---|---|---|
-| `range` (`RANGE`) | no survivor loop (`noSurvivorLoop`: progression; the director was deleted at pivot step 9), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
+| `range` (`RANGE`) | the foundation systems (the survivor loop is gone: the director at pivot step 9, the chests and `noSurvivorLoop` at C1), no swap (`solo`) | `hero.fillE`, `hero.respawn` 3 s, `evolution.freeTrigger` |
 | `range-swap` (`RANGE_SWAP`) | the range plus the opt-in `swap` Mod | `hero.loadout` 3 |
-| `hold` (`HOLD`) | no survivor loop, solo, `holdMod` (opens a Hold on the first tick of a habitat map) | — |
+| `hold` (`HOLD`) | solo, `holdMod` (opens a Hold on the first tick of a habitat map) | — |
 
-The survivor modes (Classic, Survival, Glass Cannon, Boss Rush) were deleted at pivot step 9; `MODES` is `[RANGE, HOLD]`; the title screen offers `TITLE_MODES`, only `RANGE`, since 2026-11-21 (Hold is reached with `?go=1&mode=hold&map=<habitat recipe>` until T2). `RANGE` also serves tests and gates as "the foundation with no survivor loop" on any map; the range *arena* is a separate choice (`rules.worldgen.arena: 'range'`), which the title flow makes for the range modes (`src/main.ts startRun`) unless the URL names a map (`?loc=`, `?world=`).
+The survivor modes (Classic, Survival, Glass Cannon, Boss Rush) were deleted at pivot step 9; `MODES` is `[RANGE, HOLD]`; the title screen offers `TITLE_MODES`, only `RANGE`, since 2026-11-21 (Hold is reached with `?go=1&mode=hold&map=<habitat recipe>` until T2). `RANGE` also serves tests and gates as "the foundation" on any map; the range *arena* is a separate choice (`rules.worldgen.arena: 'range'`), which the title flow makes for the range modes (`src/main.ts startRun`) unless the URL names a map (`?loc=`, `?world=`).
 
 ## The range arena (`src/world/arenas.ts buildRange`)
 

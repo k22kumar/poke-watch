@@ -31,7 +31,6 @@ export const defaultRules = {
   world: {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
     gridCell: 3, // [C] spatial grid cell (m)
-    chests: 6, // [B] drawn from each arena's designed chest spots
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.

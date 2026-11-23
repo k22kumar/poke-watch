@@ -290,7 +290,6 @@ function onEvents(c: SimContext, events: SimEvent[]) {
         break;
       case 'evolveStart': ui.evolve(e.from, e.to); audio.onEvolveStart(); audio.cry(e.from, { volume: 0.6 }); break;
       case 'evolveEnd': audio.onEvolveEnd(); audio.cry(e.species, { volume: 0.7, gate: 0 }); ui.evolveDone(e.species, Object.values(SPECIES_BY_ID).find((s) => s.evolvesTo === e.species)?.id ?? ''); audio.evolveDone(); break;
-      case 'chest': audio.chest(); break;
       case 'dash': audio.dash(); break;
       case 'jump': audio.jump(); break;
       case 'guard': audio.guard(); break;

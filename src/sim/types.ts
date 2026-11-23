@@ -306,7 +306,6 @@ export type SimEvent =
   | { t: 'learn'; key: string }
   | { t: 'stageStart'; stage: number; biome: string }
   | { t: 'spawnSkipped'; species: string; reason: string; x: number; z: number }
-  | { t: 'chest'; x: number; z: number }
   | { t: 'jump' }
   | { t: 'dash' }
   | { t: 'death' }

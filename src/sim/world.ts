@@ -2,10 +2,9 @@
 // handcrafted tile maps (src/world/arenas.ts), 1 tile = 1 m, with flat ground, 1 m cliffs,
 // 0.5 m ledges, stairs, water, walls (trees, boulders) and low platforms (rocks, bushes)
 // that can be jumped onto. The public surface the sim uses is unchanged (height, waterAt,
-// bound, chests) plus `blocks` for collision and a flow field for enemy navigation.
+// bound) plus `blocks` for collision and a flow field for enemy navigation.
 
 import { dhypot } from '../core/detmath';
-import { Rng, streamSeed } from '../core/rng';
 import type { Rules } from '../rules/defaults';
 import type { BiomeDef } from '../rules/stages';
 import { regionMap } from '../world/maps';
@@ -18,7 +17,6 @@ import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../wor
 /** wide block neighbour directions: four orthogonal, then four diagonal (World.wideNb and its link cache) */
 const WIDE_DI = [-1, 1, 0, 0, -1, 1, -1, 1], WIDE_DJ = [0, 0, -1, 1, -1, -1, 1, 1];
 
-export interface Chest { x: number; z: number; open: boolean }
 
 const UNREACHED = 0x7fff;
 /** an overhead deck is the surface for anything whose feet (or shot) are within this many metres below its top */
@@ -34,7 +32,6 @@ export class World {
   readonly w: number; readonly h: number;
   readonly map: ArenaMap;
   readonly props: ArenaProp[];
-  readonly chests: Chest[] = [];
   readonly biome: BiomeDef;
   readonly seed: number;
   readonly spawn: [number, number];
@@ -163,10 +160,6 @@ export class World {
     }
     this.spawn = [this.map.spawn[0] - this.half + 0.5, this.map.spawn[1] - this.half + 0.5];
     this.bossSpot = [this.map.bossSpot[0] - this.half + 0.5, this.map.bossSpot[1] - this.half + 0.5];
-    // chests: a seeded subset of the arena's designed chest spots
-    const rng = new Rng(streamSeed(seed, 'chests:' + biome.id));
-    const spots = rng.shuffle(this.map.chestSpots.slice());
-    for (const [x, y] of spots.slice(0, Math.min(rules.world.chests, spots.length))) this.chests.push({ x: x - this.half + 0.5, z: y - this.half + 0.5, open: false });
   }
 
   /** tile index for a world position, or -1 outside the map */
