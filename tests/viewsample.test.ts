@@ -17,13 +17,18 @@ import { spriteOutline } from '../scripts/lib/silhouette';
 import { bodyOf } from '../src/rules/sizing';
 import { lookDelta, runFrame } from '../src/render/hostframe';
 import { createRun, startStage, step } from '../src/sim/run';
+import { stateHash } from '../src/sim/checksum';
 import { BTN, NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 const D2R = Math.PI / 180;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
-function mapRun(seed: number, stage: number, species: string) {
-  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
+/** the regions the replay test ran on before C1, with a habitat map for each classic region (badlands → Cinder Crater's
+ *  rough ground, frost → Memorial Ridge's trees); meadow and dusk keep the default rotation's locations */
+const STAND_IN = { mode: 'generated', locations: { meadow: 'viridian-forest', badlands: 'volcanic-ridge', frost: 'forest-cemetery', dusk: 'mt-moon' } };
+/** `worldgen`: the map rules to run on instead of the default generated rotation */
+function mapRun(seed: number, stage: number, species: string, worldgen?: object) {
+  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: worldgen ?? { mode: 'generated' } } as never });
   if (stage) startStage(ctx, stage);
   for (let i = 0; i < ctx.enemies.hi; i++) ctx.enemies.alive[i] = 0;
   ctx.enemies.count = 0;
@@ -279,6 +284,26 @@ test('against walls, over steps and under pitch: a sample is exactly what the ri
   }
   assert.ok(stepped > 0.1, `the walk takes steps up and down (${stepped.toFixed(2)} m being taken up at most)`);
   assert.ok(worst < 1e-9, `sample vs zero-time draw: ${worst}`);
+});
+
+test('deterministic replay: the sim depends only on the recorded InputFrames, not on the camera', () => {
+  const script = (h: Host) => {
+    h.settle(1);
+    const fps = [60, 144, 30, 60, 240];
+    for (let i = 0; i < 600; i++) {
+      const dt = 1 / fps[Math.floor(i / 120)];
+      h.frame(dt, [Math.sin(i / 17) * 0.08, Math.cos(i / 23) * 0.01], i % 40 < 6 ? BTN.basic : 0, i % 90 < 60 ? 'fwd' : 'right');
+    }
+  };
+  const a = new Host(mapRun(4, 1, 'totodile', STAND_IN)), b = new Host(mapRun(4, 1, 'totodile', STAND_IN));
+  script(a); script(b);
+  assert.deepEqual(a.log, b.log, 'the same look and frame times produce the same input record');
+  assert.equal(stateHash(a.ctx), stateHash(b.ctx));
+  // replayed without any camera
+  const r = mapRun(4, 1, 'totodile', STAND_IN);
+  for (const inp of a.log) step(r, inp);
+  assert.equal(stateHash(r), stateHash(a.ctx), 'replaying the record reproduces the run');
+  assert.ok(a.log.some((x) => x.btn) && new Set(a.log.map((x) => x.aimX)).size > 50, 'the record exercises aim and fire');
 });
 
 test('the renderer and the diagnostics frame a Pokémon by its size class, one function for both', () => {

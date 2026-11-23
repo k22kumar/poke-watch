@@ -104,7 +104,7 @@ seed 6; seed 10 has no vent branch and is checked as such). Every id below is in
 | `gorge.hold-frozen-stripped` | river frozen and the props stripped in the same match, then spawn → Hold → retreat by both approaches (both reach, Hold held, Raiders reach the point, 0 hits on the trainer or a Raider on its way) | live |
 | `river-gorge.hold-stripped` | 428 props burnt and broken, river running: the same | live |
 | `tropical-lagoon.hold-stripped` | 929 props burnt and broken (seed 2; cover stops at the 40 % cap), stream and lagoon running: the same two runs, 0 environment hits on the trainer or a Raider on its way (`npx tsx scripts/habstate.ts lagoon 2`) | live |
-| `tests/habstate.test.ts` unit checks | vent phase in whole steps and the five tick steps; buffed trainer, combat RNG and i-frames; `shore` is deterministic; an empty thaw moves nobody (the classic-region ice checks went with the classic generator at C1) | live / static |
+| `tests/habstate.test.ts` unit checks | vent phase in whole steps and the five tick steps; buffed trainer, combat RNG and i-frames; `shore` is deterministic; an empty thaw moves nobody; Shrine Gorge's river (a classic region's until C1) gets the same ice rule and an empty thaw drains the queue | live / static |
 
 Movement in every check is walking only: no jump, glide, dash or swim (the only optional abilities the checks touch are
 the ones asserted to be *immune* in `crater.contact`). Body sizes: trainer r 0.55, smallest wild r 0.36, largest wild r 1.42

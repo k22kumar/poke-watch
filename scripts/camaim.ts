@@ -31,8 +31,9 @@ export function useRig(a: RigAdapter) { RIG = a; }
 /** the species whose basic attack takes the spatial aim (a direct shot), one or more per size class */
 export const AIM_SPECIES = ['cyndaquil', 'quilava', 'charizard', 'feraligatr', 'totodile', 'croconaw', 'lapras'];
 
-function run(species: string, stage: number, seed = 1): SimContext {
-  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
+/** `worldgen`: the map rules to run on instead of the default generated rotation (tests pin habitat or location maps) */
+function run(species: string, stage: number, seed = 1, worldgen?: object): SimContext {
+  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: worldgen ?? { mode: 'generated' } } as never });
   if (stage) startStage(ctx, stage);
   return ctx;
 }
@@ -127,8 +128,8 @@ export function poseAim(species: string, stage: number, pose: (ctx: SimContext) 
 }
 
 /** E2 across a 0.5 m tile step, up and back down, firing: the largest aim error and its unexplained part */
-export function stepAim(species: string): { moving: number; unexplained: number; steps: number } | null {
-  const ctx = run(species, 1), p = stepPose(ctx);
+export function stepAim(species: string, worldgen?: object): { moving: number; unexplained: number; steps: number } | null {
+  const ctx = run(species, 1, 1, worldgen), p = stepPose(ctx);
   if (!p) return null;
   place(ctx, p);
   const h = new Host(ctx, p.yaw);

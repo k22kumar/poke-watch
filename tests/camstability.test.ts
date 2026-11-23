@@ -12,7 +12,8 @@ import { CHASE_VIEW_R, chaseViewR, fogAt, FOG_VEIL, inStageView, VIEW_BEHIND, VI
 import { SKY } from '../src/render/sky';
 import { FOG_GLSL } from '../src/render/tilestage';
 import { createRun, startStage, step } from '../src/sim/run';
-import { NO_INPUT } from '../src/sim/types';
+import { botInput } from '../src/sim/bot';
+import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 
 const flat = () => 0;
 const frame = (o: Partial<ChaseFrame> = {}): ChaseFrame => ({ dt: 1 / 60, x: 0, y: 0, z: 0, height: 1.1, lookYaw: 0, lookPitch: 0, ground: flat, ...o });
@@ -182,11 +183,30 @@ test('culling: turning the camera never changes what is drawn in front of the le
 const D2R = Math.PI / 180;
 /** the lens' height over the pivot and its angle (deg) as camstats measures it */
 const elevOf = (r: ChaseRig) => { const up = r.eye[1] - r.py - r.pivotH; return { up, deg: Math.atan2(up, Math.hypot(r.eye[0] - r.px, r.eye[2] - r.pz)) / D2R }; };
-/** a generated map, as the game builds it by default */
-function mapRun(seed: number, stage: number, species: string, calm: boolean) {
-  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
+/** the regions these tests ran on before C1, with a habitat map for each classic region (badlands → Cinder Crater's
+ *  rough ground, frost → Memorial Ridge's trees); meadow and dusk keep the default rotation's locations */
+const STAND_IN = { mode: 'generated', locations: { meadow: 'viridian-forest', badlands: 'volcanic-ridge', frost: 'forest-cemetery', dusk: 'mt-moon' } };
+/** a generated map, as the game builds it by default (or the `worldgen` rules given) */
+function mapRun(seed: number, stage: number, species: string, calm: boolean, worldgen?: object) {
+  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: worldgen ?? { mode: 'generated' } } as never });
   if (stage) startStage(ctx, stage);
   return ctx;
+}
+/** the renderer's loop, headless: the sim at 60 Hz from an accumulator, the rig once per drawn frame on the player
+ *  interpolated between the last two ticks; `each` sees the rig after every frame */
+function drive(ctx: SimContext, fps: number, secs: number, control: (t: number, dt: number) => { inp: InputFrame; lookYaw?: number }, each: (r: ChaseRig, t: number) => void) {
+  const P = ctx.player, r = new ChaseRig();
+  r.snapTo(P.x, P.y, P.z, Math.PI);
+  let acc = 0;
+  for (let t = 1 / fps; t < secs; t += 1 / fps) {
+    const c = control(t, 1 / fps);
+    if (c.lookYaw) r.look(c.lookYaw, 0); // Renderer.look
+    acc += 1 / fps;
+    while (acc >= ctx.dt - 1e-9) { step(ctx, c.inp); acc -= ctx.dt; }
+    const a = Math.max(0, Math.min(1, acc / ctx.dt));
+    r.update(chaseFrameFor(ctx, { dt: 1 / fps, x: P.px + (P.x - P.px) * a, y: P.py + (P.y - P.py) * a, z: P.pz + (P.z - P.pz) * a, lookPitch: 0 }));
+    each(r, t);
+  }
 }
 
 test('backed against a terrace, the lens stays on the Pokémon\'s side of its face, never up on the terrace (the 70° badlands fight)', () => {
@@ -214,6 +234,19 @@ test('backed against a terrace, the lens stays on the Pokémon\'s side of its fa
   const low = new ChaseRig(), free = chaseArm({ height: 1.75 });
   settle(low, { ground: (_x, z) => (z > 0.4 ? 0.5 : 0), height: 1.75 }, 2);
   assert.ok(Math.abs(low.boomUsed - free.back) < 1e-6, `a 0.5 m terrace behind leaves the arm whole (${low.boomUsed.toFixed(2)} m)`);
+});
+
+test('the reported badlands fight (seed 1, Feraligatr, 30 s of bot combat): never a steep lens, never on what is behind', () => {
+  const ctx = mapRun(1, 1, 'feraligatr', false, STAND_IN);
+  const cap = boomElevation(0) + 1; // the arm's elevation at the neutral pitch: nothing in a fight raises it
+  let worst = 0, worstUp = -Infinity;
+  drive(ctx, 60, 30, (_t, dt) => ({ inp: botInput(ctx), lookYaw: 0.25 * dt }), (r, t) => {
+    if (t < 2) return;
+    const e = elevOf(r);
+    if (r.lensGap >= 1) worst = Math.max(worst, e.deg); else worstUp = Math.max(worstUp, e.up);
+  });
+  assert.ok(worst <= cap, `boom elevation ${worst.toFixed(1)}° (cap ${cap}°; it reached 70° in 2026-11, 31° after the first fix)`);
+  assert.ok(worstUp < 0.5, `with the lens close, it sat ${worstUp.toFixed(2)} m over the pivot`);
 });
 
 test('a terrace step under the end of the boom never pops the lens up and down while the camera turns', () => {
@@ -266,6 +299,15 @@ test('frame rate: the same walk past walls gives the same lens path at 30, 60, 1
   }
 });
 
+test('turning on the spot beside trees on a generated map never zooms (vegetation used to pump the boom 2-3 m)', () => {
+  for (const [seed, stage] of [[1, 1], [2, 1], [1, 2]]) {
+    const ctx = mapRun(seed, stage, 'cyndaquil', true, STAND_IN);
+    let lo = Infinity, hi = -Infinity;
+    drive(ctx, 60, 1.2 + Math.PI * 2, (t, dt) => ({ inp: NO_INPUT, lookYaw: t > 0.5 ? dt : 0 }), (r, t) => { if (t > 1.2) { lo = Math.min(lo, r.boomUsed); hi = Math.max(hi, r.boomUsed); } });
+    assert.ok(hi - lo < 0.05, `seed ${seed} stage ${stage}: boom ranged ${(hi - lo).toFixed(2)} m over a full turn`);
+  }
+});
+
 test('rapid direction changes: the move direction and the aim follow the camera on the very frame it turns', async () => {
   // in the host's order (render/hostframe.ts): the look input, then the sample the sim ticks aim with, then the render.
   // The aim is taken BEFORE this frame's update; this test used to update first, the opposite of main.ts, and passed
@@ -287,6 +329,15 @@ test('rapid direction changes: the move direction and the aim follow the camera 
     const [dx, dz] = chaseAim(r, 0, 0, 16 / 9, flat);
     assert.ok(Math.abs(Math.atan2(Math.sin(r.yaw - want), Math.cos(r.yaw - want))) < 1e-9, 'the yaw the player set is the yaw drawn');
     assert.ok(Math.hypot(ax - dx, az - dz) < 0.05, `the ticks aimed ${Math.hypot(ax - dx, az - dz).toFixed(3)} m from the crosshair drawn`);
+  }
+});
+
+test('standing still on generated maps (forest, badlands, cave): the lens does not drift at all', () => {
+  for (const [seed, stage, sp] of [[1, 0, 'cyndaquil'], [3, 1, 'feraligatr'], [3, 3, 'charmander']] as [number, number, string][]) {
+    const ctx = mapRun(seed, stage, sp, true, STAND_IN);
+    let first: number[] | null = null, drift = 0;
+    drive(ctx, 144, 4, () => ({ inp: NO_INPUT }), (r, t) => { if (t < 1.5) return; first ??= r.eye.slice(); drift = Math.max(drift, Math.hypot(r.eye[0] - first[0], r.eye[1] - first[1], r.eye[2] - first[2])); });
+    assert.ok(drift < 1e-6, `seed ${seed} stage ${stage}: drifted ${drift} m`);
   }
 });
 

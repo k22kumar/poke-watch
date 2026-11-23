@@ -4,13 +4,14 @@
 // actors). This file asserts every one passes on fixed seeds and that nothing in the lifecycle table has lost its check.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { step } from '../src/sim/run';
+import { createRun, step } from '../src/sim/run';
 import { applyAgent } from '../src/sim/cells';
 import { ventPhase, ventTick } from '../src/sim/hazards';
 import { NO_INPUT } from '../src/sim/types';
 import { T } from '../src/world/tiles';
 import { craterChecks, fieldOf, gorgeChecks, mk, strippedChecks, type Check } from '../scripts/habstate';
 
+import { RANGE } from '../src/mods';
 const verify = (cs: Check[]) => { for (const c of cs) assert.ok(c.ok, `${c.recipe} ${c.id} [${c.coverage}] ${c.transition}: ${c.detail}`); };
 
 // seeds with a vent field of different sizes (4 tiles to 27) and with the river's two reaches
@@ -86,4 +87,48 @@ test('ice that opens puts everyone ashore the same way twice: the shore is a pur
   const hp = ctx.player.hp, at = [ctx.player.x, ctx.player.z];
   for (let i = 0; i < 15 * 60; i++) step(ctx, NO_INPUT);
   assert.ok(!W.cells.iceAt(k) && ctx.player.hp >= hp && ctx.player.x === at[0] && ctx.player.z === at[1], 'an empty thaw moves and hurts no one');
+});
+
+test('hazards off: ice that opens under the trainer on a river (Shrine Gorge) puts them ashore instead of leaving them stuck in the water (the rule before liquids could be entered)', () => {
+  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } }, hazards: { enabled: false } } as never });
+  const W = ctx.world, P = ctx.player, c = (k: number): [number, number] => [(k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5];
+  const k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water && W.isOpen(q - 1) && W.map.terrain[q - 1] !== T.water && W.isOpen(q - 2) && W.isOpen(q - 3));
+  assert.ok(k !== undefined, 'a river tile with a bank beside it');
+  applyAgent(ctx, 'cold', ...c(k!), 0.5);
+  assert.ok(W.cells.iceAt(k!));
+  [P.x, P.z] = c(k!); P.y = W.height(P.x, P.z);
+  applyAgent(ctx, 'heat', ...c(k!), 0.5);
+  for (let i = 0; i < 20; i++) step(ctx, NO_INPUT);
+  assert.ok(W.map.terrain[W.tile(P.x, P.z)] !== T.water && W.isOpen(W.tile(P.x, P.z)), 'on dry open ground');
+  assert.ok(P.hp < P.maxHp, 'the cold water cost HP');
+  const x0 = P.x; for (let i = 0; i < 60; i++) step(ctx, { ...NO_INPUT, mx: -1 });
+  assert.ok(Math.abs(P.x - x0) > 0.5, 'and the trainer can walk on');
+});
+
+test('hazards on: ice that opens under the trainer on a river (Shrine Gorge) leaves them in the water where they stood, and the exposure rule decides', () => {
+  for (const [species, safe] of [['totodile', true], ['rattata', false]] as const) {
+    const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } } } as never });
+    const W = ctx.world, P = ctx.player, c = (k: number): [number, number] => [(k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5];
+    const k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water && W.isOpen(q - 1) && W.map.terrain[q - 1] !== T.water && W.isOpen(q - 2) && W.isOpen(q - 3))!;
+    applyAgent(ctx, 'cold', ...c(k), 0.5);
+    [P.x, P.z] = c(k); P.y = W.height(P.x, P.z);
+    applyAgent(ctx, 'heat', ...c(k), 0.5);
+    for (let i = 0; i < 20; i++) step(ctx, NO_INPUT);
+    assert.equal(W.tile(P.x, P.z), k, `${species}: not moved`);
+    if (safe) assert.ok(P.hzSafe === 1 && P.hzKind === 0 && P.hp === P.maxHp, 'a Water type swims, unhurt');
+    else assert.ok(P.hzKind === 1 && P.hp < P.maxHp, 'anyone else is exposed and losing HP');
+    for (let i = 0; i < 90 && W.map.terrain[W.tile(P.x, P.z)] === T.water; i++) step(ctx, { ...NO_INPUT, mx: -1 });
+    for (let i = 0; i < 6; i++) step(ctx, { ...NO_INPUT, mx: -1 });
+    assert.ok(W.map.terrain[W.tile(P.x, P.z)] !== T.water && P.hzKind === 0 && ctx.state === 'play', `${species}: walks out onto the bank`);
+  }
+});
+
+test('a river (Shrine Gorge) with frozen water behaves as before when nobody is on the ice', () => {
+  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } } } as never });
+  const W = ctx.world, k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water);
+  if (k === undefined) return;
+  applyAgent(ctx, 'cold', (k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5, 0.5);
+  assert.ok(W.cells.iceAt(k));
+  for (let i = 0; i < 14 * 60; i++) step(ctx, NO_INPUT);
+  assert.ok(!W.cells.iceAt(k) && W.cells.melted.length === 0, 'it thawed and the queue drained');
 });

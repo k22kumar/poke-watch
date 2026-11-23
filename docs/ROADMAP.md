@@ -34,7 +34,7 @@ The overhaul's WM and WS were named P1 and P2 before the C0 review.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | C0 | Record this plan | done | Done on `docs/c0-overhaul-plan`: `docs/OVERHAUL_3D.md`, this section, the CLAUDE.md pointer. |
-| C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | review | Done on `chore/c1-cleanup` (2026-11-23); the pre-cleanup state is tag `maplebrook-final` (`0dec749`, local). Removed the Maplebrook overworld game and page, the original-creature pipeline and the build's `--tool` / `--overworld` paths, the classic generator (`src/world/gen`, `?world=gen`, the 'generated' World setting, `rules.worldgen.biomes` / `.version`; what locgen and habitat used moved to `src/world/tilenav.ts` and `genmeta.ts`), the survivor chests with `progressionSystem` and `noSurvivorLoop`, the overworld-only audio hooks (F9), 45 unused exports, with 145 more made file-local; historical docs moved to `docs/archive/`. Tests: the determinism guard moved to `tests/determinism.test.ts` (allow-list 84 → 80); the classic generator's 5 tests and, by owner decision, 11 tests that used classic regions as fixtures were deleted. Replays 10/10 as recorded; no `HAB_VERSION` / `LOC_VERSION` change. `dist/index.html` 1,459,621 → 1,403,932 bytes. Follow-ups F20–F23. |
+| C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | done | Done on `chore/c1-cleanup` (2026-11-23); the pre-cleanup state is tag `maplebrook-final` (`0dec749`, local). Removed the Maplebrook overworld game and page, the original-creature pipeline and the build's `--tool` / `--overworld` paths, the classic generator (`src/world/gen`, `?world=gen`, the 'generated' World setting, `rules.worldgen.biomes` / `.version`; what locgen and habitat used moved to `src/world/tilenav.ts` and `genmeta.ts`), the survivor chests with `progressionSystem` and `noSurvivorLoop`, the overworld-only audio hooks (F9), 45 unused exports, with 145 more made file-local; historical docs moved to `docs/archive/`. Tests: the determinism guard moved to `tests/determinism.test.ts` (allow-list 84 → 80); the classic generator's 5 tests and the two map-seam tests that asserted classic behaviour were deleted; the 9 that used classic regions only as fixtures run on habitat and location maps instead (owner review, 2026-11-23). Replays 10/10 as recorded; no `HAB_VERSION` / `LOC_VERSION` change. `dist/index.html` 1,459,621 → 1,403,932 bytes. Follow-ups F20 (closed), F21–F23. |
 | WM | WorldModel types and the tile adapter | queued | |
 | C2 | Layering fix and the import guard test | queued | |
 | S1 | Rapier spike, record in docs/spikes/S1-physics.md | queued | |
@@ -177,14 +177,17 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
 
 ### Found in C1 (2026-11-23)
 
-- **F20. CLAUDE.md lines C1 made stale** [owner; the brief allowed only the opening-paragraph change]: "Modes and mods"
-  still says `RANGE` runs "with `noSurvivorLoop` and `solo`" (now `solo` only), and the subsystem-doc list still names
-  WORLDGEN (deleted; its W4 materials rules moved to `docs/SYSTEMIC.md`).
+- **F20. CLAUDE.md lines C1 made stale** — **done** (2026-11-23, owner review of C1): "Modes and mods" says `RANGE`
+  runs "with `solo`", and the subsystem-doc list no longer names WORLDGEN (its W4 materials rules are in
+  `docs/SYSTEMIC.md`).
 - **F21. Camera benches lost their rough-terrain regions** [I2b]: `scripts/camaim.ts`, `scripts/camstats.ts` and
-  `scripts/lib/cambench.ts` run `mode: 'generated'` over stages 0–3; the badlands and frost stages were classic regions
-  and are now the handcrafted arenas, so their numbers do not compare with earlier runs. The 11 deleted tests
-  (camera criteria E2 and A/C/D on generated maps, three camstability checks, the viewsample replay check, three
-  classic-region ice checks, two map-seam checks) need mesh-world counterparts once the 3D maps exist.
+  `scripts/lib/cambench.ts` run `mode: 'generated'` over stages 0–3 by default; the badlands and frost stages were
+  classic regions and are now the handcrafted arenas, so the benches' numbers do not compare with earlier runs. The
+  tests no longer depend on that default: `stepAim` and `modeTrack` take an optional worldgen override, and the 9
+  restored tests pin their maps (camaim A/C/D, camstability ×3 and the viewsample replay: Cinder Crater for badlands,
+  Memorial Ridge for frost, the default locations otherwise; camaim E2: Cascade Lagoon map seed 4, the only habitat or
+  location map with a bare 0.5 m step in seeds 1–30; habstate ice ×3: Shrine Gorge). Pointing the benches' own
+  defaults at those maps is still open.
 - **F22. `SpeciesDef.ability` and `rules.damage.stabAdaptive`** [no slot yet]: only the deleted original creatures set
   `ability: 'adaptive'`; `sim/combat.ts` still checks it on every STAB hit (always false). Left in place (a sim edit
   outside the brief).
