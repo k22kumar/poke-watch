@@ -119,11 +119,7 @@ export class Audio {
   release(_key: string, _archetype: string, _element: Element) {}
   impact(_element: Element, _crit: boolean, _eff: number) {}
   kill() {}
-  /** the overworld's warp (src/overworld/game.ts): a silent hook since the SFX cut */
-  portal() {}
-  pickup() {}
   hurt() {}
-  boss() {}
   evolveDone() {}
   ui() {}
   uiMove() {}
