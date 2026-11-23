@@ -8,6 +8,7 @@ import { createRun, startStage, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { getArena } from '../src/world/arenas';
 import { PROP_RULES, T } from '../src/world/tiles';
+import { regionMap } from '../src/world/maps';
 
 import { runEnded as ended } from '../scripts/lib/ended';
 import { crowd } from '../scripts/lib/crowd';
@@ -117,4 +118,22 @@ test('every region loads and plays a minute without errors', () => {
     assert.ok(ctx.enemies.count > 20 && casts > 40, `region ${s}: spawning and fighting (${ctx.enemies.count} wild, ${casts} casts)`);
     assert.ok(ctx.state !== 'over', `region ${s}: survived`);
   }
+});
+
+// the W0 seam (moved from tests/worldgen.test.ts at C1)
+const GEN = { ...defaultRules.worldgen, mode: 'generated' as const, biomes: ['meadow'] };
+
+test('W0 seam: authored mode keeps the cached handcrafted arena; generated mode builds per seed', () => {
+  const rules = defaultRules;
+  const a = new World(rules, BIOMES.meadow, 5);
+  assert.equal(a.map, getArena('meadow'));
+  const g1 = new World({ ...rules, worldgen: GEN }, BIOMES.meadow, 5);
+  const g2 = new World({ ...rules, worldgen: GEN }, BIOMES.meadow, 6);
+  assert.notEqual(g1.map.id, g2.map.id);
+  assert.equal(g1.w, 128);
+  // the factory caches by (biome, seed, version): a second World on the same seed shares the base arrays
+  assert.equal(regionMap(GEN, 'meadow', 5).terrain, g1.map.terrain);
+  // only listed biomes are generated
+  const bad = new World({ ...rules, worldgen: GEN }, BIOMES.badlands, 5);
+  assert.equal(bad.map, getArena('badlands'));
 });

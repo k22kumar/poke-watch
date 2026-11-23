@@ -89,8 +89,8 @@ test('ice that opens puts everyone ashore the same way twice: the shore is a pur
   assert.ok(!W.cells.iceAt(k) && ctx.player.hp >= hp && ctx.player.x === at[0] && ctx.player.z === at[1], 'an empty thaw moves and hurts no one');
 });
 
-test('hazards off: ice that opens under the trainer on a classic region puts them ashore instead of leaving them stuck in the water (the rule before liquids could be entered)', () => {
-  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } }, hazards: { enabled: false } } as never });
+test('hazards off: ice that opens under the trainer on a river (Shrine Gorge) puts them ashore instead of leaving them stuck in the water (the rule before liquids could be entered)', () => {
+  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } }, hazards: { enabled: false } } as never });
   const W = ctx.world, P = ctx.player, c = (k: number): [number, number] => [(k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5];
   const k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water && W.isOpen(q - 1) && W.map.terrain[q - 1] !== T.water && W.isOpen(q - 2) && W.isOpen(q - 3));
   assert.ok(k !== undefined, 'a river tile with a bank beside it');
@@ -105,9 +105,9 @@ test('hazards off: ice that opens under the trainer on a classic region puts the
   assert.ok(Math.abs(P.x - x0) > 0.5, 'and the trainer can walk on');
 });
 
-test('hazards on: ice that opens under the trainer on a classic region leaves them in the water where they stood, and the exposure rule decides', () => {
+test('hazards on: ice that opens under the trainer on a river (Shrine Gorge) leaves them in the water where they stood, and the exposure rule decides', () => {
   for (const [species, safe] of [['totodile', true], ['rattata', false]] as const) {
-    const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } } as never });
+    const ctx = createRun({ mode: RANGE, seed: 3, species, ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } } } as never });
     const W = ctx.world, P = ctx.player, c = (k: number): [number, number] => [(k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5];
     const k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water && W.isOpen(q - 1) && W.map.terrain[q - 1] !== T.water && W.isOpen(q - 2) && W.isOpen(q - 3))!;
     applyAgent(ctx, 'cold', ...c(k), 0.5);
@@ -123,8 +123,8 @@ test('hazards on: ice that opens under the trainer on a classic region leaves th
   }
 });
 
-test('a classic region with frozen water behaves as before when nobody is on the ice', () => {
-  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: '', dusk: '', badlands: '', frost: '' } } } as never });
+test('a river (Shrine Gorge) with frozen water behaves as before when nobody is on the ice', () => {
+  const ctx = createRun({ seed: 3, species: 'totodile', ruleOverrides: { worldgen: { mode: 'generated', locations: { meadow: 'river-gorge', dusk: 'river-gorge', badlands: 'river-gorge', frost: 'river-gorge' } } } as never });
   const W = ctx.world, k = [...Array(W.w * W.h).keys()].find((q) => W.map.terrain[q] === T.water);
   if (k === undefined) return;
   applyAgent(ctx, 'cold', (k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5, 0.5);

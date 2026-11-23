@@ -6,20 +6,8 @@ import { RAID_PARTY } from '../sim/modes/hold';
 import type { System } from '../sim/types';
 import type { Mod, Mode } from './types';
 
-/** The survivor loop's systems left: progression (chests). The director was deleted at pivot step 9; objectives stay
- *  and run only when something starts one (the Hold mode, the habitat Hold gates). */
-export const SURVIVOR_SYSTEMS: ReadonlySet<string> = new Set(['progression']);
-
-/** No survivor loop (docs/hero-shooter-pivot.md §8 step 1, Q15): the foundation systems only. Tests and gates that
- *  exercise movement, combat, worldgen or hazards run under it instead of silencing the director with rule hacks. */
-export const noSurvivorLoop: Mod = {
-  id: 'no-survivor-loop',
-  name: 'No survivor loop',
-  systems: (list) => list.filter((s) => !SURVIVOR_SYSTEMS.has(s.name)),
-};
-
 /** One Pokémon per player: the swap system (src/sim/swap.ts) is left out. The default for hero modes. */
-export const solo: Mod = {
+const solo: Mod = {
   id: 'solo',
   name: 'Solo',
   systems: (list) => list.filter((s) => s.name !== 'swap'),
@@ -37,13 +25,13 @@ export const swap: Mod = {
   },
 };
 
-/** The training range: the foundation with no survivor loop. Targets, respawns and the hero kit arrive in later steps
+/** The training range: the foundation systems. Targets, respawns and the hero kit arrive in later steps
  *  of the pivot (docs/hero-shooter-pivot.md §8). */
 export const RANGE: Mode = {
   id: 'range', name: 'Training range',
   description: 'No waves, no levels: move, aim and fight on any map.',
   rules: { mode: { id: 'range' }, hero: { fillE: true, respawn: 3 }, evolution: { freeTrigger: true } },
-  mods: [noSurvivorLoop, solo],
+  mods: [solo],
 };
 
 /** Hold opens at the start of a habitat map (src/sim/modes/hold.ts): the point is the contest floor, the Raid party
@@ -52,7 +40,7 @@ const holdStart: System = {
   name: 'holdStart',
   update(ctx) { if (ctx.tick === 1 && !ctx.objective && ctx.world.hab) startObjective(ctx, 'hold'); },
 };
-export const holdMod: Mod = {
+const holdMod: Mod = {
   id: 'hold',
   name: 'Hold',
   shows: [...new Set(RAID_PARTY.flatMap((m) => m.species))],
@@ -65,7 +53,7 @@ export const HOLD: Mode = {
   id: 'hold', name: 'Hold',
   description: 'Take the point on a habitat map and hold it against the raid party.',
   rules: { mode: { id: 'hold' } },
-  mods: [noSurvivorLoop, solo, holdMod],
+  mods: [solo, holdMod],
 };
 
 /** The range with a three-member loadout and swapping: the opt-in swap system's own mode (and replay scenario). */
@@ -73,7 +61,7 @@ export const RANGE_SWAP: Mode = {
   id: 'range-swap', name: 'Training range (swap)',
   description: 'The range with a three-Pokémon loadout you swap between.',
   rules: { ...RANGE.rules, hero: { fillE: true, respawn: 3, loadout: 3 } },
-  mods: [noSurvivorLoop, swap],
+  mods: [swap],
 };
 
 // ---------------------------------------------------------------- modes

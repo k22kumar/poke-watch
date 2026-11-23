@@ -15,7 +15,7 @@
 
 import { datan2, dhypot, dsin, dcos } from '../core/detmath';
 import { channelOf } from '../rules/stats';
-import { type CapVerb, type Cap } from '../rules/capabilities';
+import { type CapVerb } from '../rules/capabilities';
 import { ELEMENTS, type Element } from '../rules/elements';
 import { AGENT_NAMES, type AgentName } from '../rules/reactions';
 import { BODY_TEMPLATES } from '../rules/materials';
@@ -30,11 +30,11 @@ import type { DamageSpec } from './combat';
 import { brambleAt } from './cells';
 import { ccApply } from './coats';
 
-export type SrcKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'guard';
-export type TgtKind = 'creature' | 'body' | 'shot' | 'cover' | 'tile';
-export type Outcome = 'ok' | 'fail' | 'combined' | 'caught' | 'deflected' | 'cancel' | 'none';
+type SrcKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'guard';
+type TgtKind = 'creature' | 'body' | 'shot' | 'cover' | 'tile';
+type Outcome = 'ok' | 'fail' | 'combined' | 'caught' | 'deflected' | 'cancel' | 'none';
 
-export interface CapEvent {
+interface CapEvent {
   verb: CapVerb;
   /** Push / Hold Power; Deflect: the guard's Weight; Hit: unused */
   power: number;
@@ -421,11 +421,5 @@ export function tickHeldShot(ctx: SimContext, i: number, dt: number) {
     ctx.events.push({ t: 'deflect', x: Pr.x[i], z: Pr.z[i], element: ELEMENT_AT(ctx, i) });
     logShot(ctx, 'release', 'ok', i, Pr.weight[i]);
   }
-}
-
-/** capability list of whatever a projectile or zone slot index casts (Tag Actions and orphans have none) */
-export function slotCaps(ctx: SimContext, slot: number): readonly Cap[] | undefined {
-  const P = ctx.player;
-  return slot >= 0 && slot < P.moves.length ? P.moves[slot].spec.caps : undefined;
 }
 

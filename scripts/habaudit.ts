@@ -29,7 +29,7 @@ import { PROP_MATERIALS } from '../src/rules/surfaces';
 import { PROP_RULES, T, type ArenaMap, type ArenaPropKind } from '../src/world/tiles';
 import { registerPoisoned, registerRecipe, scriptedAttempt, unregister } from './lib/habfixtures';
 import { renderHab } from './habsheet';
-import { writePng } from './worldsheet';
+import { writePng } from './lib/rgbpng';
 
 const arg = (k: string, d: string) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 
@@ -68,7 +68,6 @@ export function snapshot(query: string, ticks = 300): Snapshot {
   for (let i = 0; i < ticks; i++) step(ctx, botInput(ctx));
   h.num(ctx.tick).num(ctx.player.x).num(ctx.player.z).num(ctx.player.hp);
   for (let i = 0; i < ctx.enemies.hi; i++) if (ctx.enemies.alive[i]) h.num(ctx.enemies.x[i]).num(ctx.enemies.z[i]);
-  for (const c of W.chests) h.num(c.x).num(c.z);
   return {
     query, map: m.id, source: L.source, kind: L.kind, requested: L.requested, loaded: L.loaded, attempts: L.attempts, version: L.version, label: L.label,
     rejections: H.rejections.map((r) => `${r.seed}[${r.failed.join(',')}]`).join(' '), repairs: H.repairs.length, optional: H.optional.join(','), shape: JSON.stringify(H.shape),

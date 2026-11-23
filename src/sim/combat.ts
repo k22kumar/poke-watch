@@ -2,7 +2,7 @@
 // x weather x crit x sleep bonus x hooks. Statuses: burn, poison, sleep, root, confuse, chill, stun, knock.
 
 import { dcos, dhypot, dpow, dsin } from '../core/detmath';
-import { ELEMENTS, ELEMENT_DEFS, effectiveness, type Ailment, type Element } from '../rules/elements';
+import { effectiveness, type Ailment, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, weightClass } from '../rules/species';
 import { ABILITY_IDS, abilityOf } from '../rules/abilities';
 import { AG, agentIndex } from '../rules/reactions';
@@ -45,7 +45,6 @@ import type { Hit, SimContext } from './types';
 
 export const AILMENTS: Ailment[] = ['knock', 'burn', 'poison', 'sleep', 'root', 'confuse', 'chill', 'stun'];
 export const ailmentIndex = (a: Ailment) => Math.max(0, AILMENTS.indexOf(a));
-export const elementIndex = (e: Element) => ELEMENTS.indexOf(e);
 
 export interface DamageSpec {
   element: Element;
@@ -73,7 +72,7 @@ export interface DamageSpec {
 
 const hit: Hit = { enemy: -1, amount: 0, element: 'plain', cls: 'physical', crit: false, effectiveness: 1, stab: false, source: '' };
 
-export function enemyElements(ctx: SimContext, e: number) {
+function enemyElements(ctx: SimContext, e: number) {
   return ctx.speciesIndex[ctx.enemies.species[e]].elements;
 }
 
@@ -254,7 +253,7 @@ export function damagePlayer(ctx: SimContext, raw: number, fromX: number, fromZ:
 }
 
 /** what hurt the player, for the death recap */
-export interface HurtSrc { kind: LogKind; name: string }
+interface HurtSrc { kind: LogKind; name: string }
 
 function logHurt(ctx: SimContext, out: 'parry' | 'brace' | 'hit', amt: number, eff: number, weight: number, element: Element | undefined, src: HurtSrc | undefined, x: number, z: number) {
   setSrc(src?.kind ?? '', src?.name ?? '');
@@ -263,7 +262,4 @@ function logHurt(ctx: SimContext, out: 'parry' | 'brace' | 'hit', amt: number, e
   r.amount = amt; r.eff = eff; r.srcW = weight; r.type = element ?? 'plain'; r.tgt = 'player'; r.tgtName = ctx.player.species.name; r.x = x; r.z = z;
 }
 
-export function elementName(e: Element) {
-  return ELEMENT_DEFS[e].name;
-}
 export { SPECIES_BY_ID };

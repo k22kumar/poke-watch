@@ -29,7 +29,7 @@ export interface NeutralExtent {
  * Only owner-reviewed figures go here, each with its basis.
  */
 export const NEUTRAL_CORE_EXTENT_M: Record<string, number | NeutralExtent> = {
-  // reviewed by the owner 2026-11-19 (docs/size-extremes-plan.md §S2.12): the game draws one trooper (SpriteCollab's
+  // reviewed by the owner 2026-11-19 (docs/archive/size-extremes-plan.md §S2.12): the game draws one trooper (SpriteCollab's
   // Trooper sheet), so its class follows one trooper, not the formation
   falinks: { m: 0.5, axis: 'height', basis: 'one trooper; the listed 3.0 m measures the six-trooper formation' },
 };

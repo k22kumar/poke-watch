@@ -1,13 +1,4 @@
 export const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
-export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-export const TAU = Math.PI * 2;
-
-export function angleDiff(a: number, b: number) {
-  let d = (b - a) % TAU;
-  if (d > Math.PI) d -= TAU;
-  if (d < -Math.PI) d += TAU;
-  return d;
-}
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends (infer U)[]
@@ -17,7 +8,7 @@ export type DeepPartial<T> = {
       : T[K];
 };
 
-export function isPlainObject(v: unknown): v is Record<string, unknown> {
+function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
@@ -38,14 +29,6 @@ function mergeInto(target: any, src: any): any {
     else target[k] = structuredClone(sv);
   }
   return target;
-}
-
-export function deepFreeze<T>(o: T): T {
-  if (o && typeof o === 'object') {
-    Object.freeze(o);
-    for (const v of Object.values(o as any)) deepFreeze(v);
-  }
-  return o;
 }
 
 /** Stable 32-bit hash of numbers, for determinism checks. */

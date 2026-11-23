@@ -15,8 +15,8 @@ record.
 |---|---|---|---|
 | 1 | Housekeeping | done | `chore/housekeeping` (`df5c465`, `4571d2d`): this file, CLAUDE.md "Working with the owner", P7, P2(a). |
 | 2 | P5: the live stutter and real-GPU frame time | done | `perf/stutter`. **Cause: not our code.** The owner's Chrome trace: every mousedown ran Ghostery's content script `whotracksme.js` for 325–363 ms (4 of 4 clicks); held fire, with no new mousedowns, was smooth. The script listens at window (bubble phase) and serialises the `innerHTML` of the clicked element's three nearest ancestors; on the canvas that reaches `<body>`, which holds the inline 26 MB script, and sends the string to the extension. Fix: while the pointer is locked, game clicks are handled at window in the capture phase and stop there (`e577720`; forced on, Ghostery loaded: 0 ms per click, was 103–132 ms). Unlocked clicks on the canvas (the capturing click, every click in the fixed views) paid it too until F13 (done). Also: the `?perf=1` overlay and `tools/stutter.mjs` (`ddf0b8b`), a session long-task count in the overlay (`cb6cd4e`), no per-prop garbage in `TileStage.draw` (`99d4650`). Mouse-look smoothing parked (F14). `tools/perf.mjs` still has no crowd to time (F8). |
-| 3 | A1: Pokémon art outside the HTML | done | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
-| 4 | P2b: sim determinism | queued | Narrowed to the sim code that survives the 3D overhaul (decision D7): the allow-list call sites (`tests/worldgen.test.ts`) `Math.hypot` in `sim/bot.ts` and `sim/targets.ts`, `Math.tan` in `sim/moves.ts`, `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. `sim/world.ts` and `sim/spatial.ts` are skipped: the overhaul replaces them (deleted at X1b). Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
+| 3 | A1: Pokémon art outside the HTML | done | `perf/a1-art`: `dist/index.html` 26.7 MB → 1.43 MB. Plan and results: "Item 3: A1 plan" below (it replaces `docs/archive/size-extremes-plan.md` "Proposed stage A1", written for the survivor game). `dist/index.html` was 26.7 MB. **Second reason** (2026-11-21, item 2): an extension that reads the page's HTML pays for its size. Ghostery's per-click cost scaled with it: 26.7 MB → 110–130 ms, 14.6 MB (art.json stubbed) → 61–73 ms, 1.5 MB (art and mp3 stubbed) → 6–9 ms in Playwright Chromium here (about 4.6 ms per MB; the owner's Chrome is about 3× slower), and 25 MB of inert text in `<body>` reproduced it, so it is the DOM text, not the script's parse. |
+| 4 | P2b: sim determinism | queued | Narrowed to the sim code that survives the 3D overhaul (decision D7): the allow-list call sites (`tests/determinism.test.ts`) `Math.hypot` in `sim/bot.ts` and `sim/targets.ts`, `Math.tan` in `sim/moves.ts`, `Math.log` ×2 and a non-literal `**` in `rules/sizing.ts`. `sim/world.ts` and `sim/spatial.ts` are skipped: the overhaul replaces them (deleted at X1b). Also F11: every `x ** 2` (111 sites) becomes `x * x`, and the guard counts `** 2` from then on. Moves replay hashes: a planned re-record. |
 | 5 | T2 planning: P1 | queued | After X1c (decisions D6, D7). **P1**: per-player systems, and teams in damage (today one player, one enemy side). **F12** (hero bots must not see through wall corners) folded into I1a and **P6** (spikes and navigation faults on the Hold maps, F1, F2) into I3 (decision D7). |
 | 6 | The next `HAB_VERSION` bump | dropped | The habitat generator is replaced by the 3D overhaul (decision D7). Was: two parts in one bump, with `docs/habaudit/baseline.json` regenerated: the navigation profiles (F3), and P2c, the 68 habitat-generator `Math` call sites on the allow-list (`world/habitat/`: landforms 33, dress 9, families 9, sanctuary-checks 5, validate 5, graves 2, index 2, ruins 2, lagoon 1). |
 | 7 | T1 co-op wave, T2 3v3, exp → Candy, the dream shop | queued | After X1c (decision D6). T1 takes the navigation faults it pays for (F1) and Hold balance (F4); T2 needs item 5 first. |
@@ -34,7 +34,7 @@ The overhaul's WM and WS were named P1 and P2 before the C0 review.
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | C0 | Record this plan | done | Done on `docs/c0-overhaul-plan`: `docs/OVERHAUL_3D.md`, this section, the CLAUDE.md pointer. |
-| C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | queued | |
+| C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | done | Done on `chore/c1-cleanup` (2026-11-23); the pre-cleanup state is tag `maplebrook-final` (`0dec749`, local). Removed the Maplebrook overworld game and page, the original-creature pipeline and the build's `--tool` / `--overworld` paths, the classic generator (`src/world/gen`, `?world=gen`, the 'generated' World setting, `rules.worldgen.biomes` / `.version`; what locgen and habitat used moved to `src/world/tilenav.ts` and `genmeta.ts`), the survivor chests with `progressionSystem` and `noSurvivorLoop`, the overworld-only audio hooks (F9), 45 unused exports, with 145 more made file-local; historical docs moved to `docs/archive/`. Tests: the determinism guard moved to `tests/determinism.test.ts` (allow-list 84 → 80); the classic generator's 5 tests and the two map-seam tests that asserted classic behaviour were deleted; the 9 that used classic regions only as fixtures run on habitat and location maps instead (owner review, 2026-11-23). Replays 10/10 as recorded; no `HAB_VERSION` / `LOC_VERSION` change. `dist/index.html` 1,459,621 → 1,403,932 bytes. Follow-ups F20 (closed), F21–F23. |
 | WM | WorldModel types and the tile adapter | queued | |
 | C2 | Layering fix and the import guard test | queued | |
 | S1 | Rapier spike, record in docs/spikes/S1-physics.md | queued | |
@@ -73,7 +73,7 @@ The overhaul's WM and WS were named P1 and P2 before the C0 review.
 
 ## Item 3: A1 plan (2026-11-22)
 
-For the hero shooter. It replaces `docs/size-extremes-plan.md` "Proposed stage A1", whose loader keyed on stages,
+For the hero shooter. It replaces `docs/archive/size-extremes-plan.md` "Proposed stage A1", whose loader keyed on stages,
 spawn tables, elites, bosses, recruits and regions (all deleted at the pivot). Owner decisions, 2026-11-22: no
 single-file variant; the hero pick is one portrait sheet fetched at boot, nothing inlined; the dev roster's "All
 Pokémon" portraits load as rows scroll into view; a match starts only when its art has loaded; cries may load on first
@@ -170,9 +170,31 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
 - **F8. `tools/perf.mjs` and the `play` phase of `tools/audiocheck.mjs` need a map with a crowd** [2, T1]. Their URLs
   ask for the survivor boss fight, which now opens the training range: their numbers are not comparable with the
   survivor build's. Needs T1's wave or a dev parameter that runs `scripts/lib/crowd.ts` in the page.
-- **F9. Survivor leftovers with one caller each** [no slot yet]: `audio.boss()`, `portal()` and `pickup()` (the
-  Maplebrook overworld calls them), `onBossSpawn` and the `boss` music state (`tools/musiccheck.mjs` drives the climax
-  through it), and the `learn`, `stageStart` and `chest` events (one emitter each).
+- **F9. Survivor leftovers with one caller each** [no slot yet] — **partly closed** (C1, 2026-11-23): `audio.boss()`,
+  `portal()` and `pickup()` (only the Maplebrook overworld called them) and the `chest` event (with the chests) are
+  gone. Still there: `onBossSpawn` and the `boss` music state (`tools/musiccheck.mjs` drives the climax through it),
+  and the `learn` and `stageStart` events (one emitter each).
+
+### Found in C1 (2026-11-23)
+
+- **F20. CLAUDE.md lines C1 made stale** — **done** (2026-11-23, owner review of C1): "Modes and mods" says `RANGE`
+  runs "with `solo`", and the subsystem-doc list no longer names WORLDGEN (its W4 materials rules are in
+  `docs/SYSTEMIC.md`).
+- **F21. Camera benches lost their rough-terrain regions** [I2b]: `scripts/camaim.ts`, `scripts/camstats.ts` and
+  `scripts/lib/cambench.ts` run `mode: 'generated'` over stages 0–3 by default; the badlands and frost stages were
+  classic regions and are now the handcrafted arenas, so the benches' numbers do not compare with earlier runs. The
+  tests no longer depend on that default: `stepAim` and `modeTrack` take an optional worldgen override, and the 9
+  restored tests pin their maps (camaim A/C/D, camstability ×3 and the viewsample replay: Cinder Crater for badlands,
+  Memorial Ridge for frost, the default locations otherwise; camaim E2: Cascade Lagoon map seed 4, the only habitat or
+  location map with a bare 0.5 m step in seeds 1–30; habstate ice ×3: Shrine Gorge). Pointing the benches' own
+  defaults at those maps is still open.
+- **F22. `SpeciesDef.ability` and `rules.damage.stabAdaptive`** [no slot yet]: only the deleted original creatures set
+  `ability: 'adaptive'`; `sim/combat.ts` still checks it on every STAB hit (always false). Left in place (a sim edit
+  outside the brief).
+- **F23. The habaudit `sim` digest** [next habaudit regeneration]: `scripts/habaudit.ts` no longer hashes chest
+  positions, so a fresh run changes the `sim` field of all 24 entries in `docs/habaudit/baseline.json` and nothing else
+  (checksum, geometry, paint, nav and the six layout sheets are byte-identical; `main` with only that hash line removed
+  gives the same digests, e.g. river-gorge seed 3 `46929314` → `55812614`). The committed baseline is unchanged.
 
 ### Found in P5 (2026-11-21)
 
@@ -200,8 +222,8 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
 
 ### Found in housekeeping (2026-11-21)
 
-- **F10. The determinism allow-list** (`tests/worldgen.test.ts`): 76 maths call sites (75 `Math.*`, one `**` with a
-  non-literal exponent) and 8 timing clocks, per file and function. It may shrink, not grow. P2b and P2c empty it.
+- **F10. The determinism allow-list** (`tests/determinism.test.ts` since C1): 76 maths call sites (75 `Math.*`, one
+  `**` with a non-literal exponent) and 4 timing clocks (8 until the classic generator went at C1), per file and function. It may shrink, not grow. P2b and P2c empty it.
 - **F11. `x ** 2`** appears 111 times in the same scope. It is allowed: engines compute an integer-literal power
   exactly in practice, but the spec leaves `**` implementation-approximated like `Math.pow` [4]. Owner, 2026-11-21:
   P2b replaces all 111 with `x * x`, and the guard counts `** 2` from then on.

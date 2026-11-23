@@ -116,7 +116,7 @@ Every music state plays the adaptive score. Nothing plays before the score has l
 | Battle | Combat |
 | Boss | Climax. With bosses removed from the hero shooter, nothing reaches it in the range (Q47); a match-intensity input comes with the 3v3 |
 | Evolution | The current intensity; the end of an evolution plays the accent cue |
-| Victory, defeat | The victory and defeat cues; an item ball plays the accent cue |
+| Victory, defeat | The victory and defeat cues; a Hold offer plays the accent cue |
 | Pause | The current score, low-passed to 900 Hz at 45 % volume |
 
 ### Director (`src/audio/audio.ts`)

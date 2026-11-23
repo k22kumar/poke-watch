@@ -1,5 +1,5 @@
 // The default role rule (src/rules/roles.ts, docs/SPECIES.md "Default roles") and the recruitable field
-// (SPECIES_OVERRIDES, src/rules/profiles.ts): docs/size-extremes-plan.md §S2.
+// (SPECIES_OVERRIDES, src/rules/profiles.ts): docs/archive/size-extremes-plan.md §S2.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -75,7 +75,7 @@ test('the roster: hand roles always win; every entry without a behaviour takes t
       assert.equal(sp.shot, undefined, `${sp.id}: a ranged rule role fires its primary element`);
     }
   }
-  // the counts of 2026-11-18 (docs/size-extremes-plan.md §S2)
+  // the counts of 2026-11-18 (docs/archive/size-extremes-plan.md §S2)
   const rule = SPECIES.filter((s) => s.roleFrom === 'rule');
   const count: Record<string, number> = {};
   for (const s of rule) count[s.behaviour!] = (count[s.behaviour!] ?? 0) + 1;

@@ -2,9 +2,9 @@
 
 ## Run next
 
-1. Put this revision at `docs/pokemon-integration-handoff.md` in Poke-watch.
+1. Put this revision at `docs/archive/pokemon-integration-handoff.md` in Poke-watch.
 2. Paste **Prompt 3** into Claude Code. Prompt 2 is complete at `5b82fa0`. Reuse its results if the current repository inputs still match.
-3. Claude Code writes `docs/pokemon-integration-plan.md` with exact roster coverage, a content-generation plan and the next ready step. Continue from that report.
+3. Claude Code writes `docs/archive/pokemon-integration-plan.md` with exact roster coverage, a content-generation plan and the next ready step. Continue from that report.
 
 The static audit covered the survivor game on `main` at `7e6f137379e2898ae1dfdc2f164df767505d810b`. The baseline report confirms that the one commit between the audit and the baseline changed only `docs/Pokemon_Environment_Interaction_Specification.md`. Verify any subsequent changes against the affected checks.
 
@@ -91,7 +91,7 @@ Each pair is the first emitted mark and end hash from the specified `npx tsx scr
 ## Prompt 2 — Record the baseline if the tested inputs change
 
 ```text
-Record the pre-change baseline for the Poke-watch survivor integration. Read repo instructions, docs/pokemon-integration-handoff.md through the dependency table, and the relevant parts of README.md, docs/PIPELINE.md, docs/SPECIES.md, and package.json. Record branch, HEAD, Node/npm versions, and git status. The audit used 7e6f137379e2898ae1dfdc2f164df767505d810b. If relevant code or scripts changed, record the differences that affect the baseline. Preserve existing edits and use local tooling. Reuse a documented equivalent baseline for the same code and environment where available.
+Record the pre-change baseline for the Poke-watch survivor integration. Read repo instructions, docs/archive/pokemon-integration-handoff.md through the dependency table, and the relevant parts of README.md, docs/PIPELINE.md, docs/SPECIES.md, and package.json. Record branch, HEAD, Node/npm versions, and git status. The audit used 7e6f137379e2898ae1dfdc2f164df767505d810b. If relevant code or scripts changed, record the differences that affect the baseline. Preserve existing edits and use local tooling. Reuse a documented equivalent baseline for the same code and environment where available.
 
 Confirm the current commands before running them. Use the Recorded baseline section for the known working commands. Run typecheck, npm test, applicable checksum modes and the simulation performance gate. Save the observed hashes for comparison and record any pinned assertions separately. Where needed, capture an isolated production build and the habitat/hazard baseline. Use habplay.ts all 6 1 --raid for the recorded raid sample, confirm a nonzero case count, and redirect habaudit.ts with --out. Skip or defer only checks with a concrete prerequisite or output conflict. Keep source, authored data, reference hashes, generated content and deployment state intact. Use checked-in scripts and installed executables.
 
@@ -101,7 +101,7 @@ Return “Poke-watch integration baseline” in chat. Give the commit, working-t
 ## Prompt 3 — Reconcile the verified roster against the current repository
 
 ```text
-Inspect Poke-watch and write only docs/pokemon-integration-plan.md or its existing project equivalent. Read repo instructions, the handoff's scope and Recorded baseline, and the relevant sections of docs/PIPELINE.md and docs/SPECIES.md. Compare HEAD and relevant working-tree inputs with the tested 5b82fa0 baseline. Carry forward the findings and name any baseline checks affected by subsequent changes.
+Inspect Poke-watch and write only docs/archive/pokemon-integration-plan.md or its existing project equivalent. Read repo instructions, the handoff's scope and Recorded baseline, and the relevant sections of docs/PIPELINE.md and docs/SPECIES.md. Compare HEAD and relevant working-tree inputs with the tested 5b82fa0 baseline. Carry forward the findings and name any baseline checks affected by subsequent changes.
 
 Read Appendices B and C in full. Parse the fenced CSV blocks directly and confirm 269 Pokémon records, 210 species, 108 families and 102 edges before comparing with the repo. If explicitly expanding the roster, also read Appendix D and use the corresponding scope totals. Trace the match from content/roster.json and the checked-in generated content through scripts/fetch-sources.sh, scripts/build-content.mjs, scripts/import-pack.mjs and src/rules/species.ts. Use explicit source identities and account for alternate defaults, dual types, form conditions, every branch and singletons. Record covered, missing, mismapped, duplicate and unresolved identities and edges. Preserve canonical data and game values in distinct fields.
 
@@ -115,7 +115,7 @@ Put exact discrepancy IDs and evidence in the plan, with reusable paths, require
 ## Prompt 4 — Integrate the canonical catalogue and full families
 
 ```text
-Integrate the expected roster as canonical game content. Read repo instructions, docs/pokemon-integration-handoff.md (scope and Appendices B–C, plus Appendix D when adopted), docs/pokemon-integration-plan.md and confirmed baseline results. Verify the plan's current coverage, HEAD and working tree. Limit edits to the generator, source input/data contract and consumers necessary to resolve catalogue identities and canonical family relationships. If the acceptance criteria already hold, run the focused checks and record the evidence.
+Integrate the expected roster as canonical game content. Read repo instructions, docs/archive/pokemon-integration-handoff.md (scope and Appendices B–C, plus Appendix D when adopted), docs/archive/pokemon-integration-plan.md and confirmed baseline results. Verify the plan's current coverage, HEAD and working tree. Limit edits to the generator, source input/data contract and consumers necessary to resolve catalogue identities and canonical family relationships. If the acceptance criteria already hold, run the focused checks and record the evidence.
 
 Inspect content/roster.json, scripts/fetch-sources.sh, scripts/build-content.mjs, scripts/import-pack.mjs and identity lookup before editing. Reuse existing authoring and generation. Resolve aliases and default varieties explicitly through the source linkage. Walk every species-family branch from the root, accounting for all directed edges, singleton families and known form or regional restrictions. Preserve canonical relationships independently of the game's primary evolvesTo and pacing fields. Keep existing lineage, role, art and stage consumers on their supported path unless the actual data contract requires a minimal compatible change.
 
@@ -127,7 +127,7 @@ Prove every expected record is resolvable and the full edge set matches. Exercis
 ## Prompt 5 — Support confirmed runtime actors
 
 ```text
-Apply this stage to actors with an existing or explicitly confirmed gameplay role in docs/pokemon-integration-plan.md. Read repo instructions, the scope and relevant research entries in docs/pokemon-integration-handoff.md, and the catalogue and baseline results. Verify current coverage before editing. If current roles already resolve and no new runtime role is confirmed, verify the existing paths and record this stage as satisfied without changes.
+Apply this stage to actors with an existing or explicitly confirmed gameplay role in docs/archive/pokemon-integration-plan.md. Read repo instructions, the scope and relevant research entries in docs/archive/pokemon-integration-handoff.md, and the catalogue and baseline results. Verify current coverage before editing. If current roles already resolve and no new runtime role is confirmed, verify the existing paths and record this stage as satisfied without changes.
 
 Trace each affected actor through the current authored roster, generated identity and art, the registry, and the normal role entry point. Where required, extend scripts/fetch-sources.sh and scripts/import-pack.mjs to resolve the exact Pokémon variant and approved asset path. SpriteCollab's species folder and the game art key are different identities. Verify assets, animation fallback, cry/provenance policy, and supported move availability before enabling a role. If a form uses a documented asset alias, verify render and data resolution explicitly. Report missing art or unsupported moves as scoped blockers and keep the affected actor disabled until resolved. Avoid expanding art payload for catalogue entries.
 
@@ -139,7 +139,7 @@ Validate each affected game ID from its normal start, spawn, recruit or evolutio
 ## Prompt 6 — Verify exact data and evolution coverage
 
 ```text
-Independently verify Poke-watch catalogue coverage after the content stages. Read repo instructions, docs/pokemon-integration-handoff.md Appendices B and C (and Appendix D if adopted), docs/pokemon-integration-plan.md and the stage reports. Inspect the authored data, generated content, lookup path and recorded source revision. Generate expected identity and edge sets independently from the handoff or pinned authoritative source. Exercise normal generation and resolution using the input and output paths established in Prompt 3. If only fixtures are available, report their scope and keep full-roster reproducibility pending while verifying every actual output and reference you can.
+Independently verify Poke-watch catalogue coverage after the content stages. Read repo instructions, docs/archive/pokemon-integration-handoff.md Appendices B and C (and Appendix D if adopted), docs/archive/pokemon-integration-plan.md and the stage reports. Inspect the authored data, generated content, lookup path and recorded source revision. Generate expected identity and edge sets independently from the handoff or pinned authoritative source. Exercise normal generation and resolution using the input and output paths established in Prompt 3. If only fixtures are available, report their scope and keep full-roster reproducibility pending while verifying every actual output and reference you can.
 
 Compare exact sets for Pokémon records, species, selected varieties, complete families, directed edges and singletons. Report present and validated, missing, duplicate, mis-mapped and blocked entries. Check the source namespace joins, default slugs, ordered types, raw units and qualifiers, form and regional constraints, stable existing IDs and reference integrity across active roles. Treat external form-rule targets explicitly documented as source context as such. Confirm the current source and generation outputs agree, including no duplicate identity across role passes. Count catalogue and proposed or active runtime coverage with separate totals.
 
@@ -159,7 +159,7 @@ Record commands and results, per-actor coverage, regression findings, comparable
 ## Prompt 8 — Review and report acceptance
 
 ```text
-Review the completed integration diff alongside repo instructions, docs/pokemon-integration-handoff.md, docs/pokemon-integration-plan.md, the baseline, stage reports and both verification gates. Verify the changed files and test outputs. Look for duplicate authorities, hardcoded species exceptions, mismatched asset/identity references, unsupported gameplay changes, validation gaps, avoidable performance costs and deviations from repo conventions. Ground each finding in a path and symbol with a concrete effect. Route material fixes through their original stage and repeat their checks.
+Review the completed integration diff alongside repo instructions, docs/archive/pokemon-integration-handoff.md, docs/archive/pokemon-integration-plan.md, the baseline, stage reports and both verification gates. Verify the changed files and test outputs. Look for duplicate authorities, hardcoded species exceptions, mismatched asset/identity references, unsupported gameplay changes, validation gaps, avoidable performance costs and deviations from repo conventions. Ground each finding in a path and symbol with a concrete effect. Route material fixes through their original stage and repeat their checks.
 
 Scan changed files for private conversation, project, file or upload links and identifiers before handoff. Cite those sources by title and use public URLs or repository-relative paths for reader references. Keep work local. Record a concise acceptance report in the plan and return it in chat. Include the expected and validated totals for species, Pokémon records, varieties and family edges, runtime actors and their exercised roles, missing or blocked IDs, commands and outcomes, and remaining uncertainties. Assess completion for the agreed scope from observed evidence. For any untested behaviour, state the missing check.
 ```

@@ -39,7 +39,7 @@ function hold(P: Player, dt: number) {
 }
 
 /** the swap: next form, recomputed stats, full health */
-export function finishEvolution(ctx: SimContext, P: Player = ctx.player) {
+function finishEvolution(ctx: SimContext, P: Player = ctx.player) {
   const k = P.breakMember >= 0 ? P.breakMember : P.active, m = P.squad[k];
   P.breakT = 0; P.breakMember = -1;
   const next = m && m.species.evolvesTo ? SPECIES_BY_ID[m.species.evolvesTo] : undefined;

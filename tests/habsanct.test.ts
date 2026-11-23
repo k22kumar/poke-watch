@@ -31,7 +31,7 @@ test('the sanctuary launches through the regular map flow: loose names, ?loc=, t
   assert.equal(findMapSource('sinnoh'), ID);
   assert.equal(findMapSource(`${ID}/snow`), `${ID}:snow`);
   assert.deepEqual(findHabitat('summit:snow'), { id: ID, variant: 'snow' });
-  const wg = { mode: 'generated' as const, biomes: [], size: 128, version: defaultRules.worldgen.version, locations: { meadow: ID } };
+  const wg = { mode: 'generated' as const, size: 128, locations: { meadow: ID } };
   assert.equal(locationFor(wg, 'meadow'), ID);
   assert.equal(regionMap({ ...defaultRules.worldgen, mode: 'generated', locations: { meadow: ID } }, 'meadow', 5).gen!.hab!.recipe, ID);
   const q = worldgenFromQuery({ world: 'locations', loc: 'spear-sanctuary', mapseed: '5', biomes: Object.keys(BIOMES) }, () => {});

@@ -27,7 +27,7 @@ test('every species in the registry is graded, with a reason for anything short 
 });
 
 test('the current roster: partners, their evolutions and every wild species are ready; bosses are partial (boss-scale body)', () => {
-  // the catalogue wave (docs/size-extremes-plan.md §S2.12): Cosmog and Cosmoem learn no damaging move, so they open with
+  // the catalogue wave (docs/archive/size-extremes-plan.md §S2.12): Cosmog and Cosmoem learn no damaging move, so they open with
   // and tag in with the basic attack (rules.moves.fallbackAttack)
   for (const id of ['cosmog', 'cosmoem']) {
     assert.equal(openingMove(SPECIES_BY_ID[id]), defaultRules.moves.fallbackAttack, id);

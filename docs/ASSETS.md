@@ -16,7 +16,6 @@ Apart from the Pokémon content above and the font, no image, model, sound or mu
 
 | Asset | Where | Origin | Licence |
 |---|---|---|---|
-| Maplebrook's creatures (overworld slice only) | `src/rules/originals.ts`, `src/render/designs.ts` | Original part-model designs | Original work |
 | Gameplay rules, archetypes, stage pacing, boss attack kits | `src/rules/*.ts`, `content/roster.json` | Original (formulas modelled on PokéBonk) | Original work |
 | Four arenas (Sunpetal Meadow, Cinder Badlands, Rimefrost Heights, Duskwood Hollow) | `src/world/arenas.ts` | Handcrafted layouts with the arena builder | Original work |
 | Ground, cliffs, ledges, stairs, water, bridge textures | `src/overworld/terrain.ts`, palettes in `src/render/tileart.ts` | Painted in code from original palettes; no game graphics copied | Original work |
@@ -26,7 +25,6 @@ Apart from the Pokémon content above and the font, no image, model, sound or mu
 | Survival icons (charms, EXP shard, lure, move-shape glyphs, category icons, Fairy badge) | `src/ui/pixicons.ts`, `src/render/pixelart.ts` | Painted in code | Original work |
 | UI (boxes, info box, area sign, cards, menus) | `src/ui/*` | Original CSS drawing on handheld adventure conventions | Original work |
 | Font: Pixelify Sans | `content/fonts/PixelifySans.woff` (Latin subset), embedded in the build | Works offline | SIL Open Font License 1.1 (`content/fonts/OFL.txt`) |
-| Maplebrook overworld | `src/overworld/*` | Original town, people, buildings | Original work |
 
 ### Resources evaluated but not used for assets
 

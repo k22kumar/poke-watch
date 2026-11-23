@@ -183,9 +183,12 @@ test('culling: turning the camera never changes what is drawn in front of the le
 const D2R = Math.PI / 180;
 /** the lens' height over the pivot and its angle (deg) as camstats measures it */
 const elevOf = (r: ChaseRig) => { const up = r.eye[1] - r.py - r.pivotH; return { up, deg: Math.atan2(up, Math.hypot(r.eye[0] - r.px, r.eye[2] - r.pz)) / D2R }; };
-/** a generated map, as the game builds it by default */
-function mapRun(seed: number, stage: number, species: string, calm: boolean) {
-  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: { mode: 'generated' } } });
+/** the regions these tests ran on before C1, with a habitat map for each classic region (badlands → Cinder Crater's
+ *  rough ground, frost → Memorial Ridge's trees); meadow and dusk keep the default rotation's locations */
+const STAND_IN = { mode: 'generated', locations: { meadow: 'viridian-forest', badlands: 'volcanic-ridge', frost: 'forest-cemetery', dusk: 'mt-moon' } };
+/** a generated map, as the game builds it by default (or the `worldgen` rules given) */
+function mapRun(seed: number, stage: number, species: string, calm: boolean, worldgen?: object) {
+  const ctx = createRun({ seed, species, ruleOverrides: { worldgen: worldgen ?? { mode: 'generated' } } as never });
   if (stage) startStage(ctx, stage);
   return ctx;
 }
@@ -234,7 +237,7 @@ test('backed against a terrace, the lens stays on the Pokémon\'s side of its fa
 });
 
 test('the reported badlands fight (seed 1, Feraligatr, 30 s of bot combat): never a steep lens, never on what is behind', () => {
-  const ctx = mapRun(1, 1, 'feraligatr', false);
+  const ctx = mapRun(1, 1, 'feraligatr', false, STAND_IN);
   const cap = boomElevation(0) + 1; // the arm's elevation at the neutral pitch: nothing in a fight raises it
   let worst = 0, worstUp = -Infinity;
   drive(ctx, 60, 30, (_t, dt) => ({ inp: botInput(ctx), lookYaw: 0.25 * dt }), (r, t) => {
@@ -298,7 +301,7 @@ test('frame rate: the same walk past walls gives the same lens path at 30, 60, 1
 
 test('turning on the spot beside trees on a generated map never zooms (vegetation used to pump the boom 2-3 m)', () => {
   for (const [seed, stage] of [[1, 1], [2, 1], [1, 2]]) {
-    const ctx = mapRun(seed, stage, 'cyndaquil', true);
+    const ctx = mapRun(seed, stage, 'cyndaquil', true, STAND_IN);
     let lo = Infinity, hi = -Infinity;
     drive(ctx, 60, 1.2 + Math.PI * 2, (t, dt) => ({ inp: NO_INPUT, lookYaw: t > 0.5 ? dt : 0 }), (r, t) => { if (t > 1.2) { lo = Math.min(lo, r.boomUsed); hi = Math.max(hi, r.boomUsed); } });
     assert.ok(hi - lo < 0.05, `seed ${seed} stage ${stage}: boom ranged ${(hi - lo).toFixed(2)} m over a full turn`);
@@ -331,7 +334,7 @@ test('rapid direction changes: the move direction and the aim follow the camera 
 
 test('standing still on generated maps (forest, badlands, cave): the lens does not drift at all', () => {
   for (const [seed, stage, sp] of [[1, 0, 'cyndaquil'], [3, 1, 'feraligatr'], [3, 3, 'charmander']] as [number, number, string][]) {
-    const ctx = mapRun(seed, stage, sp, true);
+    const ctx = mapRun(seed, stage, sp, true, STAND_IN);
     let first: number[] | null = null, drift = 0;
     drive(ctx, 144, 4, () => ({ inp: NO_INPUT }), (r, t) => { if (t < 1.5) return; first ??= r.eye.slice(); drift = Math.max(drift, Math.hypot(r.eye[0] - first[0], r.eye[1] - first[1], r.eye[2] - first[2])); });
     assert.ok(drift < 1e-6, `seed ${seed} stage ${stage}: drifted ${drift} m`);

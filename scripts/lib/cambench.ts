@@ -62,9 +62,10 @@ const tickOf = (ctx: SimContext): TrackTick => {
   return { x: P.x, y: P.y, z: P.z, g: P.grounded, cy: over ? Math.max(P.y, P.safeY) : P.y, live: ctx.state === 'play' };
 };
 
-/** a movement-mode track: 4 s forward along `heading` (not measured), then 3 s of the mode. The view never turns */
-export function modeTrack(species: string, seed: number, stage: number, generated: boolean, heading: number, mode: Mode): Track {
-  const ctx = createRun({ seed, species, ruleOverrides: generated ? { worldgen: { mode: 'generated' } } : {} });
+/** a movement-mode track: 4 s forward along `heading` (not measured), then 3 s of the mode. The view never turns.
+ *  `worldgen`: the map rules to run on instead of the default generated rotation (tests pin habitat or location maps) */
+export function modeTrack(species: string, seed: number, stage: number, generated: boolean, heading: number, mode: Mode, worldgen?: object): Track {
+  const ctx = createRun({ seed, species, ruleOverrides: (worldgen ? { worldgen } : generated ? { worldgen: { mode: 'generated' } } : {}) as never });
   if (stage) startStage(ctx, stage);
   const fx = Math.sin(heading), fz = Math.cos(heading), rx = -fz, rz = fx;
   const pos: Track['pos'] = [tickOf(ctx)], yaw = [heading];

@@ -1,4 +1,4 @@
-// S3 giant checks in numbers (docs/size-extremes-plan.md §S3): headroom, targeting and terrain clipping, on the real sim
+// S3 giant checks in numbers (docs/archive/size-extremes-plan.md §S3): headroom, targeting and terrain clipping, on the real sim
 // and World code, under the default size rules (the measurement axis, continuous XL and tall giants, hard-wired since
 // pivot step 10; the off / on / tall comparison is on survivor-final). Read-only: nothing here changes a rule or a file
 // outside --out.

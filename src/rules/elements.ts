@@ -13,7 +13,7 @@ export type Element = (typeof ELEMENTS)[number];
 
 export type Ailment = 'burn' | 'poison' | 'sleep' | 'root' | 'confuse' | 'chill' | 'stun' | 'knock';
 
-export interface ElementDef {
+interface ElementDef {
   name: string;
   color: string; // UI + VFX colour
   strong: Element[]; // x2

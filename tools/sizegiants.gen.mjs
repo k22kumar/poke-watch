@@ -1,4 +1,4 @@
-// Generates the S3 giant-comparison scenes (docs/size-extremes-plan.md §S3) into tools/sizescenes.json, replacing any
+// Generates the S3 giant-comparison scenes (docs/archive/size-extremes-plan.md §S3) into tools/sizescenes.json, replacing any
 // earlier `size-giants*`, `size-ref*`, `size-clip*`, `size-deck*`, `size-target*` and `size-frame*` entries. Run with
 // tools/sizecap.mjs against the private capture builds (.capture/build.mjs on|off), which carry Wailord and Eternatus;
 // the committed game does not, so these scenes are capture-only.

@@ -23,8 +23,8 @@ the recipe (`anchors[].provenance`: `canon`, `reinterpretation`, `original`; `ad
   `loc=tidal-cave&mapseed=7`, `loc=shoal` (loose names work). `loc=meadow:river-gorge,badlands:volcanic-ridge` maps stage biomes as for Pokémon locations.
 - Settings → World → **Map** (default rotation, any location or habitat and its variants) and **Map seed** (`-1` =
   derived from the run seed). Both persist and take effect on the next run.
-- **Which one wins:** the URL beats the saved settings. `?loc=` names the map; failing that, `?world=authored|gen` asks for
-  handcrafted or classic regions and ignores the saved Map; failing that, the saved Map applies, and with no Map the
+- **Which one wins:** the URL beats the saved settings. `?loc=` names the map; failing that, `?world=authored` asks for
+  handcrafted regions and ignores the saved Map; failing that, the saved Map applies, and with no Map the
   Regions choice (default: Pokémon locations = Viridian Forest, then Mt. Moon) and the default rotation stand. `?mapseed=`
   beats the saved Map seed. A saved Map or seed that is not a map id / whole number is dropped on load; an id that no
   longer exists loads the default rotation and the console says `unknown map "…"`.

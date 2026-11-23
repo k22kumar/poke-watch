@@ -9,7 +9,7 @@ import { defaultRules } from './defaults';
 import { SPECIES_BY_ID } from './species';
 
 export interface TagDef { move: string; create?: 'rock' }
-export interface TagLine { base: TagDef }
+interface TagLine { base: TagDef }
 
 /** keyed by the line's first form (rules/species lineage) */
 export const TAG_ACTIONS: Record<string, TagLine> = {

@@ -19,7 +19,7 @@
 import { attemptHabitat, generateHabitat, HABITATS, profilesFor } from '../src/world/habitat';
 import { CONTROL_POINT } from '../src/world/habitat/mode';
 import { clearance, sightAbs } from '../src/world/habitat/validate';
-import { navTop, navOpen } from '../src/world/gen/util';
+import { navTop, navOpen } from '../src/world/tilenav';
 import { pathBetween } from '../src/world/locgen/nav';
 import { T, type ArenaMap } from '../src/world/tiles';
 

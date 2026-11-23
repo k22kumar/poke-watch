@@ -1,4 +1,4 @@
-// Size table for the measurement axis and the continuous Extra Large draw (docs/size-extremes-plan.md, Prompt S1).
+// Size table for the measurement axis and the continuous Extra Large draw (docs/archive/size-extremes-plan.md, Prompt S1).
 //
 //   npx tsx scripts/sizetable.ts            # markdown: every runtime species and every catalogue species
 //   npx tsx scripts/sizetable.ts --changes  # only the species whose class the measurement axis moves

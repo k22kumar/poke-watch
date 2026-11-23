@@ -32,10 +32,10 @@ import { HEAD_EPS, type World } from './world';
 
 /** how velocity becomes motion this tick (stored as a small int so pools can hold it in R7) */
 export const LOCO = { supported: 0, ballistic: 1, scripted: 2 } as const;
-export type Integrator = (typeof LOCO)[keyof typeof LOCO];
+type Integrator = (typeof LOCO)[keyof typeof LOCO];
 /** what surrounds the body, derived from the world */
 export const MEDIUM = { support: 0, air: 1, liquid: 2 } as const;
-export type Medium = (typeof MEDIUM)[keyof typeof MEDIUM];
+type Medium = (typeof MEDIUM)[keyof typeof MEDIUM];
 
 /** the locomotion state a body carries (Player.loco; EnemyPool columns in R7): what ran last tick, where it ended */
 export interface LocoState { integrator: Integrator; medium: Medium }
@@ -43,7 +43,7 @@ export interface LocoState { integrator: Integrator; medium: Medium }
 /** what the Jump control does on a tick (`jumpControl`). `airJump` is the double jump; `takeoff` enters volume × air,
  *  which arrives with the volume integrator in R6d (no validated template can reach it before then) */
 export const ACT = { none: 0, jump: 1, airJump: 2, takeoff: 3 } as const;
-export type JumpAct = (typeof ACT)[keyof typeof ACT];
+type JumpAct = (typeof ACT)[keyof typeof ACT];
 
 /** jump acceptance a body carries between ticks (Player.ctl), in whole ticks of sim time so replays agree (§12.6, R6c).
  *  Only an edge-sending intent (`jumpPressed` present) reads or writes it; legacy intents leave it untouched (zero) */
@@ -184,7 +184,7 @@ export const mediumAt = (W: World, b: LocoBody, contact: number): Medium =>
   W.liquidAt(b.x, b.z, b.y, contact) ? MEDIUM.liquid : b.grounded ? MEDIUM.support : MEDIUM.air;
 
 /** supported: velocity eases toward the wish at the surface's grip; the wish is scaled by the footing speed */
-export function driveSupported(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number) {
+function driveSupported(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number) {
   const accel = Math.min(1, L.groundAccel * t.grip * dt);
   it.mx *= t.footSpeed; it.mz *= t.footSpeed;
   b.vx += (it.mx * t.speed * t.stance - b.vx) * accel;
@@ -192,14 +192,14 @@ export function driveSupported(b: LocoBody, it: LocoIntent, t: LocoTick, L: Loco
 }
 
 /** ballistic: velocity eases toward the wish at air control */
-export function driveBallistic(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number) {
+function driveBallistic(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number) {
   const accel = Math.min(1, L.airAccel * dt);
   b.vx += (it.mx * t.speed * t.stance - b.vx) * accel;
   b.vz += (it.mz * t.speed * t.stance - b.vz) * accel;
 }
 
 /** scripted: the ability owns planar velocity (unit direction × speed) */
-export function driveScripted(b: LocoBody, dx: number, dz: number, speed: number) {
+function driveScripted(b: LocoBody, dx: number, dz: number, speed: number) {
   b.vx = dx * speed;
   b.vz = dz * speed;
 }
@@ -285,7 +285,7 @@ function recoverFromRock(W: World, b: LocoBody, t: LocoTick) {
 
 /** the body step every integrator shares, after its drive set the planar velocity (`integ`: which one ran, for the
  *  Jump control) */
-export function advanceBody(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
+function advanceBody(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
   out.jumped = false;
   const y0 = b.y;
   const kd = dexp(-L.knockDecay * dt);

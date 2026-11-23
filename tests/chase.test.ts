@@ -341,7 +341,7 @@ test('stair smoothing: the sprite shares the step offset up to step.sprite of it
 });
 
 // ---------------------------------------------------------------------------------------------- F3: the subject tilt
-// (docs/THIRD_PERSON_IMPLEMENTATION.md §26, docs/size-extremes-plan.md F3): a partner whose neutral crosshair would meet
+// (docs/THIRD_PERSON_IMPLEMENTATION.md §26, docs/archive/size-extremes-plan.md F3): a partner whose neutral crosshair would meet
 // flat ground past aim.max gets just enough extra pitch to bring it back; every other partner gets none. Eased over
 // frame.settle whenever the outline changes (a tag swap, an evolution, any size change); never moving otherwise.
 /** giant outlines as the capture-only pack measures them (tests/fixtures/giants-frame.json): Onix-like and Eternatus-like */

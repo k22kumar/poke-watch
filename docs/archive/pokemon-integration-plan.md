@@ -1,6 +1,6 @@
 # Poke-watch Pokémon integration plan
 
-Progress record for the staged integration described in `docs/pokemon-integration-handoff.md`.
+Progress record for the staged integration described in `docs/archive/pokemon-integration-handoff.md`.
 Written for the Claude Code sessions that run Prompts 4–8 and for the maintainer supervising them.
 
 - **Stage completed by this session:** Prompt 4 — Integrate the canonical catalogue and full families. Prompt 5 is recorded as satisfied without changes; Prompt 6 can proceed.
@@ -19,7 +19,7 @@ Written for the Claude Code sessions that run Prompts 4–8 and for the maintain
 | HEAD | `5b82fa0` "Remove external ChatGPT links" |
 | Audit commit cited by the handoff | `7e6f137` |
 | `7e6f137..HEAD` diff | `docs/Pokemon_Environment_Interaction_Specification.md` only (6 insertions, 6 deletions) |
-| Working tree | clean except untracked `docs/pokemon-integration-handoff.md` and this file |
+| Working tree | clean except untracked `docs/archive/pokemon-integration-handoff.md` and this file |
 | Node / npm | v24.21.0 / 11.19.0 |
 | Parallel sessions | `dist/index.html` (11.7 MB, 2026-11-14 20:06) is another session's build; do not overwrite |
 
@@ -37,14 +37,14 @@ Two baseline checks had no recorded values and were measured this session for la
 
 ## 2. Expected sets — exact pointers
 
-The handoff is the stable authority. Extract with these commands from the repository root; each is a fenced block in `docs/pokemon-integration-handoff.md` at the revision committed with this plan.
+The handoff is the stable authority. Extract with these commands from the repository root; each is a fenced block in `docs/archive/pokemon-integration-handoff.md` at the revision committed with this plan.
 
 | Set | Command | Must yield |
 |---|---|---|
-| Appendix B records (CSV, 15 columns) | `sed -n '618,887p' docs/pokemon-integration-handoff.md` | 1 header + **269** rows |
-| Appendix B master slug list | `sed -n '893p' docs/pokemon-integration-handoff.md` | **269** comma-separated slugs |
-| Appendix C families (CSV) | `sed -n '903,1011p' docs/pokemon-integration-handoff.md` | 1 header + **108** rows |
-| Appendix C edge exceptions and form conditions | `sed -n '1014,1051p' docs/pokemon-integration-handoff.md` | prose + 28-row condition table |
+| Appendix B records (CSV, 15 columns) | `sed -n '618,887p' docs/archive/pokemon-integration-handoff.md` | 1 header + **269** rows |
+| Appendix B master slug list | `sed -n '893p' docs/archive/pokemon-integration-handoff.md` | **269** comma-separated slugs |
+| Appendix C families (CSV) | `sed -n '903,1011p' docs/archive/pokemon-integration-handoff.md` | 1 header + **108** rows |
+| Appendix C edge exceptions and form conditions | `sed -n '1014,1051p' docs/archive/pokemon-integration-handoff.md` | prose + 28-row condition table |
 
 **[corrected]** Every line range in this table was wrong by about 35 lines when written, and the ranges above are the verified ones for the handoff revision in the working tree. The advice below is what caught it, so follow it rather than the numbers: re-anchor on the headings `### Record data`, `### Master PokéAPI slug list`, `### Species family graph` and `### Species edge exceptions and form conditions` and assert the counts above before use. All seven counts in §2.1 reproduce from the re-anchored ranges.
 
@@ -117,7 +117,7 @@ Observe that gameplay and canonical values are **already separate and already di
 262 records = 269 − 7. Of these, **203 species-default** records and **59 varieties**. Full list regenerable with:
 
 ```bash
-sed -n '583,852p' docs/pokemon-integration-handoff.md | tail -n +2 | cut -d, -f1 \
+sed -n '583,852p' docs/archive/pokemon-integration-handoff.md | tail -n +2 | cut -d, -f1 \
   | grep -vxE 'charmander|charmeleon|charizard|rattata|gastly|slugma|magcargo'
 ```
 
@@ -400,7 +400,7 @@ All Prompt 4 blockers are resolved. Original entries with their outcome:
 
 ## 13. Sources
 
-- `docs/pokemon-integration-handoff.md` — scope, prompts, Appendices A–D.
+- `docs/archive/pokemon-integration-handoff.md` — scope, prompts, Appendices A–D.
 - PokéAPI published CSV snapshot, revision `8a92bfa7dab2f12b84b5d151562f9857c133ff30` — record identities, typings, dimensions, family joins. [PokéAPI v2 documentation](https://pokeapi.co/docs/v2)
 - This repository at `5b82fa0`: `content/roster.json`, `scripts/fetch-sources.sh`, `scripts/build-content.mjs`, `scripts/import-pack.mjs`, `src/content/pokedex.ts`, `src/content/art.json`, `content/report.json`, `src/rules/species.ts`, `src/rules/abilities.ts`, `src/world/habitat/mode.ts`, `src/sim/progression.ts`, `tests/`.
 
@@ -408,7 +408,7 @@ All Prompt 4 blockers are resolved. Original entries with their outcome:
 
 ## 14. Prompt 4 — Catalogue and families (this session)
 
-Branch `main`, HEAD `5b82fa0` (unchanged; nothing committed by this session). Working tree at start: clean apart from untracked `docs/pokemon-integration-handoff.md` and `docs/pokemon-integration-plan.md`. Node 24.21.0 / npm 11.19.0. No other session's work was touched: `dist/` was not written, and the only pre-existing modified files remain the two untracked documents.
+Branch `main`, HEAD `5b82fa0` (unchanged; nothing committed by this session). Working tree at start: clean apart from untracked `docs/archive/pokemon-integration-handoff.md` and `docs/archive/pokemon-integration-plan.md`. Node 24.21.0 / npm 11.19.0. No other session's work was touched: `dist/` was not written, and the only pre-existing modified files remain the two untracked documents.
 
 ### 14.1 Decisions as adopted
 
@@ -541,7 +541,7 @@ Branch `main`, HEAD `5b82fa0ea5f48305c514d1c47f8486f6954a508f` (unchanged; nothi
 
 ### 15.1 Method — independent of the generator and its test
 
-Appendices B and C were parsed straight from `docs/pokemon-integration-handoff.md` by a purpose-written reader (fenced-block extraction, then a strict split of the CSV and of the markdown condition table). It shares no code with `scripts/catalogue-pack.mjs` or `tests/catalogue.test.ts`, reads none of their fixtures, and derives every total itself. `tests/catalogue.test.ts` was treated as a subject of the gate, not evidence for it: it was run, but every count below was re-derived from the handoff.
+Appendices B and C were parsed straight from `docs/archive/pokemon-integration-handoff.md` by a purpose-written reader (fenced-block extraction, then a strict split of the CSV and of the markdown condition table). It shares no code with `scripts/catalogue-pack.mjs` or `tests/catalogue.test.ts`, reads none of their fixtures, and derives every total itself. `tests/catalogue.test.ts` was treated as a subject of the gate, not evidence for it: it was run, but every count below was re-derived from the handoff.
 
 The parser refuses a record row whose cell count differs from the 15-column header, so a silent column shift cannot pass. Expected sets were then compared against three layers independently: the **authored inventory** (`content/catalogue.json`), the **generated catalogue** (`src/content/catalogue.ts`) and the **normal lookup path** (`src/rules/catalogue.ts`, through its exported functions only).
 
@@ -851,13 +851,13 @@ All 16 acceptance criteria in §9 hold on observed evidence. Every headline tota
 
 `git status` now shows **11 modified + 9 untracked** paths where §14.3 and §16 recorded 6 modified + 7 untracked. The difference is a **parallel session's audio/YouTube work, which is out of this scope and was left untouched**: modified `docs/AUDIO.md`, `src/audio/audio.ts`, `src/main.ts`, `src/ui/style.css`, `src/ui/ui.ts`, and untracked `src/audio/youtube.ts`, `tools/musiccheck.mjs`. Their mtimes are 00:44–00:45 on 2026-11-15; every in-scope file's mtime is 23:23–23:34 on 2026-11-14, i.e. **no in-scope file has changed since the Prompt 7 gate ran**. `src/content/catalogue.ts` still hashes to `bc19380017bba3dcb045bc2af1f8d9ff3d07d35ec722e09c7197749aea227f9d` (132,732 bytes), the value §15.7 and §16 record.
 
-In scope and reviewed (6 modified, 7 untracked): `CLAUDE.md`, `content/report.json`, `docs/PIPELINE.md`, `docs/SPECIES.md`, `scripts/build-content.mjs`, `scripts/fetch-sources.sh`; `content/catalogue.json`, `scripts/catalogue-pack.mjs`, `src/content/catalogue.ts`, `src/rules/catalogue.ts`, `tests/catalogue.test.ts`, `docs/pokemon-integration-handoff.md`, `docs/pokemon-integration-plan.md`.
+In scope and reviewed (6 modified, 7 untracked): `CLAUDE.md`, `content/report.json`, `docs/PIPELINE.md`, `docs/SPECIES.md`, `scripts/build-content.mjs`, `scripts/fetch-sources.sh`; `content/catalogue.json`, `scripts/catalogue-pack.mjs`, `src/content/catalogue.ts`, `src/rules/catalogue.ts`, `tests/catalogue.test.ts`, `docs/archive/pokemon-integration-handoff.md`, `docs/archive/pokemon-integration-plan.md`.
 
 **Committed reference files are unchanged**, confirmed by an empty `git status` for each: `docs/habaudit/baseline.json`, `src/content/pokedex.ts`, `src/content/art.json`, `src/content/icons.json`, `content/roster.json`, `src/rules/species.ts`, `src/world/habitat/mode.ts`, `content/preview/`.
 
 ### 17.3 Verified coverage — re-derived from the appendices this session
 
-Appendix B's 269 CSV rows (parsed with a strict 15-column check, so a column shift cannot pass), its 269-slug master list, and Appendix C's 108 family rows and 28-row condition table were parsed directly from `docs/pokemon-integration-handoff.md`, then compared against the **authored inventory** (`content/catalogue.json`), the **generated catalogue** (`src/content/catalogue.ts`) and the **public lookup** (`src/rules/catalogue.ts`, through its exported functions only).
+Appendix B's 269 CSV rows (parsed with a strict 15-column check, so a column shift cannot pass), its 269-slug master list, and Appendix C's 108 family rows and 28-row condition table were parsed directly from `docs/archive/pokemon-integration-handoff.md`, then compared against the **authored inventory** (`content/catalogue.json`), the **generated catalogue** (`src/content/catalogue.ts`) and the **public lookup** (`src/rules/catalogue.ts`, through its exported functions only).
 
 | Expected | Appendix B/C | Authored | Generated | Lookup (`CATALOGUE_TOTALS`) |
 |---|---|---|---|---|

@@ -84,8 +84,6 @@ const G: Record<string, string[]> = {
   ' ': ['...', '...', '...', '...', '...', '...', '...', '...'],
 };
 
-export const FONT_H = 8;
-
 export function textWidth(s: string): number {
   let w = 0;
   for (const ch of s) w += (G[ch] ?? G['?'])[0].length + 1;
@@ -114,16 +112,3 @@ export function drawText(ctx: CanvasRenderingContext2D, s: string, x: number, y:
   }
 }
 
-/** word-wrap to a pixel width */
-export function wrap(s: string, width: number): string[] {
-  const out: string[] = [];
-  for (const para of s.split('\n')) {
-    let line = '';
-    for (const word of para.split(' ')) {
-      const t = line ? line + ' ' + word : word;
-      if (textWidth(t) > width && line) { out.push(line); line = word; } else line = t;
-    }
-    out.push(line);
-  }
-  return out;
-}

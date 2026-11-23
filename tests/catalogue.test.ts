@@ -1,6 +1,6 @@
 // Canonical reference catalogue: exact inventory, canonical families, and isolation from the game.
 //
-// The expected sets are the research report's appendices (docs/pokemon-integration-handoff.md,
+// The expected sets are the research report's appendices (docs/archive/pokemon-integration-handoff.md,
 // Appendices B and C). This file asserts the inventory by count and by identity, and asserts that
 // catalogue records stay out of the sim's species universe — a leak would join `all-wild` spawn
 // pools and the habitat navigation profiles, moving habitat layout acceptance and every replay hash.
@@ -232,7 +232,7 @@ test('form and regional restrictions are kept as scoped source references', () =
   assert.deepEqual([...new Set(FORM_CONDITIONS.map((c) => c.region).filter(Boolean))].sort(), ['alola', 'galar', 'hisui']);
 });
 
-// The catalogue wave (docs/size-extremes-plan.md §S2): the 169 species of the catalogue families that had no role came in
+// The catalogue wave (docs/archive/size-extremes-plan.md §S2): the 169 species of the catalogue families that had no role came in
 // through content/roster.json as wild entries with `wave: "catalogue"`. Seven have no usable SpriteCollab art yet, so
 // the import skips them (content/report.json `skipped`) and a later fetch picks them up.
 const roster = JSON.parse(fs.readFileSync(path.join(ROOT, 'content/roster.json'), 'utf8'));

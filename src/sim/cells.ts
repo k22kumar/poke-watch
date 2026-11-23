@@ -24,7 +24,7 @@ import { propAgent, propPass } from './props';
 
 /** bramble (Phase 8b): a Grass patch made by Burrow; slows enemies that are not Grass type and burns like tall grass */
 export const CS = { none: 0, wet: 1, burning: 2, frozen: 3, ash: 4, rubble: 5, bramble: 6 } as const;
-export type Agent = 'heat' | 'wet' | 'cold' | 'charge';
+type Agent = 'heat' | 'wet' | 'cold' | 'charge';
 
 const BUDGET = 2000;
 const PASS_EVERY = 6; // ticks: the reaction pass runs at 10 Hz

@@ -7,7 +7,7 @@ import { Sprite, h2, hex, type Ramp, type RGB } from '../overworld/paint';
 import type { CliffPalette, GroundPalette, WaterPalette } from '../overworld/terrain';
 import * as A from './pixelart';
 
-export interface BiomeArt {
+interface BiomeArt {
   ground: Partial<GroundPalette>;
   cliff: Partial<CliffPalette>;
   bank: Partial<CliffPalette>;
@@ -75,7 +75,7 @@ BIOME_ART.tropic = {
  * brick course; Chargestone embeds crystals in that rock, runs charged veins through the floor and lets every crystal
  * cast a pool of light; the Moon Stone glows on Mt. Moon's top floor; Viridian's bluffs are mossy rock.
  */
-export interface TerrainStyle {
+interface TerrainStyle {
   /** paint wall tiles without a prop as natural rock tops */
   rockTops?: { base: string; dark: string; light: string; deep: string; glint?: string; glint2?: string };
   /** every cliff face (and, in caves, every ledge face) is this rock face */

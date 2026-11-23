@@ -11,7 +11,7 @@ import type { SimContext } from './types';
 
 /** the tile a species would actually stand on at (x, z): spawnEnemy snaps a ground spawn off a wall or out of water to
  *  the nearest walkable tile, so compatibility is judged there (flyers hover where they appear) */
-export function standAt(ctx: SimContext, id: string, x: number, z: number): [number, number] {
+function standAt(ctx: SimContext, id: string, x: number, z: number): [number, number] {
   const W = ctx.world;
   const sp = SPECIES_BY_ID[id];
   if ((sp && !traversalOf(sp, ctx.rules).groundNav) || W.walkable(x, z)) return [x, z];

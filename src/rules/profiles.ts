@@ -20,7 +20,7 @@ import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from './species';
 import type { SizeClassId } from './sizing';
 import { RESERVED_KINDS, TAKEOFF_KINDS, type AirPress, type Traversal, type TraversalTemplate } from './traversal';
 
-export interface SpeciesOverride {
+interface SpeciesOverride {
   /** habitat tags (HAB bits) that raise encounter odds */
   prefers?: number;
   /** a spawn tile must carry at least one of these habitat tags (0 = no requirement) */
@@ -42,7 +42,7 @@ export interface SpeciesOverride {
   recruitableReason?: string;
 }
 
-export interface SpeciesProfile {
+interface SpeciesProfile {
   id: string;
   prefers: number;
   requires: number;
@@ -89,9 +89,9 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   murkrow: { prefers: HAB.forest }, litwick: { prefers: HAB.rock | HAB.forest }, haunter: { prefers: HAB.forest | HAB.rock },
   gengar: { prefers: HAB.forest | HAB.rock }, impidimp: { prefers: HAB.forest }, noibat: { prefers: HAB.rock },
   honedge: { prefers: HAB.rock | HAB.forest }, dreepy: { prefers: HAB.forest },
-  // the catalogue wave (docs/size-extremes-plan.md §S2)
-  eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/size-extremes-plan.md "F3 done")' },
-  stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/size-extremes-plan.md §S2)' },
+  // the catalogue wave (docs/archive/size-extremes-plan.md §S2)
+  eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/archive/size-extremes-plan.md "F3 done")' },
+  stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/archive/size-extremes-plan.md §S2)' },
   // the hero-shooter prototype (docs/STATS_GROWTH_TARGET.md "Prototype scope"; docs/hero-shooter-pivot.md Q34)
   shedinja: { recruitable: false, recruitableReason: NEEDS_ABILITY_RULE_REASON },
 };
@@ -130,7 +130,7 @@ export const LEGACY_SWIM: readonly string[] = ['surface-swimmer'];
 
 /** what traversalOf reads from a species: its id (for the override), its types (for the swimming default) and the
  *  roster's legacy flag. Test fixtures may pass a bare `{ elements }` */
-export type TraversalSource = { readonly id?: string; readonly elements: readonly string[]; readonly flying?: boolean };
+type TraversalSource = { readonly id?: string; readonly elements: readonly string[]; readonly flying?: boolean };
 
 const traversals = new WeakMap<Rules, WeakMap<TraversalSource, Traversal>>();
 

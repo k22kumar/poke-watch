@@ -139,19 +139,6 @@ export function grassTuft(color: Ramp, k: number, frame = 0): ImageData {
   return s.render();
 }
 
-export function flowers(color: string, k: number): ImageData {
-  const s = new Sprite(Math.round(16 * k), Math.round(12 * k));
-  s.outline = '#2e5a38';
-  const st = s.ramp(['#78c858', '#58a848', '#3f8a3a']);
-  const pet = s.ramp([lighten(color), color, darken(color)]);
-  for (const [x, y] of [[4, 4], [11, 3], [8, 7]]) {
-    s.line(x * k, (y + 2) * k, x * k, 11 * k, st);
-    s.rect((x - 1) * k, (y - 1) * k, 3 * k, 3 * k, pet);
-    s.dot(x * k, y * k, '#fff8b0');
-  }
-  return s.render();
-}
-
 // ================================================================= combat effect sprites
 /** Effect sprite set per element: [projectile, particle A, particle B]. Each is 16x16 texels. */
 export function fxSprite(kind: string): ImageData {
@@ -186,15 +173,13 @@ export function fxSprite(kind: string): ImageData {
     // Oran Berry (the heal pickup): blue berry with a leaf, drawn at world pixel density
     case 'heart': { const c = R(['#ffd0e0', '#ff6890', '#d04068']); s.ellipse(6.5, 7, 2.2, 2, c); s.ellipse(9.5, 7, 2.2, 2, c); for (let y = 8; y < 13; y++) { const w = Math.max(0, 4 - (y - 8)); s.rect(8 - w, y, w * 2, 1, c); } break; }
     case 'oran': { s.outline = '#1a2a5a'; s.ellipse(8, 9.5, 4.2, 3.8, R(['#a8d8ff', '#5890f0', '#3060c8', '#204890'])); s.ellipse(8, 5.5, 2.2, 1.2, R(['#a8e070', '#58a840', '#3a8030'])); s.dot(6, 8, '#e8f8ff'); s.dot(7, 7, '#e8f8ff'); break; }
-    // item ball: an item lying in the field (chests); opening it offers a rare upgrade
-    case 'itemball': { s.outline = '#202028'; const top = R(['#ff9080', '#e83838', '#b01818']); const bot = R(['#ffffff', '#f0f0f0', '#c8c8d0']); s.ellipse(8, 8, 5.5, 5.5, bot); for (let y = 2; y < 8; y++) for (let x = 2; x < 15; x++) if (s.get(x, y)) s.px(x, y, top); s.rect(2, 8, 13, 1, R(['#303038', '#303038', '#202028'])); s.ellipse(8, 8.5, 1.6, 1.6, R(['#ffffff', '#e8e8f0', '#b8b8c8'])); s.dot(5, 4, '#ffd8d0'); break; }
     case 'xp': { const c = R(['#e8fbff', '#80e0ff', '#30a8e8', '#1878c0']); for (let y = 5; y < 13; y++) { const w = y < 8 ? (y - 5) * 0.9 : (12 - y) * 0.7; s.rect(8 - w, y, w * 2 + 1, 1, c); } s.dot(7, 7, '#ffffff'); break; }
     default: s.ellipse(8, 8, 4, 4, R(['#ffffff', '#e0e0e0', '#b0b0b0']));
   }
   return s.render();
 }
 
-export const FX_KINDS = ['fireball', 'flame', 'ember', 'bubble', 'drop', 'leaf', 'petal', 'spark', 'voltball', 'shard', 'snow', 'psi', 'star', 'goo', 'gooDrop', 'rockChunk', 'dust', 'wind', 'feather', 'shadow', 'wisp', 'metal', 'impact', 'impactBig', 'heart', 'oran', 'xp', 'itemball'];
+export const FX_KINDS = ['fireball', 'flame', 'ember', 'bubble', 'drop', 'leaf', 'petal', 'spark', 'voltball', 'shard', 'snow', 'psi', 'star', 'goo', 'gooDrop', 'rockChunk', 'dust', 'wind', 'feather', 'shadow', 'wisp', 'metal', 'impact', 'impactBig', 'heart', 'oran', 'xp'];
 
 /** element -> [projectile, particle, secondary particle] */
 export const ELEMENT_FX: Record<string, [string, string, string]> = {
@@ -206,6 +191,3 @@ export const ELEMENT_FX: Record<string, [string, string, string]> = {
 };
 
 function hh(x: number, y: number, s: number) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
-function lighten(c: string, k = 0.35) { const n = parseInt(c.slice(1), 16); const f = (v: number) => Math.round(v + (255 - v) * k); return rgb(f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)); }
-function darken(c: string, k = 0.28) { const n = parseInt(c.slice(1), 16); const f = (v: number) => Math.round(v * (1 - k)); return rgb(f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)); }
-function rgb(r: number, g: number, b: number) { return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join(''); }

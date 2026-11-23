@@ -3,7 +3,7 @@
 // its impact hurts. A force with Power >= Weight moves it; less only slows it.
 import type { Element } from './elements';
 
-export interface BodyTemplate {
+interface BodyTemplate {
   /** damage type when it is hit, and when it hits */
   type: Element;
   weight: 0 | 1 | 2 | 3 | 4;

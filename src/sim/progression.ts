@@ -1,9 +1,8 @@
-// Derived stats, the player and its members, and the survivor loop's chests (cards, build, XP, pickups and the
-// evolution level trigger went first, docs/hero-shooter-pivot.md §8 step 9). Evolution is the Breakthrough alone
-// (src/sim/evolution.ts).
+// Derived stats, the player and its members. The survivor loop's progression (cards, build, XP, pickups and the
+// evolution level trigger, docs/hero-shooter-pivot.md §8 step 9; then the chests, C1) is gone. Evolution is the
+// Breakthrough alone (src/sim/evolution.ts).
 // XP to next level [C]: round(8 + 5.5*L + L^1.8).
 
-import { dhypot } from '../core/detmath';
 import { SPECIES_BY_ID, type SpeciesDef } from '../rules/species';
 import type { Rules } from '../rules/defaults';
 import { heroHealth, statMult, topSpeed } from '../rules/stats';
@@ -43,21 +42,6 @@ export function learnMove(ctx: SimContext, key: string) {
   P.learned.add(key);
   ctx.events.push({ t: 'learn', key });
 }
-
-export const progressionSystem = {
-  name: 'progression',
-  update(ctx: SimContext) {
-    const P = ctx.player;
-    // chests
-    for (const c of ctx.world.chests) {
-      if (c.open) continue;
-      if (dhypot(P.x - c.x, P.z - c.z) < 1.8) {
-        c.open = true;
-        ctx.events.push({ t: 'chest', x: c.x, z: c.z });
-      }
-    }
-  },
-};
 
 export function makeMember(species: SpeciesDef): Member {
   return {

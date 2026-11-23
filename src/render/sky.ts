@@ -1,6 +1,6 @@
 // Third-person sky and fog palette per biome (presentation only; the fixed views never see the sky).
 // `hor` is the colour at the horizon and the fog colour, `zen` the deeper colour overhead; both 0..1 RGB.
-export interface SkyDef { hor: [number, number, number]; zen: [number, number, number]; fogNear: number; fogFar: number; fog: number }
+interface SkyDef { hor: [number, number, number]; zen: [number, number, number]; fogNear: number; fogFar: number; fog: number }
 const rgb = (h: string): [number, number, number] => [parseInt(h.slice(1, 3), 16) / 255, parseInt(h.slice(3, 5), 16) / 255, parseInt(h.slice(5, 7), 16) / 255];
 
 export const SKY: Record<string, SkyDef> = {

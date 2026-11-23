@@ -16,7 +16,7 @@ and the gameplay interpretations it is allowed. The same generator builds every 
 
 ## Why the old maps felt flat (the audit)
 
-Measured on the classic generator (`src/world/gen`, 30 seeds) and read from the code:
+Measured on the classic generator (`src/world/gen`, deleted at C1; tag `maplebrook-final`), 30 seeds, and read from the code:
 
 1. **Elevation was clamped and relaxed away.** Base ground is quantised to 0–2 m and a slope relaxation lowers every
    free tile to within 0.5 m of its neighbours; a height budget keeps ground at ≥ 1 m under 11 %. Plateaus top out at
@@ -82,8 +82,8 @@ thicket) — then the gates below run.
 
 ## Engine rules the maps rely on (location maps only)
 
-All gated on `map.gen.loc`; authored arenas and the classic generator replay bit-identically (`scripts/checksum.ts`:
-`off`, `build-off`, `world-off`, `on` and the new `gen-classic` print the pre-change hashes).
+All gated on `map.gen.loc`; authored arenas and the classic generator replayed bit-identically when this landed (the
+classic generator was deleted at C1).
 
 | Rule | Where | Why |
 | --- | --- | --- |
@@ -132,7 +132,7 @@ Before this gate, `wideBoss` read 73 / 50 / 37 % of seeds (Viridian Forest / Mt.
 | | Viridian Forest | Mt. Moon | Chargestone Cave | classic Meadow |
 | --- | --- | --- | --- | --- |
 | seeds passing every gate (total attempts for 30) | 30/30 (72) | 30/30 (48) | 30/30 (44) | — |
-| generation time p50 / p95 / max | 45 / 119 / 146 ms | 14 / 41 / 65 ms | 15 / 42 / 43 ms | p50 73, p95 160 ms (WORLDGEN.md) |
+| generation time p50 / p95 / max | 45 / 119 / 146 ms | 14 / 41 / 65 ms | 15 / 42 / 43 ms | p50 73, p95 160 ms (WORLDGEN.md, at tag `maplebrook-final`) |
 | distinct zone graphs | 30/30 | 30/30 | 30/30 | — |
 | tiers used (mean) | 2.0 | 2.63 | 2.83 | — |
 | reachable ground ≥ 2.5 m | 37 % | 85 % (spawn floor is tier 1) | 69 % | 5 % |
@@ -196,7 +196,7 @@ generator: none of these locations fits them. `?loc=` overrides this for testing
 ## Using it
 
 - `index.html?go=1&loc=chargestone-cave&seed=7` — every region from Chargestone Cave; `loc=meadow:mt-moon,dusk:viridian-forest` per stage biome. Names are matched loosely (`loc=Chargestone%20Cave`, `loc=mtmoon`).
-- Settings → World → Regions: *Handcrafted*, *Generated (classic)*, *Pokémon locations* (default).
+- Settings → World → Regions: *Handcrafted*, *Pokémon locations* (default).
 - Console: `pokewatch.loc()` (gates, metrics, zones, links of the current map), `pokewatch.locations`.
 - `npx tsx scripts/locstats.ts all 30 1` — gate pass rate, timing, every metric; `-v` prints every seed.
 - `npx tsx scripts/locsheet.ts mt-moon 8 1 sheet.png 3` — contact sheet: tiers by colour, cliff lines, zone graph

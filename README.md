@@ -43,7 +43,7 @@ Title → **Training range** → hero pick (the prototype list, featured lines f
 | Mute | M |
 | Change any key or button | Settings → Controls → Bindings (saved in the browser) |
 
-Maps: the range arena by default; Settings → World picks Pokémon locations (Viridian Forest, Mt. Moon, Chargestone Cave), the classic generator or the handcrafted arenas, and Settings → World → Map / Map seed a habitat recipe or a location for every region (`docs/LOCATIONS.md`, `docs/HABITATS.md`). The camera is third person by default; Classic, Overhead and Wide fixed presets remain (`docs/THIRD_PERSON.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (the primary aims at the nearest enemy) or Auto (every move fires on its own). Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`).
+Maps: the range arena by default; Settings → World picks Pokémon locations (Viridian Forest, Mt. Moon, Chargestone Cave) or the handcrafted arenas, and Settings → World → Map / Map seed a habitat recipe or a location for every region (`docs/LOCATIONS.md`, `docs/HABITATS.md`). The camera is third person by default; Classic, Overhead and Wide fixed presets remain (`docs/THIRD_PERSON.md`, `docs/CAMERA.md`). Settings → Controls → Combat picks Aimed (default), Assist (the primary aims at the nearest enemy) or Auto (every move fires on its own). Trees and cliffs block the way; bluffs have stairs, ledges can be hopped; water and lava can be entered but only Water types swim safely, and open edges can be fallen from (`docs/HAZARDS.md`).
 
 ### Changing the roster
 
@@ -59,7 +59,7 @@ npm run build
 
 ### URL parameters (testing)
 
-`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range`, or `hold` with a habitat `map`). Also: `map=river-gorge` or `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=gen|authored` (the classic generator or the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
+`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range`, or `hold` with a habitat `map`). Also: `map=river-gorge` or `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=authored` (the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
 
 ## Combat
 
@@ -103,7 +103,6 @@ npx tsx scripts/camframe.ts                             # third-person compositi
 npx tsx scripts/camstats.ts --bench tuning              # third-person motion on real maps by movement mode
 npm run typecheck
 npm run fixtures && npm run import:fixture              # offline importer run on the test mirror
-node scripts/build.mjs --overworld                      # Maplebrook overworld -> dist/overworld.html
 ```
 
 **Replay baseline.** `tests/fixtures/scenarios.ts` holds ten 60 s scripted scenarios (the range with Charmander, Caterpie, Tauros and Mewtwo; Onix and Wailord under Mt. Moon's decks; Totodile in Shoal Grotto; Charmander in Cinder Crater; a Shrine Gorge Hold; the swap range). Each is hashed every 10 s and at the end (`replayHash`, `src/sim/checksum.ts`) against `tests/fixtures/replays.json`, and must reach the coverage it names; `tests/replays.test.ts` asserts both in `npm test`. `scripts/checksum.ts` runs them by name and prints MOVED for a hash that changed; `--update` rewrites the fixture, and a commit that moves a hash says why.
@@ -118,8 +117,9 @@ src/
   rules/     ALL tunable data: defaults.ts (every number), stats.ts (the canon curve), heroes.ts (kits, PROTOTYPE),
              targets.ts (target sets), sizing.ts, elements.ts, moves.ts, capabilities.ts, profiles.ts, traversal.ts,
              species.ts (the roster), stages.ts
-  world/     renderer-free tile vocabulary (tiles.ts), arena builder and arenas (the range), the classic generator (gen/),
-             Pokémon locations (locations/, locgen/), habitat recipes (habitat/), navblocks.ts (wide-body lattice)
+  world/     renderer-free tile vocabulary (tiles.ts), arena builder and arenas (the range), Pokémon locations
+             (locations/, locgen/), habitat recipes (habitat/), what both generators share (tilenav.ts, genmeta.ts),
+             the map factory (maps.ts), navblocks.ts (wide-body lattice)
   sim/       renderer-free deterministic simulation: run.ts, world.ts (collision, flow fields), locomotion.ts, player.ts,
              enemies.ts (behaviours, navigation), targets.ts, modes/hold.ts, evolution.ts (Breakthrough), swap.ts,
              moves.ts, aim.ts and spatial.ts (3D aim and queries), effects.ts, combat.ts, bodies.ts, capabilities.ts,
@@ -127,7 +127,8 @@ src/
   mods/      Mode and Mod: RANGE and HOLD (MODES; the title offers TITLE_MODES, the range), RANGE_SWAP; the mods
   assets/    creature asset layer: art.ts (CreatureArt, 8 states, fallback table), clips.ts, builtin.ts, pack.ts, cries.ts
   render/    WebGL2: renderer.ts, camera.ts (the third-person rig), framing.ts, chaseinput.ts, tilestage.ts, tileart.ts, …
-  overworld/ Maplebrook (DS-style town + route); its painters are shared with the arenas
+  overworld/ the tile stage's painters (paint, terrain, sprites, font, render, buildings), left from the Maplebrook
+             overworld (tag maplebrook-final); deleted with the tile stage at X1b (docs/OVERHAUL_3D.md)
   ui/        DOM overlay: title, hero pick, HUD (health, primary / Q / E, an empty Ultimate slot), settings, bindings, pause, tuning
   audio/     mixer and the adaptive score (adaptive.ts); recorded cries; no synthesised sounds
   input/     keyboard / gamepad / touch action map and bindings
@@ -175,31 +176,27 @@ export const lifesteal: Mod = {
 
 **Reskin.** Biome palettes and prop art are in `src/render/tileart.ts`.
 
-## Maplebrook (overworld slice)
-
-The match maps reuse Maplebrook's ground, cliff, water and prop painters.
-
-`node scripts/build.mjs --overworld` builds `dist/overworld.html`. It's a separate DS-style 2.5D overworld: an original town, a route, four interiors, a following partner and NPCs. The code lives in `src/overworld/`; see `docs/MAPLEBROOK.md`.
-
 ## Docs
 
+- `docs/OVERHAUL_3D.md`: the 3D overhaul: decisions D1–D7, the WorldModel contract, the migration rules and the tasks.
 - `docs/hero-shooter-pivot.md`: the pivot from the survivor game: inventory, decisions (Q1–Q51), the removal order and progress.
 - `docs/HEROES.md`: stats, speed band, kits, the prototype list. `docs/STATS_GROWTH_TARGET.md`: the stats and growth design.
 - `docs/RANGE.md`: modes, the range arena, target sets, respawns, Breakthrough, the replay scenarios.
 - `docs/SQUAD.md`: the loadout, the opt-in swap module, Tag Actions, coats and reactions.
-- `docs/SYSTEMIC.md`: capabilities, interception, Hold and bodies.
+- `docs/SYSTEMIC.md`: capabilities, interception, Hold, bodies and prop materials.
 - `docs/SPAWNING.md`: where enemies come from (target sets, the raid party, the test crowd) and placement.
 - `docs/SIZING.md`: size classes: drawn size, sim bodies, footprints, headroom, wall tops, wide-body navigation.
 - `docs/LOCOMOTION.md`, `docs/CONTROLS.md`, `docs/CONTROL_SCHEME_TARGET.md`: the shared body step, traversal capabilities, bindings and the control scheme.
 - `docs/HAZARDS.md`, `docs/HABITAT_STATES.md`: liquids, edges, vents, ice and tide.
 - `docs/HABITATS.md`, `docs/HABITAT_AUDIT.md`, `docs/HABITAT_PLAYTEST.md`: habitat recipes, their gates and audits, and the tactical playtest record.
-- `docs/LOCATIONS.md`, `docs/WORLDGEN.md`: the Pokémon-location generator and the classic generator.
+- `docs/LOCATIONS.md`: the Pokémon-location generator.
 - `docs/THIRD_PERSON.md`, `docs/CAMERA.md`, `docs/THIRD_PERSON_IMPLEMENTATION.md`: the third-person camera as built, the fixed presets, and the spatial roadmap ledger.
 - `docs/AUDIO.md`: cries, the adaptive score, mixing.
 - `docs/SPECIES.md`, `docs/POKEMON_FIRST.md`, `docs/PIPELINE.md`, `docs/ICONS.md`, `docs/ASSETS.md`: species identity, the content pipeline, icons, assets and licensing.
 - `docs/PLAYABILITY.md`: the developer roster and readiness grading. `docs/CUSTOMISING.md`: how-to for roster, size, map and target changes.
-- `docs/ART_BIBLE.md`, `docs/ART_DIRECTION.md`, `docs/MAPLEBROOK.md`: visual standards and the overworld.
-- Historical: `docs/ANALYSIS.md`, `docs/FIDELITY.md` (the survivor build against PokéBonk), `docs/size-extremes-*.md`, `docs/pokemon-integration-*.md`.
+- `docs/ART_BIBLE.md`, `docs/ART_DIRECTION.md`: visual standards.
+- `docs/ROADMAP.md`: the work queue and its status.
+- Historical, in `docs/archive/`: `ANALYSIS.md`, `FIDELITY.md` (the survivor build against PokéBonk), `size-extremes-*.md`, `pokemon-integration-*.md`. The survivor game is at tag `survivor-final`; the Maplebrook overworld, the original creatures and the classic generator at tag `maplebrook-final`.
 
 ## Pokémon locations (lore-driven world generation)
 
@@ -224,13 +221,6 @@ and a known-valid fallback. Recipes include **Shrine Gorge** (`river-gorge`), **
 **Spear Sanctuary** (`spear-sanctuary`). `?loc=river-gorge&mapseed=3`, `?loc=volcanic-ridge/ash`, Settings → World → Map / Map seed,
 `pokewatch.hab()`, `npx tsx scripts/habstats.ts all 30`, `scripts/habsheet.ts`, `scripts/habplay.ts`; everything is in
 `docs/HABITATS.md`.
-
-## Procedural world (slice W0–W4)
-
-`?world=gen` builds each region from the run seed with the classic generator: terrain, rivers and lakes in basins, roads
-and trails, a hamlet, landmarks, encounter spaces and cover, validated against hard gates. Trees, bushes and rocks have
-materials: they burn, break and leave stumps or rubble. `docs/WORLDGEN.md` has the rules and measurements;
-`npx tsx scripts/worldsheet.ts 8 1 sheet.png` draws a contact sheet, `scripts/worldstats.ts` runs the gate sweep.
 
 ## Deploying (GitHub Pages)
 

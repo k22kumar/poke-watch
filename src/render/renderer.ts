@@ -515,9 +515,6 @@ export class Renderer {
         case 'jump':
           for (let k = 0; k < 5; k++) this.px.spawn('dust', P.x, P.y + 0.1, P.z, rnd(-2, 2), rnd(0.5, 1.5), rnd(-2, 2), 0.3, 1);
           break;
-        case 'chest':
-          for (let k = 0; k < 30; k++) this.px.spawn('star', e.x, ctx.world.height(e.x, e.z) + 0.8, e.z, rnd(-3, 3), rnd(3, 8), rnd(-3, 3), 1, 1, 9, rnd(-5, 5));
-          break;
         case 'stageStart':
           this.setStage(ctx);
           break;
@@ -1170,13 +1167,6 @@ export class Renderer {
       this.px.sprite(fx[0], Pr.x[i], Pr.y[i], Pr.z[i], big ? 2 : 1, rot, 1, hostile ? 0.25 + 0.25 * Math.sin(this.time * 20) : 0);
       if (Math.random() < 0.25) this.px.spawn(fx[2], Pr.x[i], Pr.y[i], Pr.z[i], rnd(-0.5, 0.5), rnd(-0.2, 0.5), rnd(-0.5, 0.5), 0.25, 1, 0, rnd(-4, 4));
     }
-    // item balls (chests) not yet opened
-    for (const c of ctx.world.chests) {
-      if (c.open) continue;
-      const dx = c.x - ctx.player.x, dz = c.z - ctx.player.z;
-      if (dx * dx + dz * dz > 40 * 40) continue;
-      this.px.sprite('itemball', c.x, ctx.world.height(c.x, c.z) + 0.3 + Math.abs(Math.sin(this.time * 2.2)) * 0.06, c.z, 1, 0, 1, 0);
-    }
   }
 
   private fillGlows(ctx: SimContext, alpha: number) {
@@ -1199,8 +1189,6 @@ export class Renderer {
       const f = Pa.life[i] / Pa.max[i];
       G.data.set([Pa.x[i], Pa.y[i], Pa.z[i], Pa.size[i] * (0.4 + 0.6 * f), Pa.r[i], Pa.g[i], Pa.b[i], Math.min(1, f * 1.5)], o);
     }
-    // chest sparkle
-    if (Math.random() < 0.3) for (const c of ctx.world.chests) if (!c.open && Math.hypot(c.x - ctx.player.x, c.z - ctx.player.z) < 60) this.parts.add(c.x + rnd(-0.6, 0.6), ctx.world.height(c.x, c.z) + 1.2, c.z + rnd(-0.6, 0.6), 0, rnd(0.5, 1.5), 0, 0.8, 0.2, [1, 0.9, 0.4]);
     void alpha;
   }
 

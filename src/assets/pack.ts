@@ -9,8 +9,8 @@ import { ANIM_STATES, DIRS, NATIVE_CLIP, canvasFrom, type CreatureArt, type Fram
 import { resolveClips, type SourceAnim } from './clips';
 import { neutralExtent, silhouetteOf } from './measure';
 
-export const PACK_FORMAT = 'poke-watch-pack';
-export const PACK_VERSION = 1;
+const PACK_FORMAT = 'poke-watch-pack';
+const PACK_VERSION = 1;
 
 export interface PackAnim {
   /** [dir][frame] -> [x, y, w, h, anchorX, anchorY] in atlas texels */

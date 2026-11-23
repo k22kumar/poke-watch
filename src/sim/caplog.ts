@@ -12,11 +12,11 @@ import type { SimContext } from './types';
 import { ELEMENT_DEFS, type Element } from '../rules/elements';
 import type { CapVerb } from '../rules/capabilities';
 
-export type LogVerb = CapVerb | 'intercept' | 'release' | 'impact' | 'break' | 'tile' | 'faint' | 'technique';
-export type LogOut = 'ok' | 'fail' | 'combined' | 'parry' | 'brace' | 'hit' | 'immune' | 'cancel' | 'catch' | 'drop' | 'none';
+type LogVerb = CapVerb | 'intercept' | 'release' | 'impact' | 'break' | 'tile' | 'faint' | 'technique';
+type LogOut = 'ok' | 'fail' | 'combined' | 'parry' | 'brace' | 'hit' | 'immune' | 'cancel' | 'catch' | 'drop' | 'none';
 export type LogKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'player' | 'zone' | 'trainer' | '';
 
-export interface CapRecord {
+interface CapRecord {
   t: number; tick: number;
   /** write order across both rings */
   seq: number;

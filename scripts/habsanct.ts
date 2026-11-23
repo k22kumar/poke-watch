@@ -15,7 +15,7 @@ import { generateHabitat, profilesFor } from '../src/world/habitat';
 import { mapExposureClear } from '../src/sim/spatial';
 import { clearance } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
-import { navOpen, navTop } from '../src/world/gen/util';
+import { navOpen, navTop } from '../src/world/tilenav';
 import type { ArenaMap } from '../src/world/tiles';
 
 export interface Geo {

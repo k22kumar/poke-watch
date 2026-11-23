@@ -3,7 +3,7 @@
 // The UI's Credits panel and the validation tooling read from here.
 import type { AnimState, CreatureArt } from './art';
 
-export type AssetStatus = 'ok' | 'fallback' | 'error';
+type AssetStatus = 'ok' | 'fallback' | 'error';
 
 export interface AssetRecord {
   id: string;
@@ -17,7 +17,7 @@ export interface AssetRecord {
   checksum?: string;
 }
 
-export interface PackInfo {
+interface PackInfo {
   id: string; name: string; species: string[]; moves: number;
   generator?: string; created?: string; notice?: string;
   licenses: { scope: string; name: string; url?: string; holder?: string; note?: string }[];

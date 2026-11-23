@@ -18,7 +18,7 @@ import { CATALOGUE_FAMILIES, CATALOGUE_FORM_CONDITIONS, CATALOGUE_RECORDS } from
 // read; a canonical edge never becomes an in-run evolution.
 
 /** How the source classifies a `pokemon` record against its species' default form. */
-export type FormStatus =
+type FormStatus =
   | 'species-default'
   | 'persistent-alternate'
   | 'persistent-fusion'
@@ -27,13 +27,13 @@ export type FormStatus =
   | 'out-of-battle-build';
 
 /** `selected` was picked by the research tables; `family-or-form` came in with a family or form. */
-export type Inclusion = 'selected' | 'family-or-form';
+type Inclusion = 'selected' | 'family-or-form';
 
 /** `listed` is a published figure. `lower-bound` is a published minimum (Gigantamax heights). */
-export type HeightKind = 'listed' | 'lower-bound';
+type HeightKind = 'listed' | 'lower-bound';
 
 /** `listed` is a published figure. `unknown-placeholder` is a stand-in for an unknown mass. */
-export type WeightKind = 'listed' | 'unknown-placeholder';
+type WeightKind = 'listed' | 'unknown-placeholder';
 
 export interface CatalogueRecord {
   /** PokéAPI `pokemon` slug — the same identity namespace as `SpeciesDef.id`. */
@@ -93,8 +93,6 @@ export const CATALOGUE_BY_SPECIES: Record<string, CatalogueRecord[]> = (() => {
   for (const list of Object.values(out)) list.sort((a, b) => Number(b.form.status === 'species-default') - Number(a.form.status === 'species-default') || a.pokemonId - b.pokemonId);
   return out;
 })();
-
-export const FAMILY_BY_CHAIN: Record<number, CatalogueFamily> = Object.fromEntries(FAMILIES.map((f) => [f.chainId, f]));
 
 /** The catalogue record for a PokéAPI `pokemon` slug, or null when it is outside the catalogue. */
 export function catalogueRecord(id: string): CatalogueRecord | null {

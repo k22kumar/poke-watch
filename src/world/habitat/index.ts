@@ -9,8 +9,8 @@
 // A failed attempt re-rolls with mixSeed(seed, n); when every attempt fails, the recipe's known valid fallback seed
 // is loaded and the map records why. Pure function of (recipe, variant, seed, size, version).
 import { defaultRules } from '../../rules/defaults';
-import type { GenMeta } from '../gen/context';
-import { mixSeed, navOpen } from '../gen/util';
+import type { GenMeta } from '../genmeta';
+import { mixSeed, navOpen } from '../tilenav';
 import { enemyCore } from '../locgen/nav';
 import { PROP_RULES, T, type ArenaMap } from '../tiles';
 import { HK, HabCtx, MED } from './ctx';
@@ -339,8 +339,8 @@ function finish(r: HabAttempt, recipe: HabitatRecipe, variant: string, seed: num
   ];
   const meta: GenMeta = {
     generator: 'poke-watch-habitat', version: HAB_VERSION, seed, attemptSeed: g.seed, attempts, repairs: g.repairs.length,
-    archetype: `${recipe.id}:${recipe.landform}`, places: [], lookouts: [], spaces: [], sites: [[Math.floor(g.contest.x), Math.floor(g.contest.y)]],
-    habitat: g.habitat, cliffOk: new Uint8Array(S * S), route, gates: report.gates, ms,
+    archetype: `${recipe.id}:${recipe.landform}`, sites: [[Math.floor(g.contest.x), Math.floor(g.contest.y)]],
+    habitat: g.habitat, route, gates: report.gates, ms,
     loc: {
       id: recipe.id, art: g.art(), particles: recipe.variants[variant]?.particles ?? recipe.particles, dropNav: DROP_NAV, los: true,
       anchors, bodySpots: [], zones,

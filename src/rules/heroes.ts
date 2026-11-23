@@ -14,7 +14,7 @@ export const NEEDS_ABILITY_RULE: readonly string[] = ['shedinja', 'slaking', 're
 export { NEEDS_ABILITY_RULE_REASON };
 
 /** a species' level-up moves: the curated partner set, else its cross-game level-up moves */
-export function learnsetOf(sp: SpeciesDef): [number, string][] {
+function learnsetOf(sp: SpeciesDef): [number, string][] {
   if (sp.learnset?.length) return sp.learnset;
   return (sp.canon?.levelUp ?? []).filter(([, k]) => MOVE_BY_KEY[k]);
 }
@@ -82,7 +82,7 @@ export const PROTOTYPE: readonly string[] = [
 
 /** A hero's kit (docs/STATS_GROWTH_TARGET.md "Kit and gating", docs/hero-shooter-pivot.md Q27): the primary (left
  *  click, fixed by species), Ability 1 (Q) and Ability 2 (E). The Ultimate (R) is unbound until it exists. */
-export interface HeroKit { primary?: string; q?: string; e?: string }
+interface HeroKit { primary?: string; q?: string; e?: string }
 
 /** Hand-authored kits that override the rule, field by field (the featured heroes' tuning lives here). */
 export const HERO_KITS: Record<string, Partial<HeroKit>> = {
@@ -105,7 +105,7 @@ export const KIT_TUNING: Record<string, string> = {
 
 /** a species' level-up moves in canonical order (its official level-up list, earliest level first, status moves
  *  included), else its game learnset */
-export function canonicalLearnset(sp: SpeciesDef): string[] {
+function canonicalLearnset(sp: SpeciesDef): string[] {
   const rows = sp.canon?.levelUp?.length ? sp.canon.levelUp : learnsetOf(sp);
   const sorted = rows.map((r, i) => [r[0], i, r[1]] as const).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   return [...new Set(sorted.map((r) => r[2]).filter((k) => MOVE_BY_KEY[k]))];

@@ -20,7 +20,7 @@ const OPAQUE = 128;
 
 /** The opaque extent of a frame around its anchor (texels). `alpha(x, y)`: the atlas's alpha (0-255) at an atlas texel.
  *  Null for a frame with no opaque texel */
-export function frameBounds(alpha: (x: number, y: number) => number, f: FrameRect): FrameBounds | null {
+function frameBounds(alpha: (x: number, y: number) => number, f: FrameRect): FrameBounds | null {
   let x0 = f.w, x1 = -1, y0 = f.h, y1 = -1;
   for (let y = 0; y < f.h; y++) for (let x = 0; x < f.w; x++) if (alpha(f.x + x, f.y + y) >= OPAQUE) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   return x1 < 0 ? null : { l: f.ax - x0, r: x1 + 1 - f.ax, t: f.ay - y0, b: y1 + 1 - f.ay };

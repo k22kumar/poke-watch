@@ -24,7 +24,6 @@ const DEFAULT_GROUND = {
   dots: [hex('#ffffff'), hex('#ffd0e0'), hex('#fff0a0')] as RGB[], dotCore: hex('#f8b030'),
 };
 export type GroundPalette = typeof DEFAULT_GROUND;
-export const GROUND_DEFAULT = DEFAULT_GROUND;
 
 export interface GroundInput {
   w: number; h: number;
@@ -50,7 +49,7 @@ export interface GroundInput {
 }
 
 /** natural rock top: facets of base / dark / light split by deep cracks; `glint` = rare embedded crystal pixels */
-export interface RockPalette { base: RGB; dark: RGB; light: RGB; deep: RGB; glint?: RGB; glint2?: RGB }
+interface RockPalette { base: RGB; dark: RGB; light: RGB; deep: RGB; glint?: RGB; glint2?: RGB }
 
 /**
  * Jittered-grid Voronoi: the nearest and second-nearest feature points of cells `cw` × `ch` px around (x, y).
@@ -76,7 +75,7 @@ const toneOf = (id: number) => h2(id & 0xffff, id >>> 16, 31);
 
 /** natural rock at pixel (x, y): irregular facets of base / dark / light, deep cracks between them, a lit upper rim
  *  and a shaded lower rim on each facet (light from above), and rare crystal glints. Shared by rock tops. */
-export function rockPixel(x: number, y: number, P: RockPalette): RGB {
+function rockPixel(x: number, y: number, P: RockPalette): RGB {
   const [id, gap, dy, id2] = facet(x, y, 15, 12, 91);
   const f = toneOf(id);
   let c = f < 0.25 ? P.dark : f < 0.85 ? P.base : mix(P.base, P.light, 0.55);

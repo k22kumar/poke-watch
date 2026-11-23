@@ -15,19 +15,19 @@ const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
 /** the billboard shaders' stretch cap, and the seen elevation (rad) up to which it keeps texels square: past it a card
  *  leans back instead (render/tilestage.ts LEAN_GLSL) */
-export const STRETCH_MAX = 1.6;
+const STRETCH_MAX = 1.6;
 export const LEAN_FROM = Math.acos(1 / STRETCH_MAX);
 
 /** The vertical stretch the billboard shaders give a card whose anchor is (dx, dy, dz) from the lens: 1 / cos of the
  *  elevation it is seen at, with the horizontal distance floored at 0.5 m, inside [1, STRETCH_MAX]. The GLSL twin is
  *  `clamp(length(d) / max(length(d.xz), 0.5), 1.0, 1.6)` in CREATURE_VS and BB_VS */
-export function billboardStretch(dx: number, dy: number, dz: number): number {
+function billboardStretch(dx: number, dy: number, dz: number): number {
   return clamp(Math.hypot(dx, dy, dz) / Math.max(Math.hypot(dx, dz), 0.5), 1, STRETCH_MAX);
 }
 
 /** what a point is seen through: the lens, the yaw (the view direction is (sin yaw, cos yaw)) and the axis' pitch below
  *  the horizon. A ViewSample, an AimView and the rig itself all fit */
-export interface ViewLike { readonly eye: readonly number[]; readonly yaw: number; readonly viewPitch: number }
+interface ViewLike { readonly eye: readonly number[]; readonly yaw: number; readonly viewPitch: number }
 
 /** A world point as `v` sees it: its angles from the view axis (deg; right +, up +) and its depth along the axis (m).
  *  The depth is floored at 5 cm so a point at the lens still has angles */
@@ -132,14 +132,14 @@ export function cardOf(b: FrameBounds, scale: number, dx = 0, dy = 0): CardBound
 /** back distance = `boom` × (drawn body height / `ref`) ^ `exp`, inside [`min`, `max`] (CHASE_CONFIG.frame). The drawn
  *  body height is the outline's `top + drop`: with the top pinned under the crosshair line, the arm's length decides
  *  where the body's lowest drawn point lands, and that has to stay over the HUD's move bar */
-export interface FrameLaw { ref: number; boom: number; exp: number; min: number; max: number }
+interface FrameLaw { ref: number; boom: number; exp: number; min: number; max: number }
 export function backFor(top: number, F: FrameLaw): number {
   return clamp(F.boom * Math.pow(Math.max(top, 0.05) / F.ref, F.exp), F.min, F.max);
 }
 
 /** CHASE_CONFIG.reticle: the keep-out, and the most the fixed combat allowance may move the corner: `reach` degrees
  *  sideways, `rise` degrees upward (0: the allowance only ever moves the Pokémon further left, never lower) */
-export interface Reticle extends KeepOut { reach: number; rise: number }
+interface Reticle extends KeepOut { reach: number; rise: number }
 
 /** The corner the composition pins to the keep-out: the body's (right, top), moved by the fixed combat allowance. The
  *  allowance is the smallest shift (the larger of its sideways and upward angles at `back` m, the upward one through the
@@ -190,7 +190,7 @@ export function pivotHeight(top: number, back: number, shoulder: number, elevDeg
 
 /** the stretch the corner's allowance is costed with (the arm at the neutral pitch stretches a card by about this): a
  *  constant, so the corner is one fixed figure per sprite and never follows the pitch */
-export const CORNER_STRETCH = 1.13;
+const CORNER_STRETCH = 1.13;
 
 /** The ideal arm for an outline (CHASE_CONFIG.frame, .reticle, .shoulderMax): the back distance from the body's drawn
  *  height; the

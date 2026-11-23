@@ -44,9 +44,8 @@ Each species profile (`speciesProfile`, `src/rules/profiles.ts`) keeps three kin
 
 ## Maps
 
-No map lists the Pokémon it must contain, and no species is tied to a map, biome or type. The classic generator's
-habitat gate used to read the spawn species' `requires`; no species sets one, so it was always satisfied, and the
-generator now gets no species (every classic region × seeds 1–12 gives the same `mapChecksum` either way). The habitat
+No map lists the Pokémon it must contain, and no species is tied to a map, biome or type. The classic generator (deleted
+at C1) was the last map code that took the spawn species. The habitat
 navigation profiles are frozen constants (`VALIDATED_PROFILES`, `src/world/habitat/mode.ts`, pivot step 3).
 
 ## Checking it

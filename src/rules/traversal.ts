@@ -18,7 +18,7 @@
 // (once per airtime) or 'takeoff' (into volume × air, so only a fly or levitate row: R6d). A species' rows give it at
 // most one meaning; no shipped row sets one, so the press means nothing in the air today and waits in the jump buffer.
 
-export type TraversalKind = 'glide' | 'hover' | 'swim' | 'fly' | 'levitate' | 'dive';
+type TraversalKind = 'glide' | 'hover' | 'swim' | 'fly' | 'levitate' | 'dive';
 /** kinds whose mechanics do not exist yet, with the roadmap phase that brings them (validateTraversal rejects them) */
 export const RESERVED_KINDS: Readonly<Partial<Record<TraversalKind, string>>> = { fly: 'R6d', levitate: 'R6e', dive: 'R8' };
 
@@ -30,12 +30,12 @@ export const TAKEOFF_KINDS: readonly TraversalKind[] = ['fly', 'levitate'];
 interface RowBase { airPress?: AirPress }
 
 /** glide: the lift row. Its fall speed is rules.player.glideFallSpeed (R6e brings glide ratio and dive numbers here) */
-export interface GlideRow extends RowBase { kind: 'glide' }
+interface GlideRow extends RowBase { kind: 'glide' }
 /** hover: rest height above the terrain `height + ((slot × 37) mod levels) × step` m (a deterministic spread per pool
  *  slot so a flock does not stack), bobbing ± `bob` m at `bobRate` rad/s */
-export interface HoverRow extends RowBase { kind: 'hover'; height: number; step: number; levels: number; bob: number; bobRate: number }
+interface HoverRow extends RowBase { kind: 'hover'; height: number; step: number; levels: number; bob: number; bobRate: number }
 /** swim: safe in open water (the exposure rule passes it; rules.hazards.water.safeSpeed) */
-export interface SwimRow extends RowBase { kind: 'swim' }
+interface SwimRow extends RowBase { kind: 'swim' }
 export type TraversalTemplate = GlideRow | HoverRow | SwimRow;
 
 /** the shipped template rows (rules.locomotion.templates). A species names them by id; rule sets may retune numbers */

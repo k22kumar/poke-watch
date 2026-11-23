@@ -17,7 +17,7 @@ import { tagLineOf } from '../rules/tags';
 import { ARCHETYPES, compileMove } from './moves';
 import { lineage, openingMove } from '../rules/heroes';
 
-export type ControlTier = 'ready' | 'partial' | 'unavailable';
+type ControlTier = 'ready' | 'partial' | 'unavailable';
 
 /** One readiness rule. `test` returns null when the species passes, else the reason it does not. */
 export interface ReadinessCheck {
@@ -27,7 +27,7 @@ export interface ReadinessCheck {
   test(sp: SpeciesDef, rules: Rules): string | null;
 }
 
-export interface CheckResult { id: string; ok: boolean; severity: ReadinessCheck['severity']; reason?: string }
+interface CheckResult { id: string; ok: boolean; severity: ReadinessCheck['severity']; reason?: string }
 
 export interface ControlReadiness {
   id: string;
@@ -43,7 +43,7 @@ export interface ControlReadiness {
 const finite = (n: number) => Number.isFinite(n) && n > 0;
 
 /** The sim-side checks. Add one here to tighten what "playable" means; the roster UI and tests pick it up. */
-export const READINESS_CHECKS: ReadinessCheck[] = [
+const READINESS_CHECKS: ReadinessCheck[] = [
   {
     id: 'registered', severity: 'block',
     test: (sp) => {

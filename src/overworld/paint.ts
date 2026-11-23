@@ -154,9 +154,3 @@ export function h2(x: number, y: number, s = 0): number {
   return (h >>> 0) / 4294967296;
 }
 
-export function imageToCanvas(img: ImageData): HTMLCanvasElement {
-  const c = document.createElement('canvas');
-  c.width = img.width; c.height = img.height;
-  c.getContext('2d')!.putImageData(img, 0, 0);
-  return c;
-}

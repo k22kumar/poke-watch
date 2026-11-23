@@ -34,22 +34,21 @@ export function tagSpec(ctx: SimContext, m: Member): MoveSpec | null {
 }
 
 /** reserves in squad order (not the field Pokémon), fainted ones included */
-export function reserves(ctx: SimContext): number[] {
+function reserves(ctx: SimContext): number[] {
   const P = ctx.player;
   const out: number[] = [];
   for (let k = 0; k < P.squad.length; k++) if (k !== P.active) out.push(k);
   return out;
 }
 
-
-export function canTag(ctx: SimContext, to: number): boolean {
+function canTag(ctx: SimContext, to: number): boolean {
   const P = ctx.player;
   return ctx.state === 'play' && to >= 0 && to < P.squad.length && to !== P.active && !P.squad[to].fainted
     && P.tagCd <= 0 && P.guardLock <= 0 && P.faintT < 0 && P.dashT <= 0;
 }
 
 /** swap the field Pokémon; a free tag (after a faint) skips the cooldown check and does not start it */
-export function tagTo(ctx: SimContext, to: number, free = false) {
+function tagTo(ctx: SimContext, to: number, free = false) {
   const P = ctx.player, R = ctx.rules.squad;
   if (!free && !canTag(ctx, to)) return false;
   const from = P.m;
@@ -66,7 +65,7 @@ export function tagTo(ctx: SimContext, to: number, free = false) {
 }
 
 /** release the incoming Pokémon's Tag Action toward the aim (or the nearest enemy without aim) */
-export function castTagAction(ctx: SimContext) {
+function castTagAction(ctx: SimContext) {
   const P = ctx.player;
   const m = P.m;
   if (m.fainted) return;

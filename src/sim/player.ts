@@ -17,7 +17,7 @@ const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: tr
 const STEP: LocoResult = { jumped: false };
 
 /** release Guard; a tap that caught nothing costs a short lockout */
-export function endGuard(ctx: SimContext) {
+function endGuard(ctx: SimContext) {
   const P = ctx.player;
   if (P.guardT < 0) return;
   if (!P.guardHit && P.guardT <= ctx.rules.combat.guardWindow + 0.05) P.guardLock = ctx.rules.combat.whiffLock;
@@ -26,8 +26,6 @@ export function endGuard(ctx: SimContext) {
 
 /** the deflect / parry window is open */
 export const deflecting = (ctx: SimContext) => ctx.player.guardT >= 0 && ctx.player.guardT <= ctx.rules.combat.guardWindow;
-/** holding Guard past the window */
-export const bracing = (ctx: SimContext) => ctx.player.guardT > ctx.rules.combat.guardWindow;
 
 /** the Weight the field Pokémon's Guard counts as: its weight class (src/rules/species.ts weightClass). A Guard deflects
  *  a body or shot no heavier, and parries a hit of that Weight or less */

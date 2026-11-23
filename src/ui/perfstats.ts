@@ -20,7 +20,7 @@ export interface FrameSample {
   mouse: number;
 }
 
-export interface WindowStats {
+interface WindowStats {
   frames: number;
   /** seconds covered by the samples in the window */
   span: number;

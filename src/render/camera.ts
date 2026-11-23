@@ -64,7 +64,7 @@ export const CHASE_CONFIG = {
    *  pinned `reticle.below` under the crosshair line and exp 1, every body's lowest drawn point lands at about the same
    *  height in the frame (0.88 to 0.94 of it): over the HUD's move bar in a 1080p window, at most 2 % of the frame under
    *  it at 720p (scripts/camframe.ts "HUD"). `settle`: smoothing (s) when the squad tags a Pokémon with another outline
-   *  (an evolution or any size change counts: the outline changes). `max` 14 (F3, docs/size-extremes-plan.md; was 9):
+   *  (an evolution or any size change counts: the outline changes). `max` 14 (F3, docs/archive/size-extremes-plan.md; was 9):
    *  the law itself sets every partner's distance under it, the largest giant (Eternatus, capture-only) wanting 13.75 m,
    *  so no partner is held short of its framing */
   frame: { ref: 1.9, boom: 4.3, exp: 1, min: 1.8, max: 14, settle: 0.45 },

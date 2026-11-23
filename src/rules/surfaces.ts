@@ -11,9 +11,9 @@ import type { Element } from './elements';
 export type MaterialId = 'grass' | 'leaf' | 'wood' | 'stone' | 'water' | 'ice';
 export type AgentId = 'heat' | 'wet' | 'cold' | 'charge';
 /** what one agent does to one material */
-export type Reaction = 'ignite' | 'douse' | 'freeze' | 'melt' | 'steam' | 'conduct' | 'none';
+type Reaction = 'ignite' | 'douse' | 'freeze' | 'melt' | 'steam' | 'conduct' | 'none';
 
-export interface Material {
+interface Material {
   /** Pokémon type it takes damage as (type chart) */
   type: Element;
   /** seconds it burns (0 = does not burn) */

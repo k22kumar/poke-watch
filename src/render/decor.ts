@@ -113,7 +113,7 @@ export function decorSprites(biome: string): Map<string, ImageData> {
   return out;
 }
 
-export interface DecorItem { key: string; frames: number; x: number; z: number; tile: number; sway: number; flip: boolean; shade: number; burns: boolean }
+interface DecorItem { key: string; frames: number; x: number; z: number; tile: number; sway: number; flip: boolean; shade: number; burns: boolean }
 
 const h = (x: number, y: number, s: number) => {
   let n = (x * 374761393 + y * 668265263 + s * 2246822519) >>> 0;

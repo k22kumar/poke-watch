@@ -11,8 +11,8 @@
 //                                    balcony to the platform exists (the quick exit)
 //                sanctuary:counter   the balcony is a position either side can take and answer: reachable by baseline walking
 //                                    from both stagings by a short stair from the platform, and the court sees its edge
-import { navOpen, navTop } from '../gen/util';
-import type { GateResult } from '../gen/context';
+import { navOpen, navTop } from '../tilenav';
+import type { GateResult } from '../genmeta';
 import { pathBetween } from '../locgen/nav';
 import type { ArenaMap } from '../tiles';
 import { HK, type HabCtx } from './ctx';

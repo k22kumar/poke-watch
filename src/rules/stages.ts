@@ -1,7 +1,6 @@
 // Biomes and the stages' regions. PokéBonk keeps biomes as data entries (size, ground set,
 // cliff colours, prop densities); this file is the Poke-Watch equivalent.
 
-
 export interface BiomeDef {
   id: string;
   name: string;
@@ -22,12 +21,12 @@ export interface BiomeDef {
 }
 
 /** a stage's region: only its biome since the spawn pools were deleted at pivot step 9 */
-export interface StageDef {
+interface StageDef {
   biome: string;
 }
 
 /** the regions' biomes in stage order */
-export const REGION_BIOMES = ['meadow', 'badlands', 'frost', 'dusk'] as const;
+const REGION_BIOMES = ['meadow', 'badlands', 'frost', 'dusk'] as const;
 
 export const BIOMES: Record<string, BiomeDef> = {
   meadow: {

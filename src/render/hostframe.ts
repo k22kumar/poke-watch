@@ -33,7 +33,7 @@ export function lookDelta(mouse: readonly [number, number], stick: readonly [num
   return yaw || pitch ? [yaw, pitch] : null;
 }
 
-export interface FrameHooks<V> {
+interface FrameHooks<V> {
   /** apply this frame's look input to the camera */
   look(): void;
   /** the view every tick of this frame aims with (taken once, after look) */
@@ -43,7 +43,7 @@ export interface FrameHooks<V> {
   tick(view: V): 'go' | 'end' | 'abort';
 }
 
-export interface FrameResult<V> {
+interface FrameResult<V> {
   /** the accumulator left after the steps (the render interpolates by acc / dt) */
   acc: number;
   steps: number;

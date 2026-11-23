@@ -1,9 +1,9 @@
 import { TRAVERSAL_TEMPLATES } from './traversal';
 // Every tunable number lives here. Systems read ctx.rules, never literals.
-// Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/ANALYSIS.md),
+// Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/archive/ANALYSIS.md),
 // [I] inferred, [B] Poke-Watch's own choice where the original is unknown.
 
-export interface ArchetypeTemplate {
+interface ArchetypeTemplate {
   dmg: number; // base damage per hit
   cd: number; // cooldown seconds
   range: number; // targeting / travel range (m)
@@ -31,7 +31,6 @@ export const defaultRules = {
   world: {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
     gridCell: 3, // [C] spatial grid cell (m)
-    chests: 6, // [B] drawn from each arena's designed chest spots
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
@@ -371,19 +370,17 @@ export const defaultRules = {
     /** crowd-control meter: after `limit` s of stun / freeze / root inside the decay window, immune for `immune` s */
     cc: { limit: 2, decay: 1 / 3, immune: 4 },
   },
-  // [I] Procedural world (docs/WORLDGEN.md, Procedural Pokémon World Blueprint). `mode: 'authored'` keeps the
-  // handcrafted arenas exactly (replay checksums unchanged); 'generated' builds each listed biome's region from the
-  // stage seed (seed + stage*7919 + loop*104729) with src/world/gen. Biomes not listed stay authored.
+  // [I] Generated maps (src/world/maps.ts). `mode: 'authored'` keeps the handcrafted arenas exactly; 'generated' builds
+  // each stage biome that `locations` names from the stage seed (seed + stage*7919 + loop*104729). Other biomes stay
+  // authored (the classic generator was deleted at C1).
   worldgen: {
     mode: 'authored' as 'authored' | 'generated',
-    biomes: ['meadow', 'badlands', 'frost', 'dusk'] as string[],
     size: 128, // tiles (m) per side of a generated region
-    version: 2, // goes in the map id, the map checksum and the replay; bump when the generator's output changes
     regionSeed: -1, // ≥ 0: use this region seed for every stage instead of the run's (experiments: hold the map, vary the run)
     /** an authored arena that replaces every stage's map: 'range' is the training range (src/world/arenas.ts) */
     arena: '',
-    /** Pokémon locations (src/world/locations, docs/LOCATIONS.md): a stage biome listed here is built by the location
-     *  generator (src/world/locgen) from that location's data instead of the classic generator. '' = classic. Chosen
+    /** Pokémon locations (src/world/locations, docs/LOCATIONS.md) or habitat recipes: a stage biome listed here is built
+     *  by the location generator (src/world/locgen) or the habitat generator from that data. '' = authored. Chosen
      *  where the stage's spawn table fits the place's canonical ecology; any location can be forced with ?loc=. */
     locations: { meadow: 'viridian-forest', dusk: 'mt-moon', badlands: '', frost: '' } as Record<string, string>,
   },

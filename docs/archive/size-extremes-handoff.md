@@ -1,11 +1,11 @@
 # Size extremes handoff: giant scaling, measurement axis, catalogue families as runtime actors
 
 > **Historical record (the original S1–S3 prompt).** What is current, including the size-flag default flip of 2026-11-18
-> (`axis`, `xlContinuous` and `xlTall` on by default), is in `docs/size-extremes-plan.md`.
+> (`axis`, `xlContinuous` and `xlTall` on by default), is in `docs/archive/size-extremes-plan.md`.
 
 Written 2026-11-18 from a read-only audit of `main` at `b89fb55`, for the Claude Code sessions that run Prompts S1–S3.
-Progress goes in `docs/size-extremes-plan.md` (create it in S1), one section per prompt, in the style of
-`docs/pokemon-integration-plan.md`.
+Progress goes in `docs/archive/size-extremes-plan.md` (create it in S1), one section per prompt, in the style of
+`docs/archive/pokemon-integration-plan.md`.
 
 ## Owner decisions (2026-11-18)
 
@@ -20,7 +20,7 @@ Progress goes in `docs/size-extremes-plan.md` (create it in S1), one section per
    their calculated sizes and collision/hurtbox overlays, and check terrain clipping, headroom, targeting and camera
    framing. Report any mismatch that needs a supporting gameplay adjustment instead of silently changing it.
 7. **Import scope:** the 108 catalogue families in `content/catalogue.json` (210 species; 41 already runtime actors,
-   169 new). Appendix C of `docs/pokemon-integration-handoff.md` is the authority for the family list.
+   169 new). Appendix C of `docs/archive/pokemon-integration-handoff.md` is the authority for the family list.
 
 ## Audit facts this handoff relies on
 
@@ -81,7 +81,7 @@ Recomputed from PokéAPI tables (all 1,025 default species) against the current 
 ## Prompt S2: catalogue families as runtime actors (role lane)
 
 1. On the Mac (needs network): `npm run fetch-sources`, then import the 169 new species through the role lane
-   (`content/roster.json` → `npm run content`). Varieties stay catalogue-only (F2 in `docs/pokemon-integration-plan.md`
+   (`content/roster.json` → `npm run content`). Varieties stay catalogue-only (F2 in `docs/archive/pokemon-integration-plan.md`
    is unresolved).
 2. Each species needs a role. Propose one default rule from data, never per-species hand edits, and stop for owner
    approval before writing it:
