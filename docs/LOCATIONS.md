@@ -132,7 +132,7 @@ Before this gate, `wideBoss` read 73 / 50 / 37 % of seeds (Viridian Forest / Mt.
 | | Viridian Forest | Mt. Moon | Chargestone Cave | classic Meadow |
 | --- | --- | --- | --- | --- |
 | seeds passing every gate (total attempts for 30) | 30/30 (72) | 30/30 (48) | 30/30 (44) | — |
-| generation time p50 / p95 / max | 45 / 119 / 146 ms | 14 / 41 / 65 ms | 15 / 42 / 43 ms | p50 73, p95 160 ms (WORLDGEN.md) |
+| generation time p50 / p95 / max | 45 / 119 / 146 ms | 14 / 41 / 65 ms | 15 / 42 / 43 ms | p50 73, p95 160 ms (WORLDGEN.md, at tag `maplebrook-final`) |
 | distinct zone graphs | 30/30 | 30/30 | 30/30 | — |
 | tiers used (mean) | 2.0 | 2.63 | 2.83 | — |
 | reachable ground ≥ 2.5 m | 37 % | 85 % (spawn floor is tier 1) | 69 % | 5 % |

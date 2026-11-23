@@ -93,6 +93,31 @@ BFS runs, unchanged.
 `createBody` is the Create verb (Rock Throw's rock as a Tag Action). Each player keeps at most `createCap` = 6
 created bodies; the oldest breaks first.
 
+## Prop materials and the overlay (`rules/surfaces.ts`, `sim/props.ts`)
+
+Moved from `docs/WORLDGEN.md` (W4) when the classic generator was deleted at C1; the rules are unchanged.
+
+`rules/surfaces.ts` holds six materials (grass, leaf, wood, stone, water, ice), the 24-cell reaction table and the prop
+kind → material map. Tiles keep running in `sim/cells.ts`; props run in `sim/props.ts`.
+
+| Rule | Value |
+| --- | --- |
+| Overlay | each `World` copies the map's `wall` and `platform` (the cached base map other runs share is never written); `World.setBlock` is the only writer and refreshes navigation |
+| Heat on leaf / wood | burns 3 s / 6 s; its tiles burn (the existing fire overlay and flow-field cost apply) |
+| Spread | a burning prop lights tall grass beside it (0.18 per pass, as grass does) and props beside it (0.06 per pass for leaf, × 0.045 for wood: about 1 in 7 over a neighbour's burn, so a forest fire dies out instead of crossing the region); burning grass lights props beside it (0.02 per pass, wood × 0.045) |
+| Burn out | wood leaves a stump (0.65 m platform on one tile, the rest open ground); leaf leaves nothing; tiles go to ash |
+| Wet / Cold on a burning prop | doused (its tiles wet) |
+| Force | a Push (area moves) or an impact (a body hitting it at ≥ 5 m/s) of Power ≥ the prop's Weight breaks it; weaker pushes chip integrity × type chart |
+| Break | stone → rubble bodies (Push and Hold act on them) and a rubble patch; wood → stump; leaf, fences → gone |
+| Never break | the elder oak, cabins, the shrine, statues, lanterns, lamps, the well, signs, crystals, vents; bridges are terrain |
+| Cover cap | lost + burning cover may not exceed 40 % of the region's cover pieces; past it nothing more ignites or breaks |
+| Watchdog | every 2 s, reachable tiles from the spawn against the base map; under 90 % reverts the oldest stumps |
+| State hash | prop states are hashed when any prop has changed (an untouched overlay hashes as nothing) |
+| Flags | `surfaces.inAuthored` (default false) applies materials to the handcrafted arenas too. By default they apply to generated maps only (location and habitat maps), because on the authored Meadow bot runs die much earlier with them (Cyndaquil seed 2: level 9 instead of 24), a balance change that needs people, not a bot |
+
+The renderer draws burnt wood as a stump at the footprint's south-west tile, skips burnt leaf and broken props, and drops
+their shadows.
+
 ## Event log, death recap and debugging (`sim/caplog.ts`)
 
 Every settled capability event is written to a fixed ring of preallocated records (`ctx.caplog`, 512 world records plus
