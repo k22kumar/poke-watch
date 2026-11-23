@@ -37,6 +37,8 @@ export interface Backend {
   readonly edges: boolean;
   /** extra notes for the record (feature support seen at run time) */
   notes: string[];
+  /** the three renderer, for debugging from the console (s2.B._r) */
+  _r: unknown;
 }
 
 export type BackendFactory = (canvas: HTMLCanvasElement) => Promise<Backend>;

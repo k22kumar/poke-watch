@@ -107,7 +107,7 @@ export async function createWebGL(canvas: HTMLCanvasElement): Promise<Backend> {
   let edge: { rt: WebGLRenderTarget; nrt: WebGLRenderTarget; mat: ShaderMaterial; quad: Mesh; qs: Scene; qc: OrthographicCamera; nm: MeshNormalMaterial; hide: Object3D[] } | null = null;
 
   const b: Backend = {
-    id: 'webgl', actual: 'WebGL 2 (WebGLRenderer)', canvas, cu, notes,
+    id: 'webgl', actual: 'WebGL 2 (WebGLRenderer)', canvas, cu, notes, _r: renderer,
     get edges() { return edgeOn; },
     setSize(w, h) {
       renderer.setSize(w, h, false);

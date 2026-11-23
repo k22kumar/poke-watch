@@ -215,6 +215,7 @@ export async function bootS2(params: URLSearchParams) {
 
   const camera = new PerspectiveCamera(64, w0 / h0, 0.3, 240);
   camera.rotation.order = 'YXZ';
+  scene.userData.cam = camera; // debug: tools read the camera with the scene
   const rig = new ChaseRig();
   rig.snapTo(P.x, P.y, P.z, Math.PI);
   if (params.get('edges') === '1') B.enableEdges(scene, camera, creatureMeshes);

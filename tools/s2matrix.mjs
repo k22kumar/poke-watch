@@ -21,6 +21,8 @@ if (want.has('live')) for (const b of BE) add('live', 'all', `backend=${b}&map=r
 if (want.has('cshadow')) for (const b of BE) add('cshadow', 'all', `backend=${b}&${base}&res=1920x1080&cshadow=1`);
 // a heavier scene, to see how the configurations scale past what this GPU shrugs off
 if (want.has('stress')) for (let rep = 0; rep < 2; rep++) for (const b of BE) add('stress', 'all', `backend=${b}&${base}&res=1920x1080&actors=1500&props=instanced&propN=5000&cshadow=1&shadowSize=4096`);
+// WebGPURenderer's output path: the default RGBA16F intermediate + output blit, an RGBA8 one, none (linear output)
+if (want.has('output')) for (const o of ['', '&obuf=8', '&olinear=1']) for (const b of ['webgpu', 'webgpu-gl']) for (const sc of ['map=range&res=1920x1080', `${base}&res=1920x1080&actors=1500&props=instanced&propN=5000&cshadow=1&shadowSize=4096`]) add('output', 'all', `backend=${b}&${sc}${o}`);
 if (want.has('boot')) for (let rep = 0; rep < 5; rep++) for (const b of BE) add('boot', b === 'webgl' ? 'webgl' : 'webgpu', `backend=${b}&map=range&res=1280x720&freeze=1`, 1, 0);
 fs.writeFileSync(out, '');
 for (const [i, r] of runs.entries()) {

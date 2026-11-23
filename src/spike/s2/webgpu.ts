@@ -1,7 +1,7 @@
 // S2 spike: configurations 2 and 3, WebGPURenderer from 'three/webgpu' (on WebGPU, and with forceWebGL on its WebGL 2
 // backend). ShaderMaterial does not run here, so the creature billboard is a TSL node material: the same maths as the
 // game's CREATURE_VS / CREATURE_FS, LEAN_GLSL and SPRITE_SAMPLE_GLSL, written as nodes. Never merged.
-import { GreaterDepth, MeshBasicNodeMaterial, PCFShadowMap, RenderPipeline, Vector3, Vector4, WebGPURenderer, type Camera, type Object3D, type Scene, type Texture } from 'three/webgpu';
+import { GreaterDepth, LinearSRGBColorSpace, MeshBasicNodeMaterial, UnsignedByteType, PCFShadowMap, RenderPipeline, Vector3, Vector4, WebGPURenderer, type Camera, type Object3D, type Scene, type Texture } from 'three/webgpu';
 import {
   Discard, Fn, If, abs, atan, attribute, cameraFar, cameraNear, clamp, cos, dFdx, dFdy, packNormalToRGB, perspectiveDepthToViewZ, dot, float, floor, length, max, min, mix, mod,
   mrt, normalView, output, pass, positionGeometry, screenCoordinate, screenUV, select, sign, sin, texture, textureSize, uniform,
@@ -46,7 +46,11 @@ export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolea
   const notes: string[] = [];
   const hasGPU = typeof navigator !== 'undefined' && !!(navigator as unknown as { gpu?: unknown }).gpu;
   notes.push(`navigator.gpu: ${hasGPU ? 'yes' : 'no'}`);
-  const renderer = new WebGPURenderer({ canvas, antialias: false, forceWebGL, trackTimestamp: true, powerPreference: 'high-performance' } as never);
+  // ?obuf=8: an RGBA8 intermediate instead of the default RGBA16F one; ?olinear=1: linear output, so no intermediate and
+  // no output blit at all (colours then need the sRGB transform in the materials; measurement only)
+  const q = new URLSearchParams(location.search);
+  const renderer = new WebGPURenderer({ canvas, antialias: false, forceWebGL, trackTimestamp: true, powerPreference: 'high-performance', ...(q.get('obuf') === '8' ? { outputBufferType: UnsignedByteType } : {}) } as never);
+  if (q.get('olinear') === '1') renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.setPixelRatio(1);
   await renderer.init();
   const be = (renderer as unknown as { backend: { isWebGPUBackend?: boolean; trackTimestamp?: boolean } }).backend;
@@ -82,7 +86,7 @@ export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolea
   let edgeOn = false;
   let pipe: RenderPipeline | null = null;
   const b: Backend = {
-    id, actual, canvas, cu, notes,
+    id, actual, canvas, cu, notes, _r: renderer,
     get edges() { return edgeOn; },
     setSize(w, h) { renderer.setSize(w, h, false); },
     setShadows(on) { renderer.shadowMap.enabled = on; renderer.shadowMap.type = PCFShadowMap; },
