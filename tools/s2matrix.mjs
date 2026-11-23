@@ -1,7 +1,7 @@
 // S2 spike: the measurement matrix of docs/spikes/S2-renderer.md, one tools/s2perf.mjs run per line of output (JSONL).
 // node tools/s2matrix.mjs <builds dir> <out.jsonl> [group,...]
 // <builds dir> holds the S2_THREE builds: all/, webgl/, webgpu/ (scripts/build.mjs --out). Groups: main gorge shadow props
-// edges live boot. Every run is vsync-capped headed Chromium on the real GPU.
+// edges live boot cshadow stress. Every run is vsync-capped headed Chromium on the real GPU.
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -18,6 +18,9 @@ if (want.has('shadow')) for (const s of ['shadow=0', 'shadowSize=1024', 'shadowS
 if (want.has('props')) for (const p of ['instanced', 'batched']) for (const b of BE) add('props', 'all', `backend=${b}&${base}&res=1920x1080&props=${p}`);
 if (want.has('edges')) for (const b of BE) add('edges', 'all', `backend=${b}&${base}&res=1920x1080&edges=1`);
 if (want.has('live')) for (const b of BE) add('live', 'all', `backend=${b}&map=range&res=1920x1080`);
+if (want.has('cshadow')) for (const b of BE) add('cshadow', 'all', `backend=${b}&${base}&res=1920x1080&cshadow=1`);
+// a heavier scene, to see how the configurations scale past what this GPU shrugs off
+if (want.has('stress')) for (let rep = 0; rep < 2; rep++) for (const b of BE) add('stress', 'all', `backend=${b}&${base}&res=1920x1080&actors=1500&props=instanced&propN=5000&cshadow=1&shadowSize=4096`);
 if (want.has('boot')) for (let rep = 0; rep < 5; rep++) for (const b of BE) add('boot', b === 'webgl' ? 'webgl' : 'webgpu', `backend=${b}&map=range&res=1280x720&freeze=1`, 1, 0);
 fs.writeFileSync(out, '');
 for (const [i, r] of runs.entries()) {

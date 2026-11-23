@@ -15,25 +15,30 @@ type N = any; // TSL node chains are typed loosely in @types/three; the spike do
 const tsize: N = textureSize, v2: N = vec2, fmax: N = max, fsel: N = select;
 
 /** SPRITE_SAMPLE_GLSL as nodes: one nearest tap at a texel per pixel or larger, else an n×n box (n 2 or 3) of nearest
- *  taps clamped inside the sprite's frame, alpha-weighted. The 3×3 loop is unrolled in JS with a mask per tap. */
+ *  taps clamped inside the sprite's frame, alpha-weighted. The 3×3 loop is unrolled in JS with a mask per tap. (The
+ *  first port `select`ed between both results: every pixel paid all ten taps, +0.7 ms GPU in the live crowd.) */
 function spriteTex(tex: Texture, uv: N, rect: N): N {
   const ts = v2(tsize(texture(tex), 0));
+  // derivatives first, in uniform control flow (WGSL); every sample below has an explicit level, so the branch is legal
   const dx = dFdx(uv), dy = dFdy(uv);
-  const fp = max(length(dx.mul(ts)), length(dy.mul(ts)));
-  const one = (texture(tex, uv) as N).level(0);
-  const n = select(fp.lessThan(2.3), float(2), float(3));
-  const half = vec2(0.5).div(ts);
-  const lo = min(rect.xy, rect.zw).add(half), hi = fmax(rect.xy, rect.zw).sub(half);
-  let acc: N = vec4(0);
-  for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
-    const k = vec2(i + 0.5, j + 0.5).div(n).sub(0.5);
-    const c: N = (texture(tex, clamp(uv.add(dx.mul(k.x)).add(dy.mul(k.y)), lo, hi)) as N).level(0);
-    const m = i < 2 && j < 2 ? float(1) : fsel(n.greaterThan(2.5), float(1), float(0));
-    acc = acc.add(vec4(c.rgb.mul(c.a), c.a).mul(m));
-  }
-  acc = acc.div(n.mul(n));
-  const box = select(acc.a.greaterThan(0), vec4(acc.rgb.div(acc.a), acc.a), vec4(0));
-  return select(fp.lessThan(1.3), one, box);
+  const fp = fmax(length(dx.mul(ts)), length(dy.mul(ts)));
+  const out: N = vec4(0).toVar();
+  // a real branch, as in the GLSL: a close sprite (most of the screen's sprite pixels) pays one tap, not ten
+  If(fp.lessThan(1.3), () => { out.assign((texture(tex, uv) as N).level(0)); }).Else(() => {
+    const n = fsel(fp.lessThan(2.3), float(2), float(3));
+    const half = vec2(0.5).div(ts);
+    const lo = min(rect.xy, rect.zw).add(half), hi = fmax(rect.xy, rect.zw).sub(half);
+    let acc: N = vec4(0);
+    for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
+      const k = vec2(i + 0.5, j + 0.5).div(n).sub(0.5);
+      const c: N = (texture(tex, clamp(uv.add(dx.mul(k.x)).add(dy.mul(k.y)), lo, hi)) as N).level(0);
+      const m = i < 2 && j < 2 ? float(1) : fsel(n.greaterThan(2.5), float(1), float(0));
+      acc = acc.add(vec4(c.rgb.mul(c.a), c.a).mul(m));
+    }
+    acc = acc.div(n.mul(n));
+    out.assign(fsel(acc.a.greaterThan(0), vec4(acc.rgb.div(acc.a), acc.a), vec4(0)));
+  });
+  return out;
 }
 
 export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolean): Promise<Backend> {
@@ -71,7 +76,7 @@ export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolea
     return iA.xyz.add(uRight.mul(lx)).add(up.mul(ly.sub(iD.w))).add(vec3(0, iD.w, 0)).sub(uFwd.mul(iC.w));
   })();
   const vUV: N = varying(vec2(mix(iUV.x, iUV.z, corner.x.add(0.5)), mix(iUV.w, iUV.y, corner.y)));
-  const vRect: N = varying(iUV);
+  const vRect: N = varying(iUV).setInterpolation('flat');
   const vC: N = varying(iC), vTint: N = varying(iD.xyz);
 
   let edgeOn = false;
@@ -101,6 +106,8 @@ export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolea
       if (xray) { m.depthFunc = GreaterDepth; m.depthWrite = false; m.fog = false; }
       return m;
     },
+    // the shadow pass reuses positionNode and the colorNode's alpha and Discard (Renderer._getShadowNodes): nothing to write
+    creatureShadow(mesh) { mesh.castShadow = true; },
     render(scene, camera) {
       // with the pipeline (scene pass + quad) the info is summed over both passes
       if (pipe) { renderer.info.autoReset = false; renderer.info.reset(); pipe.render(); renderer.info.autoReset = true; } else renderer.render(scene, camera);
@@ -136,6 +143,5 @@ export async function createWebGPU(canvas: HTMLCanvasElement, forceWebGL: boolea
       edgeOn = true;
     },
   };
-  void If;
   return b;
 }

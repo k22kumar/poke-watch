@@ -58,6 +58,11 @@ void main(){
   #include <fog_fragment>
 }`;
 
+// the shadow pass: the same vertex shader (three binds the light's view and projection), alpha-tested, no colour
+const DEPTH_FS = /* glsl */ `
+uniform sampler2D uTex; varying vec2 vUV;
+void main(){ if (texture2D(uTex, vUV).a < 0.5) discard; gl_FragColor = vec4(1.0); }`;
+
 // edge pass (step 3 extra): colour + depth from the main pass, view normals from a pre-pass with MeshNormalMaterial
 // (WebGLRenderer's built-in materials write one colour output, so there is no MRT normal for free)
 const EDGE_VS = /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
@@ -113,6 +118,10 @@ export async function createWebGL(canvas: HTMLCanvasElement): Promise<Backend> {
       const m = new ShaderMaterial({ vertexShader: VS, fragmentShader: FS, uniforms: { ...shared, uTex: { value: tex } }, fog: true, defines: xray ? { XRAY: 1 } : {} });
       if (xray) { m.depthFunc = GreaterDepth; m.depthWrite = false; }
       return m;
+    },
+    creatureShadow(mesh, tex) {
+      mesh.castShadow = true;
+      mesh.customDepthMaterial = new ShaderMaterial({ vertexShader: VS, fragmentShader: DEPTH_FS, uniforms: { ...shared, uTex: { value: tex } } });
     },
     render(scene, camera: Camera) {
       let q: WebGLQuery | null = null;

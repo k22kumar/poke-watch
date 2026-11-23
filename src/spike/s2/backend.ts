@@ -1,5 +1,5 @@
 // S2 spike (docs/spikes/S2-renderer.md): what each renderer configuration gives the shared scene code. Never merged.
-import type { Camera, Material, Object3D, Scene, Texture, Vector3, Vector4 } from 'three';
+import type { Camera, Material, Mesh, Object3D, Scene, Texture, Vector3, Vector4 } from 'three';
 
 export type BackendId = 'webgl' | 'webgpu' | 'webgpu-gl';
 
@@ -23,6 +23,8 @@ export interface Backend {
   setShadows(on: boolean): void;
   /** a creature billboard material for one atlas; `xray` = the silhouette variant (depth GREATER, no depth write) */
   creatureMaterial(tex: Texture, xray: boolean): Material;
+  /** let a creature mesh cast an alpha-tested shadow (its card still faces the main camera) */
+  creatureShadow(mesh: Mesh, tex: Texture): void;
   /** the shared uniforms creatureMaterial reads */
   readonly cu: CreatureUniforms;
   /** draw one frame (with the optional edge pass when enabled) */

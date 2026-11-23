@@ -3,7 +3,7 @@
 // renderer is not built on this path. Spike code: never merged.
 //
 // Query: ?render=three&backend=webgl|webgpu|webgpu-gl&map=range|river-gorge&actors=240&shadow=1&shadowSize=2048
-//        &shadowExtent=40&props=none|instanced|batched&propN=500&edges=0|1&res=1280x720&orbit=20&freeze=1&perf=1&species=charmander
+//        &shadowExtent=40&cshadow=1&props=none|instanced|batched&propN=500&edges=0|1&res=1280x720&orbit=20&freeze=1&perf=1&species=charmander
 import {
   BatchedMesh, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, DynamicDrawUsage, Fog,
   HemisphereLight, IcosahedronGeometry, InstancedBufferAttribute, InstancedBufferGeometry, InstancedMesh, Matrix4, Mesh,
@@ -67,6 +67,8 @@ export async function bootS2(params: URLSearchParams) {
   const speciesId = params.get('species') ?? 'charmander';
   // ?freeze=1: no sim ticks after the spawn (the crowd stays on its ring), so every configuration draws the same frames
   const freeze = params.get('freeze') === '1';
+  // ?cshadow=1: creature billboards cast shadows too
+  const creatureShadows = params.get('cshadow') === '1' && params.get('shadow') !== '0';
   const factory = BACKENDS[backendId];
   if (!factory) throw new Error(`backend ${backendId} is not in this build (built with: ${Object.keys(BACKENDS).join(', ')})`);
 
@@ -191,6 +193,7 @@ export async function bootS2(params: URLSearchParams) {
     geo.instanceCount = 0;
     const mesh = new Mesh(geo, B.creatureMaterial(tex, false));
     mesh.frustumCulled = false;
+    if (creatureShadows) B.creatureShadow(mesh, tex);
     scene.add(mesh);
     const sz = speciesSizing(sp, art.heightPx / TEXELS_PER_METRE, (art.widthPx ?? 0) / TEXELS_PER_METRE, ctx.rules.size);
     const walk = art.clips.walk;
@@ -238,7 +241,7 @@ export async function bootS2(params: URLSearchParams) {
   if (overlay) { overlay.style.cssText = 'position:fixed;left:8px;top:8px;margin:0;z-index:9;background:rgba(10,14,24,.84);color:#e8eefc;font:12px/1.4 ui-monospace,Menlo,monospace;padding:8px 10px;border-radius:6px;pointer-events:none'; document.body.appendChild(overlay); }
   let textT = 0;
   const report = (ivs = st.iv, cpus = st.cpu, sims = st.sim, gpus = st.gpu) => ({
-    backend: B.id, actual: B.actual, map: mapId, res: `${canvas.width}x${canvas.height}`, shadows, shadowSize, props: propsMode, propN, edges: B.edges, actors: nActors,
+    backend: B.id, actual: B.actual, map: mapId, creatureShadows, res: `${canvas.width}x${canvas.height}`, shadows, shadowSize, props: propsMode, propN, edges: B.edges, actors: nActors,
     frames: ivs.length, fps: r2(1000 / q(ivs, 0.5)),
     frameMs: { p50: r2(q(ivs, 0.5)), p95: r2(q(ivs, 0.95)), p99: r2(q(ivs, 0.99)), max: r2(q(ivs, 1)) },
     cpuRenderMs: { p50: r2(q(cpus, 0.5)), p95: r2(q(cpus, 0.95)) }, simMs: { p50: r2(q(sims, 0.5)), p95: r2(q(sims, 0.95)) },
