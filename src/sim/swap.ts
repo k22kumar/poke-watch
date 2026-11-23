@@ -11,6 +11,7 @@ import { resolve, setCastSlot } from './capabilities';
 import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './moves';
 import { firstAlive } from './squad';
 import { BTN, type Member, type MoveSpec, type SimContext, type System } from './types';
+import { GROUND, worldOf } from './worldquery';
 
 /** move slot index stamped on a Tag Action's projectiles and zones (any slot other than 0 coats deep) */
 export const TAG_SLOT = 9;
@@ -82,7 +83,7 @@ function castTagAction(ctx: SimContext) {
   const [ax, az] = aimPoint();
   const def = tagDefOf(m)!;
   if (def.create === 'rock') {
-    const [x, z] = ctx.world.walkable(ax, az) ? [ax, az] : ctx.world.nearestWalkable(ax, az);
+    const W = worldOf(ctx), [x, z] = W.walkableAt(ax, GROUND, az) ? [ax, az] : W.nearestWalkableAt(ax, GROUND, az);
     // Create goes through the resolver (Phase 8a: capped per player, logged)
     resolve(ctx, { verb: 'create', power: 0, type: spec.element, owner: TEAM.player, x, z, dx: 0, dz: 0, source: { kind: 'tag', id: TAG_SLOT, name: spec.name }, target: { kind: 'tile', id: -1 }, template: def.create });
   }

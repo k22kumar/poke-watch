@@ -58,6 +58,7 @@ import { brambleAt } from './cells';
 import { resolve } from './capabilities';
 import { Contacts, MASK, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
 import { combatFlags } from './aim';
+import { GROUND, worldOf } from './worldquery';
 
 const ds: DamageSpec = { element: 'plain', cls: 'special', ailment: 'knock', chance: 0, knock: 0, kx: 0, kz: 0, drain: 0, source: '' };
 
@@ -161,7 +162,7 @@ export const projectileSystem = {
     const Pr = ctx.projectiles;
     const E = ctx.enemies;
     const P = ctx.player;
-    const W = ctx.world;
+    const W = worldOf(ctx), T = W.tiles;
     const lightBodies = capsOn(ctx, 'interception');
     // the active partner's hurt cylinder (rules/sizing.ts: its size class, or the old shared 0.55 m × 1.2 m)
     const pr = partnerRadius(P.species, ctx.rules), ph = partnerHeight(P.species, ctx.rules);
@@ -181,11 +182,11 @@ export const projectileSystem = {
       if (kind === PK.hostile) {
         Pr.x[i] += Pr.vx[i] * dt;
         Pr.z[i] += Pr.vz[i] * dt;
-        if (W.los) {
+        if (T.los) {
           // location maps: terrain and walls are cover (a cliff lip, trees, rock, a boulder or a bush top stops it)
           Pr.y[i] += Pr.vy[i] * dt;
-          if (W.wallAt(Pr.x[i], Pr.z[i]) && !(W.over && W.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= W.w * W.h) || W.height(Pr.x[i], Pr.z[i], Pr.y[i]) > Pr.y[i] - 0.15) { Pr.kill(i); continue; }
-        } else Pr.y[i] = W.height(Pr.x[i], Pr.z[i]) + 0.9;
+          if (T.wallAt(Pr.x[i], Pr.z[i]) && !(T.over && T.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= T.w * T.h) || W.surfaceAt(Pr.x[i], Pr.y[i], Pr.z[i]) > Pr.y[i] - 0.15) { Pr.kill(i); continue; }
+        } else Pr.y[i] = W.surfaceAt(Pr.x[i], GROUND, Pr.z[i]) + 0.9;
         // rocks and boulders are cover: enemy shots stop on them
         let blocked = false;
         eachBodyIn(ctx, Pr.x[i], Pr.z[i], Pr.radius[i], (b) => { if (tpl(ctx, b).weight >= 1) blocked = true; });
@@ -242,14 +243,14 @@ export const projectileSystem = {
         Pr.z[i] += Pr.vz[i] * dt;
       }
       // layered maps: the surface under the shot at its own level (a deck above, or the ground below it)
-      const ground = W.over ? W.height(Pr.x[i], Pr.z[i], Pr.y[i] - 0.7) : W.height(Pr.x[i], Pr.z[i]);
+      const ground = T.over ? W.surfaceAt(Pr.x[i], Pr.y[i] - 0.7, Pr.z[i]) : W.surfaceAt(Pr.x[i], GROUND, Pr.z[i]);
       if (kind === PK.lob) {
         const f = 1 - Math.max(0, Pr.life[i]) / Pr.maxLife[i];
         Pr.y[i] = ground + 0.6 + dsin(f * Math.PI) * 4.5;
         if (Pr.life[i] <= 0) { explode(ctx, i); Pr.kill(i); }
         continue;
       }
-      if (W.los && kind !== PK.orbit) {
+      if (T.los && kind !== PK.orbit) {
         // location maps: a shot keeps its height, sinks off a ledge (7 m/s) and stops on a rising cliff face
         const prev = Pr.y[i];
         if (ground + 0.7 > prev + 0.6) { endShot(ctx, i); continue; }
@@ -266,7 +267,7 @@ export const projectileSystem = {
         const rr = Pr.radius[i] + E.radius[e];
         if (dx * dx + dz * dz > rr * rr) continue;
         // location maps: a shot passes over a creature on the floor below (or under one on the ledge above)
-        if (W.los && kind !== PK.orbit && Math.abs(Pr.y[i] - (E.y[e] + E.tall[e] * 0.5)) > 1.1 + E.tall[e] * 0.5) continue;
+        if (T.los && kind !== PK.orbit && Math.abs(Pr.y[i] - (E.y[e] + E.tall[e] * 0.5)) > 1.1 + E.tall[e] * 0.5) continue;
         if (Pr.recentlyHit(i, e, ctx.time)) continue;
         const cool = kind === PK.orbit || kind === PK.boomerang ? 0.45 : 999;
         Pr.markHit(i, e, ctx.time + cool);
@@ -297,7 +298,7 @@ export const projectileSystem = {
       // out of bounds / hit wall
       if (Pr.alive[i] && kind === PK.straight && ground > Pr.y[i] + 1.5) endShot(ctx, i);
       // location maps: trees, rock masses and buildings stop your shots too (cover works both ways)
-      else if (Pr.alive[i] && W.los && (kind === PK.straight || kind === PK.homing || kind === PK.boomerang) && W.wallAt(Pr.x[i], Pr.z[i]) && !(W.over && W.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= W.w * W.h)) endShot(ctx, i);
+      else if (Pr.alive[i] && T.los && (kind === PK.straight || kind === PK.homing || kind === PK.boomerang) && T.wallAt(Pr.x[i], Pr.z[i]) && !(T.over && T.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= T.w * T.h)) endShot(ctx, i);
     }
     // Phase 8a: shots of opposite teams that overlap after moving: deflect, catch or cancel by Weight
     interceptPass(ctx);
@@ -310,6 +311,7 @@ export const zoneSystem = {
     const Z = ctx.zones;
     const E = ctx.enemies;
     const P = ctx.player;
+    const W = worldOf(ctx);
     for (let i = 0; i < Z.hi; i++) {
       if (!Z.alive[i]) continue;
       if (Z.attach[i]) { Z.x[i] = P.x; Z.z[i] = P.z; }
@@ -334,7 +336,7 @@ export const zoneSystem = {
         }
         if (kind === ZK.hostileSlam) {
           const dx = P.x - Z.x[i], dz = P.z - Z.z[i];
-          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - ctx.world.height(P.x, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' }, Z.src[i] >= 0 ? channelOf(ctx.speciesIndex[Z.src[i]]) : 'physical');
+          if (dx * dx + dz * dz < Z.radius[i] * Z.radius[i] && P.y - W.surfaceAt(P.x, GROUND, P.z) < 1.2) damagePlayer(ctx, Z.dmg[i], Z.x[i], Z.z[i], 1.6, 3, ELEMENTS[Z.element[i]], { kind: 'zone', name: Z.src[i] >= 0 ? ctx.speciesIndex[Z.src[i]].name : '' }, Z.src[i] >= 0 ? channelOf(ctx.speciesIndex[Z.src[i]]) : 'physical');
           ctx.events.push({ t: 'ring', x: Z.x[i], z: Z.z[i], r: Z.radius[i], element: ELEMENTS[Z.element[i]], life: 0.5 });
           ctx.events.push({ t: 'shake', amount: 0.5, x: Z.x[i], z: Z.z[i] });
           Z.kill(i);

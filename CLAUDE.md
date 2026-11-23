@@ -23,7 +23,7 @@ Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:tes
 - Dev server: `npm run dev` (http://localhost:5173)
 
 ## Architecture rules (details in README §Architecture)
-- `src/sim/` and `src/world/` never import `render/`, `ui/`, `audio/`, `input/` or `assets/`. They must run in Node.
+- Layering, enforced by `tests/imports.test.ts` (README §Architecture rule 1): `src/world/` never imports `src/sim/`, `render/`, `ui/`, `audio/`, `input/` or `assets/`, and `src/sim/` never imports `render/`, `ui/`, `audio/`, `input/` or `assets/`; both must run in Node. For the 3D overhaul, only `src/physics/` imports Rapier (`@dimforge/*`), only `src/nav/` imports recast (`recast-navigation`, `@recast-navigation/*`), and `src/sim/`, `src/world/`, `src/physics/`, `src/nav/` and `src/core/` never import `three`.
 - Fixed 1/60 s ticks, one RNG stream per system (spawn, combat, world, ai). No `Math.random`, and no clock in sim or worldgen output (`performance.now()` is used for timing metrics only).
 - Tunable numbers live in `src/rules/` (`defaults.ts` and friends). Systems read `ctx.rules`, never literals. Kept switches are real tunables (`hazards.enabled`, `aim.foliageCover`, `aim.deviceAssist`, the `caps` sub-flags); do not add an off path for an accepted feature.
 - The sim emits events. Render, audio and UI only react to them.

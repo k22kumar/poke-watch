@@ -28,7 +28,8 @@
 import { dexp } from '../core/detmath';
 import { clamp } from '../core/util';
 import type { AirPress } from '../rules/traversal';
-import { HEAD_EPS, type World } from './world';
+import { HEAD_EPS } from './world';
+import { GROUND, type WorldQuery } from './worldquery';
 
 /** how velocity becomes motion this tick (stored as a small int so pools can hold it in R7) */
 export const LOCO = { supported: 0, ballistic: 1, scripted: 2 } as const;
@@ -180,8 +181,8 @@ export const selectIntegrator = (scripted: boolean, grounded: boolean): Integrat
   scripted ? LOCO.scripted : grounded ? LOCO.supported : LOCO.ballistic;
 
 /** the medium at a body's position: a liquid it is in contact with, else its support, else air */
-export const mediumAt = (W: World, b: LocoBody, contact: number): Medium =>
-  W.liquidAt(b.x, b.z, b.y, contact) ? MEDIUM.liquid : b.grounded ? MEDIUM.support : MEDIUM.air;
+export const mediumAt = (W: WorldQuery, b: LocoBody, contact: number): Medium =>
+  W.liquidContact(b.x, b.y, b.z, contact) ? MEDIUM.liquid : b.grounded ? MEDIUM.support : MEDIUM.air;
 
 /** supported: velocity eases toward the wish at the surface's grip; the wish is scaled by the footing speed */
 function driveSupported(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number) {
@@ -206,18 +207,18 @@ function driveScripted(b: LocoBody, dx: number, dz: number, speed: number) {
 
 /** a body that dropped onto the ground at `ground` may stand in the lip (faces were measured from its feet on the way
  *  down): push its footprint clear (World.moveBody's push). Shared by the player and the enemy pool */
-export function clearLanding(W: World, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number], over?: boolean) {
-  W.moveBody(x, z, 0, 0, ground, step, foot, out, undefined, tall, over);
+export function clearLanding(W: WorldQuery, x: number, z: number, ground: number, step: number, foot: number, tall: number | undefined, out: [number, number], over?: boolean) {
+  W.moveFootprint(x, ground, z, 0, 0, step, foot, out, undefined, tall, over);
 }
 
 /** the planar move with the terrain step rule, axis-separated sliding. Only solid geometry stops it (World.collides):
  *  open liquid and open air are entered, by walking or by being knocked */
-function movePlanar(W: World, b: LocoBody, t: LocoTick, dt: number) {
+function movePlanar(W: WorldQuery, b: LocoBody, t: LocoTick, dt: number) {
   const stepX = (b.vx + b.kx) * dt, stepZ = (b.vz + b.kz) * dt;
   const feet = b.y, stepUp = t.stepUp, tall = t.tall;
   // the footprint against walls and faces (World.moveBody, docs/SIZING.md "Footprint"): it glides round corners, never
   // cuts one, and a Large or Extra Large body does not fit a one-tile gap
-  W.moveBody(b.x, b.z, stepX, stepZ, feet, stepUp, t.foot, MOVE, undefined, tall, t.over);
+  W.moveFootprint(b.x, feet, b.z, stepX, stepZ, stepUp, t.foot, MOVE, undefined, tall, t.over);
   const nx = MOVE[0], nz = MOVE[1];
   const bd = W.bound;
   b.x = clamp(nx, -bd, bd);
@@ -226,7 +227,7 @@ function movePlanar(W: World, b: LocoBody, t: LocoTick, dt: number) {
 
 /** vertical: the Jump control (jump, double jump), gravity and lift, headroom, then the support (landing, slope stick,
  *  leaving it) */
-function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, y0: number, integ: Integrator, out: LocoResult) {
+function moveVertical(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, y0: number, integ: Integrator, out: LocoResult) {
   const act = jumpControl(b, it, t, L, dt, integ);
   if (act === ACT.jump || act === ACT.airJump) {
     b.vy = L.jumpVelocity;
@@ -242,18 +243,18 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
   // clamped: a body dropping past a deck's edge is not pulled down by it
   const tall = t.tall;
   if (tall !== undefined && b.vy > 0) {
-    const top = W.headroomAt(b.x, b.z, y0, t.foot);
+    const top = W.headroomOver(b.x, y0, b.z, t.foot);
     if (b.y + tall > top + HEAD_EPS) { b.y = Math.max(y0, top - tall); b.vy = 0; }
   }
   // R1b: a body with the crossing permission that was over a wall prop's top before this move stops at it (swept: from
   // its feet at the start of the tick). Only the downward speed is spent; grounded, the integrator and the support below
   // are untouched, so this is not a landing (standing on tops is a later phase)
   if (t.over) {
-    const top = W.topUnder(b.x, b.z, t.foot, y0);
+    const top = W.topBelow(b.x, y0, b.z, t.foot);
     if (b.y < top) { b.y = top; if (b.vy < 0) b.vy = 0; }
   }
   // the supporting surface: -Infinity over open air (a chasm), so gravity takes over where support ends
-  const g = W.support(b.x, b.z, b.y);
+  const g = W.supportAt(b.x, b.y, b.z);
   if (b.y <= g) {
     if (t.foot > 0 && !b.grounded && y0 - g > LAND_CLEAR) { clearLanding(W, b.x, b.z, g, L.stepHeight, t.foot, tall, MOVE); b.x = MOVE[0]; b.z = MOVE[1]; }
     b.y = g;
@@ -275,17 +276,18 @@ function moveVertical(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loc
  *  (hazards on: World.wallAt is false there), so a real fall is never pulled back to the lip. (A walker standing on a
  *  deck is above the ground's wall: on location maps nothing solid ever sits under a deck, so this only matters where a
  *  habitat causeway spans sealed ground) */
-function recoverFromRock(W: World, b: LocoBody, t: LocoTick) {
+function recoverFromRock(W: WorldQuery, b: LocoBody, t: LocoTick) {
   // R1b: World.inRock is World.wallAt for a body without the crossing permission; with it, a body at or above a wall
   // prop's top is over the rock, not in it
-  if (!(W.los && W.inRock(b.x, b.z, b.y, t.over) && !(W.over && W.node(b.x, b.z, b.y) >= W.w * W.h))) return;
-  [b.x, b.z] = t.foot > 0 ? W.nearestFit(b.x, b.z, t.foot, t.wide, true, t.tall) : W.nearestWalkable(b.x, b.z);
-  b.y = W.height(b.x, b.z, b.y); b.vy = 0; b.grounded = true;
+  const T = W.tiles;
+  if (!(T.los && W.insideRock(b.x, b.y, b.z, t.over) && !(T.over && T.node(b.x, b.z, b.y) >= T.w * T.h))) return;
+  [b.x, b.z] = t.foot > 0 ? W.place(b.x, GROUND, b.z, t.foot, t.wide, true, t.tall) : W.nearestWalkableAt(b.x, GROUND, b.z);
+  b.y = W.surfaceAt(b.x, b.y, b.z); b.vy = 0; b.grounded = true;
 }
 
 /** the body step every integrator shares, after its drive set the planar velocity (`integ`: which one ran, for the
  *  Jump control) */
-function advanceBody(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
+function advanceBody(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
   out.jumped = false;
   const y0 = b.y;
   const kd = dexp(-L.knockDecay * dt);
@@ -296,19 +298,19 @@ function advanceBody(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: Loco
 }
 
 /** one supported tick: drive on the surface, then the shared body step */
-export function stepSupported(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
+export function stepSupported(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
   driveSupported(b, it, t, L, dt);
   advanceBody(W, b, it, t, L, dt, LOCO.supported, out);
 }
 
 /** one ballistic tick: air control, then the shared body step */
-export function stepBallistic(W: World, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
+export function stepBallistic(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
   driveBallistic(b, it, t, L, dt);
   advanceBody(W, b, it, t, L, dt, LOCO.ballistic, out);
 }
 
 /** one scripted tick: the ability's velocity (unit direction × speed), then the shared body step */
-export function stepScripted(W: World, b: LocoBody, it: LocoIntent, dx: number, dz: number, speed: number, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
+export function stepScripted(W: WorldQuery, b: LocoBody, it: LocoIntent, dx: number, dz: number, speed: number, t: LocoTick, L: LocoNumbers, dt: number, out: LocoResult) {
   driveScripted(b, dx, dz, speed);
   advanceBody(W, b, it, t, L, dt, LOCO.scripted, out);
 }

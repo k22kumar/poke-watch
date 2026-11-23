@@ -41,6 +41,49 @@ Render, physics and navigation each build their own runtime structures from it. 
 - `src/world/adapter.ts`: `fromArenaMap(m)`, the tile adapter. It reproduces the column model of sim/world.ts and sim/spatial.ts: ground columns from the bounds floor (lowest surface − 1 m) to World.height, merged into boxes; low props as boxes with the foliage flag; stairs ramps as trimesh quads; wall-prop tiles to their wallTopsOf top, bare walls to the bounds top (highest surface + 8 m), both ending at a deck's underside; deck slabs; no collider on chasms or under liquids (the column model has no bed), liquid volumes from the floor to the surface; vent fields as hazard volumes; markers for the spawn, staging, contest, bodies, anchors and landmarks. Surfaces are crude on purpose. Deleted at X1b.
 - `tests/worldmodel.test.ts`: the conformance gate. A downward probe against the colliders matches World.height, wallTopAt, the deck and the ground under it, and liquidAt at every tile centre of every map source (the range, every habitat recipe and variant at seeds 1 and 3, every location at seed 1). It also checks that output is byte-identical, that structuredClone round-trips, and the budgets (under 20,000 colliders and 500,000 triangles per map). The probe stays in tests/ until I1a brings the physics queries.
 
+## World seam
+Task WS (2026-11-23), hash-invariant: every sim system asks the world its questions through one 3D-native query set, `WorldQuery` (src/sim/worldquery.ts), which the tile World implements today and physics (I1a, I1b) and navigation (I3) implement next. Owner decisions from the WS grilling, Q1–Q16:
+- Q1 Enforcement by the compiler, not by member names. `class World implements WorldQuery`; `SimContext.world` stays typed `World`, so tests, scripts and render compile unchanged (render's reads are I2a's to replace). In src/sim only world.ts, spatial.ts, run.ts (it constructs the World) and types.ts (`SimContext.world`) name the World type; every function that takes a world takes `WorldQuery` (locomotion's nine). Systems read `ctx.world` only through `worldOf(ctx)` in worldquery.ts. Tile-only state is read as `W.tiles.*` (`TileExt`). `tests/worldseam.test.ts` holds both rules (Q15).
+- Q2 Every seam question takes y. Today's column calls (no y) pass the explicit `GROUND` sentinel (77 call sites), which the tile World reads as the omitted argument, so I1 can find each and give it a real y. Where the tile World ignores y (`nearestWalkableAt`, `place`) the seam's doc comment says so.
+- Q3 Two support reads: `surfaceAt` (World.height with a reference height; a chasm's floor counts) and `supportAt` (World.support, −∞ over open air). They differ only on void tiles.
+- Q4 (x, y, z) argument order with fresh names wherever World's own name or order differs (tests call World's methods by their names). Returned points stay (x, z); callers read y with `surfaceAt`.
+- Q5 One `navDir(goal, x, y, z, out, wide, diag, tall)` for the four steering methods, the agent size positional (no allocation per call). Narrow agents map today's true / false to 1 / 0; callers compare with `=== 1`. `navReached` is wide-only. `place` is positional too (nearestFit has no diag).
+- Q6 `navDist('player', …)` is in the seam (backed by flowDist), unused by the sim until I3.
+- Q7 Markers in the seam: `bound`, `killY`, `spawn`, `anchors`. `hab` (contest and stagings in tile coordinates) stays a tile extension until G2 defines 3D Hold markers against the WorldModel's markers.
+- Q8 R1b wall tops in the seam: `topBelow(x, y, z, r)` (y is topUnder's `from`) and `insideRock(x, y, z, over)`; `wallTopAt` has no sim caller and stays off.
+- Q9 `TileExt` keeps the World's own names, transcribed raw (no new helpers such as an `onDeck`): the grid frame (`w`, `h`, `half`, `map`, `tile`, `node`), `biome`, `habitatAt`, the World copies of `los` and `hazards`, the column reads (`solid`, `wallAt`, `waterAt`, `shore`), `over`, `isVoid`, the cells group (`cells`, `burnCost`, `burningAt`, `refreshNav`, `refreshFlow`), the W4 group (`propField`, `setBlock`, `reachableCount`), the tide group (`tide`, `tideHigh`, `setTide`, `tidalAt`), `hab`, `hazard`, `hazardAt`. Redesigned in I4 or deleted at X1b.
+- Q10 Rays: `raycast`, `segmentClear`, `solidAt` (no sim caller yet; kept for I1a) and `sight` are seam methods. spatial.ts keeps its `raycastWorld(W, …)`, `segmentClear(W, …)`, `solidAt(W, …)` exports for tests and scripts.
+- Q11 The before and after call inventory is in the WS commit message and report; this section keeps the summary.
+- Q12 The names (every argument passed through in the order shown; nothing computed):
+
+| Seam member | Tile World |
+|---|---|
+| `bound`, `killY`, `spawn`, `anchors` | the same fields |
+| `surfaceAt(x, y, z)` / `supportAt(x, y, z)` | `height(x, z, y)` / `support(x, z, y)` |
+| `liquidContact(x, y, z, contact)` | `liquidAt(x, z, y, contact)` |
+| `headroomOver(x, y, z, r)` | `headroomAt(x, z, y, r)` |
+| `solidFor(x, y, z, step, tall?, over?)` / `blockedFor(…)` | `collides(x, z, y, …)` / `blocks(x, z, y, …)` |
+| `fitsAt(x, y, z, r, step?, tall?, over?)` | `fits(x, z, y, r, step, tall, over)` |
+| `moveFootprint(x, y, z, dx, dz, step, r, out, stop?, tall?, over?)` | `moveBody(x, z, dx, dz, y, step, r, out, stop, tall, over)` |
+| `topBelow(x, y, z, r)` / `insideRock(x, y, z, over?)` | `topUnder(x, z, r, y)` / `inRock(x, z, y, over)` |
+| `raycast(…)`, `segmentClear(…)`, `solidAt(…)` | spatial.ts `raycastWorld(this, …)`, `segmentClear(this, …)`, `solidAt(this, …)` |
+| `sight(x0, y0, z0, x1, y1, z1)` | the same method |
+| `walkableAt(x, y, z)` | `walkable(x, z, y)` |
+| `nearestWalkableAt(x, y, z)` | `nearestWalkable(x, z)` (y ignored) |
+| `place(x, y, z, r, wide, reach?, tall?)` | `nearestFit(x, z, r, wide, reach, tall)` (y ignored) |
+| `setNavGoal(x, y, z)` | `updateFlow(x, z, y)` |
+| `navDir(goal, x, y, z, out, wide?, diag?, tall?)` | player: `wide ? wideDir(x, z, out, y, diag, tall) : flowDir(x, z, out, y) ? 1 : 0`; contest: the same with `wideGoalDir` / `goalDir` |
+| `navReached('player', x, y, z, diag?, tall?)` | `wideReached(x, z, diag, y, tall)` |
+| `navDist('player', x, y, z)` | `flowDist(x, z, y)` |
+| `tiles` | `this`, typed `TileExt` |
+
+- Q13 The accessor is `worldOf(ctx)`, structural (`{ readonly world: WorldQuery }`, so stub contexts pass). It is hoisted once per function that reads the world, at entry or before the first loop, never inside a loop body; where a loop reads tile extensions repeatedly, `T = W.tiles` (or `WT` where the file already has a `T`) is hoisted beside it. In run.ts enterMap it follows the `ctx.world = new World(…)` assignment.
+- Q14 **Two I1a swap points.** `worldOf` for the systems, and in spatial.ts `geoOf` + `castWorld`, the world half of the actor sweeps and overlaps (`sweepCore`, `overlap`), which stays on F-scratch values because routing it through `W.raycast` would box doubles on every shot (scripts/spatialbench.ts counts that).
+- Q15 `tests/worldseam.test.ts`, two AST rules over src/sim: no import naming `World` from src/sim/world, matched by resolved path (named, renamed, namespace, re-export, `import()` type, dynamic `import()`), allowed in world.ts, spatial.ts, run.ts, types.ts; and no `.world` read (`ctx.world`, `ctx['world']`, `{ world }` destructuring; `rng` and `rules` receivers excepted) outside world.ts, spatial.ts and worldquery.ts, plus exactly one `ctx.world = …` assignment in run.ts. hazards.ts's `SHORES` WeakMap is keyed by `W.tiles`, the same object as before.
+- Q16 The wrappers sit in one "World seam (WS)" block at the end of sim/world.ts; no existing World method changed.
+
+Inventory, src/sim outside world.ts and spatial.ts: before WS, 342 accesses to 54 World members, 26 to 7 ArenaMap fields and 4 spatial.ts calls taking the World (segmentClear ×3, raycastWorld ×1), through 106 `.world` reads in 60 functions. After: 0 World accesses; 157 to 22 WorldQuery members, 189 to 31 TileExt members and 26 to the same ArenaMap fields (through `tiles.map`), with 65 `.tiles` hops, through 62 `worldOf(ctx)` calls. Tile extensions are 189 of 372 world reads: what I4 and X1b have left to redesign.
+
 ## Division of responsibilities
 - Gameplay locomotion (sim/locomotion.ts, rules/traversal.ts): intent to desired velocity per mode (walk, jump, coyote time, air jumps, glide, hover, swim, fly, climb), gravity, speeds.
 - Rapier character controller: resolves that translation against colliders (slide, autostep, snap to ground, slope limits, platforms). It applies no gravity and no jumping.

@@ -22,6 +22,7 @@ import { ARCHETYPES, compileMove, resolveAim, setCastDepth, aimPoint } from './m
 import { makeMember, recomputeMember } from './progression';
 import { firstAttacks, heroKit, lineage } from '../rules/heroes';
 import { BTN, type Member, type MoveSpec, type SimContext } from './types';
+import { GROUND, worldOf } from './worldquery';
 
 /** the first member other than `except` that has not fainted, -1 if none */
 export function firstAlive(ctx: SimContext, except: number): number {
@@ -72,10 +73,10 @@ export function faint(ctx: SimContext): boolean {
 
 /** back at the spawn with every member at full health (the range's no-fail rule) */
 function respawn(ctx: SimContext) {
-  const P = ctx.player, W = ctx.world, [sx, sz] = W.spawn;
+  const P = ctx.player, W = worldOf(ctx), [sx, sz] = W.spawn;
   P.respawnT = 0;
   for (const m of P.squad) { m.fainted = false; m.hp = m.maxHp; m.grey = 0; m.coat = 0; m.coatDeep = 0; m.coatT = 0; m.paraT = 0; }
-  P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = W.height(sx, sz); P.vx = P.vz = P.vy = 0; P.kx = P.kz = 0; P.grounded = true;
+  P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = W.surfaceAt(sx, GROUND, sz); P.vx = P.vz = P.vy = 0; P.kx = P.kz = 0; P.grounded = true;
   P.safeX = sx; P.safeY = P.y; P.safeZ = sz; P.hzKind = 0; P.hzT = 0; P.hzAcc = 0;
   P.iframes = Math.max(P.iframes, 1);
   ctx.events.push({ t: 'respawn', species: P.m.species.id });

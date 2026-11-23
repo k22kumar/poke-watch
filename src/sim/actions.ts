@@ -3,6 +3,7 @@
 import { datan2, dhypot } from '../core/detmath';
 import { spawnBody, TEAM } from './bodies';
 import type { SimContext } from './types';
+import { GROUND, worldOf } from './worldquery';
 
 /** the enemy state a throw holds while it winds up */
 export const THROWING = 7;
@@ -21,12 +22,12 @@ export function startThrow(ctx: SimContext, i: number, left: number, delay = ctx
  *  impact damage the thrower's contact damage × rules.actions.throw.dmg at full speed; then the next queued throw, or
  *  back to `after` */
 export function throwTick(ctx: SimContext, i: number, after: number) {
-  const E = ctx.enemies;
+  const E = ctx.enemies, W = worldOf(ctx);
   if (E.stateT[i] > 0) return;
   const R = ctx.rules.actions.throw, dx = E.tx[i], dz = E.tz[i];
   const off = E.radius[i] + R.offset;
   const sx0 = E.x[i] + dx * off, sz0 = E.z[i] + dz * off;
-  const [bx, bz] = ctx.world.walkable(sx0, sz0) ? [sx0, sz0] : [E.x[i], E.z[i]];
+  const [bx, bz] = W.walkableAt(sx0, GROUND, sz0) ? [sx0, sz0] : [E.x[i], E.z[i]];
   spawnBody(ctx, R.template, bx, bz, dx * R.speed, dz * R.speed, TEAM.enemy, E.dmg[i] * R.dmg * 10 / R.speed);
   ctx.events.push({ t: 'throw', x: bx, z: bz, tx: bx + dx * 20, tz: bz + dz * 20, element: 'stone' });
   if (E.sx[i] > 1) startThrow(ctx, i, E.sx[i] - 1, R.again); else E.state[i] = after;

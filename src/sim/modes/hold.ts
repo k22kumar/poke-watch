@@ -12,16 +12,17 @@ import { ringPoint, spawnEnemy } from '../enemies';
 import { allowedAt } from '../placement';
 import { ROLE } from '../pools';
 import type { Objective, SimContext } from '../types';
+import { worldOf } from '../worldquery';
 
 /** where the point is: the habitat contest floor, else `site()` (an open spot near the player) */
 export function holdPoint(ctx: SimContext, site: () => [number, number]): [number, number] {
-  const H = ctx.world.hab;
-  return H ? [H.contest.x - ctx.world.half, H.contest.y - ctx.world.half] : site();
+  const W = worldOf(ctx), H = W.tiles.hab;
+  return H ? [H.contest.x - W.tiles.half, H.contest.y - W.tiles.half] : site();
 }
 
 /** how long the point is offered before it lapses: habitat maps add 30 s (the walk from staging A) */
 export function holdOfferTime(ctx: SimContext): number {
-  return ctx.world.hab ? ctx.rules.objectives.offerTime + 30 : ctx.rules.objectives.offerTime;
+  return worldOf(ctx).tiles.hab ? ctx.rules.objectives.offerTime + 30 : ctx.rules.objectives.offerTime;
 }
 
 /** The Raid party (docs/hero-shooter-pivot.md Q14, Q20): four Raiders and a tank. The species are frozen from the
@@ -34,9 +35,9 @@ export const RAID_PARTY: readonly { count: number; roles: number; species: reado
 
 /** the Raid party comes for the point: from team B's staging on habitat maps, else a point on the spawn ring */
 export function spawnRaidParty(ctx: SimContext): number[] {
-  const H = ctx.world.hab, [rMin, rMax] = ctx.rules.enemy.spawnRadius;
-  const [cx, cz] = H ? [H.stage.B[0] - ctx.world.half, H.stage.B[1] - ctx.world.half] : ringPoint(ctx, rMin, rMax);
-  const R = ctx.rules.roles, b = ctx.world.bound;
+  const W = worldOf(ctx), H = W.tiles.hab, [rMin, rMax] = ctx.rules.enemy.spawnRadius;
+  const [cx, cz] = H ? [H.stage.B[0] - W.tiles.half, H.stage.B[1] - W.tiles.half] : ringPoint(ctx, rMin, rMax);
+  const R = ctx.rules.roles, b = W.bound;
   const out: number[] = [];
   for (const m of RAID_PARTY) for (let c = 0; c < m.count; c++) {
     const id = ctx.rng.spawn.pick(m.species);

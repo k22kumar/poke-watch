@@ -10,6 +10,7 @@ import { liquidMotion, playerLiquid } from './hazards';
 import { navWide, partnerFootprint, partnerHeight } from '../rules/sizing';
 import { traversalOf } from '../rules/profiles';
 import { LOCO, mediumAt, selectIntegrator, stepBallistic, stepScripted, stepSupported, type LocoIntent, type LocoResult, type LocoTick } from './locomotion';
+import { worldOf } from './worldquery';
 
 // per-tick scratch for the shared locomotion step (no allocation)
 const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false, jumpPressed: undefined, my: undefined };
@@ -36,7 +37,7 @@ export const playerSystem = {
   update(ctx: SimContext, dt: number) {
     const P = ctx.player;
     const R = ctx.rules.player;
-    const W = ctx.world;
+    const W = worldOf(ctx);
     const inp = ctx.input;
     P.px = P.x; P.py = P.y; P.pz = P.z; P.pgrounded = P.grounded;
     // things held last tick; a move's self-root (MoveSpec.selfRoot)
@@ -51,7 +52,7 @@ export const playerSystem = {
 
     // a liquid underfoot (hazards on): an exposed Pokémon wades slowly and cannot jump out; a safe swimmer keeps pace
     const liquid = playerLiquid(ctx);
-    const [swim, canJump] = W.hazards ? liquidMotion(ctx, liquid) : [W.waterAt(P.x, P.z) > P.y + 0.3 ? 0.8 : 1, true];
+    const [swim, canJump] = W.tiles.hazards ? liquidMotion(ctx, liquid) : [W.tiles.waterAt(P.x, P.z) > P.y + 0.3 ? 0.8 : 1, true];
     const speed = P.derived.speed * (P.buffT > 0 ? 1 + P.buffSpe : 1) * swim * (P.paraT > 0 ? 0.5 : 1) * (P.carrying ? ctx.rules.caps.carry.speed : 1)
       * (rooted ? 0 : 1);
 
@@ -93,7 +94,7 @@ export const playerSystem = {
     t.stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight;
     // headroom (docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller than the gap under a
     // deck does not walk (or jump) in under it. Undefined on a map with no decks
-    t.tall = W.over ? partnerHeight(P.species, ctx.rules) : undefined;
+    t.tall = W.tiles.over ? partnerHeight(P.species, ctx.rules) : undefined;
     t.foot = partnerFootprint(P.species, ctx.rules);
     t.wide = navWide(t.foot, ctx.rules);
     t.canJump = canJump;

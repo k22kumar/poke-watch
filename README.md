@@ -121,7 +121,8 @@ src/
              (locations/, locgen/), habitat recipes (habitat/), what both generators share (tilenav.ts, genmeta.ts),
              the map factory (maps.ts), navblocks.ts (wide-body lattice), sight.ts (the exact tile-world casts and the
              map-only sight tests; sim/spatial.ts builds its queries on them)
-  sim/       renderer-free deterministic simulation: run.ts, world.ts (collision, flow fields), locomotion.ts, player.ts,
+  sim/       renderer-free deterministic simulation: run.ts, worldquery.ts (the world seam: WorldQuery, worldOf),
+             world.ts (the tile World: collision, flow fields), locomotion.ts, player.ts,
              enemies.ts (behaviours, navigation), targets.ts, modes/hold.ts, evolution.ts (Breakthrough), swap.ts,
              moves.ts, aim.ts and spatial.ts (3D aim and queries), effects.ts, combat.ts, bodies.ts, capabilities.ts,
              caplog.ts, carry.ts, actions.ts, cells.ts, coats.ts, hazards.ts, weather.ts, placement.ts, checksum.ts, bot.ts
@@ -152,6 +153,7 @@ The rules that keep it modular:
 3. Systems read `ctx.rules`, never literals. Rules are deep-merged as `defaults ← mode ← mods ← overrides`.
 4. The sim emits events (hit, kill, cast, evolveStart, objective, …). Rendering, audio and UI only react to them.
 5. Every creature, whatever its source, is a `CreatureArt` (atlas + 8 clips with per-frame anchors). Nothing downstream branches on where art came from.
+6. Sim systems reach the world only through `worldOf(ctx)` and ask it `WorldQuery`'s 3D questions (`src/sim/worldquery.ts`); tile-only state is read as `W.tiles.*`. Only `world.ts`, `spatial.ts`, `run.ts` and `types.ts` name the `World` type. `tests/worldseam.test.ts` enforces both (docs/OVERHAUL_3D.md "World seam").
 
 ## Customising
 
