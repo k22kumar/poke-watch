@@ -24,7 +24,7 @@ export const SHAPE_AXIS: Readonly<Record<string, MeasureAxis>> = {
 export const axisOfShape = (shape: string | null | undefined): MeasureAxis => (shape ? SHAPE_AXIS[shape] : undefined) ?? 'height';
 
 /** Approved per-species axis overrides, by species id: the listed figure measures this axis whatever the shape says.
- *  Owner-approved 2026-11-18 (docs/size-extremes-plan.md §S1.9). */
+ *  Owner-approved 2026-11-18 (docs/archive/size-extremes-plan.md §S1.9). */
 export const SPECIES_AXIS: Readonly<Record<string, Exclude<MeasureAxis, 'span'>>> = {
   eternatus: 'length', // shape `wings`, but its 20 m is the length of the body
 };

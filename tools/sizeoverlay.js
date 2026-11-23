@@ -1,4 +1,4 @@
-// Capture-only size overlay (docs/size-extremes-plan.md §S3). Injected into a built page by tools/sizecap.mjs; nothing in
+// Capture-only size overlay (docs/archive/size-extremes-plan.md §S3). Injected into a built page by tools/sizecap.mjs; nothing in
 // the game loads it, it only reads sim and renderer state, and it draws on its own 2D canvas over #game, so it moves no
 // replay hash and changes no frame the game renders. Projection is the game's own: window.pokewatch.renderer.project().
 //

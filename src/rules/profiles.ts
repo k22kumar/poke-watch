@@ -89,9 +89,9 @@ export const SPECIES_OVERRIDES: Record<string, SpeciesOverride> = {
   murkrow: { prefers: HAB.forest }, litwick: { prefers: HAB.rock | HAB.forest }, haunter: { prefers: HAB.forest | HAB.rock },
   gengar: { prefers: HAB.forest | HAB.rock }, impidimp: { prefers: HAB.forest }, noibat: { prefers: HAB.rock },
   honedge: { prefers: HAB.rock | HAB.forest }, dreepy: { prefers: HAB.forest },
-  // the catalogue wave (docs/size-extremes-plan.md §S2)
-  eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/size-extremes-plan.md "F3 done")' },
-  stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/size-extremes-plan.md §S2)' },
+  // the catalogue wave (docs/archive/size-extremes-plan.md §S2)
+  eternatus: { recruitable: false, recruitableReason: 'wild only until its chase-lens regression at 13.75 m is fixed or signed off (docs/archive/size-extremes-plan.md "F3 done")' },
+  stakataka: { recruitable: false, recruitableReason: 'wild only: as a partner its chase framing needs a back distance past CHASE_CONFIG.frame.max (14 m), which tests/camframe.test.ts criterion B refuses (docs/archive/size-extremes-plan.md §S2)' },
   // the hero-shooter prototype (docs/STATS_GROWTH_TARGET.md "Prototype scope"; docs/hero-shooter-pivot.md Q34)
   shedinja: { recruitable: false, recruitableReason: NEEDS_ABILITY_RULE_REASON },
 };

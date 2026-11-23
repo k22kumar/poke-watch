@@ -2,7 +2,7 @@ import type { Rules } from './defaults';
 import { SIZE_CLASS_IDS, sizeClassIndex, speciesExtent } from './extent';
 import type { Behaviour, SpeciesDef } from './species';
 
-// The default role rule (docs/SPECIES.md "Default roles"; owner-approved 2026-11-18, docs/size-extremes-plan.md §S2).
+// The default role rule (docs/SPECIES.md "Default roles"; owner-approved 2026-11-18, docs/archive/size-extremes-plan.md §S2).
 // A wild roster entry that names no behaviour takes one from data the import already carries: base stats, official
 // types, shape and abilities, and the canonical level-up moves (canon.levelUp and canon.levelUpOther). Nothing is
 // per species, so a new generation needs data only. A field the roster entry sets always wins (content/roster.json):

@@ -2849,7 +2849,7 @@ that is still on its way in when the rock has passed never gets as short.
   Large and Extra Large. Needs hands on a pad to choose.
 - **Lens jumps after F3 (§26):** Eternatus' lens regression at 13.75 m is a gate before it becomes a partner (§26.2).
   Furret's strafe-right lens jumps rose from 25.7 to 35.7 a minute. The owner says that is not a blocker
-  (`docs/size-extremes-plan.md` "F3 done"). Same candidate fix: a shorter arm near rock.
+  (`docs/archive/size-extremes-plan.md` "F3 done"). Same candidate fix: a shorter arm near rock.
 - **Aiming past a close enemy, and the muzzle's parallax (E5).** Owner's call between: accept it with the blocked marker;
   move where shots leave from, or trace from the camera (sim work, its own checksum set); a smaller keep-out or
   `shoulderMax` (the sprite's widest rows dissolve instead).
@@ -2862,7 +2862,7 @@ that is still on its way in when the rock has passed never gets as short.
 
 ## 26. F3: giant framing (2026-11-18)
 
-Owner request (`docs/size-extremes-plan.md` F3): frame Extra Large partners by aiming lower and tilting the pitch rather
+Owner request (`docs/archive/size-extremes-plan.md` F3): frame Extra Large partners by aiming lower and tilting the pitch rather
 than only raising `frame.max`; if the distance must rise, cap it around 14 m and measure lens blocking. Acceptance: every
 partner, including the capture-only Wailord and Eternatus, passes criterion B at the normal limits, with the `frame.max`
 exception removed, the crosshair clear and the feet in frame. Grilled before any change.

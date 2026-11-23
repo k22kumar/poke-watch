@@ -1,6 +1,6 @@
 # Size extremes plan
 
-Progress record for `docs/size-extremes-handoff.md` (Prompts S1–S3). One section per prompt.
+Progress record for `docs/archive/size-extremes-handoff.md` (Prompts S1–S3). One section per prompt.
 Written for the Claude Code sessions that run S2 and S3, and for the owner deciding the flags.
 
 - **Stage completed:** S1, revised after the owner's decisions on 2026-11-18 (§S1.9). The measurement axis and the XL visual law exist behind two `rules.size` flags. **[Superseded: `axis`, `xlContinuous` and `xlTall` are on by default since 2026-11-18, "Default flip" below.]**
@@ -920,7 +920,7 @@ survey, root causes of the two deeper test failures).
 ### Owner decisions
 
 1. **Where:** the flip is its own commit on `size-extremes-s1`, after two preparatory commits. Merging into `main` is a
-   separate step with the owner's go-ahead. Before merging, delete the untracked `docs/size-extremes-handoff.md` in the
+   separate step with the owner's go-ahead. Before merging, delete the untracked `docs/archive/size-extremes-handoff.md` in the
    main checkout; the branch's committed copy replaces it.
 2. **Axis class changes accepted as rule output**, with no per-species pins: Lapras XL → Large (stays on the wide field),
    Silicobra XL → Medium and Ekans Large → Medium (both leave the wide field), Slugma Medium → Small, Dreepy Small → Tiny,

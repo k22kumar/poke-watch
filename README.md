@@ -199,7 +199,7 @@ The match maps reuse Maplebrook's ground, cliff, water and prop painters.
 - `docs/SPECIES.md`, `docs/POKEMON_FIRST.md`, `docs/PIPELINE.md`, `docs/ICONS.md`, `docs/ASSETS.md`: species identity, the content pipeline, icons, assets and licensing.
 - `docs/PLAYABILITY.md`: the developer roster and readiness grading. `docs/CUSTOMISING.md`: how-to for roster, size, map and target changes.
 - `docs/ART_BIBLE.md`, `docs/ART_DIRECTION.md`, `docs/MAPLEBROOK.md`: visual standards and the overworld.
-- Historical: `docs/ANALYSIS.md`, `docs/FIDELITY.md` (the survivor build against PokéBonk), `docs/size-extremes-*.md`, `docs/pokemon-integration-*.md`.
+- Historical: `docs/archive/ANALYSIS.md`, `docs/archive/FIDELITY.md` (the survivor build against PokéBonk), `docs/archive/size-extremes-*.md`, `docs/archive/pokemon-integration-*.md`.
 
 ## Pokémon locations (lore-driven world generation)
 

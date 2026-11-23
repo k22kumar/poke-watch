@@ -2,7 +2,7 @@
   "name": "poke-watch",
   "version": "1.0.0",
   "private": true,
-  "description": "Poke-Watch - a deterministic, data-driven Pokémon survivor in a DS-era 2.5D presentation (PokéAPI data, PMD SpriteCollab sprites, PokeAPI cries).",
+  "description": "Poke-Watch - a browser Pokémon hero shooter (PokéAPI data, PMD SpriteCollab sprites, PokeAPI cries).",
   "type": "module",
   "scripts": {
     "dev": "node scripts/dev.mjs",

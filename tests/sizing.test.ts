@@ -225,7 +225,7 @@ test('measurement axis: a listed length counts lengthRise × itself; heights and
 });
 
 test('approved neutral extents: Falinks is one trooper (owner-reviewed 2026-11-19)', () => {
-  // the game draws one trooper; the listed 3.0 m measures the six-trooper formation (docs/size-extremes-plan.md §S2.12)
+  // the game draws one trooper; the listed 3.0 m measures the six-trooper formation (docs/archive/size-extremes-plan.md §S2.12)
   assert.deepEqual(Object.keys(NEUTRAL_CORE_EXTENT_M), ['falinks'], 'every entry is reviewed: add one only with the owner');
   for (const [id, e] of Object.entries(NEUTRAL_CORE_EXTENT_M)) assert.ok(typeof e === 'object' && e.basis, `${id} records its basis`);
   const f = SPECIES_BY_ID.falinks;

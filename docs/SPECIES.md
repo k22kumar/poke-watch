@@ -26,7 +26,7 @@ Canonical families live only in the catalogue, as complete chains with every bra
 
 ## Why the catalogue Pokémon were not in the game
 
-The earlier integration (docs/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). Since the catalogue wave, every catalogue species with SpriteCollab art is a game species; the 66 catalogue-only records are the 59 varieties (Gigantamax, regional and other forms; F2 in docs/pokemon-integration-plan.md) and 7 species with no usable art yet.
+The earlier integration (docs/archive/pokemon-integration-plan.md) delivered the 269 catalogue records as reference data only, by agreed scope: no sprite, move, behaviour or spawn entry. That is why the researched roster was not visible in play. A catalogue record becomes a game species only through `content/roster.json` (docs/CUSTOMISING.md §1). Since the catalogue wave, every catalogue species with SpriteCollab art is a game species; the 66 catalogue-only records are the 59 varieties (Gigantamax, regional and other forms; F2 in docs/archive/pokemon-integration-plan.md) and 7 species with no usable art yet.
 
 ## The 2026-11 wave (32 wild Pokémon)
 
@@ -53,7 +53,7 @@ Notes:
 
 > Historical since hero-shooter pivot step 9: the region spawn pools, presets and roster-wave switch this section names were deleted (`survivor-final` has them). The species stay game species; what stands on a map now comes from docs/SPAWNING.md.
 
-The 169 species of the catalogue's families that had no role came in on 2026-11-18 (docs/size-extremes-plan.md §S2) as
+The 169 species of the catalogue's families that had no role came in on 2026-11-18 (docs/archive/size-extremes-plan.md §S2) as
 `wild` entries with `"wave": "catalogue"` and no authored role. Keys are PokéAPI Pokémon slugs, the catalogue's id
 namespace (`aegislash-shield`, `giratina-altered`); `fetch-sources` resolves a slug through its species' default variety.
 
@@ -71,7 +71,7 @@ namespace (`aegislash-shield`, `giratina-altered`); `fetch-sources` resolves a s
   ones (`canon.special`, from the pinned snapshot's flags), which appear only in a pool that names them.
 - **Eternatus and Stakataka are wild only** (`recruitable: false` in `SPECIES_OVERRIDES`, with the reason): Eternatus
   until its chase-lens regression is fixed or signed off, Stakataka because its partner framing needs more than
-  `frame.max` (14 m); both are the follow-up "giant partners and the camera" (docs/size-extremes-plan.md §S2.12). The
+  `frame.max` (14 m); both are the follow-up "giant partners and the camera" (docs/archive/size-extremes-plan.md §S2.12). The
   `?dev=1` roster still lists them, with the reason. Cosmog and Cosmoem learn no damaging move, so they open with and
   tag in with the basic attack (`rules.moves.fallbackAttack`, Tackle), and grade `ready`.
 - **Checksum layer:** `rules.spawning.waves.catalogue` off takes the wave out of every pool and the habitat profiles;

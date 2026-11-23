@@ -1,4 +1,4 @@
-// Size captures with the debug overlay (docs/size-extremes-plan.md §S3). Like tools/cap.mjs, plus:
+// Size captures with the debug overlay (docs/archive/size-extremes-plan.md §S3). Like tools/cap.mjs, plus:
 //   - each scene may name a `build` (key into --builds), so flag-on and flag-off rows run against their own page;
 //   - {overlay: opts} injects tools/sizeoverlay.js once and calls __sizeOverlay.draw(opts) (a DOM canvas over #game,
 //     so a `shot` of the page includes it; the game's own frame is untouched);

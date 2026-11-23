@@ -1,5 +1,5 @@
 {
- "what": "F3 giant framing (docs/size-extremes-plan.md F3, docs/THIRD_PERSON_IMPLEMENTATION.md \u00a726): before",
+ "what": "F3 giant framing (docs/archive/size-extremes-plan.md F3, docs/THIRD_PERSON_IMPLEMENTATION.md \u00a726): before",
  "rig": "main 6ac6ab2 (before) / F3 commit (after); Wailord and Eternatus from the capture-only pack (tests/fixtures/giants-frame.json for the tests)",
  "config": {
   "frame.max": 9,

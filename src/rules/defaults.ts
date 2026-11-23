@@ -1,6 +1,6 @@
 import { TRAVERSAL_TEMPLATES } from './traversal';
 // Every tunable number lives here. Systems read ctx.rules, never literals.
-// Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/ANALYSIS.md),
+// Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/archive/ANALYSIS.md),
 // [I] inferred, [B] Poke-Watch's own choice where the original is unknown.
 
 export interface ArchetypeTemplate {

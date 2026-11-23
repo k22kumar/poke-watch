@@ -55,12 +55,12 @@ A listed figure measures one of three things: standing height, body length or sp
 
 PokéAPI has no span figures, so no shape or `SPECIES_AXIS` row maps to `span`. Only an approved `NEUTRAL_CORE_EXTENT_M` entry written as `{ m, axis: 'span' }` can select it. An approved entry always wins.
 
-The rule landed with the size-extremes flip (owner 2026-11-18; `docs/size-extremes-plan.md` "Default flip") and is hard-wired since pivot step 10. Against reading every figure as a height:
+The rule landed with the size-extremes flip (owner 2026-11-18; `docs/archive/size-extremes-plan.md` "Default flip") and is hard-wired since pivot step 10. Against reading every figure as a height:
 - Onix's 8.8 m length reads as 4.4 m and it stays Extra Large.
 - Lapras drops from Extra Large to Large, and Silicobra from Extra Large to Medium.
 - Ekans drops from Large to Medium.
 - Slugma and Magcargo drop from Medium to Small; Magcargo's authored body is unchanged.
-- Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with its listed-figure class and its class. The decisions are recorded in `docs/size-extremes-plan.md`.
+- Dreepy drops from Small to Tiny. `npx tsx scripts/sizetable.ts` prints every runtime and catalogue species with its listed-figure class and its class. The decisions are recorded in `docs/archive/size-extremes-plan.md`.
 
 ### Giants: continuous Extra Large
 
@@ -68,7 +68,7 @@ An Extra Large Pokémon is drawn at `min(xlVisualCap, xlFloor × (S / 2.05) ^ xl
 
 ### Tall giants
 
-An Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored-scale bodies keep their own. Owner decision 2026-11-18 (`docs/size-extremes-plan.md` §S3.10 A, xlTall section).
+An Extra Large body is as tall as it is drawn: its sim height is `visualM × (class height ÷ class visual)` (2.4 ÷ 2.69 = 0.892). That one height is what the sim reads everywhere a body's height matters: the hit window (`E.tall`, the partner's hurt window), headroom (deck slabs in `World.moveBody`, the wide fields' height classes, spawn fit and `nearestFit`) and the spatial muzzle (0.6 × height). Radius and footprint keep the class values, so the width of a giant's sprite stays outside its cylinder. Authored-scale bodies keep their own. Owner decision 2026-11-18 (`docs/archive/size-extremes-plan.md` §S3.10 A, xlTall section).
 
 Heights: Onix 2.78 m, Hariyama and Feraligatr 2.29, Snorlax 2.22; the capture-only giants Wailord 3.23 and Eternatus 3.55. Layouts and the worldgen gates read footprints, not sim heights, so no `HAB_VERSION` or `LOC_VERSION` moves with it.
 

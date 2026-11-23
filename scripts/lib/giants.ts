@@ -1,4 +1,4 @@
-// Capture-only giants for the camera checks (F3, docs/size-extremes-plan.md): Wailord and Eternatus are not game species
+// Capture-only giants for the camera checks (F3, docs/archive/size-extremes-plan.md): Wailord and Eternatus are not game species
 // yet (S2 imports them), but criterion B must hold for them as partners. tests/fixtures/giants-frame.json holds only the
 // numbers the framing reads, measured from the capture-only pack (.capture/giants/, never committed): the body (height,
 // drawn size, class) under the default size rules, and the sprite's measured outline, per-frame silhouette bounds and

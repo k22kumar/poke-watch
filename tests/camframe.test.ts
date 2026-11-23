@@ -28,13 +28,13 @@ test('criterion A: on open ground no standing or walking frame of any species is
     assert.ok(!arm.sideCapped, `${id}: the shoulder (${arm.shoulder.toFixed(2)} m) reaches past the widest row`);
   }
   // (the roster of 2026-11: 22 species have attack, shoot, charge or hurt frames past the 4° allowance; those frames
-  // dissolve. The catalogue wave adds 37 more, docs/size-extremes-plan.md §S2)
+  // dissolve. The catalogue wave adds 37 more, docs/archive/size-extremes-plan.md §S2)
   const older = [...ROSTER, ...fixtureOnly()].filter((id) => !SPECIES_BY_ID[id]?.wave && composition(id).cast + composition(id).hurt > 0).length;
   assert.ok(older <= 24, `${older} pre-wave species have frames past the allowance`);
   assert.ok(capped - older <= 40, `${capped - older} catalogue-wave species have frames past the allowance`);
 });
 
-// F3 (docs/size-extremes-plan.md, docs/THIRD_PERSON_IMPLEMENTATION.md §26): the capture-only giants Wailord and
+// F3 (docs/archive/size-extremes-plan.md, docs/THIRD_PERSON_IMPLEMENTATION.md §26): the capture-only giants Wailord and
 // Eternatus are checked as partners from their measured numbers (tests/fixtures/giants-frame.json, scripts/lib/giants.ts)
 // until S2 makes them game species; then the real species are used and the fixture must go
 const PARTNERS = [...ROSTER, ...fixtureOnly()];
@@ -66,7 +66,7 @@ test('criterion B: every species has the same corner on the keep-out, its whole 
   for (const id of PARTNERS) { const g = composition(id).ground; assert.ok(g >= CHASE_CONFIG.aim.min && g <= CHASE_CONFIG.aim.max, `${id} (${frameBodyOf(id).className}): neutral crosshair ground point ${g} m`); }
   // no partner is held short of its framing by frame.max (a future giant that needs more than it fails here). A species
   // that is never a partner (SPECIES_OVERRIDES `recruitable: false`) is not framed by the chase camera: Stakataka is held
-  // out for exactly this (docs/size-extremes-plan.md §S2)
+  // out for exactly this (docs/archive/size-extremes-plan.md §S2)
   assert.deepEqual(PARTNERS.filter((id) => isRecruitable(id) && backCapped(id)), []);
   assert.deepEqual(PARTNERS.filter(backCapped), ['stakataka']);
 });
