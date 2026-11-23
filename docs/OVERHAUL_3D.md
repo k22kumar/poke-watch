@@ -36,6 +36,11 @@ One plain, serialisable record per map (typed arrays, no classes), the only map 
 - markers: spawns, objectives, landmarks, body spots.
 Render, physics and navigation each build their own runtime structures from it. Visible geometry and collision come from the same generator output.
 
+## WorldModel
+- `src/world/model.ts`: the types (WorldModel, colliders `box` and `trimesh`, volumes, navInput, surface chunks of at most 64 × 64 m, markers). Plain data only; it survives structuredClone.
+- `src/world/adapter.ts`: `fromArenaMap(m)`, the tile adapter. It reproduces the column model of sim/world.ts and sim/spatial.ts: ground columns from the bounds floor (lowest surface − 1 m) to World.height, merged into boxes; low props as boxes with the foliage flag; stairs ramps as trimesh quads; wall-prop tiles to their wallTopsOf top, bare walls to the bounds top (highest surface + 8 m), both ending at a deck's underside; deck slabs; no collider on chasms or under liquids (the column model has no bed), liquid volumes from the floor to the surface; vent fields as hazard volumes; markers for the spawn, staging, contest, bodies, anchors and landmarks. Surfaces are crude on purpose. Deleted at X1b.
+- `tests/worldmodel.test.ts`: the conformance gate. A downward probe against the colliders matches World.height, wallTopAt, the deck and the ground under it, and liquidAt at every tile centre of every map source (the range, every habitat recipe and variant at seeds 1 and 3, every location at seed 1). It also checks that output is byte-identical, that structuredClone round-trips, and the budgets (under 20,000 colliders and 500,000 triangles per map). The probe stays in tests/ until I1a brings the physics queries.
+
 ## Division of responsibilities
 - Gameplay locomotion (sim/locomotion.ts, rules/traversal.ts): intent to desired velocity per mode (walk, jump, coyote time, air jumps, glide, hover, swim, fly, climb), gravity, speeds.
 - Rapier character controller: resolves that translation against colliders (slide, autostep, snap to ground, slope limits, platforms). It applies no gravity and no jumping.
