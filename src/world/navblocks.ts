@@ -64,7 +64,7 @@ export function blockMask(g: NavGrid): Uint8Array {
 }
 
 /** Are wide blocks a and b (block indices as in blockMask) 4-adjacent with their shared tiles on the same nodes? */
-export function blocksLinked(g: NavGrid, a: number, b: number, ta: Int32Array, tb: Int32Array): boolean {
+function blocksLinked(g: NavGrid, a: number, b: number, ta: Int32Array, tb: Int32Array): boolean {
   const W = g.w, n = W * g.h, ka = a % n, kb = b % n, ai = ka % W, aj = (ka / W) | 0, bi = kb % W, bj = (kb / W) | 0;
   if (!blockNodes(g, ai, aj, (a / n) | 0, ta) || !blockNodes(g, bi, bj, (b / n) | 0, tb)) return false;
   if (bj === aj && bi === ai + 1) return ta[1] === tb[0] && ta[3] === tb[2];
@@ -78,7 +78,7 @@ export function blocksLinked(g: NavGrid, a: number, b: number, ta: Int32Array, t
  *  r < DIAG_R moved between their centres stays inside their union: the two tiles the union lacks are √½ m from the
  *  segment. That is what lets a Large body (0.66 m) take a two-tile trail that steps along a diagonal (about 1.41 m
  *  across), where an Extra Large one (0.88 m) does not fit. */
-export function blocksDiagonal(g: NavGrid, a: number, b: number, ta: Int32Array, tb: Int32Array): boolean {
+function blocksDiagonal(g: NavGrid, a: number, b: number, ta: Int32Array, tb: Int32Array): boolean {
   const W = g.w, n = W * g.h, ka = a % n, kb = b % n, di = (kb % W) - (ka % W), dj = ((kb / W) | 0) - ((ka / W) | 0);
   if (Math.abs(di) !== 1 || Math.abs(dj) !== 1) return false;
   if (!blockNodes(g, ka % W, (ka / W) | 0, (a / n) | 0, ta) || !blockNodes(g, kb % W, (kb / W) | 0, (b / n) | 0, tb)) return false;

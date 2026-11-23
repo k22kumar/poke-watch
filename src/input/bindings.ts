@@ -19,7 +19,6 @@ export const ACTIONS = [
   { id: 'basic', label: 'Attack' }, { id: 'moveA', label: 'Move A' }, { id: 'moveB', label: 'Move B' }, { id: 'sig', label: 'Signature / Tag' }, { id: 'guard', label: 'Guard' },
   { id: 'pause', label: 'Pause' }, { id: 'mute', label: 'Mute' }, { id: 'tuning', label: 'Tuning panel' },
 ] as const;
-export type Action = (typeof ACTIONS)[number]['id'];
 const ACTION_IDS = new Set<string>(ACTIONS.map((a) => a.id));
 
 /** slots per action and device on the bindings screen (every default fits in two) */

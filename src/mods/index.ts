@@ -7,7 +7,7 @@ import type { System } from '../sim/types';
 import type { Mod, Mode } from './types';
 
 /** One Pokémon per player: the swap system (src/sim/swap.ts) is left out. The default for hero modes. */
-export const solo: Mod = {
+const solo: Mod = {
   id: 'solo',
   name: 'Solo',
   systems: (list) => list.filter((s) => s.name !== 'swap'),
@@ -40,7 +40,7 @@ const holdStart: System = {
   name: 'holdStart',
   update(ctx) { if (ctx.tick === 1 && !ctx.objective && ctx.world.hab) startObjective(ctx, 'hold'); },
 };
-export const holdMod: Mod = {
+const holdMod: Mod = {
   id: 'hold',
   name: 'Hold',
   shows: [...new Set(RAID_PARTY.flatMap((m) => m.species))],

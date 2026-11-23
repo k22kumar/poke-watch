@@ -148,13 +148,3 @@ export function canvasFrom(w: number, h: number, rgba: Uint8ClampedArray | Uint8
   return c;
 }
 
-/** Copy one frame of a clip into its own canvas (portraits, previews). */
-export function frameCanvas(art: CreatureArt, state: AnimState, dir = 0, frame = 0, scale = 1): HTMLCanvasElement {
-  const f = art.clips[state].frames[dir][Math.min(frame, art.clips[state].frames[dir].length - 1)];
-  const c = document.createElement('canvas');
-  c.width = f.w * scale; c.height = f.h * scale;
-  const g = c.getContext('2d')!;
-  g.imageSmoothingEnabled = false;
-  g.drawImage(art.atlas, f.x, f.y, f.w, f.h, 0, 0, f.w * scale, f.h * scale);
-  return c;
-}

@@ -8,7 +8,7 @@ import type { World } from './world';
 import type { JumpControl, LocoState } from './locomotion';
 import type { Cap } from '../rules/capabilities';
 
-export type RunState = 'play' | 'dead' | 'over';
+type RunState = 'play' | 'dead' | 'over';
 
 export interface InputFrame {
   mx: number; // desired world-space move direction (unnormalised ok, length <= 1)
@@ -74,7 +74,7 @@ export const NO_INPUT: InputFrame = { mx: 0, mz: 0, jump: false, dash: false };
 
 /** flags a move spec can carry beyond its compiled data (the sim reads them; see sim/moves.ts and sim/effects.ts). The
  *  build layer's transforms set them until it was deleted (docs/hero-shooter-pivot.md §8 step 9); kept for the kits */
-export interface MoveFlags {
+interface MoveFlags {
   /** angle between projectiles of one cast (rad); straight shots only */
   spread?: number;
   /** coat depth this move always applies (1 light, 2 deep), whatever slot casts it */

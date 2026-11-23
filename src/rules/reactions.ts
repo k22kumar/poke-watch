@@ -10,7 +10,7 @@ export type AgentName = 'heat' | 'wet' | 'cold' | 'charge';
 export const AGENT_NAMES: (AgentName | null)[] = [null, 'heat', 'wet', 'cold', 'charge'];
 export const COAT_NAMES = ['', 'Scorched', 'Soaked', 'Chilled', 'Charged'] as const;
 
-export type Reaction = 'refresh' | 'steam' | 'freeze' | 'conduct' | 'overload' | 'cancel' | 'none';
+type Reaction = 'refresh' | 'steam' | 'freeze' | 'conduct' | 'overload' | 'cancel' | 'none';
 
 /** REACT[coat][arriving agent] */
 export const REACT: Reaction[][] = [

@@ -20,8 +20,8 @@ interface Cry {
   buffer: AudioBuffer | null; pending: Promise<void> | null; gain: number;
   failed?: string; usedAlt?: boolean;
 }
-export type CryStatus = 'ready' | 'pending' | 'idle' | 'failed' | 'none';
-export interface CryPlayOpts { volume?: number; pitch?: number; gate?: number }
+type CryStatus = 'ready' | 'pending' | 'idle' | 'failed' | 'none';
+interface CryPlayOpts { volume?: number; pitch?: number; gate?: number }
 
 const TARGET_RMS = 0.12;
 const MAX_QUEUE_S = 0.6;

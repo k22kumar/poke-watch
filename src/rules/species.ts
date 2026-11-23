@@ -10,7 +10,7 @@ import { defaultRole } from './roles';
 
 export interface Stats { hp: number; atk: number; def: number; spa: number; spd: number; spe: number }
 
-export type BossAttack = 'charge' | 'slam' | 'radial' | 'spiral' | 'summon' | 'volley' | 'boulder';
+type BossAttack = 'charge' | 'slam' | 'radial' | 'spiral' | 'summon' | 'volley' | 'boulder';
 export type Behaviour = 'chase' | 'ranged' | 'charger' | 'swarm' | 'healer' | 'tank';
 
 export interface SpeciesDef {
@@ -58,9 +58,6 @@ export interface SpeciesDef {
   boss?: { attacks: BossAttack[]; phaseHp: number[]; summon?: string; title: string };
 }
 
-
-export const bst = (s: Stats) => s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
-
 export const SPECIES: SpeciesDef[] = POKEDEX_SPECIES;
 // the measurement axis is rules data (src/rules/shapes.ts), not generated content: derive it once from the shape
 for (const s of SPECIES) if (s.canon) s.canon.axis = axisOf(s.id, s.canon.shape);
@@ -77,7 +74,7 @@ for (const s of SPECIES) {
 export const SPECIES_BY_ID: Record<string, SpeciesDef> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
 
 /** A starter-eligible pool should prefer one option per evolutionary line and avoid repeat families. */
-export function starterFamilyRoot(sp: SpeciesDef): SpeciesDef {
+function starterFamilyRoot(sp: SpeciesDef): SpeciesDef {
   let root = sp;
   while (root.evolvesTo) {
     const previous = SPECIES.find((candidate) => candidate.evolvesTo === root.id);

@@ -25,7 +25,7 @@ export type Cap =
   | { verb: 'hit' };
 
 /** what a capability needs from a move: the compiled spec's identity fields */
-export interface CapSource {
+interface CapSource {
   key: string;
   element: Element;
   cls: 'physical' | 'special' | 'status';
@@ -37,9 +37,9 @@ export interface CapSource {
 export const HOLD_MOVES: ReadonlySet<string> = new Set(['vine_whip', 'wrap', 'bind', 'confusion', 'psychic', 'whirlpool', 'fire_spin']);
 
 /** per-move edits on top of the derived capabilities (transforms in Phase 8b write here too) */
-export const CAP_OVERRIDES: Record<string, { add?: Cap[]; remove?: CapVerb[] }> = {};
+const CAP_OVERRIDES: Record<string, { add?: Cap[]; remove?: CapVerb[] }> = {};
 
-export const capPower = (p: number): 1 | 2 | 3 => (p <= 0 || p < 60 ? 1 : p <= 90 ? 2 : 3);
+const capPower = (p: number): 1 | 2 | 3 => (p <= 0 || p < 60 ? 1 : p <= 90 ? 2 : 3);
 
 const AGENT_OF: Partial<Record<Element, AgentName>> = { blaze: 'heat', tide: 'wet', frost: 'cold', volt: 'charge' };
 
@@ -82,7 +82,7 @@ export function capOf(caps: readonly Cap[] | undefined, verb: 'push' | 'hold'): 
 }
 
 /** short tags as shown on cards: hit, push:2, hold:1, apply:wet, create:rock */
-export function capTag(c: Cap): string {
+function capTag(c: Cap): string {
   switch (c.verb) {
     case 'push': case 'hold': return `${c.verb}:${c.power}`;
     case 'apply': return `apply:${c.agent}`;

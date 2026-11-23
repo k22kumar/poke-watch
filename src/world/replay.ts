@@ -7,9 +7,9 @@ import { findMapSource } from './maps';
 
 /** direct: the requested seed was accepted; retry: it was rejected and a re-rolled seed of its own was accepted;
  *  fallback: every attempt failed and the recipe's known valid seed was loaded */
-export type LoadKind = 'direct' | 'retry' | 'fallback';
+type LoadKind = 'direct' | 'retry' | 'fallback';
 
-export interface LoadInfo {
+interface LoadInfo {
   /** `recipe` or `recipe/variant`, as `?loc=` takes it */
   source: string;
   kind: LoadKind;
@@ -50,7 +50,7 @@ export function parseMapSeed(raw: string | null | undefined, warn: (m: string) =
   return n >>> 0;
 }
 
-export interface ReplayQuery { world: 'authored' | 'locations'; loc: string | null; mapseed: string | null; hv?: string | null; biomes: string[] }
+interface ReplayQuery { world: 'authored' | 'locations'; loc: string | null; mapseed: string | null; hv?: string | null; biomes: string[] }
 
 /** the worldgen rules a launch asks for: the World setting, `?loc=` (a map for every stage biome, or `biome:map,…`),
  *  `?mapseed=` and, when a replay link names one, the generator version it was made with */

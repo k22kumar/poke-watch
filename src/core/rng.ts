@@ -51,7 +51,7 @@ export class Rng {
   }
 }
 
-export function fnv1a(str: string): number {
+function fnv1a(str: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);
@@ -66,7 +66,7 @@ export function streamSeed(seed: number, name: string): number {
 }
 
 /** Deterministic value noise used for terrain (no RNG state consumed). */
-export function hash2(x: number, y: number, seed: number): number {
+function hash2(x: number, y: number, seed: number): number {
   let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(seed | 0, 982451653)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   h ^= h >>> 16;
@@ -77,7 +77,7 @@ function smooth(t: number) {
   return t * t * (3 - 2 * t);
 }
 
-export function valueNoise(x: number, y: number, seed: number): number {
+function valueNoise(x: number, y: number, seed: number): number {
   const xi = Math.floor(x), yi = Math.floor(y);
   const xf = x - xi, yf = y - yi;
   const a = hash2(xi, yi, seed), b = hash2(xi + 1, yi, seed);

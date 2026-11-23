@@ -1,6 +1,6 @@
-export type ScoreState = 'anticipation' | 'combat' | 'surge' | 'climax';
+type ScoreState = 'anticipation' | 'combat' | 'surge' | 'climax';
 export type ScoreCue = 'victory' | 'defeat' | 'accent';
-export interface ScoreStem {
+interface ScoreStem {
   id: string; src: string; gain: Record<ScoreState, number>;
 }
 export interface AdaptiveScore {

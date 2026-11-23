@@ -3,7 +3,7 @@
 // is supported here; unsupported ones are listed with the reason so the gap is visible.
 import type { SpeciesDef } from './species';
 
-export interface AbilityDef {
+interface AbilityDef {
   name: string;
   /** what it does in the main games (short) */
   canon: string;
@@ -41,12 +41,6 @@ export const ABILITIES: Record<string, AbilityDef> = {
   inner_focus: { name: 'Inner Focus', canon: 'Cannot flinch', game: '', supported: false },
 };
 export const ABILITY_IDS = Object.keys(ABILITIES);
-/** why unsupported abilities have no effect (for docs and the Pokédex view) */
-export const UNSUPPORTED_REASON: Record<string, string> = {
-  run_away: 'There is no fleeing in survival.', rock_head: 'Enemies have no recoil moves.', sand_veil: 'There is no sandstorm weather.',
-  damp: 'No enemy self-destructs.', flame_body: 'The player has no burn status.', hustle: 'Attacks never miss in survival.',
-  oblivious: 'No infatuation or taunt.', snow_cloak: 'There is no hail weather.', inner_focus: 'Flinching is not modelled.',
-};
 
 /** the ability a species uses in this game: its first supported canonical ability (or none) */
 export function abilityOf(sp: SpeciesDef): string | null {

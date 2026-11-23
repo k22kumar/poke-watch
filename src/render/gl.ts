@@ -50,10 +50,6 @@ export function hexToRgb(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-export function mixRgb(a: number[], b: number[], t: number): [number, number, number] {
-  return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
-}
-
 // ---------------------------------------------------------------- mat4
 export const mat4 = {
   create(): Float32Array {
@@ -141,25 +137,3 @@ export const mat4 = {
   },
 };
 
-/** Interleaved static mesh: position(3) normal(3) color(3) [+ extra(1)] */
-export class Mesh {
-  vao: WebGLVertexArrayObject;
-  count: number;
-  vbo: WebGLBuffer;
-  constructor(public gl: GL, data: Float32Array, stride = 9) {
-    this.vao = gl.createVertexArray()!;
-    gl.bindVertexArray(this.vao);
-    this.vbo = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    const B = stride * 4;
-    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, B, 0);
-    gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, B, 12);
-    gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 3, gl.FLOAT, false, B, 24);
-    if (stride > 9) { gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, stride - 9, gl.FLOAT, false, B, 36); }
-    this.count = data.length / stride;
-    gl.bindVertexArray(null);
-  }
-}
-
-export const quadCorners = new Float32Array([-0.5, 0, 0.5, 0, 0.5, 1, -0.5, 0, 0.5, 1, -0.5, 1]);

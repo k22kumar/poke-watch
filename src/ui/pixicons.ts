@@ -92,7 +92,7 @@ const GLYPHS: Record<string, () => string> = {
 };
 
 /** data URL of an original glyph */
-export function glyph(name: string): string {
+function glyph(name: string): string {
   let u = cache.get(name);
   if (!u) { u = (GLYPHS[name] ?? GLYPHS.orb)(); cache.set(name, u); }
   return u;
@@ -103,5 +103,4 @@ export function glyphImg(name: string, scale = 2, cls = 'pix glyph'): HTMLImageE
   im.onload = () => { im.width = im.naturalWidth * scale; im.height = im.naturalHeight * scale; };
   return im;
 }
-export const GLYPH_NAMES = Object.keys(GLYPHS);
 export const ICON_LICENSE = IC.license;

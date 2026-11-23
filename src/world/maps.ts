@@ -8,7 +8,7 @@ import { LOCATIONS, findLocation } from './locations';
 import { HAB_VERSION, HABITATS, findHabitat, generateHabitat } from './habitat';
 import type { ArenaMap } from './tiles';
 
-export interface WorldgenRules { mode: 'authored' | 'generated'; size: number; locations?: Record<string, string>; arena?: string }
+interface WorldgenRules { mode: 'authored' | 'generated'; size: number; locations?: Record<string, string>; arena?: string }
 
 /** the Pokémon location or habitat recipe (`id` or `id:variant`, src/world/habitat) a stage biome is built from in
  *  generated mode, or '' when it stays authored */
@@ -17,7 +17,7 @@ export const locationFor = (wg: WorldgenRules | undefined, biome: string) => {
   return id && (LOCATIONS[id] || HABITATS[id.split(':')[0]]) ? id : '';
 };
 /** is this map source a habitat recipe (rather than a Pokémon location)? */
-export const isHabitat = (id: string) => !!id && !!HABITATS[id.split(':')[0]];
+const isHabitat = (id: string) => !!id && !!HABITATS[id.split(':')[0]];
 
 /** a map source by loose name, as `?loc=` and the saved Settings → World → Map choice give it: a Pokémon location id,
  *  or a habitat recipe (`river-gorge`, `volcano`, with an optional surface variant as `river-gorge/snow` or
@@ -32,7 +32,7 @@ export function findMapSource(q: string): string | undefined {
 const cache = new Map<string, ArenaMap>();
 const CACHE_MAX = 6;
 
-export const usesGenerator = (wg: WorldgenRules | undefined, biome: string) => !!locationFor(wg, biome);
+const usesGenerator = (wg: WorldgenRules | undefined, biome: string) => !!locationFor(wg, biome);
 
 export function regionKey(biome: string, seed: number, wg: WorldgenRules) {
   const loc = locationFor(wg, biome);

@@ -2,7 +2,7 @@
 // the classic generator at C1. Deleted with the tile stack (docs/OVERHAUL_3D.md, X1b).
 
 /** Location-driven maps (src/world/locgen) and habitat maps: what the sim, renderer and tools read beyond the map. */
-export interface LocMeta {
+interface LocMeta {
   /** location id (src/world/locations) or habitat recipe id */
   id: string;
   /** art palette key for the renderer (sky, ground, cliffs, props); overrides the stage biome's */

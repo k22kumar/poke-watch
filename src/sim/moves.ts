@@ -129,7 +129,7 @@ function effDepth(spec: MoveSpec): number {
   if (!spec.coatDepth) return castDepth;
   return castDepth === 0 && spec.coatDepth === 1 ? 0 : spec.coatDepth;
 }
-export function dspec(spec: MoveSpec, kx: number, kz: number, knock = spec.knock): DamageSpec {
+function dspec(spec: MoveSpec, kx: number, kz: number, knock = spec.knock): DamageSpec {
   return { depth: effDepth(spec), element: spec.element, cls: spec.cls, ailment: spec.ailment, chance: spec.ailmentChance, knock, kx, kz, drain: spec.drain, source: spec.key, contact: spec.archetype === 'strike' || spec.archetype === 'dash' || spec.archetype === 'spin' || spec.archetype === 'trail', hold: holdPower(spec),
     push: pushPower(spec), lasso: spec.lasso, ccT: spec.ccT, extra: castExtra };
 }
@@ -251,13 +251,13 @@ const AIM: Aim = { manual: false, t: -1, ux: 0, uz: 1, px: 0, pz: 0, lead: true,
 const A3 = freshAimState();
 const MELEE = new Set(['strike', 'cone', 'spin', 'dash', 'aura', 'nova']);
 /** button bit for each move slot: slot 0 is the basic attack (primary fire; automatic only in 'auto' mode) */
-export const SLOT_BTN = [BTN.basic, BTN.a, BTN.b, BTN.sig];
+const SLOT_BTN = [BTN.basic, BTN.a, BTN.b, BTN.sig];
 
 /** the point the last resolved aim landed on (the Tag Action's target) */
 export function aimPoint(): [number, number] { return [AIM.px, AIM.pz]; }
 
 /** true when the input carries a usable aim point (not on top of the player) */
-export function hasAim(ctx: SimContext): boolean {
+function hasAim(ctx: SimContext): boolean {
   const inp = ctx.input, P = ctx.player;
   if (inp.aimX === undefined || inp.aimZ === undefined) return false;
   const dx = inp.aimX - P.x, dz = inp.aimZ - P.z;
@@ -348,7 +348,7 @@ export function resolveAim(ctx: SimContext, s: MoveSpec, manual: boolean, basic:
 }
 
 // ------------------------------------------------------------------ archetypes
-export interface Archetype {
+interface Archetype {
   /** return true when the move fired (cooldown restarts) */
   cast(ctx: SimContext, spec: MoveSpec, slot: number): boolean;
 }
@@ -867,15 +867,14 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
   return true;
 }
 
-
 /** true when slot i is a manual move (button-cast) under the current combat mode */
-export function isManual(ctx: SimContext, i: number): boolean {
+function isManual(ctx: SimContext, i: number): boolean {
   return i > 0 && ctx.rules.combat.mode !== 'auto';
 }
 
 /** true when move slots cast only while their button is held: every slot outside 'auto' mode, including the basic
  *  attack. Unlike isManual this does not make the basic attack a heavier, slower "manual move". */
-export function needsButton(ctx: SimContext): boolean {
+function needsButton(ctx: SimContext): boolean {
   return ctx.rules.combat.mode !== 'auto';
 }
 

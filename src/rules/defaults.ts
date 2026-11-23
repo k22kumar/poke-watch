@@ -3,7 +3,7 @@ import { TRAVERSAL_TEMPLATES } from './traversal';
 // Values tagged [C] are confirmed from PokéBonk's shipped bundle (see docs/archive/ANALYSIS.md),
 // [I] inferred, [B] Poke-Watch's own choice where the original is unknown.
 
-export interface ArchetypeTemplate {
+interface ArchetypeTemplate {
   dmg: number; // base damage per hit
   cd: number; // cooldown seconds
   range: number; // targeting / travel range (m)

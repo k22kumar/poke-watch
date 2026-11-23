@@ -22,9 +22,9 @@ function basicInReach(ctx: SimContext): boolean {
 }
 
 /** how the bot uses Tag: 'off' never switches, 'smart' rests a hurt Pokémon, 'rotate' cycles for ready moves */
-export type BotTagPolicy = 'off' | 'smart' | 'rotate';
+type BotTagPolicy = 'off' | 'smart' | 'rotate';
 
-export interface BotOptions {
+interface BotOptions {
   /** go for objectives (Hold, Hunt, Transport) or ignore them */
   objectives?: boolean;
   tag?: BotTagPolicy;
@@ -33,7 +33,7 @@ export interface BotOptions {
 /** the options a Bot made by botInput starts with; the set* functions below change them for runs created afterwards */
 const defaults: Required<BotOptions> = { objectives: true, tag: 'smart' };
 
-export class Bot {
+class Bot {
   readonly objectives: boolean;
   readonly tag: BotTagPolicy;
   constructor(o: BotOptions = {}) {
@@ -45,7 +45,7 @@ export class Bot {
 
 const perRun = new WeakMap<SimContext, Bot>();
 /** this run's bot, made on first use from the current defaults */
-export function botFor(ctx: SimContext): Bot {
+function botFor(ctx: SimContext): Bot {
   let b = perRun.get(ctx);
   if (!b) { b = new Bot(defaults); perRun.set(ctx, b); }
   return b;
@@ -145,11 +145,6 @@ function botStep(bot: Bot, ctx: SimContext): InputFrame {
   if (dash && W.hazards && !shore) for (let d = 0.5; d <= 7 && dash; d += 0.5) { const x = P.x + mx * d, z = P.z + mz * d; if (W.blocks(x, z, P.y, st) && !W.collides(x, z, P.y, st)) dash = false; }
   return { mx, mz, jump: false, dash, btn };
 }
-
-/** whether bots created afterwards go for objectives */
-export function setBotObjectives(on: boolean) { defaults.objectives = on; }
-/** the Tag policy for bots created afterwards */
-export function setBotTagPolicy(p: BotTagPolicy) { defaults.tag = p; }
 
 function wantsTag(bot: Bot, ctx: SimContext): boolean {
   const P = ctx.player;

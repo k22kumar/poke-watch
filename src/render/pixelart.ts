@@ -139,19 +139,6 @@ export function grassTuft(color: Ramp, k: number, frame = 0): ImageData {
   return s.render();
 }
 
-export function flowers(color: string, k: number): ImageData {
-  const s = new Sprite(Math.round(16 * k), Math.round(12 * k));
-  s.outline = '#2e5a38';
-  const st = s.ramp(['#78c858', '#58a848', '#3f8a3a']);
-  const pet = s.ramp([lighten(color), color, darken(color)]);
-  for (const [x, y] of [[4, 4], [11, 3], [8, 7]]) {
-    s.line(x * k, (y + 2) * k, x * k, 11 * k, st);
-    s.rect((x - 1) * k, (y - 1) * k, 3 * k, 3 * k, pet);
-    s.dot(x * k, y * k, '#fff8b0');
-  }
-  return s.render();
-}
-
 // ================================================================= combat effect sprites
 /** Effect sprite set per element: [projectile, particle A, particle B]. Each is 16x16 texels. */
 export function fxSprite(kind: string): ImageData {
@@ -204,6 +191,3 @@ export const ELEMENT_FX: Record<string, [string, string, string]> = {
 };
 
 function hh(x: number, y: number, s: number) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 982451653)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16; return (h >>> 0) / 4294967296; }
-function lighten(c: string, k = 0.35) { const n = parseInt(c.slice(1), 16); const f = (v: number) => Math.round(v + (255 - v) * k); return rgb(f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)); }
-function darken(c: string, k = 0.28) { const n = parseInt(c.slice(1), 16); const f = (v: number) => Math.round(v * (1 - k)); return rgb(f((n >> 16) & 255), f((n >> 8) & 255), f(n & 255)); }
-function rgb(r: number, g: number, b: number) { return '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join(''); }

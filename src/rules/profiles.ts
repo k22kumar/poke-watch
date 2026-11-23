@@ -20,7 +20,7 @@ import { SPECIES, SPECIES_BY_ID, type SpeciesDef } from './species';
 import type { SizeClassId } from './sizing';
 import { RESERVED_KINDS, TAKEOFF_KINDS, type AirPress, type Traversal, type TraversalTemplate } from './traversal';
 
-export interface SpeciesOverride {
+interface SpeciesOverride {
   /** habitat tags (HAB bits) that raise encounter odds */
   prefers?: number;
   /** a spawn tile must carry at least one of these habitat tags (0 = no requirement) */
@@ -42,7 +42,7 @@ export interface SpeciesOverride {
   recruitableReason?: string;
 }
 
-export interface SpeciesProfile {
+interface SpeciesProfile {
   id: string;
   prefers: number;
   requires: number;
@@ -130,7 +130,7 @@ export const LEGACY_SWIM: readonly string[] = ['surface-swimmer'];
 
 /** what traversalOf reads from a species: its id (for the override), its types (for the swimming default) and the
  *  roster's legacy flag. Test fixtures may pass a bare `{ elements }` */
-export type TraversalSource = { readonly id?: string; readonly elements: readonly string[]; readonly flying?: boolean };
+type TraversalSource = { readonly id?: string; readonly elements: readonly string[]; readonly flying?: boolean };
 
 const traversals = new WeakMap<Rules, WeakMap<TraversalSource, Traversal>>();
 

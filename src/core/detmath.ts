@@ -91,7 +91,7 @@ const AT = [
 ];
 const PI = 3.14159265358979311600e+00, PI_LO = 1.2246467991473531772e-16;
 
-export function datan(x: number): number {
+function datan(x: number): number {
   if (x !== x) return NaN;
   const neg = x < 0;
   let ax = Math.abs(x);

@@ -15,9 +15,9 @@ import { cries } from '../assets/cries';
 import { AdaptivePlayer, ScoreDirector, type CombatMusicInput, type ScoreCue } from './adaptive';
 import { ADAPTIVE_SCORE } from './adaptive-score';
 
-export interface MixSettings { master: number; music: number; sfx: number; cries: number; muted: boolean }
-export const MIX_DEFAULT: MixSettings = { master: 0.8, music: 0.55, sfx: 0.8, cries: 0.85, muted: false };
-export type MusicState = 'none' | 'title' | 'explore' | 'battle' | 'boss' | 'evolution' | 'ended';
+interface MixSettings { master: number; music: number; sfx: number; cries: number; muted: boolean }
+const MIX_DEFAULT: MixSettings = { master: 0.8, music: 0.55, sfx: 0.8, cries: 0.85, muted: false };
+type MusicState = 'none' | 'title' | 'explore' | 'battle' | 'boss' | 'evolution' | 'ended';
 
 interface Bus { gain: GainNode; meter: AnalyserNode }
 

@@ -40,7 +40,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 /** fetch and decode one species' art (atlas, frame table, portrait) from the manifest's files */
-export async function fetchSpeciesArt(base: string, id: string, e: ArtManifestEntry): Promise<CreatureArt> {
+async function fetchSpeciesArt(base: string, id: string, e: ArtManifestEntry): Promise<CreatureArt> {
   const table = await fetchOk(base + e.frames).then((r) => r.json() as Promise<{ anims: Record<string, PackAnim>; shadowSize?: number }>);
   const { art } = await buildArt(id, { source: e.art.source, atlas: base + e.atlas, anims: table.anims, shadowSize: table.shadowSize, portrait: e.portrait ? base + e.portrait : undefined, credits: e.art.credits, license: e.art.license, url: e.art.url });
   return art;

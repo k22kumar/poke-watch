@@ -20,9 +20,7 @@ import { ZK } from './pools';
 import type { Member, SimContext } from './types';
 import { onHpLoss } from './squad';
 
-const AGENT_EL: Element[] = ['plain', 'blaze', 'tide', 'frost', 'volt'];
-
-export type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel';
+type ReactionEvent = 'steam' | 'freeze' | 'shatter' | 'conduct' | 'overload' | 'cancel';
 
 /** stun, freeze or root e for up to `dur` s, through the crowd-control meter; returns the time granted */
 export function ccApply(ctx: SimContext, e: number, dur: number): number {
@@ -57,7 +55,7 @@ function clearCoat(ctx: SimContext, e: number) {
 }
 
 /** base for a reaction started by a tile rather than a hit */
-export function tileReactionBase(ctx: SimContext) {
+function tileReactionBase(ctx: SimContext) {
   const R = ctx.rules.reactions;
   return R.tileStrength;
 }
@@ -226,9 +224,6 @@ export function coatMember(ctx: SimContext, m: Member, agent: number, depth: num
       return null;
   }
 }
-
-/** the agent element name for a coat index (for colours and events) */
-export const coatElement = (agent: number): Element => AGENT_EL[agent] ?? 'plain';
 
 export const coatSystem = {
   name: 'coats',

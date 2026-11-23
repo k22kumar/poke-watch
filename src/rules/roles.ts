@@ -18,7 +18,7 @@ import type { Behaviour, SpeciesDef } from './species';
 //
 // The class is the extent's (src/rules/extent.ts), with no pinned class, so the rule can run while the roster loads.
 
-export interface DefaultRole {
+interface DefaultRole {
   behaviour: Behaviour;
   flying: boolean;
   /** the row that decided, for reports and the developer roster */

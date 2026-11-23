@@ -10,7 +10,7 @@ export const SETTINGS_DEFAULT = { volume: 0.8, music: 0.55, master: 0.8, cries: 
   /** Settings → Controls → Bindings (R6c, input/bindings.ts): only the actions the player changed, as keyboard codes and
    *  gamepad button indices. Defaults stay out of the save, so a default added later reaches an old save */
   keys: {} as KeyBindings, pad: {} as PadBindings };
-export type Settings = typeof SETTINGS_DEFAULT;
+type Settings = typeof SETTINGS_DEFAULT;
 
 /** The settings to use given what the browser saved (anything, or nothing). A new player gets the defaults, so the
  *  third-person camera. A copy saved before the third-person camera existed (no `camV`, or the old `bonklab` key)

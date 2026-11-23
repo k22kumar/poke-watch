@@ -22,7 +22,7 @@ import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
 import { canSwim, traversalOf } from '../rules/profiles';
 
-export type VentPhase = 'dormant' | 'warn' | 'active';
+type VentPhase = 'dormant' | 'warn' | 'active';
 
 /** the vent cycle in whole sim steps: where the current step falls in it */
 function clock(ctx: SimContext) {
@@ -38,7 +38,7 @@ export function ventPhase(ctx: SimContext): VentPhase {
 }
 
 /** true on the first step of the warning (the step the ground cue goes out) */
-export function ventWarnOnset(ctx: SimContext): boolean {
+function ventWarnOnset(ctx: SimContext): boolean {
   const c = clock(ctx);
   return c.at === c.warnFrom;
 }
@@ -94,7 +94,7 @@ export const hazardSystem: System = {
 // type or anything knowing Surf swims; anyone else has the water's `lethal` s to reach a bank). The cues are sim events:
 // `tide` warn (with the seconds left), flood and ebb.
 
-export type TidePhase = 'low' | 'warn' | 'high';
+type TidePhase = 'low' | 'warn' | 'high';
 
 function tideClock(ctx: SimContext) {
   const T0 = ctx.rules.habitat.tide, hz = ctx.rules.sim.hz;
@@ -146,7 +146,7 @@ const KIND_NAME = ['', 'water', 'lava'] as const;
 
 const ruleOf = (ctx: SimContext, kind: number) => (kind === LIQUID.lava ? ctx.rules.hazards.lava : ctx.rules.hazards.water);
 /** s from first contact to a knockout in this liquid */
-export const lethalOf = (ctx: SimContext, kind: number) => ruleOf(ctx, kind).lethal;
+const lethalOf = (ctx: SimContext, kind: number) => ruleOf(ctx, kind).lethal;
 
 /** of two liquids in contact at once, the one that decides the exposure: the shorter lethal time (ties: the first) */
 export function dominant(ctx: SimContext, a: number, b: number): number {
@@ -164,7 +164,7 @@ export function safeIn(ctx: SimContext, kind: number, species: { id: string; ele
   if (kind === LIQUID.lava) return H.lava.safeSpecies.includes(species.id);
   return true;
 }
-export const memberSafeIn = (ctx: SimContext, kind: number, m: Member) => safeIn(ctx, kind, m.species, m.moves);
+const memberSafeIn = (ctx: SimContext, kind: number, m: Member) => safeIn(ctx, kind, m.species, m.moves);
 
 /** the liquid the trainer's body is in contact with (0 none) */
 export function playerLiquid(ctx: SimContext): number {

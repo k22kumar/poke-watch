@@ -115,7 +115,7 @@ export class BodyPool {
 
 export const tpl = (ctx: SimContext, b: number) => BODY_TEMPLATES[BODY_KINDS[ctx.bodies.kind[b]]];
 export const bodyWeight = (ctx: SimContext, b: number) => tpl(ctx, b).weight;
-export const bodySpeed = (ctx: SimContext, b: number) => dhypot(ctx.bodies.vx[b], ctx.bodies.vz[b]);
+const bodySpeed = (ctx: SimContext, b: number) => dhypot(ctx.bodies.vx[b], ctx.bodies.vz[b]);
 
 export function spawnBody(ctx: SimContext, kind: string, x: number, z: number, vx = 0, vz = 0, team: number = TEAM.neutral, dmg?: number): number {
   const B = ctx.bodies, T = BODY_TEMPLATES[kind];
@@ -238,7 +238,7 @@ function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
   return true;
 }
 
-export function changeOwner(ctx: SimContext, b: number, team: number) {
+function changeOwner(ctx: SimContext, b: number, team: number) {
   const B = ctx.bodies;
   if (B.team[b] !== TEAM.neutral && B.team[b] !== team) {
     B.hp[b] -= B.maxHp[b] * 0.25; // each change of hands wears it down

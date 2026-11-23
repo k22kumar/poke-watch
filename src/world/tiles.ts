@@ -20,7 +20,7 @@ export type ArenaPropKind =
   | 'gatehouse' | 'tent' | 'ladder'
   | 'grave'; // grave marker family (world/habitat/graves.ts): per-instance height (`top`), width and lean
 
-export interface PropRule {
+interface PropRule {
   /** footprint in tiles */
   w: number; h: number;
   /** wall = never passable; platform height (m) = can be jumped onto; 0 = walkable */

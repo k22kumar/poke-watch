@@ -30,7 +30,7 @@ import { evolutionSystem } from './evolution';
 import { swapSystem } from './swap';
 import { startTargets, targetSystem } from './targets';
 
-export interface RunOptions {
+interface RunOptions {
   seed: number;
   species: string;
   mode?: Mode;
@@ -50,7 +50,7 @@ const gridSystem: System = {
   },
 };
 
-export const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem];
+const DEFAULT_SYSTEMS: System[] = [playerSystem, squadSystem, swapSystem, evolutionSystem, targetSystem, gridSystem, enemySystem, coatSystem, movesSystem, projectileSystem, zoneSystem, bodySystem, objectiveSystem, weatherSystem, cellSystem, hazardSystem, tideSystem, exposureSystem];
 
 export function createRun(opts: RunOptions): SimContext {
   const mods = [...(opts.mode?.mods ?? []), ...(opts.mods ?? [])];
@@ -106,7 +106,7 @@ export function createRun(opts: RunOptions): SimContext {
 /** The match start on a map, for any mode (docs/hero-shooter-pivot.md §8a 4): the World, every pool cleared, the player at
  *  the spawn with its hazard state reset, the flow field, and the map's loose bodies (seedBodies). `species` is the
  *  World's navigation species list. */
-export function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
+function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
   ctx.world = new World(ctx.rules, biome, seed);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
@@ -162,5 +162,4 @@ export function step(ctx: SimContext, input: InputFrame = NO_INPUT) {
   for (const h of ctx.hooks.onTick) h(ctx);
   return ctx.events;
 }
-
 

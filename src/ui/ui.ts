@@ -56,8 +56,8 @@ function h(tag: string, attrs: Attrs = {}, ...kids: Kid[]): HTMLElement {
 }
 const btn = (label: Kid | Kid[], onclick: () => void, cls = 'btn', extra: Attrs = {}) => h('button', { type: 'button', class: cls, onclick, ...extra }, ...(Array.isArray(label) ? label : [label]));
 
-export interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
-export interface UIHooks {
+interface UISettings { volume: number; music: number; master: number; cries: number; muted: boolean; quality: number; numbers: boolean; camera: string; shake: number; combat: 'aimed' | 'assist' | 'auto'; sens: number; invertY: boolean; fov: number; world: 'authored' | 'locations'; map: string; mapSeed: number; keys: KeyBindings; pad: PadBindings }
+interface UIHooks {
   start(mode: Mode, species: string, seed: number): void;
   /** `via`: 'click' from the Resume button (a user gesture, so the mouse can be captured in it), 'key' from Esc / Backspace
    *  in the pause menu (no user activation: browsers refuse a pointer lock from an Esc keydown) */
@@ -577,7 +577,6 @@ export class UI {
 
     // the squad: one card per Pokémon (field one marked), with HP, grey health and what Tag will do
     this.updateSquad(ctx);
-
 
     // the kit (docs/hero-shooter-pivot.md Q27, Q46): primary, Ability 1, Ability 2, and the Ultimate slot, empty until
     // it exists. Keys come from the bindings in use; the moves stay at rules.hero.moveLevel, so no level pips

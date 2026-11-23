@@ -7,10 +7,10 @@
 //   strafe  the ranged behaviour (keeps its distance, shoots) at rules.targets.strafeDamage of its damage
 // Respawn is a fixed tick count (rules.targets.respawn), no RNG.
 
-export type TargetKind = 'dummy' | 'patrol' | 'strafe';
+type TargetKind = 'dummy' | 'patrol' | 'strafe';
 /** where on the map: the player's spawn, or a habitat ModeGraph place (the contest, team A's or B's staging) */
 export type AnchorFrom = 'spawn' | 'contest' | 'stageA' | 'stageB';
-export interface TargetDef {
+interface TargetDef {
   species: string;
   kind: TargetKind;
   from: AnchorFrom;
@@ -42,4 +42,3 @@ export const HABITAT_TARGETS: TargetSet = {
   ],
 };
 
-export const TARGET_SETS: Record<string, TargetSet> = { range: RANGE_TARGETS, habitat: HABITAT_TARGETS };

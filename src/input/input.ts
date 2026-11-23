@@ -5,9 +5,6 @@ import { BTN, type InputFrame } from '../sim/types';
 import { DEFAULT_KEYS, DEFAULT_PAD, resolveBindings, type KeyBindings, type PadBindings } from './bindings';
 import { shapeStick } from './stick';
 
-/** the keyboard defaults (input/bindings.ts DEFAULT_KEYS) */
-export const DEFAULT_BINDINGS = DEFAULT_KEYS;
-
 /** the InputFrame.btn bit each combat action sets */
 const ACTION_BTN: Record<string, number> = { basic: BTN.basic, moveA: BTN.a, moveB: BTN.b, sig: BTN.sig, guard: BTN.guard, touch: BTN.touch };
 /** mouse buttons as InputFrame.btn bits: left is primary fire (the basic attack), right is Move A */
