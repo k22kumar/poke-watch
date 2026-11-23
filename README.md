@@ -119,7 +119,8 @@ src/
              species.ts (the roster), stages.ts
   world/     renderer-free tile vocabulary (tiles.ts), arena builder and arenas (the range), Pokémon locations
              (locations/, locgen/), habitat recipes (habitat/), what both generators share (tilenav.ts, genmeta.ts),
-             the map factory (maps.ts), navblocks.ts (wide-body lattice)
+             the map factory (maps.ts), navblocks.ts (wide-body lattice), sight.ts (the exact tile-world casts and the
+             map-only sight tests; sim/spatial.ts builds its queries on them)
   sim/       renderer-free deterministic simulation: run.ts, world.ts (collision, flow fields), locomotion.ts, player.ts,
              enemies.ts (behaviours, navigation), targets.ts, modes/hold.ts, evolution.ts (Breakthrough), swap.ts,
              moves.ts, aim.ts and spatial.ts (3D aim and queries), effects.ts, combat.ts, bodies.ts, capabilities.ts,
@@ -140,7 +141,13 @@ docs/        one doc per subsystem (below)
 
 The rules that keep it modular:
 
-1. `sim/` and `world/` never import `render/`, `ui/`, `audio/`, `input/` or `assets/`, so they run in Node.
+1. Layering, enforced by `tests/imports.test.ts` (it parses every import under `src/`, type-only and dynamic ones
+   included, and names the file, line and import that break a rule):
+   - `world/` never imports `sim/`, `render/`, `ui/`, `audio/`, `input/` or `assets/`;
+   - `sim/` never imports `render/`, `ui/`, `audio/`, `input/` or `assets/`;
+   so both run in Node. For the 3D overhaul (docs/OVERHAUL_3D.md "Target layout"): only `physics/` imports
+   `@dimforge/*` (Rapier), only `nav/` imports `recast-navigation` / `@recast-navigation/*`, and `sim/`, `world/`,
+   `physics/`, `nav/` and `core/` never import `three`.
 2. The sim advances in fixed 1/60 s ticks with one RNG stream per system (spawn, combat, world, ai).
 3. Systems read `ctx.rules`, never literals. Rules are deep-merged as `defaults ← mode ← mods ← overrides`.
 4. The sim emits events (hit, kill, cast, evolveStart, objective, …). Rendering, audio and UI only react to them.

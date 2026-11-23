@@ -12,7 +12,7 @@
 //               reachable by baseline walking from both stagings
 import { writeFileSync } from 'node:fs';
 import { generateHabitat, profilesFor } from '../src/world/habitat';
-import { mapExposureClear } from '../src/sim/spatial';
+import { mapExposureClear } from '../src/world/sight';
 import { clearance } from '../src/world/habitat/validate';
 import { pathBetween } from '../src/world/locgen/nav';
 import { navOpen, navTop } from '../src/world/tilenav';

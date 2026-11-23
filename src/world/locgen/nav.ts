@@ -3,7 +3,7 @@
 //   player move f → t: t not wall or water, and a rise of ≤ 2.4 m (a jump reaches 1.84 m and then steps 0.6 m)
 // The enemy graph is directed (drops), so connectivity means strong connectivity: every enemy tile must be able to
 // reach the spawn and be reached from it, or enemies get trapped and the player finds unreachable perches.
-import { mapExposureClear } from '../../sim/spatial';
+import { mapExposureClear } from '../sight';
 import { DIRS4, canStep as symStep, navOpen, navTop } from '../tilenav';
 import { T, type ArenaMap } from '../tiles';
 import { blockMask, blockNeighbours, blockNodes, type NavGrid } from '../navblocks';

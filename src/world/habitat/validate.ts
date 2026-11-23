@@ -19,7 +19,7 @@
 //               (PBL07); hazard tiles have an exit within reach of the warning (PBL04/05)
 //   joins       bridges, causeways and arches are supported at both ends and clear what passes under (spec R02)
 //   drainage    every fluid tile drains, through culverts and falls, to an outlet or a declared sink (spec R03)
-import { mapExposureClear, mapSegmentClear } from '../../sim/spatial';
+import { mapExposureClear, mapSegmentClear } from '../sight';
 import { navOpen, navTop } from '../tilenav';
 import type { GateResult } from '../genmeta';
 import { enemyCore, pathBetween, playerReach } from '../locgen/nav';

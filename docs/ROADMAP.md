@@ -36,7 +36,7 @@ The overhaul's WM and WS were named P1 and P2 before the C0 review.
 | C0 | Record this plan | done | Done on `docs/c0-overhaul-plan`: `docs/OVERHAUL_3D.md`, this section, the CLAUDE.md pointer. |
 | C1 | Cleanup of obsolete code (overworld game, original creatures, classic generator, survivor chests, dead exports, historical docs) | done | Done on `chore/c1-cleanup` (2026-11-23); the pre-cleanup state is tag `maplebrook-final` (`0dec749`, local). Removed the Maplebrook overworld game and page, the original-creature pipeline and the build's `--tool` / `--overworld` paths, the classic generator (`src/world/gen`, `?world=gen`, the 'generated' World setting, `rules.worldgen.biomes` / `.version`; what locgen and habitat used moved to `src/world/tilenav.ts` and `genmeta.ts`), the survivor chests with `progressionSystem` and `noSurvivorLoop`, the overworld-only audio hooks (F9), 45 unused exports, with 145 more made file-local; historical docs moved to `docs/archive/`. Tests: the determinism guard moved to `tests/determinism.test.ts` (allow-list 84 → 80); the classic generator's 5 tests and the two map-seam tests that asserted classic behaviour were deleted; the 9 that used classic regions only as fixtures run on habitat and location maps instead (owner review, 2026-11-23). Replays 10/10 as recorded; no `HAB_VERSION` / `LOC_VERSION` change. `dist/index.html` 1,459,621 → 1,403,932 bytes. Follow-ups F20 (closed), F21–F23. |
 | WM | WorldModel types and the tile adapter | queued | |
-| C2 | Layering fix and the import guard test | queued | |
+| C2 | Layering fix and the import guard test | done | Done on `chore/c2-layering` (2026-11-23). The world-geometry core of `sim/spatial.ts` (the world kinds and flags, `RayHit`, the scratch array, `Geo`, the column model, the tile walk) moved unchanged to `src/world/sight.ts` with `mapSegmentClear` and `mapExposureClear`; `Geo` takes a structural `GeoLayers` instead of the sim `World`; `sim/spatial.ts` imports the core back and re-exports `SK`, `SK_WORLD`, `CF`, `QF`, `RayHit`. `habitat/validate.ts`, `locgen/nav.ts`, `scripts/habsanct.ts` and the import line of `tests/spatial.test.ts` read the map functions from `world/sight`; `render/chaseinput.ts` reads `DECK_SLAB` from `world/tiles`. New `tests/imports.test.ts` parses every import under `src/` (TypeScript `preProcessFile`: static, re-export, dynamic and `import()` types) against the README rule list, with a self-test per rule. The determinism allow-list entry `{ hypot: 1 }` followed `mapExposureClear` from `sim/spatial.ts` to `world/sight.ts` (total unchanged, 80). Replays 10/10 as recorded; habstate 24/24; habaudit digests identical to `main` (the `sim` field differs from the committed baseline on both, F23); baseline not rewritten. perf-sim 500 min of 3: p95 0.676 ms, p99 0.923 ms (PASS). Follow-up F24. |
 | S1 | Rapier spike, record in docs/spikes/S1-physics.md | queued | |
 | S2 | three.js spike, record in docs/spikes/S2-renderer.md | queued | |
 | WS | Sim world seam (hash-invariant refactor) | queued | |
@@ -195,6 +195,10 @@ From `docs/hero-shooter-pivot.md` §11 unless marked. The queue item each belong
   positions, so a fresh run changes the `sim` field of all 24 entries in `docs/habaudit/baseline.json` and nothing else
   (checksum, geometry, paint, nav and the six layout sheets are byte-identical; `main` with only that hash line removed
   gives the same digests, e.g. river-gorge seed 3 `46929314` → `55812614`). The committed baseline is unchanged.
+
+### Found in C2 (2026-11-23)
+
+- **F24. CLAUDE.md's first architecture rule predates C2** [no slot yet]: it still reads "`src/sim/` and `src/world/` never import `render/`, …" and does not say that `src/world/` never imports `src/sim/`, the overhaul's `three` / Rapier / recast rules, or that `tests/imports.test.ts` enforces them (README §Architecture rule 1 has the full list). Left alone: CLAUDE.md is outside the brief.
 
 ### Found in P5 (2026-11-21)
 

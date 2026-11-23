@@ -3,7 +3,7 @@
 // Reads the sim, never writes it.
 import { bodyOf } from '../rules/sizing';
 import type { SimContext } from '../sim/types';
-import { DECK_SLAB } from '../sim/world';
+import { DECK_SLAB } from '../world/tiles';
 import type { ChaseFrame } from './camera';
 import { classOutline, type Outline } from './framing';
 
