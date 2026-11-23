@@ -165,3 +165,42 @@ export function runCourse(R: Rapier, M: WorldModel, rep: Representation, seconds
   }
   return { runs, hash: all.hex(), stepMs };
 }
+
+/** §4 extra: a dynamic pile (the solver and contacts, which the controller course never runs) and query results.
+ *  60 bodies (boxes, balls, capsules) dropped in a 6 × 6 m column onto the range's floor beside the spawn, 600 ticks,
+ *  hashing every body's translation and rotation each tick, then 200 rays and 50 shape casts whose hit distances and
+ *  normals are hashed too. */
+export function runPile(R: Rapier, M: WorldModel, rep: Representation): string {
+  const w = new R.World({ x: 0, y: -P.gravity, z: 0 });
+  w.timestep = DT;
+  buildStatic(R, w, M, rep);
+  const bodies: RigidBody[] = [];
+  for (let i = 0; i < 60; i++) {
+    const x = 6 + (i % 4) * 1.3 + ((i * 7) % 5) * 0.05, z = 4 + (((i / 4) | 0) % 4) * 1.3, y = 1 + ((i / 16) | 0) * 1.4 + (i % 3) * 0.2;
+    const b = w.createRigidBody(R.RigidBodyDesc.dynamic().setTranslation(x, y, z).setRotation({ x: 0.1 * (i % 3), y: 0.2, z: 0, w: 1 }).setLinvel(((i % 5) - 2) * 0.3, 0, ((i % 7) - 3) * 0.2));
+    const d = i % 3 === 0 ? R.ColliderDesc.cuboid(0.4, 0.3, 0.5) : i % 3 === 1 ? R.ColliderDesc.ball(0.4) : R.ColliderDesc.capsule(0.3, 0.3);
+    w.createCollider(d.setFriction(0.7).setRestitution(0.1), b);
+    bodies.push(b);
+  }
+  const h = new Hash();
+  for (let t = 0; t < 600; t++) {
+    w.step();
+    for (const b of bodies) { const p = b.translation(), q = b.rotation(); h.f32(p.x); h.f32(p.y); h.f32(p.z); h.f32(q.x); h.f32(q.y); h.f32(q.z); h.f32(q.w); }
+  }
+  const ray = new R.Ray({ x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+  for (let k = 0; k < 200; k++) {
+    // directions from rational components (no trig), normalised with sqrt
+    const dx = ((k * 37) % 21) - 10, dy = ((k * 11) % 9) - 6, dz = ((k * 53) % 17) - 8, l = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    ray.origin = { x: 7 + (k % 5), y: 1.5, z: 5 + (k % 7) }; ray.dir = { x: dx / l, y: dy / l, z: dz / l };
+    const hit = w.castRayAndGetNormal(ray, 60, true);
+    if (hit) { h.f32(hit.timeOfImpact); h.f32(hit.normal.x); h.f32(hit.normal.y); h.f32(hit.normal.z); } else h.f32(-1);
+  }
+  const ball = new R.Ball(0.3);
+  for (let k = 0; k < 50; k++) {
+    const vx = ((k * 13) % 11) - 5, vz = ((k * 29) % 13) - 6;
+    const hit = w.castShape({ x: 2 + (k % 9), y: 0.8, z: (k % 6) - 2 }, { x: 0, y: 0, z: 0, w: 1 }, { x: vx, y: -0.5, z: vz }, ball, 0, 4, true);
+    if (hit) { h.f32(hit.time_of_impact); h.f32(hit.normal1.x); h.f32(hit.normal1.y); h.f32(hit.normal1.z); } else h.f32(-1);
+  }
+  w.free();
+  return h.hex();
+}

@@ -32,6 +32,11 @@ jobs:
         run: npx tsx scripts/s1/course.ts deterministic | tee course-deterministic.txt
       - name: Course, rapier3d-simd
         run: npx tsx scripts/s1/course.ts simd | tee course-simd.txt
+      - name: Course in the page (headless Chromium)
+        run: |
+          npm i --no-save playwright@1.65.0
+          npx playwright install --with-deps chromium
+          node scripts/s1/page-course.mjs "$RUNNER_TEMP/page-course" | tee course-page.txt
       - name: Digest
         run: grep -h "HASH\|hash" course-*.txt
       - uses: actions/upload-artifact@v4

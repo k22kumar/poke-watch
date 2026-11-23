@@ -1,7 +1,7 @@
 // S1 spike §3/§4: the 60 s controller course on the range, hashed every tick; the CI workflow runs this too.
 // npx tsx scripts/s1/course.ts [variant] [--quiet]
 import { initRapierNode, type Variant } from '../../src/physics/node';
-import { runCourse } from './courselib';
+import { runCourse, runPile } from './courselib';
 import { rangeModel } from './maps';
 import type { Representation } from '../../src/physics/colliders';
 
@@ -21,3 +21,4 @@ for (const [rep, fl, name] of cases) {
     if (!quiet) console.log(`         10 s checkpoints ${r.checkpoints.join(' ')}`);
   }
 }
+for (const rep of ['boxes', 'boxmesh', 'heightfield'] as Representation[]) console.log(`HASH pile+queries ${rep.padEnd(11)} ${runPile(R, M, rep)}`);
