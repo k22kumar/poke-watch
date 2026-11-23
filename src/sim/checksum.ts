@@ -1,6 +1,7 @@
 // State checksum for replays and (later) rollback desync detection: FNV-1a over the float64 bits
 // of the state that matters to play. Same seed + same inputs => same hash on every engine.
 import type { SimContext } from './types';
+import { worldOf } from './worldquery';
 
 const f64 = new Float64Array(1);
 const u32 = new Uint32Array(f64.buffer);
@@ -16,7 +17,7 @@ export class StateHasher {
 }
 
 export function stateHash(ctx: SimContext): number {
-  const h = new StateHasher();
+  const h = new StateHasher(), W = worldOf(ctx);
   h.num(ctx.tick).num(ctx.stage).num(ctx.stats.kills).num(ctx.stats.damageTaken);
   for (const P of ctx.players) {
     h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.reflex).num(P.level);
@@ -35,7 +36,7 @@ export function stateHash(ctx: SimContext): number {
   const B = ctx.bodies;
   for (let i = 0; i < B.hi; i++) if (B.alive[i]) h.num(B.x[i]).num(B.z[i]);
   // W4/W5: the world overlay (prop states) is gameplay state; cosmetics are not hashed
-  const F = ctx.world?.propField;
+  const F = W?.tiles.propField;
   if (F) { for (let i = 0; i < F.n; i++) if (F.state[i]) h.num(i).num(F.state[i]); } // untouched overlay hashes as nothing
   return h.h;
 }
@@ -48,7 +49,7 @@ export function stateHash(ctx: SimContext): number {
  *  targets (slot, generation, respawn tick, waypoint), every live body (position, height, velocity, owner), the cell
  *  states and the prop overlay. */
 export function replayHash(ctx: SimContext): number {
-  const h = new StateHasher();
+  const h = new StateHasher(), W = worldOf(ctx);
   h.num(ctx.tick).num(ctx.stats.kills).num(ctx.stats.damageTaken).num(ctx.stats.damageDealt);
   for (const P of ctx.players) {
     h.num(P.x).num(P.y).num(P.z).num(P.vx).num(P.vz).num(P.vy).num(P.grounded ? 1 : 0).num(P.reflex);
@@ -66,9 +67,9 @@ export function replayHash(ctx: SimContext): number {
   if (T) for (let k = 0; k < T.slot.length; k++) h.num(T.slot[k]).num(T.gen[k]).num(T.back[k]).num(T.wp[k]);
   const B = ctx.bodies;
   for (let i = 0; i < B.hi; i++) if (B.alive[i]) h.num(i).num(B.x[i]).num(B.y[i]).num(B.z[i]).num(B.vx[i]).num(B.vz[i]).num(B.team[i]);
-  const C = ctx.world?.cells;
+  const C = W?.tiles.cells;
   if (C) for (let k = 0; k < C.state.length; k++) if (C.state[k]) h.num(k).num(C.state[k]);
-  const F = ctx.world?.propField;
+  const F = W?.tiles.propField;
   if (F) { for (let i = 0; i < F.n; i++) if (F.state[i]) h.num(i).num(F.state[i]); }
   return h.h;
 }

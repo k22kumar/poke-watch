@@ -16,7 +16,7 @@ import { navWide, partnerRadius } from '../rules/sizing';
 import { applyAgent, hurtPlayer, steamAt } from './cells';
 import { killEnemy } from './combat';
 import type { Member, SimContext, System } from './types';
-import type { World } from './world';
+import { GROUND, worldOf, type TileExt } from './worldquery';
 import { faint, onHpLoss } from './squad';
 import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
@@ -52,27 +52,27 @@ export function ventTick(ctx: SimContext): boolean {
 export const hazardSystem: System = {
   name: 'hazards',
   update(ctx: SimContext) {
-    const W = ctx.world;
-    if (!W.hazard || !W.hab) return;
+    const W = worldOf(ctx), WT = W.tiles;
+    if (!WT.hazard || !WT.hab) return;
     const V = ctx.rules.habitat.vent, phase = ventPhase(ctx);
     if (phase === 'dormant') return;
     // steam over the field: every third vent tile while warning, the whole field while active
-    const hz = W.hab.hazard;
+    const hz = WT.hab.hazard;
     // the warning's ground cue: one hostile ring on EVERY vent tile for the whole warning (the steam alone is a few small
     // particles on a third of the tiles and reads as nothing from a chase camera: docs/HABITAT_PLAYTEST.md)
-    if (phase === 'warn' && ventWarnOnset(ctx)) for (const k of hz) ctx.events.push({ t: 'telegraph', x: (k % W.w) - W.half + 0.5, z: ((k / W.w) | 0) - W.half + 0.5, r: 0.85, life: V.warn, hostile: true });
+    if (phase === 'warn' && ventWarnOnset(ctx)) for (const k of hz) ctx.events.push({ t: 'telegraph', x: (k % WT.w) - WT.half + 0.5, z: ((k / WT.w) | 0) - WT.half + 0.5, r: 0.85, life: V.warn, hostile: true });
     for (let i = 0; i < hz.length; i++) if (phase === 'active' || i % 3 === 0) steamAt(ctx, hz[i]);
     if (phase !== 'active' || !ventTick(ctx)) return;
     const P = ctx.player;
-    if (P.faintT < 0 && W.hazardAt(P.x, P.z) && P.y <= W.height(P.x, P.z) + 0.3 && !traversalOf(P.species, ctx.rules).ventImmune && !P.species.elements.includes('blaze')) {
+    if (P.faintT < 0 && WT.hazardAt(P.x, P.z) && P.y <= W.surfaceAt(P.x, GROUND, P.z) + 0.3 && !traversalOf(P.species, ctx.rules).ventImmune && !P.species.elements.includes('blaze')) {
       const before = P.hp;
       hurtPlayer(ctx, P.maxHp * V.pct, 'vent');
       if (P.hp < before) ctx.events.push({ t: 'hazardHit', kind: 'vent', who: 'player', id: -1, amount: before - P.hp, x: P.x, z: P.z });
     }
     const E = ctx.enemies;
     for (let e = 0; e < E.hi; e++) {
-      if (!E.alive[e] || E.spawnT[e] < 0.25 || !W.hazardAt(E.x[e], E.z[e])) continue;
-      if (E.y[e] > W.height(E.x[e], E.z[e]) + 0.3) continue; // flyers and anything in the air pass over
+      if (!E.alive[e] || E.spawnT[e] < 0.25 || !WT.hazardAt(E.x[e], E.z[e])) continue;
+      if (E.y[e] > W.surfaceAt(E.x[e], GROUND, E.z[e]) + 0.3) continue; // flyers and anything in the air pass over
       if (ctx.speciesIndex[E.species[e]].elements.includes('blaze')) continue;
       const amount = E.maxHp[e] * V.pct;
       E.hp[e] -= amount;
@@ -81,7 +81,7 @@ export const hazardSystem: System = {
       ctx.events.push({ t: 'hazardHit', kind: 'vent', who: 'enemy', id: e, amount, x: E.x[e], z: E.z[e] });
       if (E.hp[e] <= 0) killEnemy(ctx, e);
     }
-    for (let i = 0; i < hz.length; i += 4) { const k = hz[i]; applyAgent(ctx, 'heat', (k % W.w) - W.half + 0.5, ((k / W.w) | 0) - W.half + 0.5, 0.5); }
+    for (let i = 0; i < hz.length; i += 4) { const k = hz[i]; applyAgent(ctx, 'heat', (k % WT.w) - WT.half + 0.5, ((k / WT.w) | 0) - WT.half + 0.5, 0.5); }
   },
 };
 
@@ -117,12 +117,12 @@ export function tideIn(ctx: SimContext): number {
 export const tideSystem: System = {
   name: 'tide',
   update(ctx: SimContext) {
-    const W = ctx.world;
-    if (!W.tide) return;
+    const W = worldOf(ctx), WT = W.tiles;
+    if (!WT.tide) return;
     const c = tideClock(ctx), high = c.at >= c.warnEnd;
     if (c.at === c.low && c.warnEnd > c.low) ctx.events.push({ t: 'tide', phase: 'warn', in: (c.warnEnd - c.low) / c.hz });
-    if (high !== W.tideHigh) {
-      W.setTide(high);
+    if (high !== WT.tideHigh) {
+      WT.setTide(high);
       ctx.events.push({ t: 'tide', phase: high ? 'flood' : 'ebb', in: 0 });
     }
   },
@@ -168,8 +168,8 @@ const memberSafeIn = (ctx: SimContext, kind: number, m: Member) => safeIn(ctx, k
 
 /** the liquid the trainer's body is in contact with (0 none) */
 export function playerLiquid(ctx: SimContext): number {
-  const P = ctx.player, W = ctx.world;
-  return W.hazards ? W.liquidAt(P.x, P.z, P.y, ctx.rules.hazards.contact) : 0;
+  const P = ctx.player, W = worldOf(ctx), WT = W.tiles;
+  return WT.hazards ? W.liquidContact(P.x, P.y, P.z, ctx.rules.hazards.contact) : 0;
 }
 
 /** the walking-speed factor and whether a jump is allowed for the field Pokémon in liquid `kind` */
@@ -220,22 +220,22 @@ function cuePlayer(ctx: SimContext, kind: number) {
 
 /** Is the ground under (x, z) at `y` supported dry footing with a margin around it (a place to come back to)? */
 function safeFooting(ctx: SimContext, x: number, z: number, y: number): boolean {
-  const W = ctx.world, c = ctx.rules.hazards.contact;
+  const W = worldOf(ctx), WT = W.tiles, c = ctx.rules.hazards.contact;
   for (const [dx, dz] of [[0, 0], [0.6, 0], [-0.6, 0], [0, 0.6], [0, -0.6]]) {
-    const g = W.support(x + dx, z + dz, y);
-    if (g === -Infinity || Math.abs(g - y) > 0.6 || W.liquidAt(x + dx, z + dz, g, c) || W.wallAt(x + dx, z + dz)) return false;
+    const g = W.supportAt(x + dx, y, z + dz);
+    if (g === -Infinity || Math.abs(g - y) > 0.6 || W.liquidContact(x + dx, g, z + dz, c) || WT.wallAt(x + dx, z + dz)) return false;
   }
   return true;
 }
 
 function exposePlayer(ctx: SimContext, dt: number) {
-  const P = ctx.player, W = ctx.world, H = ctx.rules.hazards;
+  const P = ctx.player, W = worldOf(ctx), WT = W.tiles, H = ctx.rules.hazards;
   if (ctx.state === 'dead') return;
   // the next Pokémon after a hazard knockout comes in on the last safe ground
   if (P.hzRecover && P.faintT < 0 && !P.m.fainted) {
     const kind = P.hzRecover;
     P.hzRecover = '';
-    P.x = P.px = P.safeX; P.z = P.pz = P.safeZ; P.y = P.py = W.height(P.safeX, P.safeZ, P.safeY);
+    P.x = P.px = P.safeX; P.z = P.pz = P.safeZ; P.y = P.py = W.surfaceAt(P.safeX, P.safeY, P.safeZ);
     P.vx = P.vz = P.vy = P.kx = P.kz = 0; P.grounded = true; P.dashT = 0;
     ctx.events.push({ t: 'hazard', kind, phase: 'recover', who: 'player', id: -1, lethal: 0, x: P.x, z: P.z });
   }
@@ -284,7 +284,7 @@ function exposePlayer(ctx: SimContext, dt: number) {
   }
   P.hzSafe = 0;
   // no contact: a hop above the liquid keeps the clock; standing on supported dry ground ends it
-  const g = W.support(P.x, P.z, P.y);
+  const g = W.supportAt(P.x, P.y, P.z);
   const onGround = P.grounded && g !== -Infinity && P.y - g < 0.05;
   if (P.hzKind && onGround) {
     cuePlayer(ctx, P.hzKind);
@@ -292,11 +292,11 @@ function exposePlayer(ctx: SimContext, dt: number) {
     P.hzKind = 0; P.hzT = 0; P.hzAcc = 0; P.hzCueT = 0;
   }
   // (never on a tidal floor: dry now, it may be under water when the next Pokémon comes in)
-  if (onGround && !P.hzKind && !W.tidalAt(P.x, P.z) && safeFooting(ctx, P.x, P.z, P.y)) { P.safeX = P.x; P.safeY = P.y; P.safeZ = P.z; }
+  if (onGround && !P.hzKind && !WT.tidalAt(P.x, P.z) && safeFooting(ctx, P.x, P.z, P.y)) { P.safeX = P.x; P.safeY = P.y; P.safeZ = P.z; }
 }
 
 function exposeEnemies(ctx: SimContext, dt: number) {
-  const E = ctx.enemies, W = ctx.world, H = ctx.rules.hazards, c = H.contact;
+  const E = ctx.enemies, W = worldOf(ctx), WT = W.tiles, H = ctx.rules.hazards, c = H.contact;
   for (let e = 0; e < E.hi; e++) {
     if (!E.alive[e]) continue;
     const ground = E.hover[e] === 0;
@@ -307,13 +307,13 @@ function exposeEnemies(ctx: SimContext, dt: number) {
       killEnemy(ctx, e);
       continue;
     }
-    const kind = ground ? W.liquidAt(E.x[e], E.z[e], E.y[e], c) : 0;
+    const kind = ground ? W.liquidContact(E.x[e], E.y[e], E.z[e], c) : 0;
     const sp = ctx.speciesIndex[E.species[e]];
     if (kind && !safeIn(ctx, kind, sp)) {
       if (!E.hzKind[e]) {
         E.hzT[e] = 0; E.hzAcc[e] = 0; E.hzCue[e] = 0; E.hzCueT[e] = 0;
         // the way out: the nearest dry shore with room, on the level it is swimming at
-        const s = W.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e]) ?? (E.foot[e] > 0 ? W.nearestFit(E.x[e], E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules), true, E.tall[e]) : W.nearestWalkable(E.x[e], E.z[e]));
+        const s = WT.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e]) ?? (E.foot[e] > 0 ? W.place(E.x[e], GROUND, E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules), true, E.tall[e]) : W.nearestWalkableAt(E.x[e], GROUND, E.z[e]));
         E.hzX[e] = s[0]; E.hzZ[e] = s[1];
         ctx.events.push({ t: 'hazard', kind: KIND_NAME[kind] as 'water' | 'lava', phase: 'enter', who: 'enemy', id: e, lethal: lethalOf(ctx, kind), x: E.x[e], z: E.z[e] });
       }
@@ -341,7 +341,7 @@ function exposeEnemies(ctx: SimContext, dt: number) {
     }
     if (!E.hzKind[e]) continue;
     // safe in it (compatibility), or out on dry ground with support: the exposure ends
-    const g = W.support(E.x[e], E.z[e], E.y[e]);
+    const g = W.supportAt(E.x[e], E.y[e], E.z[e]);
     if (kind || (g !== -Infinity && E.fallV[e] === 0)) {
       ctx.events.push({ t: 'hazard', kind: KIND_NAME[E.hzKind[e]] as 'water' | 'lava', phase: 'exit', who: 'enemy', id: e, lethal: 0, x: E.x[e], z: E.z[e] });
       E.hzKind[e] = 0; E.hzT[e] = 0; E.hzAcc[e] = 0; E.hzCue[e] = 0;
@@ -352,34 +352,35 @@ function exposeEnemies(ctx: SimContext, dt: number) {
 /** Would a ground creature stepping from (ox, oz) to (x, z) walk into a hazard of its own accord? A lethal liquid or open
  *  air it is not already in. Steering stops at the lip; knockback beyond rules.hazards.forcedKnock still carries it over. */
 export function avoidsStep(ctx: SimContext, e: number, ox: number, oz: number, x: number, z: number, feet: number): boolean {
-  const W = ctx.world;
-  if (!W.hazards) return false;
-  const k = W.tile(x, z), k0 = W.tile(ox, oz);
+  const W = worldOf(ctx), WT = W.tiles;
+  if (!WT.hazards) return false;
+  const k = WT.tile(x, z), k0 = WT.tile(ox, oz);
   if (k < 0 || k === k0) return false;
-  if (W.isVoid(k) && W.support(x, z, feet) === -Infinity) return W.support(ox, oz, feet) !== -Infinity;
-  const M = W.map;
-  if (M.terrain[k] !== T.water || W.cells.iceAt(k)) return false;
-  const kind = W.liquidAt(x, z, W.height(x, z), ctx.rules.hazards.contact);
-  if (!kind || W.liquidAt(ox, oz, feet, ctx.rules.hazards.contact)) return false;
+  if (WT.isVoid(k) && W.supportAt(x, feet, z) === -Infinity) return W.supportAt(ox, feet, oz) !== -Infinity;
+  const M = WT.map;
+  if (M.terrain[k] !== T.water || WT.cells.iceAt(k)) return false;
+  const kind = W.liquidContact(x, W.surfaceAt(x, GROUND, z), z, ctx.rules.hazards.contact);
+  if (!kind || W.liquidContact(ox, feet, oz, ctx.rules.hazards.contact)) return false;
   // a deck at the walker's level carries it over the liquid
-  if (W.over && W.over[k] > 0 && feet >= W.over[k] - 0.9) return false;
+  if (WT.over && WT.over[k] > 0 && feet >= WT.over[k] - 0.9) return false;
   return !safeIn(ctx, kind, ctx.speciesIndex[ctx.enemies.species[e]]);
 }
 
-/** the last shore answer per world: the tile it was asked from and the result. Keyed by the World, so two worlds (two
+/** the last shore answer per world: the tile it was asked from and the result. Keyed by the World's tile extensions (W.tiles: the World
+ *  object itself, so the key is unchanged by WS), so two worlds (two
  *  runs, or two regions of one run) never share an answer, even on maps with the same layout, and an entry goes with its
  *  world (tests/crossrun.test.ts; docs/HAZARDS.md "Shore target") */
-const SHORES = new WeakMap<World, { tile: number; x: number; z: number; ok: boolean }>();
+const SHORES = new WeakMap<TileExt, { tile: number; x: number; z: number; ok: boolean }>();
 /** Where the trainer should head to leave the liquid it is in: the nearest dry shore with room on its level (World.shore),
  *  cached per tile of each world. For drivers of the trainer (the balance bot, scripted routes); null when not in a liquid. */
 export function shoreFor(ctx: SimContext): [number, number] | null {
-  const P = ctx.player, W = ctx.world;
+  const P = ctx.player, W = worldOf(ctx), WT = W.tiles;
   if (!playerLiquid(ctx)) return null;
-  let c = SHORES.get(W);
-  if (!c) SHORES.set(W, (c = { tile: -1, x: 0, z: 0, ok: false }));
-  const k = W.tile(P.x, P.z);
+  let c = SHORES.get(WT);
+  if (!c) SHORES.set(WT, (c = { tile: -1, x: 0, z: 0, ok: false }));
+  const k = WT.tile(P.x, P.z);
   if (k !== c.tile) {
-    const s = W.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
+    const s = WT.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
     c.tile = k; c.ok = !!s;
     if (s) { c.x = s[0]; c.z = s[1]; }
   }
@@ -389,7 +390,7 @@ export function shoreFor(ctx: SimContext): [number, number] | null {
 export const exposureSystem: System = {
   name: 'exposure',
   update(ctx: SimContext, dt: number) {
-    if (!ctx.world.hazards) return;
+    if (!worldOf(ctx).tiles.hazards) return;
     exposePlayer(ctx, dt);
     exposeEnemies(ctx, dt);
   },

@@ -24,10 +24,11 @@
 // The bot and the fixed views send no ray and stay on moves.ts's planar path (magnetism, lead), as every checksum set
 // expects. Allocation-free: callers own the AimState, the contact lists and queries are module scratch.
 
-import { Contacts, MASK, QF, SK, SK_WORLD, segmentClear, spatialQuery, sweep } from './spatial';
+import { Contacts, MASK, QF, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
 import { partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { dcos, dhypot, dsin } from '../core/detmath';
 import type { AimState, MoveSpec, SimContext } from './types';
+import { worldOf } from './worldquery';
 
 const CAM = new Contacts(32), MUZ = new Contacts(32);
 /** the camera trace: what the crosshair can rest on (every actor reported in order; held bodies are skipped below). Off
@@ -65,9 +66,9 @@ function muzzleOf(ctx: SimContext, s: MoveSpec): { up: number; fwd: number } {
 /** Phase 3 device assistance (rules.aim.assist `los`): whether the partner's chest (its muzzle height for this move, on
  *  its centre) sees enemy e's centre, under the attack cover policy. An enemy behind cover cannot bend a planar aim */
 export function assistSees(ctx: SimContext, s: MoveSpec, e: number): boolean {
-  const P = ctx.player, E = ctx.enemies;
+  const P = ctx.player, E = ctx.enemies, W = worldOf(ctx);
   const up = partnerHeight(P.species, ctx.rules) * muzzleOf(ctx, s).up;
-  return segmentClear(ctx.world, P.x, P.y + up, P.z, E.x[e], E.y[e] + E.tall[e] / 2, E.z[e], MASK.los, combatFlags(ctx));
+  return W.segmentClear(P.x, P.y + up, P.z, E.x[e], E.y[e] + E.tall[e] / 2, E.z[e], MASK.los, combatFlags(ctx));
 }
 
 /** the distance a spatial shot of this move flies from its muzzle (the legacy flight of the same move) */
@@ -107,7 +108,7 @@ const held = (ctx: SimContext, kind: number, id: number) => kind === SK.body && 
  */
 export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boolean {
   out.on = false;
-  const ray = ctx.input.aim, P = ctx.player, W = ctx.world, R = ctx.rules.aim;
+  const ray = ctx.input.aim, P = ctx.player, W = worldOf(ctx), R = ctx.rules.aim;
   if (!ray) return false;
   let dx = ray.dx, dy = ray.dy, dz = ray.dz;
   const L = Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -123,7 +124,7 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   const cx = P.x, cy = P.y + up, cz = P.z;
   let mx = cx + hx * fwd, my = cy, mz = cz + hz * fwd;
   const cf = combatFlags(ctx);
-  if (!segmentClear(W, cx, cy, cz, mx, my, mz, MASK.los, cf)) { mx = cx; my = cy; mz = cz; }
+  if (!W.segmentClear(cx, cy, cz, mx, my, mz, MASK.los, cf)) { mx = cx; my = cy; mz = cz; }
 
   // 1. the camera trace, from the chest plane out
   const vx0 = cx - ray.ox, vy0 = cy - ray.oy, vz0 = cz - ray.oz;

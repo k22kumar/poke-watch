@@ -9,7 +9,8 @@ import type { Rules } from '../rules/defaults';
 import type { BiomeDef } from '../rules/stages';
 import { regionMap } from '../world/maps';
 import { T, WATER_Y, ICE_LIFT, DECK_SLAB, deckTop, stairEdges, wallTopsOf, type ArenaMap, type ArenaProp } from '../world/tiles';
-import { sampledSight } from './spatial';
+import { sampledSight, raycastWorld, segmentClear, solidAt, type RayHit } from './spatial';
+import type { NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
 import { CellField, CS } from './cells';
 import { PropField } from './props';
 import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../world/navblocks';
@@ -26,7 +27,7 @@ export { DECK_SLAB } from '../world/tiles';
  *  an Extra Large body of exactly the class height, 2.4 m, fits the generators' 2.4 m gap under a 3.0 m deck) */
 export const HEAD_EPS = 1e-3;
 
-export class World {
+export class World implements WorldQuery {
   readonly size: number;
   readonly half: number;
   readonly w: number; readonly h: number;
@@ -1227,6 +1228,41 @@ export class World {
     if (F && reach) return this.nearestFit(x, z, r, wide, false, tall);
     return this.nearestWalkable(x, z);
   }
+
+  // ---- World seam (WS; src/sim/worldquery.ts, docs/OVERHAUL_3D.md "World seam") -------------------------------------
+  // Each wrapper calls one existing method with the same arguments in the same order: no new arithmetic.
+
+  surfaceAt(x: number, y: RefY, z: number): number { return this.height(x, z, y); }
+  supportAt(x: number, y: RefY, z: number): number { return this.support(x, z, y); }
+  liquidContact(x: number, y: number, z: number, contact: number): number { return this.liquidAt(x, z, y, contact); }
+  headroomOver(x: number, y: number, z: number, r: number): number { return this.headroomAt(x, z, y, r); }
+  moveFootprint(x: number, y: number, z: number, dx: number, dz: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean, tall?: number, over?: boolean): void {
+    this.moveBody(x, z, dx, dz, y, step, r, out, stop, tall, over);
+  }
+  solidFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean { return this.collides(x, z, y, step, tall, over); }
+  blockedFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean { return this.blocks(x, z, y, step, tall, over); }
+  fitsAt(x: number, y: number, z: number, r: number, step?: number, tall?: number, over?: boolean): boolean { return this.fits(x, z, y, r, step, tall, over); }
+  topBelow(x: number, y: number, z: number, r: number): number { return this.topUnder(x, z, r, y); }
+  insideRock(x: number, y: number, z: number, over?: boolean): boolean { return this.inRock(x, z, y, over); }
+  raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, mask: number, hit: RayHit, r?: number, h?: number, flags?: number): boolean {
+    return raycastWorld(this, ox, oy, oz, dx, dy, dz, maxT, mask, hit, r, h, flags);
+  }
+  segmentClear(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask?: number, flags?: number): boolean {
+    return segmentClear(this, x0, y0, z0, x1, y1, z1, mask, flags);
+  }
+  solidAt(x: number, y: number, z: number, mask?: number, flags?: number): number { return solidAt(this, x, y, z, mask, flags); }
+  walkableAt(x: number, y: RefY, z: number): boolean { return this.walkable(x, z, y); }
+  nearestWalkableAt(x: number, _y: RefY, z: number): [number, number] { return this.nearestWalkable(x, z); }
+  place(x: number, _y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number] { return this.nearestFit(x, z, r, wide, reach, tall); }
+  setNavGoal(x: number, y: RefY, z: number): void { this.updateFlow(x, z, y); }
+  navDir(goal: NavGoal, x: number, y: RefY, z: number, out: [number, number], wide?: boolean, diag?: boolean, tall?: number): -1 | 0 | 1 {
+    if (goal === 'player') return wide ? this.wideDir(x, z, out, y, diag, tall) : this.flowDir(x, z, out, y) ? 1 : 0;
+    return wide ? this.wideGoalDir(x, z, out, y, diag, tall) : this.goalDir(x, z, out, y) ? 1 : 0;
+  }
+  navReached(_goal: 'player', x: number, y: RefY, z: number, diag?: boolean, tall?: number): boolean { return this.wideReached(x, z, diag, y, tall); }
+  navDist(_goal: 'player', x: number, y: RefY, z: number): number { return this.flowDist(x, z, y); }
+  /** the named tile extensions: this World itself, typed as TileExt */
+  get tiles(): TileExt { return this; }
 
   get bound() { return this.half - 0.5; }
 }

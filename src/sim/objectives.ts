@@ -13,19 +13,20 @@ import { dhypot, dsin, dcos } from '../core/detmath';
 import { clamp } from '../core/util';
 import type { Objective, ObjectiveKind, SimContext } from './types';
 import { holdOfferTime, holdPoint, holdTick, spawnRaidParty } from './modes/hold';
+import { GROUND, worldOf } from './worldquery';
 
 /** an open walkable point (r..R m from the player) with room around it, one the partner's own
  *  navigation class reaches (a Large or Extra Large partner never gets an objective behind a one-tile neck) */
 function site(ctx: SimContext, rMin: number, rMax: number, fromX = ctx.player.x, fromZ = ctx.player.z): [number, number] {
-  const W = ctx.world, b = W.bound - 4, pf = partnerFootprint(ctx.player.species, ctx.rules), wide = pf > 0 && navWide(pf, ctx.rules);
+  const W = worldOf(ctx), b = W.bound - 4, pf = partnerFootprint(ctx.player.species, ctx.rules), wide = pf > 0 && navWide(pf, ctx.rules);
   for (let k = 0; k < 40; k++) {
     const a = ctx.rng.spawn.range(0, Math.PI * 2), r = ctx.rng.spawn.range(rMin, rMax);
     const x = Math.floor(clamp(fromX + dsin(a) * r, -b, b)) + 0.5, z = Math.floor(clamp(fromZ + dcos(a) * r, -b, b)) + 0.5;
-    let ok = W.walkable(x, z) && (!wide || W.wideReached(x, z, pf < DIAG_R, undefined, partnerHeight(ctx.player.species, ctx.rules)));
-    for (let q = 0; q < 8 && ok; q++) ok = W.walkable(x + dsin(q * 0.785) * 2.2, z + dcos(q * 0.785) * 2.2);
+    let ok = W.walkableAt(x, GROUND, z) && (!wide || W.navReached('player', x, GROUND, z, pf < DIAG_R, partnerHeight(ctx.player.species, ctx.rules)));
+    for (let q = 0; q < 8 && ok; q++) ok = W.walkableAt(x + dsin(q * 0.785) * 2.2, GROUND, z + dcos(q * 0.785) * 2.2);
     if (ok) return [x, z];
   }
-  return W.nearestWalkable(fromX + rMin, fromZ);
+  return W.nearestWalkableAt(fromX + rMin, GROUND, fromZ);
 }
 
 function blank(kind: ObjectiveKind, x: number, z: number, t: number): Objective {

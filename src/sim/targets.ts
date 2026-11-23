@@ -10,6 +10,7 @@ import { spawnEnemy } from './enemies';
 import { allowedAt } from './placement';
 import { ROLE } from './pools';
 import type { SimContext, System } from './types';
+import { GROUND, worldOf } from './worldquery';
 
 export interface TargetState {
   set: TargetSet;
@@ -21,10 +22,10 @@ export interface TargetState {
 }
 
 function anchor(ctx: SimContext, from: AnchorFrom): [number, number] {
-  const W = ctx.world, H = W.hab;
-  if (from === 'contest' && H) return [H.contest.x - W.half, H.contest.y - W.half];
-  if (from === 'stageA' && H) return [H.stage.A[0] - W.half, H.stage.A[1] - W.half];
-  if (from === 'stageB' && H) return [H.stage.B[0] - W.half, H.stage.B[1] - W.half];
+  const W = worldOf(ctx), H = W.tiles.hab;
+  if (from === 'contest' && H) return [H.contest.x - W.tiles.half, H.contest.y - W.tiles.half];
+  if (from === 'stageA' && H) return [H.stage.A[0] - W.tiles.half, H.stage.A[1] - W.tiles.half];
+  if (from === 'stageB' && H) return [H.stage.B[0] - W.tiles.half, H.stage.B[1] - W.tiles.half];
   return [W.spawn[0], W.spawn[1]];
 }
 
@@ -41,9 +42,9 @@ export function startTargets(ctx: SimContext, set: TargetSet) {
 }
 
 function spawnTarget(ctx: SimContext, k: number) {
-  const T = ctx.targets!, d = T.set.targets[k], sp = SPECIES_BY_ID[d.species], E = ctx.enemies, R = ctx.rules.enemy, TR = ctx.rules.targets;
+  const T = ctx.targets!, d = T.set.targets[k], sp = SPECIES_BY_ID[d.species], E = ctx.enemies, R = ctx.rules.enemy, TR = ctx.rules.targets, W = worldOf(ctx);
   let x = T.ax[k] + d.dx, z = T.az[k] + d.dz;
-  if (!allowedAt(ctx, d.species, x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
+  if (!allowedAt(ctx, d.species, x, z)) [x, z] = W.nearestWalkableAt(x, GROUND, z);
   const i = spawnEnemy(ctx, d.species, x, z, ROLE.target | (d.kind === 'strafe' ? ROLE.ranged : 0));
   T.back[k] = -1;
   if (i < 0) { T.slot[k] = -1; return; }

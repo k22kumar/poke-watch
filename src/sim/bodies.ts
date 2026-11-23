@@ -24,6 +24,7 @@ import type { MoveSpec, SimContext } from './types';
 import { rec, setSrc } from './caplog';
 import { currentCastSlot, holdAim, holdButton } from './capabilities';
 import { applyAgent } from './cells';
+import { GROUND, worldOf } from './worldquery';
 
 const PUSH: [number, number] = [0, 0];
 
@@ -118,12 +119,12 @@ export const bodyWeight = (ctx: SimContext, b: number) => tpl(ctx, b).weight;
 const bodySpeed = (ctx: SimContext, b: number) => dhypot(ctx.bodies.vx[b], ctx.bodies.vz[b]);
 
 export function spawnBody(ctx: SimContext, kind: string, x: number, z: number, vx = 0, vz = 0, team: number = TEAM.neutral, dmg?: number): number {
-  const B = ctx.bodies, T = BODY_TEMPLATES[kind];
+  const B = ctx.bodies, T = BODY_TEMPLATES[kind], W = worldOf(ctx);
   if (!T) throw new Error('unknown body ' + kind);
   const i = B.spawn();
   if (i < 0) return -1;
   B.kind[i] = BODY_KINDS.indexOf(kind);
-  B.x[i] = B.px[i] = x; B.z[i] = B.pz[i] = z; B.y[i] = ctx.world.height(x, z);
+  B.x[i] = B.px[i] = x; B.z[i] = B.pz[i] = z; B.y[i] = W.surfaceAt(x, GROUND, z);
   B.vx[i] = vx; B.vz[i] = vz; B.team[i] = team;
   B.hp[i] = B.maxHp[i] = T.integrity; B.life[i] = T.life;
   B.dmg[i] = dmg ?? 10 * T.weight;
@@ -200,7 +201,7 @@ export function holdBody(ctx: SimContext, b: number, power: number, dx: number, 
 /** A suspended body follows the hold point; on release it flies along the aim as a Push of its hold Power.
  *  Returns true while it is still held (the body skips its normal motion and impacts this tick). */
 function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
-  const B = ctx.bodies, P = ctx.player, C = ctx.rules.caps, T = tpl(ctx, b), Wd = ctx.world;
+  const B = ctx.bodies, P = ctx.player, C = ctx.rules.caps, T = tpl(ctx, b), Wd = worldOf(ctx);
   B.holdT[b] -= dt;
   const [ux, uz] = holdAim(ctx);
   const O = ctx.objective;
@@ -231,10 +232,10 @@ function tickHeld(ctx: SimContext, b: number, dt: number): boolean {
   if (d > 1e-6) {
     const step = Math.min(d, C.holdSpeed * dt);
     const nx = B.x[b] + (dx / d) * step, nz = B.z[b] + (dz / d) * step;
-    if (!Wd.solid(nx, nz)) { B.x[b] = nx; B.z[b] = nz; }
+    if (!Wd.tiles.solid(nx, nz)) { B.x[b] = nx; B.z[b] = nz; }
   }
   B.vx[b] = 0; B.vz[b] = 0;
-  B.y[b] = Wd.height(B.x[b], B.z[b]) + 0.6;
+  B.y[b] = Wd.surfaceAt(B.x[b], GROUND, B.z[b]) + 0.6;
   return true;
 }
 
@@ -342,7 +343,7 @@ const IMPACT_SPEED = 5;
 export const bodySystem = {
   name: 'bodies',
   update(ctx: SimContext, dt: number) {
-    const B = ctx.bodies, W = ctx.world, E = ctx.enemies, P = ctx.player;
+    const B = ctx.bodies, W = worldOf(ctx), WT = W.tiles, E = ctx.enemies, P = ctx.player;
     const collide = ctx.rules.caps.bodyCollisions;
     for (let b = 0; b < B.hi; b++) {
       if (!B.alive[b]) continue;
@@ -354,20 +355,20 @@ export const bodySystem = {
       let sp = dhypot(B.vx[b], B.vz[b]);
       if (sp > 0) {
         // rolling friction (Frozen ground will lower this in the surface-state layer)
-        const ice = ctx.world.cells.at(B.x[b], B.z[b]) === CS.frozen;
+        const ice = WT.cells.at(B.x[b], B.z[b]) === CS.frozen;
         const ns = Math.max(0, sp - T.friction * (ice ? 0.15 : 1) * dt);
         if (ns < 0.3) { B.vx[b] = B.vz[b] = 0; sp = 0; }
         else { B.vx[b] *= ns / sp; B.vz[b] *= ns / sp; sp = ns; }
       }
       if (sp > 0) {
         const nx = B.x[b] + B.vx[b] * dt, nz = B.z[b] + B.vz[b] * dt;
-        const feet = W.height(B.x[b], B.z[b], B.y[b]);
+        const feet = W.surfaceAt(B.x[b], B.y[b], B.z[b]);
         const ax = Math.sign(B.vx[b]) * T.radius, az = Math.sign(B.vz[b]) * T.radius;
-        const blockX = W.blocks(nx + ax, B.z[b], feet, 0.6), blockZ = W.blocks(B.x[b], nz + az, feet, 0.6);
+        const blockX = W.blockedFor(nx + ax, feet, B.z[b], 0.6), blockZ = W.blockedFor(B.x[b], feet, nz + az, 0.6);
         if (blockX || blockZ) {
           // W4: a body running into a tree, bush or rock strikes it as a force of its own Weight
           if (sp >= IMPACT_SPEED) {
-            const k = W.tile(blockX ? nx + ax : B.x[b], blockX ? B.z[b] : nz + az);
+            const k = WT.tile(blockX ? nx + ax : B.x[b], blockX ? B.z[b] : nz + az);
             if (k >= 0) forceOnProp(ctx, k, sp >= 8 ? T.weight : T.weight - 1, (10 * T.weight * sp) / 10, T.type);
           }
           if (sp >= 8 && T.integrity > 0) { ctx.events.push({ t: 'shake', amount: 0.2, x: B.x[b], z: B.z[b] }); breakBody(ctx, b); continue; }
@@ -377,7 +378,7 @@ export const bodySystem = {
         B.roll[b] += sp * dt;
         sp = dhypot(B.vx[b], B.vz[b]);
       }
-      B.y[b] = W.height(B.x[b], B.z[b], B.y[b]);
+      B.y[b] = W.surfaceAt(B.x[b], B.y[b], B.z[b]);
       const x = B.x[b], z = B.z[b], R = T.radius, wgt = T.weight;
 
       // impacts on enemies (player-owned or loose bodies only; enemy throws pass through their side)
@@ -417,7 +418,7 @@ export const bodySystem = {
           deflectBody(ctx, b, ux / L, uz / L);
           continue;
         }
-        if (near && P.y - W.height(P.x, P.z) < R * 1.4) {
+        if (near && P.y - W.surfaceAt(P.x, GROUND, P.z) < R * 1.4) {
           const res = damagePlayer(ctx, (B.dmg[b] * sp) / 10, x, z, 1.4, wgt, T.type, { kind: 'body', name: BODY_KINDS[B.kind[b]] });
           if (res === 'parry') { deflectBody(ctx, b, dxp === 0 && dzp === 0 ? 0 : -B.vx[b] / sp, -B.vz[b] / sp); continue; }
           if (res !== 'none') { B.vx[b] *= 0.8; B.vz[b] *= 0.8; }
@@ -432,8 +433,8 @@ export const bodySystem = {
         const d = Math.sqrt(dp2), push = rs - d;
         const qx = P.x + (dxp / d) * push, qz = P.z + (dzp / d) * push;
         const ph = partnerHeight(ctx.player.species, ctx.rules); // headroom: the partner's height meets deck slabs
-        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, PUSH, undefined, ph); P.x = PUSH[0]; P.z = PUSH[1]; }
-        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
+        if (pf > 0) { W.moveFootprint(P.x, P.y, P.z, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, PUSH, undefined, ph); P.x = PUSH[0]; P.z = PUSH[1]; }
+        else if (!W.solidFor(qx, P.y, qz, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
       }
     }
   },
@@ -469,18 +470,18 @@ function bodyImpacts(ctx: SimContext, b: number, sp: number): number {
 /** Loose rocks scattered on the route at the start of each stage. */
 export function seedBodies(ctx: SimContext) {
   const n = ctx.rules.bodies.looseRocks;
-  const W = ctx.world;
+  const W = worldOf(ctx), WT = W.tiles;
   const [sx, sz] = W.spawn;
   for (let k = 0, tries = 0; k < n && tries < n * 30; tries++) {
     const a = ctx.rng.world.range(0, Math.PI * 2), r = ctx.rng.world.range(7, 42);
     const x = Math.floor(sx + dsin(a) * r) + 0.5, z = Math.floor(sz + dcos(a) * r) + 0.5;
-    if (!W.walkable(x, z) || !W.walkable(x + 1, z) || !W.walkable(x - 1, z) || !W.walkable(x, z + 1) || !W.walkable(x, z - 1)) continue;
+    if (!W.walkableAt(x, GROUND, z) || !W.walkableAt(x + 1, GROUND, z) || !W.walkableAt(x - 1, GROUND, z) || !W.walkableAt(x, GROUND, z + 1) || !W.walkableAt(x, GROUND, z - 1)) continue;
     // only in open ground (a walkable 7 × 7 patch), so a wide route goes round it: some 2 × 2 block centre beside it keeps
     // rock radius + the widest footprint (0.7 + 0.88 m) clear. A rock in a two-tile corridor closed it to every partner
     // until a Power move rolled it away; in a five-tile one an Extra Large partner had 0.04 m to spare
     {
       let open = true;
-      for (let dz = -3; dz <= 3 && open; dz++) for (let dx = -3; dx <= 3 && open; dx++) open = W.walkable(x + dx, z + dz);
+      for (let dz = -3; dz <= 3 && open; dz++) for (let dx = -3; dx <= 3 && open; dx++) open = W.walkableAt(x + dx, GROUND, z + dz);
       if (!open) continue;
     }
     let clear = true;
@@ -490,15 +491,15 @@ export function seedBodies(ctx: SimContext) {
     k++;
   }
   // location maps: designed loose stones (Chargestone Cave's floating stones beside their magnetic crystals)
-  for (const [tx, ty] of W.map.gen?.loc?.bodySpots ?? []) {
-    const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
-    if (!W.walkable(x, z)) continue;
+  for (const [tx, ty] of WT.map.gen?.loc?.bodySpots ?? []) {
+    const x = tx - WT.half + 0.5, z = ty - WT.half + 0.5;
+    if (!W.walkableAt(x, GROUND, z)) continue;
     spawnBody(ctx, 'rock', x, z);
   }
   // authored arenas: the throwables (the training range)
-  for (const [tx, ty] of W.map.throwables ?? []) {
-    const x = tx - W.half + 0.5, z = ty - W.half + 0.5;
-    if (W.walkable(x, z)) spawnBody(ctx, 'cobble', x, z);
+  for (const [tx, ty] of WT.map.throwables ?? []) {
+    const x = tx - WT.half + 0.5, z = ty - WT.half + 0.5;
+    if (W.walkableAt(x, GROUND, z)) spawnBody(ctx, 'cobble', x, z);
   }
 }
 

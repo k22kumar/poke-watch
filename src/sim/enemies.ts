@@ -25,10 +25,11 @@ import { tickHeldEnemy } from './capabilities';
 import { avoidsStep } from './hazards';
 
 import { targetGoal } from './targets';
+import { GROUND, worldOf } from './worldquery';
 export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, roles = 0): number {
   const sp = SPECIES_BY_ID[id];
   if (!sp) throw new Error('unknown species ' + id);
-  const E = ctx.enemies;
+  const E = ctx.enemies, W = worldOf(ctx);
   const i = E.spawn();
   if (i < 0) return -1;
   const R = ctx.rules.enemy;
@@ -49,11 +50,11 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
   if (beh === 'ranged') speed *= 0.85;
   // a ground body with a footprint is put down where it fits: a tile centre, or a wide block's centre
   const foot = tv.groundNav ? footprintOf(sp, size, ctx.rules) : 0;
-  if (foot > 0) [x, z] = ctx.world.nearestFit(x, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
-  else if (tv.groundNav && !ctx.world.walkable(x, z)) [x, z] = ctx.world.nearestWalkable(x, z);
+  if (foot > 0) [x, z] = W.place(x, GROUND, z, foot, navWide(foot, ctx.rules), true, enemyHeight(sp, size, ctx.rules));
+  else if (tv.groundNav && !W.walkableAt(x, GROUND, z)) [x, z] = W.nearestWalkableAt(x, GROUND, z);
   E.x[i] = x; E.z[i] = z; E.px[i] = x; E.pz[i] = z;
   E.hover[i] = hv ? hv.height + ((i * 37) % hv.levels) * hv.step : 0;
-  E.y[i] = ctx.world.height(x, z) + E.hover[i]; E.py[i] = E.y[i];
+  E.y[i] = W.surfaceAt(x, GROUND, z) + E.hover[i]; E.py[i] = E.y[i];
   E.hp[i] = E.maxHp[i] = hp;
   E.speed[i] = speed;
   E.dmg[i] = R.dmgBase + sp.stats.atk * R.dmgPerAtk + sp.stats.spa * R.dmgPerSpa;
@@ -70,17 +71,16 @@ export function spawnEnemy(ctx: SimContext, id: string, x: number, z: number, ro
 }
 
 export function ringPoint(ctx: SimContext, rMin: number, rMax: number): [number, number] {
-  const P = ctx.player;
-  const b = ctx.world.bound;
+  const P = ctx.player, W = worldOf(ctx);
+  const b = W.bound;
   // location maps: most enemies enter from the map's approach anchors (cave mouths, forest gates, side passages)
   // that lie in a band around the player, so pressure comes from places, not from thin air
-  const W = ctx.world;
   if (W.anchors.length && ctx.rng.spawn.chance(0.6)) {
     let pick = -1, seen = 0;
     for (let k = 0; k < W.anchors.length; k++) {
       const [ax, az] = W.anchors[k];
       const d = dhypot(ax - P.x, az - P.z);
-      if (d < rMin - 3 || d > rMax + 16 || !W.walkable(ax, az)) continue;
+      if (d < rMin - 3 || d > rMax + 16 || !W.walkableAt(ax, GROUND, az)) continue;
       seen++;
       if (ctx.rng.spawn.next() * seen < 1) pick = k;
     }
@@ -88,7 +88,7 @@ export function ringPoint(ctx: SimContext, rMin: number, rMax: number): [number,
       const [ax, az] = W.anchors[pick];
       for (let t = 0; t < 4; t++) {
         const x = ax + ctx.rng.spawn.range(-2, 2), z = az + ctx.rng.spawn.range(-2, 2);
-        if (W.walkable(x, z)) return [x, z];
+        if (W.walkableAt(x, GROUND, z)) return [x, z];
       }
       return [ax, az];
     }
@@ -97,20 +97,20 @@ export function ringPoint(ctx: SimContext, rMin: number, rMax: number): [number,
     const a = ctx.rng.spawn.range(0, Math.PI * 2);
     const r = ctx.rng.spawn.range(rMin, rMax);
     const x = P.x + dcos(a) * r, z = P.z + dsin(a) * r;
-    if (Math.abs(x) < b && Math.abs(z) < b && ctx.world.walkable(x, z)) return [x, z];
+    if (Math.abs(x) < b && Math.abs(z) < b && W.walkableAt(x, GROUND, z)) return [x, z];
   }
   const a = ctx.rng.spawn.range(0, Math.PI * 2);
   return [clamp(P.x + dcos(a) * rMin, -b, b), clamp(P.z + dsin(a) * rMin, -b, b)];
 }
 
 export function shootHostile(ctx: SimContext, x: number, z: number, dx: number, dz: number, speed: number, dmg: number, element: Element, radius = 0.45, srcSp = -1, fromY?: number) {
-  const Pr = ctx.projectiles;
+  const Pr = ctx.projectiles, W = worldOf(ctx);
   const i = Pr.spawn();
   if (i < 0) return;
   const L = dhypot(dx, dz) || 1;
   Pr.kind[i] = PK.hostile;
-  Pr.x[i] = x; Pr.z[i] = z; Pr.y[i] = ctx.world.height(x, z) + 0.9;
-  if (ctx.world.los) {
+  Pr.x[i] = x; Pr.z[i] = z; Pr.y[i] = W.surfaceAt(x, GROUND, z) + 0.9;
+  if (W.tiles.los) {
     // location maps: the shot keeps its own altitude and climbs or dips toward the player's chest, so a cliff lip,
     // a tree or a rock between them stops it (effects.ts)
     const P = ctx.player;
@@ -136,14 +136,14 @@ export const enemySystem = {
     const E = ctx.enemies;
     const P = ctx.player;
     const R = ctx.rules.enemy;
-    const W = ctx.world;
+    const W = worldOf(ctx), T = W.tiles;
     const steer = Math.min(1, R.steerRate * dt);
     const kdecay = dexp(-R.knockDecay * dt);
     const pr = partnerRadius(ctx.player.species, ctx.rules);
     const pf = partnerFootprint(ctx.player.species, ctx.rules);
     const RR = ctx.rules.roles, O = ctx.objective;
-    W.updateFlow(P.x, P.z, P.y);
-    const burning = W.burnCost > 1 && W.cells.burning > 0;
+    W.setNavGoal(P.x, P.y, P.z);
+    const burning = T.burnCost > 1 && T.cells.burning > 0;
     for (let i = 0; i < E.hi; i++) {
       if (!E.alive[i]) continue;
       E.px[i] = E.x[i]; E.pz[i] = E.z[i]; E.py[i] = E.y[i];
@@ -178,7 +178,7 @@ export const enemySystem = {
       // staging is 33-47 m from the point, so with the trainer on the far side of it the party starts past despawnDistance
       // and the relocation below would put it on a ring ahead of the trainer, skipping the approaches (and sometimes in
       // ground nothing connects to the point). It stays where it is until it is killed or the Hold ends.
-      const raiding = !!W.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
+      const raiding = !!T.hab && O !== null && O.kind === 'hold' && O.phase === 'active' && (roles & ROLE.raider) !== 0;
       // training targets are pinned too (src/sim/targets.ts): they stand, patrol or strafe where the set put them
       const pinned = raiding || (roles & ROLE.target) !== 0;
       // a wide body with no wide route to the player (it holds: see the pursuit below) is moved the same way after
@@ -188,11 +188,11 @@ export const enemySystem = {
         E.holdT[i] = 0;
         const a = datan2(P.vx, P.vz) + ctx.rng.ai.range(-1, 1);
         let nx = clamp(P.x + dsin(a) * 30, -W.bound, W.bound), nz = clamp(P.z + dcos(a) * 30, -W.bound, W.bound);
-        if (E.foot[i] > 0) [nx, nz] = W.nearestFit(nx, nz, E.foot[i], navWide(E.foot[i], ctx.rules), true, E.tall[i]);
-        else if (traversalOf(sp, ctx.rules).groundNav && !W.walkable(nx, nz)) [nx, nz] = W.nearestWalkable(nx, nz);
+        if (E.foot[i] > 0) [nx, nz] = W.place(nx, GROUND, nz, E.foot[i], navWide(E.foot[i], ctx.rules), true, E.tall[i]);
+        else if (traversalOf(sp, ctx.rules).groundNav && !W.walkableAt(nx, GROUND, nz)) [nx, nz] = W.nearestWalkableAt(nx, GROUND, nz);
         // a holder is only moved onto ground with a wide route to the player; with none anywhere near (the player is in a
         // pocket only small bodies fit) it keeps holding
-        if (!far && !W.wideReached(nx, nz, E.foot[i] < DIAG_R, undefined, E.tall[i])) { nx = E.x[i]; nz = E.z[i]; }
+        if (!far && !W.navReached('player', nx, GROUND, nz, E.foot[i] < DIAG_R, E.tall[i])) { nx = E.x[i]; nz = E.z[i]; }
         E.x[i] = nx; E.z[i] = nz;
         E.px[i] = E.x[i]; E.pz[i] = E.z[i];
         continue;
@@ -205,7 +205,7 @@ export const enemySystem = {
       let ux = dx / dist, uz = dz / dist;
       const ground = E.hover[i] === 0;
       // layered maps: the player on a deck above (or on the ground below) is not reached by walking straight at them
-      const layerGap = W.over !== null && ground && Math.abs(P.y - E.y[i]) > 2.4 && (W.over[W.tile(P.x, P.z)] > 0 || W.over[W.tile(E.x[i], E.z[i])] > 0);
+      const layerGap = T.over !== null && ground && Math.abs(P.y - E.y[i]) > 2.4 && (T.over[T.tile(P.x, P.z)] > 0 || T.over[T.tile(E.x[i], E.z[i])] > 0);
       if (ground && (dist > 1.5 || layerGap)) {
         // straight at the player unless a wall, water or cliff is in the way; then follow the flow field
         const feet = E.y[i];
@@ -216,7 +216,7 @@ export const enemySystem = {
         // route it holds where it is: it never follows the ordinary field into a gap it does not fit
         const f = E.foot[i], wide = navWide(f, ctx.rules);
         const p1 = Math.max(1.1, f + 0.75), p2 = Math.max(2.4, f + 2.05);
-        let ahead = wide || layerGap || W.blocks(E.x[i] + ux * p1, E.z[i] + uz * p1, feet, 0.6) || W.blocks(E.x[i] + ux * p2, E.z[i] + uz * p2, feet, 0.6);
+        let ahead = wide || layerGap || W.blockedFor(E.x[i] + ux * p1, feet, E.z[i] + uz * p1, 0.6) || W.blockedFor(E.x[i] + ux * p2, feet, E.z[i] + uz * p2, 0.6);
         // once the way ahead is blocked the walker keeps to the field for rules.enemy.navHold seconds. The
         // two probes are points, so with one sitting on a tile edge the test flips every tick, and the walker alternated
         // between straight at the player (into the wall) and the field (away from it) and stood still for good (viridian
@@ -225,20 +225,20 @@ export const enemySystem = {
         // terrace reached by a ramp behind the walker is straight ahead across open ground that ends at the terrace face,
         // and the walker went back and forth between that dead end and the ramp (viridian seed 1)
         // (checked every fourth tick per walker; the hold below carries a disagreement between checks)
-        if (!ahead && ((ctx.tick + i) & 3) === 0 && W.flowDir(E.x[i], E.z[i], NAV, feet) && NAV[0] * ux + NAV[1] * uz < 0) ahead = true;
+        if (!ahead && ((ctx.tick + i) & 3) === 0 && W.navDir('player', E.x[i], feet, E.z[i], NAV) === 1 && NAV[0] * ux + NAV[1] * uz < 0) ahead = true;
         // and it does not walk off a ledge toward a player who is not below it: the walker that had climbed a ramp to the
         // player's terrace walked straight off the terrace's edge, landed at the ramp's foot and climbed it again, round and
         // round (tropical-lagoon seed 3, a Sandshrew, 1.2 m drop). With the player below, the drop is the short way down
-        if (!ahead && P.y > feet - 0.6 && W.height(E.x[i] + ux * p1, E.z[i] + uz * p1, feet) < feet - 0.6) ahead = true;
+        if (!ahead && P.y > feet - 0.6 && W.surfaceAt(E.x[i] + ux * p1, feet, E.z[i] + uz * p1) < feet - 0.6) ahead = true;
         if (ahead) E.navT[i] = R.navHold; else if (E.navT[i] > 0) { E.navT[i] -= dt; ahead = true; }
-        const fireAhead = !ahead && burning && !sp.elements.includes('blaze') && (W.burningAt(E.x[i], E.z[i]) || W.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || W.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4));
+        const fireAhead = !ahead && burning && !sp.elements.includes('blaze') && (T.burningAt(E.x[i], E.z[i]) || T.burningAt(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1) || T.burningAt(E.x[i] + ux * 2.4, E.z[i] + uz * 2.4));
         if (ahead || fireAhead) {
           // Phase 8a: fire ahead (or underfoot): follow the weighted flow field around it (Fire types walk through)
           if (wide) {
-            const r = W.wideDir(E.x[i], E.z[i], NAV, feet, f < DIAG_R, E.tall[i]);
+            const r = W.navDir('player', E.x[i], feet, E.z[i], NAV, true, f < DIAG_R, E.tall[i]);
             if (r === 1) { ux = NAV[0]; uz = NAV[1]; } else if (r < 0) speed = 0;
             E.holdT[i] = r < 0 ? E.holdT[i] + dt : 0;
-          } else if (W.flowDir(E.x[i], E.z[i], NAV, feet)) { ux = NAV[0]; uz = NAV[1]; }
+          } else if (W.navDir('player', E.x[i], feet, E.z[i], NAV) === 1) { ux = NAV[0]; uz = NAV[1]; }
         }
       }
       if (E.confuse[i] > 0 || E.blind[i] > 0) { const a = dsin(ctx.time * 3 + i) * Math.PI; ux = dsin(a); uz = dcos(a); }
@@ -254,21 +254,21 @@ export const enemySystem = {
         // field already steers around walls, so the look-ahead slide below (which turns at every hairpin) is skipped
         let flowed = false;
         const gf = E.foot[i];
-        if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && navWide(gf, ctx.rules)) {
+        if (ground && gl > 3 && O && O.kind === 'hold' && T.hab && navWide(gf, ctx.rules)) {
           // a wide Raider walks the wide block field to the point; with no wide route it holds (docs/SIZING.md)
-          const r = W.wideGoalDir(E.x[i], E.z[i], NAV, E.y[i], gf < DIAG_R, E.tall[i]);
+          const r = W.navDir('contest', E.x[i], E.y[i], E.z[i], NAV, true, gf < DIAG_R, E.tall[i]);
           if (r === 1) { ux = NAV[0]; uz = NAV[1]; flowed = true; } else if (r < 0) { speed = 0; flowed = true; }
-        } else if (ground && gl > 3 && O && O.kind === 'hold' && W.hab && W.goalDir(E.x[i], E.z[i], NAV, E.y[i])) {
+        } else if (ground && gl > 3 && O && O.kind === 'hold' && T.hab && W.navDir('contest', E.x[i], E.y[i], E.z[i], NAV) === 1) {
           ux = NAV[0]; uz = NAV[1]; flowed = true;
           // a diagonal step clipping an inner corner (a hairpin, a cave mouth): take one axis, the larger if it is free
-          if (ux && uz && W.blocks(E.x[i] + ux * 0.8, E.z[i] + uz * 0.8, E.y[i], 0.6)) {
-            const sx = Math.sign(ux), sz = Math.sign(uz), xFree = !W.blocks(E.x[i] + sx * 0.8, E.z[i], E.y[i], 0.6), zFree = !W.blocks(E.x[i], E.z[i] + sz * 0.8, E.y[i], 0.6);
+          if (ux && uz && W.blockedFor(E.x[i] + ux * 0.8, E.y[i], E.z[i] + uz * 0.8, 0.6)) {
+            const sx = Math.sign(ux), sz = Math.sign(uz), xFree = !W.blockedFor(E.x[i] + sx * 0.8, E.y[i], E.z[i], 0.6), zFree = !W.blockedFor(E.x[i], E.y[i], E.z[i] + sz * 0.8, 0.6);
             const xFirst = Math.abs(ux) >= Math.abs(uz);
             if (xFirst ? xFree || !zFree : xFree && !zFree) { ux = sx; uz = 0; } else { ux = 0; uz = sz; }
           }
         }
         // around walls: slide along the blocked axis
-        if (!flowed && ground && W.blocks(E.x[i] + ux * 1.1, E.z[i] + uz * 1.1, E.y[i], 0.6)) { const t = ux; ux = -uz; uz = t; }
+        if (!flowed && ground && W.blockedFor(E.x[i] + ux * 1.1, E.y[i], E.z[i] + uz * 1.1, 0.6)) { const t = ux; ux = -uz; uz = t; }
       } else if (roles & ROLE.healer) {
         // the healer behaviour heals everything near it and keeps away from you
         if (E.attackCd[i] <= 0) {
@@ -283,10 +283,10 @@ export const enemySystem = {
         if (dist < 7) { ux = -ux; uz = -uz; speed *= 0.6; }
       } else if (roles & ROLE.ranged) {
         if (dist < R.rangedRange * 0.65) { const s = (i & 1) ? 1 : -1; const tx = -uz * s, tz = ux * s; ux = tx * 0.8 - ux * 0.4; uz = tz * 0.8 - uz * 0.4; }
-        if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0 && W.los && !W.sight(E.x[i], E.y[i] + 0.9, E.z[i], P.x, P.y + 0.6, P.z)) {
+        if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0 && T.los && !W.sight(E.x[i], E.y[i] + 0.9, E.z[i], P.x, P.y + 0.6, P.z)) {
           // location maps: no line of fire (a cliff lip, trees, a rock) — hold fire and work around along the flow field
           E.attackCd[i] = 0.35;
-          if (W.flowDir(E.x[i], E.z[i], NAV, E.y[i] - E.hover[i])) { ux = NAV[0]; uz = NAV[1]; }
+          if (W.navDir('player', E.x[i], E.y[i] - E.hover[i], E.z[i], NAV) === 1) { ux = NAV[0]; uz = NAV[1]; }
         } else if (!frozen && E.blind[i] <= 0 && dist < R.rangedRange && E.attackCd[i] <= 0) {
           E.attackCd[i] = R.rangedCooldown * ctx.rng.ai.range(0.8, 1.2);
           shootHostile(ctx, E.x[i], E.z[i], dx, dz, R.rangedShotSpeed, E.dmg[i] * 0.8, sp.shot ?? sp.elements[0], 0.45, E.species[i], E.y[i]);
@@ -345,17 +345,17 @@ export const enemySystem = {
         const feet = E.py[i];
         // solid geometry stops anything; a lethal liquid or open air only stops a creature walking there on its own
         // (knockback past rules.hazards.forcedKnock carries it over the lip)
-        const forced = W.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
-        const up = W.hazards && W.liquidAt(ox, oz, feet, ctx.rules.hazards.contact) ? Math.max(0.6, ctx.rules.hazards.climbOut) : 0.6; // climbing out of a liquid
+        const forced = T.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
+        const up = T.hazards && W.liquidContact(ox, feet, oz, ctx.rules.hazards.contact) ? Math.max(0.6, ctx.rules.hazards.climbOut) : 0.6; // climbing out of a liquid
         // headroom: its height meets deck slabs
         const tall = E.tall[i];
-        const stop = W.hazards
-          ? (x: number, z: number) => W.collides(x, z, feet, up, tall) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
-          : (x: number, z: number) => W.blocks(x, z, feet, 0.6, tall);
+        const stop = T.hazards
+          ? (x: number, z: number) => W.solidFor(x, feet, z, up, tall) || (!forced && avoidsStep(ctx, i, ox, oz, x, z, feet))
+          : (x: number, z: number) => W.blockedFor(x, feet, z, 0.6, tall);
         if (E.foot[i] > 0) {
           // its footprint against walls and faces (World.moveBody); the centre-point rules (no walking into open air or a
           // liquid on its own) stay as `stop`
-          W.moveBody(ox, oz, nx - ox, nz - oz, feet, W.hazards ? up : 0.6, E.foot[i], MOVE, W.hazards && !forced ? (x, z) => avoidsStep(ctx, i, ox, oz, x, z, feet) : undefined, tall);
+          W.moveFootprint(ox, feet, oz, nx - ox, nz - oz, T.hazards ? up : 0.6, E.foot[i], MOVE, T.hazards && !forced ? (x, z) => avoidsStep(ctx, i, ox, oz, x, z, feet) : undefined, tall);
           const fx = Math.fround(MOVE[0]), fz = Math.fround(MOVE[1]);
           if (stop(fx, fz) && !stop(ox, oz)) { nx = ox; nz = oz; } else { nx = fx; nz = fz; }
         } else if (stop(nx, nz)) {
@@ -365,9 +365,9 @@ export const enemySystem = {
         }
       }
       E.x[i] = nx; E.z[i] = nz;
-      if (W.hazards && ground) {
+      if (T.hazards && ground) {
         // support ends over open air: it falls (sim/hazards.ts knocks it out below the map's floor)
-        const sg = W.support(E.x[i], E.z[i], E.y[i]);
+        const sg = W.supportAt(E.x[i], E.y[i], E.z[i]);
         if (sg === -Infinity || E.y[i] - sg > 0.65 + E.fallV[i] * dt) {
           E.fallV[i] += ctx.rules.player.gravity * dt;
           E.y[i] = Math.max(sg, E.y[i] - E.fallV[i] * dt);
@@ -380,7 +380,7 @@ export const enemySystem = {
           E.x[i] = Math.fround(MOVE[0]); E.z[i] = Math.fround(MOVE[1]);
         }
       } else {
-        const g = W.over ? W.height(E.x[i], E.z[i], E.y[i] - E.hover[i]) : W.height(E.x[i], E.z[i]);
+        const g = T.over ? W.surfaceAt(E.x[i], E.y[i] - E.hover[i], E.z[i]) : W.surfaceAt(E.x[i], GROUND, E.z[i]);
         {
           const hv = E.hover[i] > 0 ? traversalOf(sp, ctx.rules).hover : null; // the hover row's bob
           E.y[i] = g + E.hover[i] + (hv ? dsin(ctx.time * hv.bobRate + i) * hv.bob : 0);
@@ -399,8 +399,8 @@ export const enemySystem = {
         const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt;
         const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt;
         const ph = partnerHeight(P.species, ctx.rules); // headroom: the partner's height meets deck slabs
-        if (pf > 0) { W.moveBody(P.x, P.z, qx - P.x, qz - P.z, P.y, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
-        else if (!W.collides(qx, qz, P.y, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
+        if (pf > 0) { W.moveFootprint(P.x, P.y, P.z, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
+        else if (!W.solidFor(qx, P.y, qz, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen && E.dmg[i] > 0) {
           E.contactCd[i] = R.contactCooldown;
           const charging = sp.behaviour === 'charger' && E.state[i] === 2;

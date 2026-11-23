@@ -29,6 +29,7 @@ import { CapLog } from './caplog';
 import { evolutionSystem } from './evolution';
 import { swapSystem } from './swap';
 import { startTargets, targetSystem } from './targets';
+import { GROUND, worldOf } from './worldquery';
 
 interface RunOptions {
   seed: number;
@@ -108,13 +109,14 @@ export function createRun(opts: RunOptions): SimContext {
  *  World's navigation species list. */
 function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
   ctx.world = new World(ctx.rules, biome, seed);
+  const W = worldOf(ctx);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
   const P = ctx.player;
-  const [sx, sz] = ctx.world.spawn;
-  P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = ctx.world.height(sx, sz); P.vx = P.vz = P.vy = 0; P.facing = Math.PI;
+  const [sx, sz] = W.spawn;
+  P.x = P.px = sx; P.z = P.pz = sz; P.y = P.py = W.surfaceAt(sx, GROUND, sz); P.vx = P.vz = P.vy = 0; P.facing = Math.PI;
   P.safeX = sx; P.safeY = P.y; P.safeZ = sz; P.hzKind = 0; P.hzT = 0; P.hzAcc = 0; P.hzCue = 0; P.hzCueT = 0; P.hzSafe = 0; P.hzRecover = '';
-  ctx.world.updateFlow(sx, sz);
+  W.setNavGoal(sx, GROUND, sz);
   seedBodies(ctx);
 }
 

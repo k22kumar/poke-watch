@@ -19,8 +19,9 @@ import { shotWeight } from '../rules/capabilities';
 import { agentOf, applyAgent } from './cells';
 import { BTN, freshAimState, type MoveSlot, type MoveSpec, type SimContext } from './types';
 import { HEAD, assistSees, beamLength, combatFlags, launchHeading, resolveSpatial, shotReach, spatialFor } from './aim';
-import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, raycastWorld, segmentClear, spatialQuery, sweep } from './spatial';
+import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
 import { AG } from '../rules/reactions';
+import { GROUND, worldOf } from './worldquery';
 
 export function classify(m: MoveData): string {
   if (m.cls === 'status') return m.statusKind ?? 'buff';
@@ -391,7 +392,7 @@ export const ARCHETYPES: Record<string, Archetype> = {
   },
   dash: {
     cast(ctx, s, slot) {
-      const p = P(ctx);
+      const p = P(ctx), W = worldOf(ctx);
       if (AIM.t < 0 && !AIM.manual) return false;
       p.dashT = s.duration; p.dashDx = AIM.ux; p.dashDz = AIM.uz; p.reflexDash = false;
       face(ctx);
@@ -402,7 +403,7 @@ export const ARCHETYPES: Record<string, Archetype> = {
         const tr: MoveSpec = { ...s, dmg: s.dmg * 0.12, tick: 0.4, knock: 0, caps: TRAIL_CAPS, trailHeat: undefined };
         for (let d = 1; d <= s.trailHeat; d++) {
           const x = p.x + AIM.ux * d, zz = p.z + AIM.uz * d;
-          if (!ctx.world.walkable(x, zz)) break;
+          if (!W.walkableAt(x, GROUND, zz)) break;
           spawnZone(ctx, ZK.damage, tr, x, zz, 1.0, 3, slot);
           applyAgent(ctx, 'heat', x, zz, 0.9);
         }
@@ -780,6 +781,7 @@ const BEAMW = new RayHit();
 /** can the beam's core (from M along u, up to `end`) see actor (kind, id)? The core's closest point to the actor's
  *  centre, then the actor cylinder's nearest point to that: the open segment between them must be clear */
 function coreSees(ctx: SimContext, mx: number, my: number, mz: number, ux: number, uy: number, uz: number, end: number, kind: number, id: number, cf: number): boolean {
+  const W = worldOf(ctx);
   let ax: number, az: number, yb: number, yt: number, r: number;
   if (kind === SK.enemy) { const E = ctx.enemies; ax = E.x[id]; az = E.z[id]; yb = E.y[id]; yt = yb + E.tall[id]; r = E.radius[id]; }
   else { const B = ctx.bodies; r = tpl(ctx, id).radius; ax = B.x[id]; az = B.z[id]; yb = B.y[id]; yt = yb + 2 * r; }
@@ -789,18 +791,18 @@ function coreSees(ctx: SimContext, mx: number, my: number, mz: number, ux: numbe
   const qx = mx + ux * t, qy = my + uy * t, qz = mz + uz * t;
   const hx = qx - ax, hz = qz - az, hl = Math.sqrt(hx * hx + hz * hz);
   const px = hl > r ? ax + (hx / hl) * r : qx, pz = hl > r ? az + (hz / hl) * r : qz, py = qy < yb ? yb : qy > yt ? yt : qy;
-  return segmentClear(ctx.world, qx, qy, qz, px, py, pz, MASK.los, cf);
+  return W.segmentClear(qx, qy, qz, px, py, pz, MASK.los, cf);
 }
 
 function beam3D(ctx: SimContext, s: MoveSpec): boolean {
-  const p = P(ctx), cf = combatFlags(ctx);
+  const p = P(ctx), cf = combatFlags(ctx), W = worldOf(ctx);
   const mx = A3.ox, my = A3.oy, mz = A3.oz, ux = A3.ux, uy = A3.uy, uz = A3.uz;
   launchHeading(ctx, ux, uz);
   const hl = dhypot(ux, uz), hx = HEAD.x, hz = HEAD.z;
   const len = beamLength(ctx, s);
   // 1. the core against the world
   let end = len, why: 'world' | 'actor' | 'range' = 'range', endKind = 0;
-  if (raycastWorld(ctx.world, mx, my, mz, ux, uy, uz, len, SK_WORLD, BEAMW, ctx.rules.aim.beamWorldRadius, 0, cf)) { end = BEAMW.t; why = 'world'; endKind = BEAMW.kind; }
+  if (W.raycast(mx, my, mz, ux, uy, uz, len, SK_WORLD, BEAMW, ctx.rules.aim.beamWorldRadius, 0, cf)) { end = BEAMW.t; why = 'world'; endKind = BEAMW.kind; }
   // 2-3. the width against bodies, in contact order, up to that end
   BEAMQ.actorR = s.radius; BEAMQ.actorH = s.radius;
   const BC = beamContacts(ctx), n = sweep(ctx, mx, my, mz, ux, uy, uz, end, BEAMQ, BC);

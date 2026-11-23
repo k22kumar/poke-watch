@@ -1,13 +1,15 @@
-// DRAFT (task WS, before /grilling): the sim's one world seam. Not wired yet; open questions are marked Q<n> and are
-// put to the owner before implementation (docs/OVERHAUL_3D.md "World seam" records the answers).
+// The sim's world seam (task WS; decisions in docs/OVERHAUL_3D.md "World seam"). Every sim system asks the world its
+// questions through WorldQuery: at a 3D point, y up, metres, (x, y, z) argument order. It is what physics (I1a, I1b) and
+// navigation (I3) will provide. Today the tile World (sim/world.ts) implements it with wrappers that call its own
+// methods with the same arguments in the same order, so no replay hash depends on this file.
 //
-// WorldQuery is what physics (I1a/I1b) and navigation (I3) will provide: every question is asked at a 3D point, y up,
-// heights in metres, (x, y, z) argument order. The tile World (sim/world.ts) implements it with wrappers that call its
-// existing methods with the same arguments in the same order (no new arithmetic), so no replay hash moves.
+// Systems read the world only through worldOf(ctx), the one swap point for I1a (tests/worldseam.test.ts enforces it, and
+// that no sim file outside the allow-list names the World type). The actor queries' world half (sim/spatial.ts geoOf +
+// castWorld) is the second swap point.
 //
-// Tile-only state stays outside the seam as named tile extensions (TileExt below), each to be redesigned in I4 or
-// deleted at X1b: surface states (CellField), the W4 prop overlay (PropField), the tide, vent fields, chasm tiles, deck
-// tiles, the tile grid frame, and the column (no y) reads that have no 3D meaning.
+// Tile-only state stays outside the seam as named tile extensions (TileExt, reached as W.tiles): the grid frame, the
+// column reads with no 3D meaning, decks and chasms, surface states (CellField), the W4 prop overlay (PropField), the
+// tide, the habitat meta and vent fields. They are redesigned in I4 or deleted at X1b.
 
 import type { RayHit } from '../world/sight';
 import type { CellField } from './cells';
@@ -16,114 +18,106 @@ import type { ArenaMap } from '../world/tiles';
 import type { BiomeDef } from '../rules/stages';
 import type { HabMeta } from '../world/habitat/types';
 
-/** Q2: the explicit "no reference height" argument. Today's column calls (World.height(x, z), walkable(x, z), …) pass
- *  it, so every one of them is visible at its call site and I1 can give each a real y. The tile World reads it as
- *  "the ground layer" (exactly today's omitted argument). */
+/** The explicit "no reference height" argument. A call that passes it is a column question (the tile World's ground
+ *  layer, exactly today's omitted argument); every one is visible at its call site so I1 can give it a real y. */
 export const GROUND = undefined;
+/** a reference height, or GROUND */
 export type RefY = number | typeof GROUND;
 
-/** Q5: an agent's size for navigation and placement (today's footprint, wide flag, diagonal links and height class) */
-export interface NavAgent {
-  /** footprint radius (0 = point collision) */
-  readonly foot: number;
-  /** routes on the wide lattice (rules/sizing.ts navWide) */
-  readonly wide: boolean;
-  /** may take diagonal-only lattice links (foot < DIAG_R) */
-  readonly diag: boolean;
-  /** sim height, for headroom (undefined = any) */
-  readonly tall?: number;
-}
-
-/** Q6: navigation goals (today: the player's flow field, the Hold contest's) */
+/** navigation goals: the player's field, the habitat Hold's contest field */
 export type NavGoal = 'player' | 'contest';
 
 export interface WorldQuery {
   // ---- frame and markers -------------------------------------------------------------------------------------------
-  /** |x| and |z| stay within this (today World.bound) */
+  /** |x| and |z| stay within this */
   readonly bound: number;
-  /** an actor below this has fallen out of the world (World.killY) */
+  /** an actor below this height has fallen out of the world */
   readonly killY: number;
-  /** where the trainer starts (World.spawn), Q7 */
-  readonly spawn: readonly [number, number];
-  /** where enemies enter (cave mouths, gates; World.anchors), Q7 */
-  readonly anchors: readonly (readonly [number, number])[];
+  /** where the trainer starts (x, z) */
+  readonly spawn: [number, number];
+  /** where enemies enter (cave mouths, forest gates, tunnels), (x, z) */
+  readonly anchors: [number, number][];
 
   // ---- support and medium ------------------------------------------------------------------------------------------
-  /** the surface a body at (x, y, z) stands on, or would land on: World.height(x, z, y). Q3 */
+  /** the surface a body with its feet at y stands on at (x, z), or lands on (a chasm's floor counts) */
   surfaceAt(x: number, y: RefY, z: number): number;
-  /** as surfaceAt, but -Infinity where there is no supporting floor (open air): World.support(x, z, y). Q3 */
+  /** as surfaceAt, but -Infinity where nothing supports feet at y (open air) */
   supportAt(x: number, y: RefY, z: number): number;
-  /** the liquid feet at y touch (0 none, 1 water, 2 lava): World.liquidAt(x, z, y, contact) */
-  liquidAt(x: number, y: number, z: number, contact: number): number;
-  /** lowest ceiling over a footprint of radius r above feet at y (World.headroomAt) */
-  headroomAt(x: number, y: number, z: number, r: number): number;
+  /** the liquid feet at y are in contact with: 0 none, 1 water, 2 lava (`contact`: how far above the surface counts) */
+  liquidContact(x: number, y: number, z: number, contact: number): number;
+  /** the lowest ceiling over a footprint of radius r above feet at y, Infinity where there is none */
+  headroomOver(x: number, y: number, z: number, r: number): number;
 
   // ---- bodies ------------------------------------------------------------------------------------------------------
-  /** move a footprint of radius r, feet at y, by (dx, dz) with step height `step` into out (World.moveBody) */
-  moveBody(x: number, y: number, z: number, dx: number, dz: number, step: number, r: number, out: [number, number],
+  /** move a footprint of radius r, feet at y, by (dx, dz) with step height `step`, into out (the one collision
+   *  resolver for bodies; `stop` adds centre-point refusals, `tall` headroom, `over` the R1b crossing permission) */
+  moveFootprint(x: number, y: number, z: number, dx: number, dz: number, step: number, r: number, out: [number, number],
     stop?: (x: number, z: number) => boolean, tall?: number, over?: boolean): void;
-  /** solid geometry at a point for feet at y (World.collides); Q4 */
+  /** solid geometry in the way of feet at y at (x, z): walls, faces higher than `step`, slabs a head would hit */
   solidFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean;
-  /** solid, or not to be walked into on one's own (open liquid, open air): World.blocks; Q4 */
+  /** solidFor, or ground not to be walked into on one's own (open liquid, open air) */
   blockedFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean;
-  /** does a footprint of radius r stand clear at (x, y, z)? (World.fits) */
-  fits(x: number, y: number, z: number, r: number, step?: number, tall?: number, over?: boolean): boolean;
-  /** R1b: the highest crossable top under a footprint that feet at y are at or above (World.topUnder), Q8 */
+  /** does a footprint of radius r stand clear at (x, z) with its feet at y? (step default 0.6) */
+  fitsAt(x: number, y: number, z: number, r: number, step?: number, tall?: number, over?: boolean): boolean;
+  /** R1b: the highest crossable top under a footprint of radius r that feet at y are at or above (a descending body
+   *  with the crossing permission stops there), -Infinity where there is none */
   topBelow(x: number, y: number, z: number, r: number): number;
-  /** R1b: is a body at (x, y, z) inside rock (World.inRock), Q8 */
-  inRock(x: number, y: number, z: number, over?: boolean): boolean;
+  /** R1b: is a body with its feet at y inside rock? (`over`: at or above a crossable top is open air) */
+  insideRock(x: number, y: number, z: number, over?: boolean): boolean;
 
-  // ---- rays (sim/spatial.ts shape; the actor sweeps and overlaps stay in spatial.ts and call these) ----------------
+  // ---- rays (sim/spatial.ts semantics; the actor sweeps and overlaps stay in spatial.ts) ---------------------------
+  /** first world contact along o + d·t, 0 ≤ t ≤ maxT (sim/spatial.ts raycastWorld) */
   raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, mask: number, hit: RayHit,
     r?: number, h?: number, flags?: number): boolean;
+  /** is the open segment clear of the world kinds in mask? (sim/spatial.ts segmentClear) */
   segmentClear(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask?: number, flags?: number): boolean;
+  /** the solid kind at a point, 0 where open (sim/spatial.ts solidAt) */
   solidAt(x: number, y: number, z: number, mask?: number, flags?: number): number;
-  /** legacy enemy sight, 0.5 m samples (World.sight) */
+  /** legacy enemy line of sight, sampled every 0.5 m */
   sight(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean;
 
   // ---- navigation and placement ------------------------------------------------------------------------------------
-  /** ground walkers stand here and reach the player from here (World.walkable) */
-  walkable(x: number, y: RefY, z: number): boolean;
-  /** nearest walkable point (World.nearestWalkable) */
-  nearestWalkable(x: number, y: RefY, z: number): [number, number];
-  /** where a body is put down near (x, z) (World.nearestFit) */
-  place(x: number, y: RefY, z: number, agent: NavAgent, reach?: boolean): [number, number];
-  /** the goal moved (World.updateFlow: the player's position) */
+  /** ground walkers can stand here and reach the player from here */
+  walkableAt(x: number, y: RefY, z: number): boolean;
+  /** the nearest walkable point to (x, z). The tile World ignores y (it searches the ground layer) */
+  nearestWalkableAt(x: number, y: RefY, z: number): [number, number];
+  /** where a body of footprint r is put down near (x, z) (spawn, relocation, rescue); `wide` routes on the wide lattice,
+   *  `reach` (default true) keeps a wide body on ground the player's wide field reaches. The tile World ignores y */
+  place(x: number, y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number];
+  /** the player moved: navigation toward the player follows */
   setNavGoal(x: number, y: RefY, z: number): void;
-  /** unit steering toward a goal into out: 1 a direction, 0 steer straight / none, -1 hold (World.flowDir, wideDir,
-   *  goalDir, wideGoalDir), Q5/Q6 */
-  navDir(goal: NavGoal, x: number, y: RefY, z: number, agent: NavAgent, out: [number, number]): -1 | 0 | 1;
-  /** does an agent here have a route to the goal (World.wideReached; narrow agents: walkable), Q5 */
-  navReached(goal: NavGoal, x: number, y: RefY, z: number, agent: NavAgent): boolean;
-  /** route length toward the goal, Infinity when none (World.flowDist), Q9 */
-  navDist(goal: NavGoal, x: number, y: RefY, z: number): number;
+  /** unit steering toward a goal into out: 1 a direction, 0 none (steer straight, or no route for a narrow agent), -1
+   *  hold (a wide agent with no route). `wide`: footprint ≥ heavyRadius; `diag`: footprint under DIAG_R; `tall`: height */
+  navDir(goal: NavGoal, x: number, y: RefY, z: number, out: [number, number], wide?: boolean, diag?: boolean, tall?: number): -1 | 0 | 1;
+  /** wide agents: is (x, z) on the player's wide field (a route to the player, and back)? */
+  navReached(goal: 'player', x: number, y: RefY, z: number, diag?: boolean, tall?: number): boolean;
+  /** route length to the player (tiles today), Infinity where there is none */
+  navDist(goal: 'player', x: number, y: RefY, z: number): number;
 
-  /** the named tile extensions (Q1) */
+  /** the named tile extensions */
   readonly tiles: TileExt;
 }
 
-/** Tile-only state and reads, outside the seam (redesigned in I4, deleted at X1b). Q1, Q10 */
+/** Tile-only state and reads, outside the seam (redesigned in I4, deleted at X1b). Names are the tile World's own. */
 export interface TileExt {
-  // grid frame
+  // the grid frame
   readonly w: number; readonly h: number; readonly half: number;
   readonly map: ArenaMap;
   tile(x: number, z: number): number;
+  node(x: number, z: number, y?: number): number;
   readonly biome: BiomeDef;
   habitatAt(x: number, z: number): number;
-  /** location maps: shots and enemy sight respect terrain (World.los) */
+  /** location maps: terrain and walls block shots and enemy sight */
   readonly los: boolean;
-  /** rules.hazards.enabled as the world was built (World.hazards) */
+  /** rules.hazards.enabled as the world was built */
   readonly hazards: boolean;
-  // column reads with no 3D meaning
-  groundAt(x: number, z: number): number;
+  // column reads
   solid(x: number, z: number): boolean;
   wallAt(x: number, z: number): boolean;
   waterAt(x: number, z: number): number;
   shore(x: number, z: number, radius: number, level?: number, reach?: number, room?: number): [number, number] | null;
-  // decks
+  // decks and chasms
   readonly over: Float32Array | null;
-  onDeck(x: number, z: number, y: number): boolean;
-  // chasms
   isVoid(k: number): boolean;
   // surface states
   readonly cells: CellField;
@@ -131,12 +125,12 @@ export interface TileExt {
   burningAt(x: number, z: number): boolean;
   refreshNav(): void;
   refreshFlow(px: number, pz: number, py?: number): void;
-  // W4 overlay
+  // the W4 prop overlay
   readonly propField: PropField | null;
   setBlock(k: number, wall: number, platform: number): void;
   reachableCount(x: number, z: number): number;
-  // tide
-  readonly tide: World['tide'];
+  // the tide
+  readonly tide: { tiles: Int32Array; terrain: Uint8Array; wlevel: Float32Array; high: number; mask: Uint8Array } | null;
   readonly tideHigh: boolean;
   setTide(high: boolean): void;
   tidalAt(x: number, z: number): boolean;
@@ -146,4 +140,8 @@ export interface TileExt {
   hazardAt(x: number, z: number): boolean;
 }
 
-import type { World } from './world';
+/** The one way sim systems reach the world (I1a's swap point). Hoist it once per function, at entry or before the first
+ *  loop, never inside a loop body. */
+export function worldOf(ctx: { readonly world: WorldQuery }): WorldQuery {
+  return ctx.world;
+}

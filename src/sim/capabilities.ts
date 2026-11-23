@@ -29,6 +29,7 @@ import { BTN, type SimContext } from './types';
 import type { DamageSpec } from './combat';
 import { brambleAt } from './cells';
 import { ccApply } from './coats';
+import { GROUND, worldOf } from './worldquery';
 
 type SrcKind = 'move' | 'tag' | 'body' | 'shot' | 'tile' | 'creature' | 'guard';
 type TgtKind = 'creature' | 'body' | 'shot' | 'cover' | 'tile';
@@ -241,7 +242,7 @@ export function launchShot(ctx: SimContext, i: number, ux: number, uz: number) {
 /** Phase 8b Lasso: a suspended creature follows the hold point, then is thrown along the aim as a Push of the hold's
  *  Power (the body rule's speed). Returns true while it is still held (it skips its own movement this tick). */
 export function tickHeldEnemy(ctx: SimContext, e: number, dt: number): boolean {
-  const E = ctx.enemies, P = ctx.player, W = ctx.world;
+  const E = ctx.enemies, P = ctx.player, W = worldOf(ctx);
   E.heldT[e] -= dt;
   const [ux, uz] = holdAim(ctx);
   const w = weightClass(ctx.speciesIndex[E.species[e]]);
@@ -263,10 +264,10 @@ export function tickHeldEnemy(ctx: SimContext, e: number, dt: number): boolean {
   if (d > 1e-6) {
     const step = Math.min(d, ctx.rules.caps.holdSpeed * dt);
     const nx = Math.fround(E.x[e] + (dx / d) * step), nz = Math.fround(E.z[e] + (dz / d) * step);
-    if (!W.solid(nx, nz)) { E.x[e] = nx; E.z[e] = nz; }
+    if (!W.tiles.solid(nx, nz)) { E.x[e] = nx; E.z[e] = nz; }
   }
   E.vx[e] = 0; E.vz[e] = 0; E.kx[e] = 0; E.kz[e] = 0;
-  E.y[e] = W.height(E.x[e], E.z[e]) + 0.6 + E.hover[e];
+  E.y[e] = W.surfaceAt(E.x[e], GROUND, E.z[e]) + 0.6 + E.hover[e];
   return true;
 }
 
