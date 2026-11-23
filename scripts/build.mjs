@@ -16,7 +16,20 @@ fs.mkdirSync(OUT, { recursive: true });
 // the game's art files first: the bundle is built with their names
 const art = await writeArt(path.join(OUT, 'art'));
 console.log(`${path.join(OUT, 'art')}/ ${art.files} files, ${(art.bytes / 1024).toFixed(0)} KB`);
+// S2 spike (docs/spikes/S2-renderer.md): S2_THREE=all (default) | webgl | webgpu | off picks which renderer
+// configurations the bundle holds, so each one's bytes can be measured alone. webgpu resolves 'three' to three.webgpu.js
+// (both builds share three.core.js, but the WebGL module beside the WebGPU one pulls in WebGLRenderer).
+const S2 = process.env.S2_THREE ?? 'all';
+const s2plugin = {
+  name: 's2-three',
+  setup(b) {
+    if (S2 === 'webgl' || S2 === 'webgpu') b.onResolve({ filter: /^\.\/backends$/ }, (a) => ({ path: path.join(a.resolveDir, `backends.${S2}.ts`) }));
+    if (S2 === 'off') b.onResolve({ filter: /^\.\/spike\/s2\/entry$/ }, (a) => ({ path: path.join(a.resolveDir, 'spike/s2/entry.off.ts') }));
+    if (S2 === 'webgpu') b.onResolve({ filter: /^three$/ }, () => ({ path: path.resolve('node_modules/three/build/three.webgpu.js') }));
+  },
+};
 const out = await esbuild.build({
+  plugins: [s2plugin], metafile: true,
   entryPoints: ['src/main.ts'], bundle: true, format: 'iife', target: 'es2022', minify: !process.argv.includes('--dev'), write: false, sourcemap: false, legalComments: 'none',
   // the music is fetched from dist/music/ (content-hashed names)
   loader: { '.mp3': 'file' }, outdir: OUT, assetNames: 'music/[name].[hash]', publicPath: '.',
@@ -32,6 +45,11 @@ const css = `@font-face{font-family:'Pixelify Sans';src:url(data:font/woff;base6
 const html = tpl.replace('/*__CSS__*/', () => css).replace('/*__JS__*/', () => js.replace(/<\/script/g, '<\\/script'));
 fs.writeFileSync(path.join(OUT, 'index.html'), html);
 const size = Buffer.byteLength(html);
+{ // S2: bundle bytes by origin (three.js, the spike's own code, the rest)
+  const by = { three: 0, spike: 0, rest: 0 };
+  for (const o of Object.values(out.metafile.outputs)) for (const [k, v] of Object.entries(o.inputs)) by[k.includes('node_modules/three/') ? 'three' : k.includes('src/spike/') ? 'spike' : 'rest'] += v.bytesInOutput;
+  console.log(`S2_THREE=${S2}: page ${size} B; bundle three ${by.three} B, spike ${by.spike} B, rest ${by.rest} B`);
+}
 console.log(path.join(OUT, 'index.html'), (size / 1024).toFixed(0) + ' KB');
 // no single-file variant (owner, 2026-11-22): a page that fetches its art cannot be one file
 fs.rmSync(path.join(OUT, 'poke-watch-artifact.html'), { force: true });

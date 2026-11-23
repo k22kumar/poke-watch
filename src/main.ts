@@ -35,6 +35,7 @@ import { loadSettings, SETTINGS_DEFAULT } from './ui/settings';
 import { cries } from './assets/cries';
 import { artLoader } from './assets/loader';
 import { matchArt, wholeLine } from './sim/matchart';
+import { bootS2 } from './spike/s2/entry';
 
 const params = new URLSearchParams(location.search);
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
@@ -609,7 +610,12 @@ async function boot() {
   setTimeout(paintNext, 600);
 }
 
-boot().catch((e) => {
+// S2 spike (docs/spikes/S2-renderer.md): ?render=three runs the three.js renderer spike instead of the game's renderer
+if (params.get('render') === 'three') bootS2(params).catch((e) => {
+  console.error(e);
+  document.body.insertAdjacentHTML('beforeend', `<pre style="position:fixed;inset:20px;color:#fff;background:#300;padding:20px;white-space:pre-wrap;z-index:9">S2 spike failed:\n${String(e?.stack ?? e)}</pre>`);
+});
+else boot().catch((e) => {
   console.error(e);
   document.body.insertAdjacentHTML('beforeend', `<pre style="position:fixed;inset:20px;color:#fff;background:#300;padding:20px;white-space:pre-wrap;z-index:9">Poke-Watch failed to start:\n${String(e?.stack ?? e)}</pre>`);
 });
