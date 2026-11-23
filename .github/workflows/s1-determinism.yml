@@ -1,7 +1,7 @@
 # S1 spike (docs/spikes/S1-physics.md §4): runs the 60 s controller course on Linux and prints its per-tick hashes, to
 # compare with the same script on the owner's Mac. Spike branch only; never merged.
-# workflow_dispatch only fires for a workflow that exists on the default branch, and main is not to be pushed, so the
-# job also runs on a push to the spike branch.
+# Run it from the Actions tab or `gh workflow run s1-determinism.yml --ref spike/s1-rapier`; it also runs on every push
+# to the spike branch.
 name: S1 determinism
 
 on:
