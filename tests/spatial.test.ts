@@ -24,8 +24,9 @@ import { runEnded as ended } from '../scripts/lib/ended';
 import { crowd } from '../scripts/lib/crowd';
 import {
   CF, Contacts, MASK, QF, RayHit, SK, SK_ACTOR, SK_WORLD, overlapCylinder, overlapSector, raycastWorld, segmentClear,
-  mapExposureClear, solidAt, spatialQuery, sweep, sweepTo,
+  solidAt, spatialQuery, sweep, sweepTo,
 } from '../src/sim/spatial';
+import { mapExposureClear } from '../src/world/sight';
 
 // Phase 2A spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12). Synthetic scenes copy the
 // map arrays of an authored world before editing them (the base map is cached and shared by every World), so no test

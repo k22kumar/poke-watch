@@ -15,7 +15,6 @@ const DETERMINISM_ALLOWED: Record<string, Record<string, number>> = {
   'rules/sizing.ts': { log: 2, '**': 1 },
   'sim/bot.ts': { hypot: 1 },
   'sim/moves.ts': { tan: 1 },
-  'sim/spatial.ts': { hypot: 1 },
   'sim/targets.ts': { hypot: 1 },
   'sim/world.ts': { hypot: 1 },
   'world/habitat/dress.ts': { atan2: 1, cos: 3, sin: 3, exp: 2 },
@@ -28,6 +27,7 @@ const DETERMINISM_ALLOWED: Record<string, Record<string, number>> = {
   'world/habitat/sanctuary-checks.ts': { hypot: 4, atan2: 1 },
   'world/habitat/validate.ts': { hypot: 3, cos: 1, sin: 1 },
   'world/locgen/index.ts': { clock: 2 },
+  'world/sight.ts': { hypot: 1 }, // mapExposureClear, moved from sim/spatial.ts at C2
 };
 
 /** the determinism-rule call sites in one source file, comments stripped, counted by function */
