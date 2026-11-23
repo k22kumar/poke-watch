@@ -39,8 +39,8 @@ Everything that stands up (trees, rocks, flowers, tall grass, creatures) is an u
 | Density | 1 texel = 1/16 m. PMD sheets are used 1:1 | `CREATURE_VS` |
 | Directions | 8, PMD order: down, down-right, right, up-right, up, up-left, left, down-left. Row = `round(facing / 45°)` with facing = `atan2(vx, vz)` | `dirIndex` |
 | Anchor | Every frame carries its own feet anchor. PMD: centroid of the frame's Shadow-sheet marker; fallback: lowest opaque row, horizontal centre | `importSprites`, `FrameRect.ax/ay` |
-| Outline | 1 px dark outline (#201c28 family). Baked designs get it from the baker; PMD art already has it | `baker.ts outline()` |
-| Light | From the upper left. The baker's light vector and PMD's shading agree | `baker.ts` |
+| Outline | 1 px dark outline (#201c28 family). PMD art already has it | PMD sheets |
+| Light | From the upper left, as PMD's shading | PMD sheets |
 | Visible size | One multiplier per species from its size class (see below). Authored-scale species (the four former bosses) are drawn at a whole-number 2–3× so pixels stay square, and the species multiplier stays out of their way | `rules/sizing.ts`, `SpeciesDef.scale` |
 | Shadows | Flat two-tone blob, hard edge: 0.42 m / 0.55 m / 0.8 m radius for PMD shadow size 0/1/2 | `DECAL_FS` kind 0, `fillDecals` |
 
