@@ -1,7 +1,8 @@
 # S1: the Rapier spike
 
-How Rapier enters the game (docs/OVERHAUL_3D.md task S1). This is a record: it recommends and does not decide.
-Decisions that docs/OVERHAUL_3D.md does not already record are listed for the owner in "Decisions for the owner".
+How Rapier enters the game (docs/OVERHAUL_3D.md task S1). This is a record: the spike recommended and did not decide.
+Decisions that docs/OVERHAUL_3D.md did not already record are listed in "Decisions for the owner", each with the
+owner's answer (review, 2026-11-23).
 
 - **Code:** branch `spike/s1-rapier` (pushed, never merged). Its head is `ee251d0`, four commits on `5823e91`.
 - **CI:** `.github/workflows/s1-determinism.yml` on that branch.
@@ -20,7 +21,7 @@ Decisions that docs/OVERHAUL_3D.md does not already record are listed for the ow
 | Colliders, open ground | A heightfield does not pay on adapter maps. It saved 153 of the range's 918 boxes, made the controller about 2× slower and puts a bed under liquids |
 | Enemies | **Navmesh corridors with a ground query, not a controller each.** 50 controllers already cost 1.2 ms (p95, range) to 2.2 ms (River Gorge) per tick. Controllers are for heroes and bots |
 | `free()` | `World.free()` frees its bodies, colliders and controllers. Freed worlds cost nothing extra. A world that is not freed leaks about 1.7 MB of wasm memory (a River Gorge world), and wasm memory never shrinks |
-| Fit | Stairs, underpasses, wall slides and seams (for the controller) work. **Stepping does not**: Rapier's autostep depends on speed and approach angle, and over-climbs to 0.65–0.78 m. This is the top open risk, for I1b |
+| Fit | Stairs, underpasses, wall slides and seams (for the controller) work. **Stepping does not**: Rapier's autostep depends on speed and approach angle, and over-climbs to 0.62–0.78 m. This is the top open risk, for I1b |
 
 ## 1. Package and loading
 
@@ -222,8 +223,24 @@ p95 0.69–0.83 ms per tick (range boxes 0.688, gorge boxmesh 0.825), about 5–
   (500: 0.6–0.7 ms). It costs less if the height comes from the navmesh polygon (Detour) instead of a ray.
 - **Controllers stay for a few bodies.** Heroes and bots get controllers: 6 cost about 0.15–0.3 ms.
 
-Whether enemies need Rapier bodies at all is open (decision O2). The sim's actor broad phase (`sim/spatial.ts`)
-already sweeps actors, and 500 kinematic bodies add 0.3–0.7 ms to every step.
+Enemies need no Rapier bodies (owner, O2): the sim's actor broad phase (`sim/spatial.ts`) already sweeps actors, and
+500 kinematic bodies would add 0.3–0.7 ms to every step.
+
+**The budget at 500 enemies, if the parts are simply added** (p95 per tick):
+
+| Part | ms |
+|---|---|
+| today's sim (perf-sim baseline) | 0.69 |
+| 500 ground rays | 0.60–0.73 |
+| 100 rays and 20 shape casts | 0.69–0.83 |
+| 6 controllers (heroes and bots) | 0.15–0.30 |
+| **sum** | **≈ 2.1–2.5**, against the 2 ms gate |
+
+The plain sum overstates it in two ways:
+- Some of the query cost replaces `sim/spatial.ts` work that is already inside the 0.69.
+- Taking the ground height from the navmesh polygon removes the ground rays.
+
+It still says there is no slack. I1a and I1c report physics' share of p95 alongside perf-sim.
 
 ## 6. Memory and `free()`
 
@@ -320,10 +337,17 @@ Results:
 the navmesh will claim the same. Until the controller does too, the navmesh and the controller disagree. The matrices
 above should be I1b's acceptance gate (risk R1).
 
+**0.5 m is not enough.** The owner's review (2026-11-23) counted the rises between adjacent walkable tile tops (elev +
+platform; walls and stairs excluded) over the 28 map sources of `tests/worldmodel.test.ts`:
+- There are 227 rises in (0.5, 0.6] m: 147 in (0.5, 0.55] and 80 in (0.55, 0.6].
+- The range has none. Every habitat recipe has some (River Gorge 14–21 per seed).
+- The tile sim climbs all of them, so on adapter maps the step guarantee must reach 0.6 m. The partial rule's 0.5 m
+  head-on would strand bodies on real maps.
+
 ## 8. Controller and navmesh numbers per size class
 
 The bodies come from `rules.size.classes` at the class centre, the values `bodyOf` gives at tilt 1. Tilted bodies and
-the XL giants use their own `radius` and `height` the same way. For example, Onix (2.78 m) gives a walkable height
+the XL giants use their own `radius` and `height` the same way. For example, Onix (2.78 m) has a walkable height
 of 56 cells.
 
 **Controller** (shared by every class):
@@ -332,29 +356,36 @@ of 56 cells.
 - snap 0.35 m (the sim's STICK);
 - max climb angle 46°, min slide angle 46°.
 
-**Navmesh** (for I3): Recast's cells are suggested at cs 0.1 m and ch 0.05 m. Every class uses walkableClimb 0.6 m
-(12 cells) and walkableSlopeAngle 45.5°.
+**Navmesh** (for I3): Recast's cells are suggested at cs 0.1 m and ch 0.05 m. **Every Recast value is an integer cell
+count, which I3 writes as an integer in rules and never computes.** Recast floors walkableClimb, and 0.6 / 0.05 is
+11.999999999999998 in float, so a computed climb is 11 cells (0.55 m), one cell short. Every class uses
+walkableClimb **12** cells (0.6 m) and walkableSlopeAngle 45.5°.
 
-| Class | Footprint r | Height h | Capsule radius (r − 0.01) | Capsule half-height ((h − 0.021)/2 − radius) | walkableRadius | walkableHeight |
-|---|---|---|---|---|---|---|
-| Tiny | 0.30 | 0.6 | 0.29 | 0: a ball of 0.29 | 0.3 m (3 cells) | 0.6 m (12) |
-| Small | 0.40 | 0.9 | 0.39 | 0.0495 | 0.4 m (4) | 0.9 m (18) |
-| Medium | 0.46 | 1.2 | 0.45 | 0.1395 | 0.5 m (5) | 1.2 m (24) |
-| Large | 0.66 | 1.7 | 0.65 | 0.1895 | 0.7 m (7) | 1.7 m (34) |
-| Extra Large | 0.88 | 2.4 | 0.87 | 0.3195 | 0.9 m (9) | 2.4 m (48) |
+| Class | Footprint r | Height h | Capsule radius (r − 0.01) | Capsule half-height ((h − 0.021)/2 − radius) | walkableRadius (cells) | walkableHeight (cells) | walkableClimb (cells) |
+|---|---|---|---|---|---|---|---|
+| Tiny | 0.30 | 0.6 | 0.29 | 0: a ball of 0.29 (see below) | 3 (0.3 m) | 12 (0.6 m) | 12 (0.6 m) |
+| Small | 0.40 | 0.9 | 0.39 | 0.0495 | 4 (0.4 m) | 18 (0.9 m) | 12 |
+| Medium | 0.46 | 1.2 | 0.45 | 0.1395 | 5 (0.5 m) | 24 (1.2 m) | 12 |
+| Large | 0.66 | 1.7 | 0.65 | 0.1895 | 7 (0.7 m) | 34 (1.7 m) | 12 |
+| Extra Large | 0.88 | 2.4 | 0.87 | 0.3195 | 9 (0.9 m) | 48 (2.4 m) | 12 |
 
 The course itself used `h − 0.02`, without the 1 mm head margin. The margin is the §7 D result.
 
+**Tiny has no head margin.** Its capsule formula gives (0.6 − 0.021)/2 − 0.29 = −0.0005, so the shape is a ball of
+radius 0.29. With the 0.01 skin it fills the full 0.60 m: no 1 mm margin. That matters only for a gap of exactly
+0.6 m; generated deck gaps are at least 2.3 m. A margin would need a ball of radius 0.2895, which narrows the
+footprint by 0.5 mm.
+
 **Agreement rule: the navmesh may claim only what the controller can do.**
-- walkableRadius rounds up (ceil(r / cs)) and walkableHeight rounds up (ceil(h / ch)), so the navmesh is the
-  conservative side.
+- The cell counts above are chosen so that radius × cs ≥ footprint and height × ch ≥ body height, so the navmesh is
+  the conservative side. They are written as integers, never derived at run time (see above).
 - walkableClimb ≤ the controller's guaranteed step. Today that guarantee fails (§7), and Rapier's autostep alone can
   climb more than the navmesh claims.
 - walkableSlopeAngle < the controller's max climb angle. Recast marks a triangle walkable when its normal's y is
   greater than cos(angle). A 45° ramp sits exactly on cos 45° in float, so 45° itself is ambiguous: use 45.5° in
   Recast and 46° in the controller.
-- One navmesh per size class, or per walkable-radius and height pair; I3 decides. The ch of 0.05 makes 0.6 m and
-  every class height whole cells.
+- One navmesh per size class by default. I3 may merge classes with equal values (owner, O9). The ch of 0.05 makes
+  0.6 m and every class height whole cells on paper; float division does not, hence the integers.
 
 ## Open risks
 
@@ -377,30 +408,48 @@ The course itself used `h − 0.02`, without the 1 mm head margin. The margin is
 
 ## Decisions for the owner
 
-These are not in docs/OVERHAUL_3D.md. Each is a recommendation.
+These were not in docs/OVERHAUL_3D.md. Each is the spike's recommendation, then the owner's answer.
 
 - **O1 Package and loading.** `@dimforge/rapier3d-deterministic` 0.21.0, exact pin, plain build. The wasm goes to
   `dist/physics/` as a fetched, content-hashed file through the esbuild plugin. Node loads through the
   `registerHooks` loader. Node ≥ 22.15 becomes a stated requirement (CI runs 22 already).
+  - *Owner, 2026-11-23:* yes. I1a adds `"engines": { "node": ">=22.15" }` and a Rapier load test (F38).
 - **O2 Enemies.** No character controller per enemy. Ground enemies follow navmesh corridors, with the height from the
   navmesh polygon or one short ground ray. Heroes and bots get controllers. Also to decide: whether enemies exist in
   Rapier at all (kinematic bodies: 0.3–0.7 ms per step at 500) or only in the sim's actor broad phase, as today.
+  - *Owner, 2026-11-23:* yes. No controller per enemy, and enemies are not Rapier bodies for now: hits on actors stay
+    in `sim/spatial.ts`'s actor broad phase. Ground height comes from the navmesh polygon (Detour), with a ground ray
+    only where the polygon can't be trusted.
 - **O3 Collider representation.**
   - Adapter maps (until X1b): the adapter's boxes, one cuboid each, the cheapest in a crowd.
   - The mesh world (G1): trimesh chunks with FIX_INTERNAL_EDGES, made from the collision output. Re-measure controller
     cost on G1's chunks: boxmesh was about 2× boxes in a crowd here.
   - No heightfield on adapter maps; G0 decides open terrain.
+  - *Owner, 2026-11-23:* yes. Boxes on adapter maps. G1 builds trimesh chunks from the collision output with
+    FIX_INTERNAL_EDGES and re-measures controller cost. G0 decides heightfields.
 - **O4 Stepping.** Either our own step logic in I1b, with Rapier's autostep off and the §7 matrices as the gate, or
   generators that bevel walkable rises up to 0.6 m (a G0 rule). The third choice is to accept Rapier's autostep, which
   does not match the tile sim or a navmesh at walkableClimb 0.6.
+  - *Owner, 2026-11-23:* both.
+    - I1b's own step rule, with Rapier's autostep off, must climb every rise ≤ 0.6 m for every class at 0.5–9 m/s,
+      head-on and at 45°, and refuse ≥ 0.62 m.
+    - G0 keeps generated rises out of a dead band below the lowest blocking ledge; G0 sets the band.
+    - Rapier's autostep alone: no.
 - **O5 The 1 mm head margin in the capsule** (`HEAD_EPS`), and every generated gap keeps the same tolerance.
+  - *Owner, 2026-11-23:* yes.
 - **O6 Platform carry** is our code's job, horizontal only (§7).
+  - *Owner, 2026-11-23:* yes.
 - **O7 Disposal.** A run or map dispose entry point, and a shared test setup that inits Rapier once and asserts flat
   wasm memory over a batch of runs.
+  - *Owner, 2026-11-23:* yes, in I1a.
 - **O8 Determinism coverage** before X1a: add Firefox and WebKit page runs (Playwright) and a snapshot round-trip
   hash to the S1-style job.
+  - *Owner, 2026-11-23:* yes. The snapshot round trip goes in I1a's tests; the Firefox and WebKit page runs come
+    before X1a.
 - **O9 Navmesh parameters** (I3): cs 0.1 m, ch 0.05 m, walkableSlopeAngle 45.5°, one navmesh per class, the values in
   §8.
+  - *Owner, 2026-11-23:* yes, with §8's integer cell counts. One navmesh per class by default; I3 may merge classes
+    with equal values.
 
 ## Reproduce (on `spike/s1-rapier`)
 
