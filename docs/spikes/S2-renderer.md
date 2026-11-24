@@ -3,7 +3,8 @@
 The spike that picks the renderer class, and with it the shading language every custom shader of the 3D overhaul is
 written in (docs/OVERHAUL_3D.md, task S2). Done 2026-11-23. The code is on branch `spike/s2-three` (never merged;
 commits `b44ca6b`, `de005f8`, `c033c4d`); the raw measurements, generated shaders and comparison shots are in that
-branch's `spike-data/s2/`. This record lists decisions for the owner; it takes none of them.
+branch's `spike-data/s2/` (the branch is on origin). The spike took no decisions; the owner's answers to the six it
+listed (2026-11-23) are at the end, under "Decisions for the owner".
 
 ## What was built
 
@@ -65,8 +66,13 @@ not built on that path and its code is untouched; `src/main.ts` gained one branc
 | WebGPURenderer only (`'three/webgpu'`, `'three/tsl'`) | 2,285,801 | **+879,251** | 637,378 | **+241,920** | 856,030 | 13,795 |
 | both | 2,654,299 | +1,247,749 | 726,126 | +330,668 | 1,218,669 | 19,188 |
 
-All fit the 3 MB page budget (the WebGPU-only page leaves 0.71 MB). The "both" build is what the owner's spike page
-uses; no shipping build should carry both.
+All fit the 3 MB page budget, but the 0.71 MB the WebGPU-only page leaves counts three alone. Rapier's glue already
+adds 227,225 B to the page (docs/spikes/S1-physics.md §1), which leaves about 487 KB (3,000,000 − 2,285,801 − 227,225
+= 486,974 B) for recast's JS (unmeasured) and every overhaul system, while the old renderer and the tile stage stay in
+the page until X1b. The 3 MB budget exists for the page's DOM text size, not its download size: extensions that read
+the page's HTML pay per megabyte of it (ROADMAP item 3, the A1 plan). The "both" build is what the owner's spike page
+uses; no shipping build should carry both. Owner, 2026-11-23 (decision 5): three and the new renderer ship as a
+fetched, content-hashed side file instead, so none of this lands in `dist/index.html`.
 
 **Import paths for the smallest bundle** (measured with probes on three 0.187.0):
 - WebGPURenderer: import every class from `'three/webgpu'` and every TSL function from `'three/tsl'`; never import
@@ -194,10 +200,17 @@ stage, so only the differences between the three configurations above carry over
 
 ### Step 4: a lower-end machine
 
-**Not measured.** The owner chose to record it as not measured (2026-11-23). The page to use is a `S2_THREE=all` build
-of `spike/s2-three` (or `npm run dev` on that branch), served over HTTP, opened at
-`?render=three&perf=1&freeze=1&orbit=20&backend=webgl`, then `backend=webgpu` and `backend=webgpu-gl`; after about
-10 s read the overlay's `frame`, `gpu` and `draw calls` lines, and note the machine, browser and GPU. Follow-up F39.
+**Not measured.** The owner chose to record it as not measured (2026-11-23); it runs before I2a starts (F39). How:
+
+- Build `spike/s2-three` with `S2_THREE=all node scripts/build.mjs --out <dir>` (the branch is on origin) and copy the
+  whole folder (`index.html`, `art/`, `music/`) to the lower-end machine.
+- Serve it **on that machine's own localhost** with any static server (for example `python3 -m http.server 8000` in
+  the folder), or over HTTPS. WebGPU needs a secure context: `navigator.gpu` exists only on HTTPS or localhost, so the
+  page opened from the Mac's dev server over the LAN has no WebGPU, and `backend=webgpu` would silently measure the
+  wrong thing.
+- Open `http://localhost:8000/?render=three&perf=1&freeze=1&orbit=20&backend=webgl`, then `backend=webgpu` and
+  `backend=webgpu-gl`. After about 10 s read the overlay's `frame` (p50 / p95 / p99), `cpu render` (p95), `gpu` and
+  `draw calls` lines, and note the machine, browser and GPU, and the overlay's first line (which backend actually ran).
 
 ## The billboard port (step 2)
 
@@ -243,7 +256,7 @@ What did not port, or ported differently:
   surface (`GreaterDepth` against the ground it stands on). Both paths; the game's tile stage has the same geometry.
   F41.
 
-## Recommendation (for the owner to decide)
+## Recommendation (as written for the owner; answers under "Decisions for the owner")
 
 **Renderer class: `WebGPURenderer` from `'three/webgpu'`, on its WebGPU backend where the browser has it and its
 WebGL 2 backend everywhere else. Shading language: TSL** for every custom shader (creature billboards, decals, glows,
@@ -314,10 +327,11 @@ The split follows the shares measured here (1080p, WebGLRenderer and linear-outp
 | Shadows | 2.0 ms | 0.25–0.33 ms at 2048², 0.48–0.65 ms at 4096² |
 | Post (ink pass, output transform) | 1.5 ms | edges +0.16–0.35 ms; the output blit alone up to +0.9 ms in overdraw |
 | CPU: render submit | 2 ms p95 | 0.4–2.1 ms p95 |
-| CPU: sim | 4 ms p95 | 0.8 ms p95 (240 live actors) |
+| CPU: sim | 4 ms p95 (on the lower-end machine) | 0.8 ms p95 (240 live actors) |
 
 If the lower-end machine is about 20× slower than this GPU (an integrated laptop GPU), today's frame (≈ 1 ms here)
-would land near 20 ms: over budget before effects. That is a guess until F39 is measured.
+would land near 20 ms: over budget before effects. That is a guess until F39 is measured. The CPU sim row is the
+lower-end machine's figure; on this Mac perf-sim's gate stays p95 2 ms with physics inside the sim (S1).
 
 ## Open risks
 
@@ -342,13 +356,21 @@ would land near 20 ms: over budget before effects. That is a guess until F39 is 
 
 ## Decisions for the owner
 
+Answered by the owner on 2026-11-23 (the review of S2).
+
 1. **Renderer class and shading language:** WebGPURenderer + TSL (recommended above), or WebGLRenderer + GLSL.
-2. **Output path** (if WebGPURenderer): a `RenderPipeline` from the start (owning the output transform and the ink
-   pass), or linear output with sRGB in every material.
-3. **The lower-end target machine** that the frame budget is measured on, and the budget itself (the table above is a
-   proposal).
-4. **Creature shadows:** card shadows from the billboards (free in TSL, turn with the camera) or blob decals (as
-   today).
-5. **The 3 MB page budget** with three inside: WebGPU-only leaves 0.71 MB; keep it, or raise it.
-6. **Upgrade policy for three:** pinned exactly, upgraded as its own task with the S2 matrix re-run (recommended), or
-   tracked continuously.
+   **Owner, 2026-11-23:** WebGPURenderer + TSL, conditional on F39, which runs before I2a starts. If the `forceWebGL`
+   backend misses the budget on the lower-end machine where WebGLRenderer meets it, the choice reopens.
+2. **Output path:** a `RenderPipeline` from the start (owning the output transform and the ink pass), or linear
+   output with sRGB in every material. **Owner, 2026-11-23:** a `RenderPipeline` from the start, ending in
+   `renderOutput` (F40). No sRGB in every material.
+3. **The lower-end target machine** that the frame budget is measured on, and the budget itself. **Owner,
+   2026-11-23:** the owner names the machine when F39 is run; until then the budget table stands as a proposal.
+4. **Creature shadows:** card shadows from the billboards (free in TSL, turn with the camera) or blob decals.
+   **Owner, 2026-11-23:** blob decals, as today; the decals are drawn as "Decals, glows and particles" describes, and
+   that work is deferred (F44).
+5. **The 3 MB page budget** with three inside. **Owner, 2026-11-23:** keep 3 MB on `dist/index.html`. three and the
+   new renderer ship as a fetched, content-hashed side file (like `dist/physics/`), loaded only with `?render=three`
+   until X1a. Every task that adds a runtime library reports `index.html` bytes and side-file bytes.
+6. **Upgrade policy for three.** **Owner, 2026-11-23:** pinned exactly, upgraded as its own task with the S2 matrix
+   re-run; I2a brings `tools/s2perf.mjs` and `tools/s2matrix.mjs` into `tools/`.
