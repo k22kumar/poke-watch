@@ -1217,6 +1217,23 @@ grilling and recorded under "Open items"):
   - I2b reports the fade rate on G2's map, split into moving along required routes and stationary. If fading while
     moving on required routes exceeds the adapter maps' 5.5 %, the rule of a free arm ≥ 2.0 m both ways along the
     route axis on required routes is reopened for G2 (ROADMAP F99).
+- **CL-Q10, where the flagged shot launches (question e, to which CL-Q2 condition 3 deferred): from the eye, under
+  `rules.aim.viewSight` only.** Flag off, the muzzle launch is as today and every hash is unchanged.
+  - The launch point is the same eye point as the check, after CL-Q3's horizontal and vertical pull-backs, so a shot
+    never starts inside a solid. Tested on both engines with the 1.45 m rung and two of the species whose eye clears
+    it while the muzzle does not (one a hero, Feraligatr).
+  - Measured for it (draft eyes, `rules.aim.muzzle` 0.6 × height): eye − muzzle is 0.00–1.04 m, median 0.23 (equal
+    for the 59 species of the 0.60-fraction shapes). Eye over 1.45 m with the muzzle under it: 31 species, 9 heroes
+    (Venusaur, Charizard, Blastoise, Feraligatr, Hariyama, Mewtwo, Avalugg, Corviknight, Golem); over 2.00 m: 21
+    species (Hariyama); over 3.70 m: none.
+  - Paths the flag changes, all through `resolveSpatial` (`src/sim/aim.ts`): the spatial direct shots (bolt, orb:
+    `moves.ts` spawns the `traj` 1 projectile at the aim's origin), the spatial beams (`beam3D` casts from it), and,
+    following them, the cast event's `o` and the HUD's `ctx.aim` (presentation). Paths left on the muzzle or on their
+    own origin: `assistSees` (device assistance's sight test on the planar path, from the muzzle height), every planar
+    cast (`traj` 0: the bot, the fixed views, lob, orbit, boomerang, and every archetype not in `rules.aim.archetypes`),
+    melee, and `scripts/covercheck.ts` (class muzzle figures).
+  - Where the attack is drawn from (mouth or body) is presentation, I2b's. F88 stays open: whether a table mouth ever
+    becomes the gameplay origin is decided there.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
