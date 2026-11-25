@@ -1,7 +1,25 @@
 {
  "comment": "scripts/navwalk.ts --known: the failures the navwalk gate with both flags may have (owner, 2026-11-25; ROADMAP F74). Matched by map, seed, space and walker size class, and by how the case fails.",
- "setting": { "physics": "rapier", "nav": "navmesh" },
+ "setting": {
+  "physics": "rapier",
+  "nav": "navmesh"
+ },
  "cases": [
-  { "map": "viridian-forest", "seed": 4, "target": "arena2", "walker": "trainer-medium", "failure": "stuck", "why": "F74: perched on a 0.434 m step's edge beside a 0.934 m block; the climb check measures from the support it rests on, the roll's lift from its feet. The lift-from-support fix moves gorge-hold-rapier and is not in (owner, 2026-11-25); linked to F71." }
+  {
+   "map": "viridian-forest",
+   "seed": 4,
+   "target": "arena2",
+   "walker": "trainer-medium",
+   "failure": "stuck",
+   "why": "F74: perched on a 0.434 m step's edge beside a 0.934 m block; the climb check measures from the support it rests on, the roll's lift from its feet. The lift-from-support fix moves gorge-hold-rapier and is not in (owner, 2026-11-25); linked to F71."
+  },
+  {
+   "map": "chargestone-cave",
+   "seed": 5,
+   "target": "arena10",
+   "walker": "trainer-xl",
+   "failure": "stuck",
+   "why": "F74 (owner, 2026-11-25: listed, not fixed): stuck at (-14.41, 47.64), perched on a stair's edge with a deck's corner over both the start and the carry's end, so lifting at the target cannot clear it; it moves freely in every other heading. G1a reproduces it."
+  }
  ]
 }
