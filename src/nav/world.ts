@@ -12,6 +12,7 @@
 
 import type { Rules } from '../rules/defaults';
 import type { Aabb, WorldModel } from '../world/model';
+import { isAdapterModel } from '../world/adapter';
 import { NavSoup, NavTiles, type AgentCells, type NavConfig, type Obstacle } from './build';
 import { NavGraph, NONE, type Field, type FieldFilter } from './graph';
 import { VolumeRoutes } from './routes';
@@ -30,9 +31,12 @@ export type GroupName = 'narrow' | 'large' | 'xl';
 /** the width groups in ascending agent height (rules.nav.groups' order is checked) */
 export const GROUPS: readonly GroupName[] = ['narrow', 'large', 'xl'];
 
-/** the groups rules.nav defines, plus extras (the giant report adds one), in ascending agent height */
-export function groupsOf(rules: Rules, extra: { name: string; agent: AgentCells }[] = []): { name: string; agent: AgentCells }[] {
-  const out = [...GROUPS.map((g) => ({ name: g as string, agent: rules.nav.groups[g] })), ...extra];
+/** the groups rules.nav defines for a map (adapter: rules.nav.adapterRadius overrides a group's radius, the owner's F77
+ *  decision), plus extras (the giant report adds one), in ascending agent height */
+export function groupsOf(rules: Rules, extra: { name: string; agent: AgentCells }[] = [], adapter = false): { name: string; agent: AgentCells }[] {
+  const A = rules.nav.adapterRadius as Partial<Record<GroupName, number>>;
+  const agent = (g: GroupName): AgentCells => adapter && A[g] !== undefined ? { ...rules.nav.groups[g], radius: A[g]! } : rules.nav.groups[g];
+  const out = [...GROUPS.map((g) => ({ name: g as string, agent: agent(g) })), ...extra];
   return out.sort((a, b) => a.agent.height - b.agent.height);
 }
 
@@ -64,9 +68,10 @@ export class NavWorld {
     this.routes = new VolumeRoutes(model.navInput.routes);
   }
 
-  /** build every width group's navmesh for `model` (rules.nav; `extra` groups for reports) */
+  /** build every width group's navmesh for `model` (rules.nav; an adapter map's radii from rules.nav.adapterRadius;
+   *  `extra` groups for reports) */
   static build(model: WorldModel, rules: Rules, extra: { name: string; agent: AgentCells }[] = []): NavWorld {
-    return new NavWorld(model, navConfig(rules), groupsOf(rules, extra), model.bounds, rules.nav.layer);
+    return new NavWorld(model, navConfig(rules), groupsOf(rules, extra, isAdapterModel(model)), model.bounds, rules.nav.layer);
   }
 
   /** a group's index by name (-1 when absent) */

@@ -7,7 +7,7 @@ import { navWasmBytes } from './setup/nav';
 import { defaultRules, type Rules } from '../src/rules/defaults';
 import { SPECIES_BY_ID } from '../src/rules/species';
 import { enemyHeight, footprintOf } from '../src/rules/sizing';
-import { NavWorld, GROUPS } from '../src/nav/world';
+import { NavWorld, GROUPS, groupsOf } from '../src/nav/world';
 import { AREA, NavSoup } from '../src/nav/build';
 import { NONE } from '../src/nav/graph';
 import { VolumeRoutes } from '../src/nav/routes';
@@ -43,6 +43,7 @@ test('rules.nav: every Recast number is an integer cell count, the groups in asc
 test('each group\'s agent covers its widest footprint and the tallest body today\'s gates carry for it', () => {
   const N = rules.nav, body = (id: string) => rules.size.classes.find((c) => c.id === id)!.body;
   // footprints: every class of the group (WORLDGEN3D Q7), at the class value (no tilt: SIZING "Footprint")
+  // (rules.nav.groups: the generated maps' radii; adapter maps' narrow radius is the owner's F77 decision, tested below)
   const groupClasses: Record<string, string[]> = { narrow: ['tiny', 'small', 'medium'], large: ['large'], xl: ['xl'] };
   for (const [name, classes] of Object.entries(groupClasses)) {
     const widest = Math.max(...classes.map(body));
@@ -59,6 +60,27 @@ test('each group\'s agent covers its widest footprint and the tallest body today
     for (const id of ids) assert.ok(footprintOf(SPECIES_BY_ID[id], 1, rules) <= a.radius * N.cs, `${id} fits ${name}'s radius`);
   }
   assert.ok(N.giantHeight * N.ch >= 3.57 && (N.giantHeight - 1) * N.ch < 3.57, 'the giant report height covers the 3.57 m cap');
+});
+
+test('F77 (owner, 2026-11-25): the narrow agent is 4 cells on adapter maps, so a 1.0 m one-tile neck is open; 5 on generated maps', () => {
+  assert.equal(rules.nav.adapterRadius.narrow, 4, 'adapter maps: 4 cells');
+  assert.equal(rules.nav.groups.narrow.radius, 5, 'generated maps: 5 cells');
+  assert.ok(Number.isInteger(rules.nav.adapterRadius.narrow));
+  assert.deepEqual(groupsOf(rules, [], true).map((x) => [x.name, x.agent.radius]), [['narrow', 4], ['large', 7], ['xl', 9]]);
+  assert.deepEqual(groupsOf(rules, [], false).map((x) => [x.name, x.agent.radius]), [['narrow', 5], ['large', 7], ['xl', 9]]);
+  // two rooms joined only by a one-tile neck: 1.0 m wide, 3 m long, in a wall band along z = 0 (the tile maps' shape)
+  const neck = (source?: string): Fixture => ({
+    size: [24, 24], source, floors: [{ x0: -12, z0: -12, x1: 12, z1: 12, y: 0 }],
+    walls: [{ x0: -12, z0: -1.5, x1: -0.5, z1: 1.5, y: 3 }, { x0: 0.5, z0: -1.5, x1: 12, z1: 1.5, y: 3 }],
+  });
+  for (const [source, open] of [['habitat:river-gorge', true], ['location:mt-moon', true], ['arena:range', true], [undefined, false], ['g1-mesh', false]] as const) {
+    withNav(neck(source), small(), (N) => {
+      const G = g('narrow'), F = N.field(G, 'goal', 0, 0, 8, 2)!;
+      assert.equal(N.reaches(G, F, 0, 0, -8, 0), open, `narrow through a 1.0 m neck on ${source ?? 'a model with no meta'}`);
+      // the neck is the narrow group's alone
+      for (const other of ['large', 'xl']) assert.equal(N.reaches(g(other), N.field(g(other), 'goal', 0, 0, 8, 2)!, 0, 0, -8, 0), false, other);
+    });
+  }
 });
 
 test('a floor with a wall across it: every group routes round the gap, by corridor following', () => {
@@ -117,6 +139,33 @@ test('headroom: a 2.4 m gap under a deck admits narrow and large, not Extra Larg
       assert.notEqual(N.locate(N.group('narrow'), 0, gap + 1, 0, 0, P), NONE);
       assert.ok(Math.abs(P[1] - (gap + 0.6)) < 0.1);
     } finally { N.dispose(); }
+  }
+});
+
+test('F78 (no detail mesh): a point on the floor under a deck locates to the floor\'s polygon, not the deck\'s (rules.nav.layer 2 m against gaps of 2.4-2.9 m)', () => {
+  // a deck the tile maps' shape (DECK_SLAB 0.6 m thick) over open floor, the gap under it 2.4 m and 2.9 m
+  const layer = rules.nav.layer;
+  assert.ok(layer < 2.4, 'the layer tolerance is under the smallest deck gap');
+  for (const gap of [2.4, 2.9]) {
+    const f: Fixture = { size: [24, 24], source: 'location:fixture', floors: [{ x0: -12, z0: -12, x1: 12, z1: 12, y: 0 }], slabs: [{ x0: -6, z0: -6, x1: 6, z1: 6, y0: gap, y1: gap + 0.6 }] };
+    withNav(f, small(), (N) => {
+      for (const name of ['narrow', 'large']) {
+        const G = g(name);
+        for (const [x, z] of [[0, 0], [-3, 2], [4.5, -4.5]]) {
+          // feet on the floor, and up to a step above it: the floor's polygon
+          for (const feet of [0, 0.6]) {
+            const p = N.locate(G, x, feet, z, 0, P);
+            assert.notEqual(p, NONE, `${name} at (${x}, ${z}) feet ${feet} under a ${gap} m gap`);
+            assert.ok(Math.abs(P[1]) < 0.1, `${name}: the floor (${P[1].toFixed(2)} m), not the deck, under a ${gap} m gap`);
+            assert.equal(p, N.locate(G, x, undefined, z, 0, P), 'the lowest floor there');
+          }
+          // feet on the deck: the deck's polygon
+          const d = N.locate(G, x, gap + 0.6, z, 0, P);
+          assert.notEqual(d, NONE);
+          assert.ok(Math.abs(P[1] - (gap + 0.6)) < 0.1, `${name}: the deck top (${P[1].toFixed(2)} m)`);
+        }
+      }
+    });
   }
 });
 
@@ -183,6 +232,46 @@ test('temporary obstacles (TileCache-style): only the tiles they touch rebuild; 
     N.removeObstacle(box); N.update();
     assert.ok(reach());
   });
+});
+
+test('obstacles rebuild exactly the tiles their bounds touch (with the build border): no other Detour tile is replaced, and the result equals a full build', () => {
+  // 32 m square, 6.4 m tiles (5 x 5), the build border 12 cells (1.2 m): a cylinder of 0.8 m at a tile's centre touches
+  // that tile alone, one on a tile edge the two either side, one on a tile corner the four round it
+  const f: Fixture = { size: [32, 32], floors: [{ x0: -16, z0: -16, x1: 16, z1: 16, y: 0 }], walls: [{ x0: -10, z0: 6, x1: 10, z1: 7, y: 3 }] };
+  const cases: [string, number, number, number[]][] = [['centre', 0, 0, [12]], ['edge', 3.2, 0, [12, 13]], ['corner', 3.2, 3.2, [12, 13, 17, 18]]];
+  for (const [what, x, z, expect] of cases) {
+    const o = { kind: 'cylinder' as const, x, y: -0.5, z, r: 0.8, h: 3 };
+    const N = NavWorld.build(fixture(f), small(64)), M = NavWorld.build(fixture(f), small(64));
+    try {
+      const T = N.tiles, raw = (G: number) => T.groups[G].navMesh.raw as unknown as { getTileRefAt(x: number, y: number, l: number): number };
+      const refs = (G: number) => Array.from({ length: T.tw * T.th }, (_, t) => raw(G).getTileRefAt(t % T.tw, (t / T.tw) | 0, 0));
+      assert.equal(T.border, 12, 'the build border: the widest agent (9) + 3 cells');
+      const before = N.graphs.map((_, G) => refs(G));
+      const built: number[] = [];
+      T.onTile = (t) => built.push(t);
+      N.addObstacle(o);
+      const rebuilt = N.update();
+      T.onTile = null;
+      assert.deepEqual(rebuilt, expect, `${what}: the tiles rebuilt`);
+      assert.deepEqual(built, expect, `${what}: the tiles built`);
+      for (let G = 0; G < N.graphs.length; G++) {
+        const after = refs(G);
+        for (let t = 0; t < after.length; t++) {
+          if (expect.includes(t)) { assert.notEqual(after[t], before[G][t], `${what}: ${N.names[G]} tile ${t} was replaced (the check above can fail)`); continue; }
+          assert.equal(after[t], before[G][t], `${what}: ${N.names[G]} tile ${t} is the same Detour tile (not removed and re-added)`);
+        }
+      }
+      // a full build with the obstacle present gives the same graphs
+      M.addObstacle(o);
+      M.tiles.buildAll();
+      for (let G = 0; G < N.graphs.length; G++) {
+        const a = N.graphs[G], b = M.graphs[G];
+        b.extract();
+        assert.equal(a.n, b.n, `${what}: ${N.names[G]} polygons`);
+        assert.deepEqual([...a.vx], [...b.vx]); assert.deepEqual([...a.vz], [...b.vz]); assert.deepEqual([...a.aTo], [...b.aTo]);
+      }
+    } finally { N.dispose(); M.dispose(); }
+  }
 });
 
 test('a geometry change rebuilds only the tiles it touches, and they equal a full build', () => {

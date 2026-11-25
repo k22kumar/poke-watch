@@ -157,6 +157,14 @@ function weld(pos: number[], idx: number[]): { positions: Float32Array; indices:
 const UP: [number, number, number] = [0, 1, 0], DOWN: [number, number, number] = [0, -1, 0];
 
 /** The tile map as a WorldModel (docs/OVERHAUL_3D.md). Pure: reads the map, never writes it. */
+/** the meta.source prefixes fromArenaMap writes (arena, habitat, location, region) */
+export const ADAPTER_SOURCES = ['arena:', 'habitat:', 'location:', 'region:'] as const;
+/** a WorldModel the tile adapter made (its meta.source is one of ADAPTER_SOURCES); a generated mesh world (G1) is not */
+export function isAdapterModel(model: { readonly meta?: { readonly source: string } }): boolean {
+  const s = model.meta?.source;
+  return s !== undefined && ADAPTER_SOURCES.some((p) => s.startsWith(p));
+}
+
 export function fromArenaMap(m: ArenaMap): WorldModel {
   const W = m.w, H = m.h, n = W * H, hx = W / 2, hz = H / 2;
   const top = wallTopsOf(m);

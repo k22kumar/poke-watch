@@ -2,6 +2,7 @@
 // adapter maps and prints per-map and per-group times against WORLDGEN3D Q20.2's run-start target (a curated seed's
 // p95 <= 250 ms for everything).
 //   npx tsx scripts/navbench.ts [map|all] [seed] [--repeat N] [--tile <cells>] [--group narrow|large|xl|giant]
+//                               [--detail <sampleDist m>,<sampleMaxError m>]  (a detail mesh, ROADMAP F78: measured, not used)
 // map: 'range', a habitat id (river-gorge, ...) or a location id; default river-gorge seed 1. Times are the median and
 // p95 of N runs after one warm-up (default 7), split into the adapter (fromArenaMap), the soup and each group's tiles.
 import { initNavNode } from '../src/nav/node';
@@ -12,7 +13,7 @@ import { HABITATS } from '../src/world/habitat/recipes';
 import { LOCATIONS } from '../src/world/locations';
 import { World } from '../src/sim/world';
 import { fromArenaMap } from '../src/world/adapter';
-import { navConfig } from '../src/nav/world';
+import { navConfig, groupsOf } from '../src/nav/world';
 
 await initNavNode();
 navClock.now = () => performance.now();
@@ -30,9 +31,11 @@ const q = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); 
 
 for (const id of ids) {
   const rules = rulesFor(id), W = new World(rules, BIOMES.meadow, seed);
-  const cfg: NavConfig = { ...navConfig(rules), tileSize: tile };
-  const all = [...Object.entries(rules.nav.groups).map(([name, agent]) => ({ name, agent })), { name: 'giant', agent: { radius: rules.nav.groups.xl.radius, height: rules.nav.giantHeight } }];
-  const groups = only ? all.filter((g) => g.name === only) : all.slice(0, 3);
+  const det = arg('--detail', ''), [sd, se] = det.split(',').map(Number);
+  const cfg: NavConfig = { ...navConfig(rules), tileSize: tile, ...(det ? { detail: { sampleDist: sd, sampleMaxError: se } } : {}) };
+  // adapter maps: the narrow radius of rules.nav.adapterRadius (the owner's F77 decision)
+  const all = groupsOf(rules, [{ name: 'giant', agent: { radius: rules.nav.groups.xl.radius, height: rules.nav.giantHeight } }], true);
+  const groups = only ? all.filter((g) => g.name === only) : all.filter((g) => g.name !== 'giant');
   const T: Record<string, number[]> = { adapter: [], soup: [], tiles: [], total: [] };
   let info = '', grid = '';
   for (const k of Object.keys(navClock.stages)) delete navClock.stages[k];

@@ -67,12 +67,18 @@ export const defaultRules = {
      *  body today's gates carry for it (scripts/navwalk.ts walkers and trainers), both as cells rounded up:
      *  narrow  Tiny, Small, Medium   r 5 (0.5 m: Medium 0.46)      h 20 (1.00 m: Totodile 0.953)
      *  large   Large                 r 7 (0.7 m: Large 0.66)       h 34 (1.70 m: Heracross 1.689)
-     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 56 (2.80 m: Onix 2.777) */
+     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 56 (2.80 m: Onix 2.777)
+     *  These radii are the generated maps' (G1's mesh worlds); adapter maps override narrow (adapterRadius). */
     groups: {
       narrow: { radius: 5, height: 20 },
       large: { radius: 7, height: 34 },
       xl: { radius: 9, height: 56 },
     },
+    /** [B] cells: the radii on adapter maps (world/adapter.ts isAdapterModel: the tile maps' WorldModels) where they
+     *  differ from groups. Owner's decision on F77 (2026-11-25): narrow is 4 cells (0.4 m) on adapter maps, so the tile
+     *  maps' 1.0 m one-tile necks stay open as the tile sim has them (at 5 cells they erode shut); Medium (0.46 m)
+     *  overlaps a neck's walls by 6 cm there, which I1c re-checks (ROADMAP F77). Generated maps keep 5 (groups.narrow) */
+    adapterRadius: { narrow: 4 },
     /** [B] cells: a giant at the 3.57 m draw cap (72 × 0.05 = 3.60 m), built only by the report of what it would lose */
     giantHeight: 72,
     /** [C] m: an agent off its group's navmesh (eroded edges, a crowd's push) steers from the nearest polygon this

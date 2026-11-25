@@ -30,7 +30,7 @@ import { assertRunning, endedNote, runEnded } from './lib/ended';
 const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0]];
 const TRAINERS: [string, string][] = [['small', 'totodile'], ['xl', 'feraligatr']];
 
-export interface WalkResult { map: string; seed: number; target: string; walker: string; expect: 'arrive' | 'refuse' | 'closed'; ok: boolean; t: number; note: string }
+export interface WalkResult { map: string; seed: number; target: string; walker: string; expect: 'arrive' | 'refuse'; ok: boolean; t: number; note: string }
 
 // no spawns, no objectives, and no far-enemy relocation (rules.enemy.despawnDistance would teleport a walker that starts
 // more than 46 m from the player to a ring around it, skipping the very route under test; a holding wide body likewise)
@@ -48,13 +48,6 @@ function navRouteLength(ctx: SimContext, from: number, to: number, g: number): n
   const W = worldOf(ctx), N = ctx.nav!.navFor(W), [fx, fz] = at(ctx, from), [tx, tz] = at(ctx, to);
   const F = N.field(g, 'navwalk-length', tx, ctx.world.height(tx, tz), tz, ctx.rules.nav.goalSnap);
   return N.distance(g, F, fx, ctx.world.height(fx, fz), fz, ctx.rules.nav.snap);
-}
-
-/** does the narrow navmesh leave tile `to` unjoined to tile `from` (no route from `from` to the player standing at `to`)? */
-function navCloses(ctx: SimContext, from: number, to: number): boolean {
-  const W = worldOf(ctx), N = ctx.nav!.navFor(W), [fx, fz] = at(ctx, from), [tx, tz] = at(ctx, to);
-  const F = N.field(0, 'navwalk-closed', tx, ctx.world.height(tx, tz), tz, ctx.rules.nav.goalSnap);
-  return !N.reaches(0, F, fx, ctx.world.height(fx, fz), fz, ctx.rules.nav.snap);
 }
 
 /** the trainer's route on the navmesh: its width group's straight path from tile `from` to tile `to` (the target counts
@@ -232,11 +225,8 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
       const diag = w[0] === 'large', narrow = w[0] === 'narrow';
       const reach = narrow ? true : nearIn(diag ? wideDiag : wideStrict, T.k % m.w, (T.k / m.w) | 0, T.anchor ? 0 : 3);
       if (T.anchor && !narrow && !reach) continue; // the director never spawns a wide body at a narrow-only anchor
-      let expect: WalkResult['expect'] = T.mandatory || reach ? 'arrive' : 'refuse';
-      // on the navmesh the narrow group's agent is Medium's 0.46 m footprint rounded up to 5 cells (0.5 m), so a one-tile
-      // (1.0 m) neck is shut to it: an optional narrow-only target behind one is `closed` (reported, not a failure).
-      // Mandatory targets are gated as on the lattice
-      if (NAV_ENGINE === 'navmesh' && narrow && !T.mandatory && navCloses(ctx, T.anchor ? T.k : hubK, T.anchor ? hubK : T.k)) expect = 'closed';
+      // (on the navmesh too: an adapter map's narrow agent is 4 cells, so one-tile necks stay open, the owner's F77 decision)
+      const expect: WalkResult['expect'] = T.mandatory || reach ? 'arrive' : 'refuse';
       // where the walker is asked to come: the target tile for a narrow body; for a wide one the nearest tile of its wide
       // core within the gate's radius of the target (the gate's own test: a space is wide-reachable when wide ground lies
       // within 3 tiles of its centre, docs/LOCATIONS.md), so a pillar on the very centre tile does not fail the walk
@@ -253,8 +243,8 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
       const navLen = NAV_ENGINE === 'navmesh' ? navRouteLength(ctx, T.anchor ? tk : hubK, T.anchor ? hubK : tk, narrow ? 0 : diag ? 1 : 2) : 0;
       const tiles = Math.max(T.anchor ? dist(T.k, hubK) : dist(hubK, T.k), own ? own.length : 0, navLen < Infinity ? navLen : 0);
       const r = T.anchor ? pursue(ctx, w, tx, tz, hx, hz, budgetFor(tiles)) : pursue(ctx, w, hx, hz, tx, tz, budgetFor(tiles), deck);
-      const ok = expect === 'closed' ? !r.pen : !r.pen && (expect === 'arrive' ? r.arrived : !r.arrived);
-      out.push({ map: id, seed, target: T.name, walker: w[0], expect, ok, t: +r.t.toFixed(1), note: expect === 'closed' ? (r.arrived ? 'arrived by straight steering' : 'did not arrive') : r.note });
+      const ok = !r.pen && (expect === 'arrive' ? r.arrived : !r.arrived);
+      out.push({ map: id, seed, target: T.name, walker: w[0], expect, ok, t: +r.t.toFixed(1), note: r.note });
     }
   }
   // the trainer to every mandatory target
@@ -313,7 +303,6 @@ if (process.argv[1]?.endsWith('navwalk.ts')) {
     for (const r of kind === 'location' ? walkLocation(id, s) : walkHabitat(id, s)) {
       const key = `${r.walker} ${r.expect}`;
       tally[key] ??= { ok: 0, n: 0 }; tally[key].n++; if (r.ok) tally[key].ok++;
-      if (r.expect === 'closed') console.log(`CLOSED ${r.map} seed ${r.seed} ${r.target} ${r.walker}: the narrow navmesh does not join it (${r.note})`);
       if (!r.ok) { fails++; console.log(`FAIL ${r.map} seed ${r.seed} ${r.target} ${r.walker} expect ${r.expect} t ${r.t} ${r.note}`); }
     }
   }

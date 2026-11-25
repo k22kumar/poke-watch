@@ -16,6 +16,8 @@ export interface Fixture {
   hazards?: { x0: number; z0: number; x1: number; z1: number; y: number }[];
   links?: OffMeshLink[];
   routes?: VolumeGraph;
+  /** meta.source (absent: no meta, read as a generated map; 'habitat:…' and the other adapter prefixes: an adapter map) */
+  source?: string;
 }
 
 export const FLOOR_Y = -1;
@@ -53,6 +55,7 @@ export function fixture(f: Fixture): WorldModel {
     top = Math.max(top, r.a, r.b);
   }
   return {
+    ...(f.source ? { meta: { source: f.source, id: 'fixture', name: 'fixture', seed: 0, version: 0, requestedSeed: 0 } } : {}),
     bounds: { min: [-hx, FLOOR_Y, -hz], max: [hx, top + 8, hz] },
     colliders,
     volumes: (f.hazards ?? []).map((h) => ({ kind: 'hazard' as const, box: { min: [h.x0, h.y, h.z0] as [number, number, number], max: [h.x1, h.y + 0.05, h.z1] as [number, number, number] }, element: 'blaze' })),
