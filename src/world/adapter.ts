@@ -29,8 +29,9 @@
 //                   prop     by its material: stone → cover, wood → trunk, leaf → foliage
 //                   ground column, stairs base and ramp   the terrain's role (stairs are stone: rock)
 //                   wall tile    a wall prop's role; a bare wall (no prop) → cliff
-//                   low prop     the prop's role; a low prop with no material row (Mt. Moon's crate and fossils) takes
-//                                its tile's terrain role, as its collider takes the terrain name (dirt → soil)
+//                   low prop     the prop's role; a low prop with no material row (Mt. Moon's crate and fossils) is
+//                                cover (owner, 2026-11-25, ROADMAP F52), while its collider keeps the terrain name as
+//                                material, as on main (F55)
 //                   deck         floor (top, underside and rim)
 //                   side faces   cliff; on a low prop's or wall prop's tile, the prop's role (a low prop's side segment
 //                                only when it lies wholly above the tile's ground, so no face is split)
@@ -174,8 +175,8 @@ export function fromArenaMap(m: ArenaMap): WorldModel {
   const destructible = (k: number) => (owner[k] >= 0 && PROP_MATERIALS[m.props[owner[k]].kind]!.integrity > 0 ? owner[k] : -1);
   /** a wall tile's role: its wall prop's, or cliff for a bare wall */
   const wallRole = (k: number): MaterialRole => (owner[k] >= 0 ? propRole(PROP_MATERIALS[m.props[owner[k]].kind]!.mat) : 'cliff');
-  /** a low prop's role: its prop's, or the tile's terrain role when no prop with a material row owns it */
-  const platRole = (k: number): MaterialRole => (owner[k] >= 0 ? propRole(PROP_MATERIALS[m.props[owner[k]].kind]!.mat) : terrainRole(m.terrain[k]));
+  /** a low prop's role: its prop's, or cover when no prop with a material row owns it (F52) */
+  const platRole = (k: number): MaterialRole => (owner[k] >= 0 ? propRole(PROP_MATERIALS[m.props[owner[k]].kind]!.mat) : 'cover');
 
   // per tile: what kind of column it is, and its ground surface (World.height with no reference, at the tile centre)
   const KIND = { void: 0, wall: 1, stairs: 2, water: 3, ground: 4 } as const;

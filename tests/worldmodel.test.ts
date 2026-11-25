@@ -287,3 +287,24 @@ test('WorldModel contract: version 2, the role union of Q16.2', () => {
   assert.deepEqual([...MATERIAL_ROLES], ['ground', 'path', 'soil', 'rock', 'cliff', 'bed', 'floor', 'wall', 'roof', 'trim', 'cover', 'foliage', 'trunk', 'objective', 'hazard']);
   assert.ok(!isMaterialRole('terrain') && !isMaterialRole('water'));
 });
+
+test('WorldModel adapter: a low prop with no material row is cover (Mt. Moon crate and fossils, owner F52)', () => {
+  const loc = sources().find((s) => s.name === 'mt-moon@1')!;
+  const W = new World(loc.rules, BIOMES.meadow, 1), m = W.map, M = fromArenaMap(m);
+  let n = 0;
+  for (const p of m.props) {
+    if (p.kind !== 'crate' && p.kind !== 'fossil') continue;
+    for (let j = p.y; j < p.y + p.h; j++) for (let i = p.x; i < p.x + p.w; i++) {
+      const k = j * m.w + i;
+      if (!(m.platform[k] > 0) || m.wall[k] === 1) continue;
+      const x = i - W.half + 0.5, z = j - W.half + 0.5, y0 = m.elev[k], y1 = y0 + m.platform[k];
+      const hits = M.colliders.filter((c) => c.shape === 'box' && Math.abs(x - c.centre[0]) < c.half[0] && Math.abs(z - c.centre[2]) < c.half[2]
+        && Math.abs(c.centre[1] - c.half[1] - y0) < EPS && Math.abs(c.centre[1] + c.half[1] - y1) < EPS);
+      assert.equal(hits.length, 1, `${p.kind} tile ${i},${j}: one low-prop collider`);
+      assert.equal(hits[0].role, 'cover', `${p.kind} tile ${i},${j}`);
+      assert.equal(hits[0].material, 'dirt', `${p.kind} tile ${i},${j}: material stays the terrain name (F55)`);
+      n++;
+    }
+  }
+  assert.ok(n >= 4, `${n} crate and fossil tiles`);
+});
