@@ -44,7 +44,7 @@ const NAV_ENGINE = navAt > 1 ? process.argv.splice(navAt, 2)[1] : 'flow';
 if (NAV_ENGINE !== 'flow' && NAV_ENGINE !== 'navmesh') throw new Error(`--nav flow|navmesh, not ${NAV_ENGINE}`);
 if (NAV_ENGINE === 'navmesh') await initNavNode();
 /** I1b: the escape probe's move on physics (the controller writes nothing the sim reads) */
-const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: undefined, stepUp: 0, supported: true, onGround: false, ceiling: false, stepped: false };
+const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: 0, stepUp: 0, supported: true, onGround: false, ceiling: false, stepped: false };
 /** World.shore's room: a walkable pocket smaller than this (in tiles) is a trap */
 export const TRAP_ROOM = 48;
 

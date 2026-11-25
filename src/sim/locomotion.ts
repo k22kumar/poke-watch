@@ -121,9 +121,9 @@ export interface LocoTick {
   foot: number;
   /** m: body height against deck slabs, undefined on a map with no decks */
   tall: number | undefined;
-  /** m: the body's height on the controller (I1b, ROADMAP F72): on every map, decks or none (the tile resolver reads
-   *  `tall`). Absent: `tall`, else the footprint's size class height (tests' plain bodies) */
-  height?: number;
+  /** m: the body's height on the controller (I1b, ROADMAP F72: one rule, the real height on every map, decks or none;
+   *  the tile resolver reads `tall`). Required: there is no fallback to the size class's height */
+  height: number;
   /** navigation lattice for the rock recovery (wide footprints route on navblocks) */
   wide: boolean;
   /** R1b wall tops (docs/SIZING.md "Wall tops"): the explicit permission to cross above a wall prop's finite top
@@ -144,7 +144,7 @@ const LAND_CLEAR = 0.3;
 
 const MOVE: [number, number] = [0, 0];
 /** the controller's scratch move (I1b) */
-const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: undefined, stepUp: 0, supported: false, onGround: false, ceiling: false, stepped: false };
+const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: 0, stepUp: 0, supported: false, onGround: false, ceiling: false, stepped: false };
 
 /** whole ticks of a duration in seconds (the jump buffer and coyote windows) */
 const ticksOf = (s: number, dt: number) => Math.max(0, Math.round(s / dt));
@@ -313,7 +313,7 @@ function resolveOnController(M: BodyMover, W: WorldQuery, b: LocoBody, it: LocoI
   const m = BM;
   m.x = b.x; m.y = b.y; m.z = b.z;
   m.dx = (b.vx + b.kx) * dt; m.dy = b.vy * dt; m.dz = (b.vz + b.kz) * dt;
-  m.r = t.foot; m.h = t.height ?? t.tall; m.stepUp = t.stepUp; m.supported = b.grounded;
+  m.r = t.foot; m.h = t.height; m.stepUp = t.stepUp; m.supported = b.grounded;
   M.move(m);
   const bd = W.bound;
   b.x = clamp(m.x, -bd, bd); b.y = m.y; b.z = clamp(m.z, -bd, bd);
@@ -340,16 +340,16 @@ function advanceBody(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L:
 /** The shoves one system's loop gives a body (I1b): on physics they are summed and resolved in one controller move after
  *  the loop (`flushShoves`), where the tile model moves the footprint at each shove (a crowd of 500 shoving the partner
  *  one controller move each cost 2 ms a tick). Caller-owned, one per system */
-export interface Shoves { dx: number; dz: number; n: number; step: number; foot: number; tall: number | undefined }
+export interface Shoves { dx: number; dz: number; n: number; step: number; foot: number; height: number }
 /** a fresh accumulator (a function declaration: enemies.ts and bodies.ts make theirs at module load, and the sim's
  *  import cycle can load them before this module's body has run) */
-export function newShoves(): Shoves { return { dx: 0, dz: 0, n: 0, step: 0, foot: 0, tall: undefined }; }
+export function newShoves(): Shoves { return { dx: 0, dz: 0, n: 0, step: 0, foot: 0, height: 0 }; }
 
 /** Push a body's footprint by (dx, dz) (a crowd or a resting body shoving the partner): the tile model's footprint move
  *  at once; on physics added to `acc`, for `flushShoves` to resolve. Keeps velocity and support */
-export function pushFootprint(W: WorldQuery, b: LocoBody, dx: number, dz: number, step: number, foot: number, tall: number | undefined, acc: Shoves) {
-  if (W.mover) { acc.dx += dx; acc.dz += dz; acc.n++; acc.step = step; acc.foot = foot; acc.tall = tall; return; }
-  W.moveFootprint(b.x, b.y, b.z, dx, dz, step, foot, MOVE, undefined, tall);
+export function pushFootprint(W: WorldQuery, b: LocoBody, dx: number, dz: number, step: number, foot: number, height: number, acc: Shoves) {
+  if (W.mover) { acc.dx += dx; acc.dz += dz; acc.n++; acc.step = step; acc.foot = foot; acc.height = height; return; }
+  W.moveFootprint(b.x, b.y, b.z, dx, dz, step, foot, MOVE, undefined, height);
   b.x = MOVE[0]; b.z = MOVE[1];
 }
 
@@ -361,7 +361,7 @@ export function flushShoves(W: WorldQuery, b: LocoBody, acc: Shoves) {
   if (M) {
     const m = BM;
     m.x = b.x; m.y = b.y; m.z = b.z; m.dx = acc.dx; m.dy = 0; m.dz = acc.dz;
-    m.r = acc.foot; m.h = acc.tall; m.stepUp = acc.step; m.supported = b.grounded;
+    m.r = acc.foot; m.h = acc.height; m.stepUp = acc.step; m.supported = b.grounded;
     M.move(m);
     b.x = m.x; b.y = m.y; b.z = m.z;
   }

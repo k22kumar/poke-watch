@@ -104,7 +104,7 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
 /** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height its head clears deck slabs too */
 const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
 /** on physics the trainer's own body: its capsule (shrunk by 2 mm) clear of the physics world */
-const clearOn = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => ctx.physics ? ctx.physics.bodyClear(ctx.world, x, y, z, r, tall, 2e-3) : clearAt(ctx, x, z, y, r, tall);
+const clearOn = (ctx: SimContext, x: number, z: number, y: number, r: number, tall: number) => ctx.physics ? ctx.physics.bodyClear(ctx.world, x, y, z, r, tall, 2e-3) : clearAt(ctx, x, z, y, r, tall);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
 

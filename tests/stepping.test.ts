@@ -36,7 +36,7 @@ function stepWorld(rise: number, over?: (W: World, map: { over?: Float32Array })
   return W;
 }
 const body = (x: number, y = 0): LocoBody => ({ x, y, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded: true, ctl: { buffer: 0, coyote: 0, airSpent: false } });
-const tickFor = (foot: number, speed: number, tall?: number): LocoTick => ({ speed, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot, tall, wide: false });
+const tickFor = (foot: number, speed: number, tall?: number): LocoTick => ({ speed, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot, tall, height: tall ?? rules.size.classes.reduce((a, c) => (Math.abs(c.body - foot) < Math.abs(a.body - foot) ? c : a)).height, wide: false });
 
 /** walk a class body at `speed` toward the face at x = 0 from 1 m short of it, at `deg` off its normal; did it end on top,
  *  and the longest run of supported ticks it moved less than 0.1 mm (a stall) */

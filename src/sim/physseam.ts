@@ -162,13 +162,11 @@ export function buildTilePhysics(T0: TileExt): PhysicsWorld {
 
 /** The bridge a run with rules.physics.engine = 'rapier' carries (SimContext.physics; the run's World holds it too). */
 export class PhysicsBridge {
-  /** the controller's numbers (rules.physics.controller) and the size classes a height-less body takes its height from */
+  /** the controller's numbers (rules.physics.controller) */
   private readonly ctl: ControllerRules;
-  private readonly classes: Rules['size']['classes'];
   constructor(rules: Rules = defaultRules) {
     if (!rapierReady()) rapier(); // throws the init message: Rapier loads once, asynchronously, before createRun
     this.ctl = rules.physics.controller;
-    this.classes = rules.size.classes;
   }
   private mover: PhysicsMover | null = null;
   private W: WorldQuery | null = null;
@@ -210,22 +208,10 @@ export class PhysicsBridge {
   /** the controller's numbers */
   get controller(): ControllerRules { return this.ctl; }
 
-  /** the height the controller gives a body of footprint r and height h (the mover's rule, every map: ROADMAP F72) */
-  bodyHeight(r: number, h: number | undefined): number {
-    return h !== undefined && h > 0 ? h : this.classHeight(r);
-  }
-
   /** a harness check (scripts/navwalk.ts on physics): is the capsule of a body (footprint r, height h, feet at x, y, z)
    *  shrunk by `shrink` clear of what stops bodies? */
-  bodyClear(w: WorldQuery, x: number, y: number, z: number, r: number, h: number | undefined, shrink: number): boolean {
-    return this.worldFor(w).characterClear(x, y, z, r, this.bodyHeight(r, h), shrink, this.ctl);
-  }
-
-  /** the height of a size class's body by its footprint (a body that gives none: tests' plain bodies) */
-  classHeight(r: number): number {
-    let best = this.classes[0], d = Infinity;
-    for (const c of this.classes) { const e = Math.abs(c.body - r); if (e < d) { d = e; best = c; } }
-    return best.height;
+  bodyClear(w: WorldQuery, x: number, y: number, z: number, r: number, h: number, shrink: number): boolean {
+    return this.worldFor(w).characterClear(x, y, z, r, h, shrink, this.ctl);
   }
 
   /** segmentClear on physics (sight stops it) */
@@ -324,7 +310,7 @@ export class PhysicsMover implements BodyMover {
   move(b: BodyMove): void {
     const io = this.io, B = this.bridge;
     io.x = b.x; io.y = b.y; io.z = b.z; io.dx = b.dx; io.dy = b.dy; io.dz = b.dz;
-    io.r = b.r; io.h = B.bodyHeight(b.r, b.h);
+    io.r = b.r; io.h = b.h;
     io.stepUp = b.stepUp; io.supported = b.supported;
     B.worldFor(this.w).moveCharacter(io, B.controller);
     b.x = io.x; b.y = io.y; b.z = io.z; b.onGround = io.onGround; b.ceiling = io.ceiling; b.stepped = io.stepped;

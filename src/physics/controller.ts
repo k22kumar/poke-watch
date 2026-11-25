@@ -136,6 +136,8 @@ export class CharacterKit {
     const key = `${r}|${h}`;
     let c = this.cols.get(key);
     if (!c) {
+      // every body gives its real height (ROADMAP F72: no fallback); a missing one is a caller's bug, not a ball
+      if (!(r > 0 && h > 0)) throw new Error(`physics: a body move needs its footprint and height (r ${r}, h ${h})`);
       const cap = capsuleOf(r, h, this.rules.offset, this.rules.headMargin), R = this.R;
       const desc = cap.half > 0 ? R.ColliderDesc.capsule(cap.half, cap.radius) : R.ColliderDesc.ball(cap.radius);
       desc.setCollisionGroups(0).setSensor(true);

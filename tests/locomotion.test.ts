@@ -30,7 +30,7 @@ function flatWorld() {
   return W;
 }
 const body = (y = 0, grounded = true): LocoBody => ({ x: 0, y, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded, ctl: { buffer: 0, coyote: 0, airSpent: false } });
-const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, ...o });
+const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, height: o.tall ?? defaultRules.size.classes.reduce((a, c) => (Math.abs(c.body - (o.foot ?? 0.4)) < Math.abs(a.body - (o.foot ?? 0.4)) ? c : a)).height, ...o });
 const intent = (o: Partial<LocoIntent> = {}): LocoIntent => ({ mx: 0, mz: 0, jump: false, ...o });
 
 /** one tick the way the player controller picks it (the dash aside) */
@@ -138,6 +138,7 @@ test('locomotion: one body, two callers: the player controller and a plain body 
     const t = tick({
       speed: P.derived.speed, foot, wide: navWide(foot, ctx.rules), stepUp: R.stepHeight,
       tall: W.over ? partnerHeight(P.species, ctx.rules) : undefined, lift: traversalOf(P.species, ctx.rules).glide !== null,
+      height: partnerHeight(P.species, ctx.rules),
     });
     let mx = inp.mx, mz = inp.mz;
     const ml = Math.hypot(mx, mz);

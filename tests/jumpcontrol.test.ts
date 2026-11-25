@@ -33,7 +33,7 @@ function flatWorld(ledge = 0) {
   return W;
 }
 const body = (y = 0, grounded = true, x = 0): LocoBody => ({ x, y, z: 0, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded, ctl: { buffer: 0, coyote: 0, airSpent: false } });
-const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, ...o });
+const tick = (o: Partial<LocoTick> = {}): LocoTick => ({ speed: 7.2, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: R.stepHeight, foot: 0.4, tall: undefined, wide: false, height: o.tall ?? defaultRules.size.classes.reduce((a, c) => (Math.abs(c.body - (o.foot ?? 0.4)) < Math.abs(a.body - (o.foot ?? 0.4)) ? c : a)).height, ...o });
 const edge = (pressed: boolean, o: Partial<LocoIntent> = {}): LocoIntent => ({ mx: 0, mz: 0, jump: pressed, jumpPressed: pressed, ...o });
 
 /** one tick the way the player controller picks it (`scripted`: a Dash owns the planar velocity) */

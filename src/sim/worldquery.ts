@@ -155,9 +155,8 @@ export interface SeamSwap { seamFor(w: WorldQuery): WorldQuery }
 export interface BodyMove {
   x: number; y: number; z: number;
   dx: number; dy: number; dz: number;
-  /** footprint radius; the body's height on every map (0 or undefined: the size class of the footprint, for a body that
-   *  gives none: tests' plain bodies) */
-  r: number; h: number | undefined;
+  /** footprint radius; the body's height on every map (ROADMAP F72: required, no size-class fallback) */
+  r: number; h: number;
   /** m: the rise the step rule may climb (0: none) */
   stepUp: number;
   /** supported at the start of the tick and not taking off */

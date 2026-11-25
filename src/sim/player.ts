@@ -14,7 +14,7 @@ import { worldOf } from './worldquery';
 
 // per-tick scratch for the shared locomotion step (no allocation)
 const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false, jumpPressed: undefined, my: undefined };
-const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0, foot: 0, tall: undefined, wide: false };
+const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0, foot: 0, tall: undefined, height: 0, wide: false };
 const STEP: LocoResult = { jumped: false };
 
 /** release Guard; a tap that caught nothing costs a short lockout */

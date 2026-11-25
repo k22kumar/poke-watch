@@ -198,7 +198,7 @@ test('wall tops (G4): a level line at each size class\'s muzzle height clears ex
 // ------------------------------------------------------------------------------------------------ bodies (G5 – G8)
 
 const NUM: LocoNumbers = { gravity: 30, jumpVelocity: 10.5, glideFallSpeed: 2, stepHeight: 0.6, groundAccel: 14, airAccel: 6, knockDecay: 7, jumpBuffer: 0.12, coyote: 0.1 };
-const tick = (over?: boolean, foot = 0.42): LocoTick => ({ speed: 6, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0.6, foot, tall: undefined, wide: false, ...(over === undefined ? {} : { over }) });
+const tick = (over?: boolean, foot = 0.42): LocoTick => ({ speed: 6, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0.6, foot, tall: undefined, height: defaultRules.size.classes.reduce((a, c) => (Math.abs(c.body - foot) < Math.abs(a.body - foot) ? c : a)).height, wide: false, ...(over === undefined ? {} : { over }) });
 const body = (x: number, y: number, z: number): LocoBody => ({ x, y, z, vx: 0, vy: 0, vz: 0, kx: 0, kz: 0, grounded: false, ctl: { buffer: 0, coyote: 0, airSpent: false } });
 const RES: LocoResult = { jumped: false };
 
