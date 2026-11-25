@@ -1600,25 +1600,29 @@ colour, per Q23), adds `MODEL_VERSION`, and has the tile adapter fill defaults. 
 or a shape is G1's to settle, that is now WM2's. G1 fills the types from the generator. The convex-hull row stays
 conditional on G1's measurement.
 
-| Change | From |
-|---|---|
-| A `MODEL_VERSION` constant | Q19.3 |
-| `meta`: the requested seed, the used seed and why they differ. Where `WORLD_VERSION`, `requirementsHash` and `gameplayHash` travel (in `meta` or beside the model) is G1's choice. *(Q19(d): `requirementsHash` is a validation stamp in the curated record, beside the recorded `gameplayHash`; it is not part of the map's identity.)* | Q13.8, Q19 |
-| `spaces[]`: id, role, tags, footprint polygon, floor, ceiling (`null` for open sky), `medium` (`'air'` or a liquid id) | Q2, Q9 |
-| `portals[]`: id, the two spaces, centre, clear width and height | Q2 |
-| The closed tag union: `camera-clearance`, `long-lane`, `cover-zone`, `landmark-anchor`, `soft-soil` | Q2, Q10 |
-| Colliders: a `role` and the resolved `material`; an explicit `blocksSight`; an optional `when` | Q15.4, Q16, Q21.13 |
-| A convex-hull collider shape, only if G1's measurement favours it | Q3(d) |
-| Volume kinds: `concealment` (blocks sight only) and a team spawn barrier (carries its team) | Q8(h), Q10(g), Q12(a) |
-| `liquid` volumes: the liquid id, the level per environment state, the bed depth beneath | Q9 |
-| `hazard` volumes: an element, a schedule id, an exposure box | Q21.1 |
-| Marker kinds: an item candidate with a value; named station and anchor markers | Q10(e), Q22.4 |
-| `navInput`: off-mesh links with a kind and the capability they need (`burrow` included); a soft-soil area flag; the volume-routing graph with a medium | Q8(e), Q9, Q10 |
-| `features[]`: id, kind, state count, position, the nav tiles each state touches | Q10(f), Q20(b), Q21.13 |
-| `breakables[]`: id, archetype, position; `ColliderBase.destructible` points at one | Q21.13 |
-| Surface cells: (space id, i, j), floor height, `MaterialId`, on the 1.0 m lattice | Q21.5 |
-| *(Superseded by the next row, Q23.)* Render chunks split by role, with no baked colour. Outside `gameplayHash` | Q16, Q19.4 |
-| Render chunks split by role: welded positions, indices, the role and the optional two-role blend. No normals and no colour (today's `SurfaceChunk.normals` and `colours` go); the renderer computes normals. Outside `gameplayHash` | Q16.4, Q16.5, Q19.4, Q23 |
+*(WM2, 2026-11-25.)* The third column names what WM2 settled. Ids whose registries do not exist yet (`LiquidId`,
+`EnvStateId`, `FeatureKind`, `ArchetypeId`, `ScheduleId`, `CapabilityId`, `SpaceRole`) are string aliases in
+`model.ts`, each commented with the task that closes it.
+
+| Change | From | Settled (WM2, 2026-11-25) |
+|---|---|---|
+| A `MODEL_VERSION` constant | Q19.3 | `MODEL_VERSION = 2` (`src/world/model.ts`; WM's shape is 1) |
+| `meta`: the requested seed, the used seed and why they differ. Where `WORLD_VERSION`, `requirementsHash` and `gameplayHash` travel (in `meta` or beside the model) is G1's choice. *(Q19(d): `requirementsHash` is a validation stamp in the curated record, beside the recorded `gameplayHash`; it is not part of the map's identity.)* | Q13.8, Q19 | `WorldMeta.requestedSeed: number`, `seed` (the used seed), `seedReason?: string` (absent when equal). `WORLD_VERSION` and the hashes: not added (G1) |
+| `spaces[]`: id, role, tags, footprint polygon, floor, ceiling (`null` for open sky), `medium` (`'air'` or a liquid id) | Q2, Q9 | `spaces: Space[]`, `Space { id: SpaceId; role: SpaceRole; tags: SpaceTag[]; footprint: [x, z][]; floor: number; ceiling: number \| null; medium: Medium }`; `Medium = 'air' \| LiquidId`; `SpaceRole` a string alias (closed by G1) |
+| `portals[]`: id, the two spaces, centre, clear width and height | Q2 | `portals: Portal[]`, `Portal { id; a; b: SpaceId; centre: Vec3; width; height }` |
+| The closed tag union: `camera-clearance`, `long-lane`, `cover-zone`, `landmark-anchor`, `soft-soil` | Q2, Q10 | `SPACE_TAGS` / `SpaceTag` in `model.ts` |
+| Colliders: a `role` and the resolved `material`; an explicit `blocksSight`; an optional `when` | Q15.4, Q16, Q21.13 | `ColliderBase.role: MaterialRole` (`MATERIAL_ROLES` in `src/rules/materialroles.ts`), `blocksSight: boolean`, `when?: When` with `When = { feature: FeatureId; state: number } \| { env: EnvStateId }` (also on volumes, links and route edges). `material` stays the tile era's string (ROADMAP F55) |
+| A convex-hull collider shape, only if G1's measurement favours it | Q3(d) | not added (waits for G1) |
+| Volume kinds: `concealment` (blocks sight only) and a team spawn barrier (carries its team) | Q8(h), Q10(g), Q12(a) | `VolumeKind` gains `'concealment'` and `'barrier'`; `Volume.team?: TeamId` (`'A' \| 'B'`) |
+| `liquid` volumes: the liquid id, the level per environment state, the bed depth beneath | Q9 | `Volume.liquid?: LiquidId`, `levels?: { env: EnvStateId; level: number }[]` (states other than the base `level`), `bed?: number` (the bed's world y; depth = level − bed) |
+| `hazard` volumes: an element, a schedule id, an exposure box | Q21.1 | `element` (as today), `Volume.schedule?: ScheduleId`, `exposure?: Aabb` |
+| Marker kinds: an item candidate with a value; named station and anchor markers | Q10(e), Q22.4 | `MarkerKind` gains `'item'` (with `Marker.value?: number`) and `'station'`; `name` (as today) names stations and anchors |
+| `navInput`: off-mesh links with a kind and the capability they need (`burrow` included); a soft-soil area flag; the volume-routing graph with a medium | Q8(e), Q9, Q10 | `OffMeshLink.needs?: CapabilityId[]`, `when?`; `NavInput.areas: Uint8Array` (one `NAV_AREA` bit set per triangle, `softSoil: 1`); `NavInput.routes: VolumeGraph { nodes: { position }[]; edges: { a; b; medium: Medium; radius; needs?; when? }[] }` |
+| `features[]`: id, kind, state count, position, the nav tiles each state touches | Q10(f), Q20(b), Q21.13 | `features: Feature[]`, `Feature { id: FeatureId; kind: FeatureKind; states: number; position: Vec3; navTiles: [tx, tz][][] }` (per state; tile size is I3's, F56) |
+| `breakables[]`: id, archetype, position; `ColliderBase.destructible` points at one | Q21.13 | `breakables: Breakable[]`, `Breakable { id: BreakableId (= number, as destructible); archetype: ArchetypeId; position: Vec3 }` |
+| Surface cells: (space id, i, j), floor height, `MaterialId`, on the 1.0 m lattice | Q21.5 | `cells: SurfaceCells[]`, one per space: `{ space: SpaceId; i, j: Int32Array; floor: Float32Array; material: Uint8Array; materials: MaterialId[] }` (cell (i, j) covers x in [i, i + 1), z in [j, j + 1)) |
+| *(Superseded by the next row, Q23.)* Render chunks split by role, with no baked colour. Outside `gameplayHash` | Q16, Q19.4 | (see the next row) |
+| Render chunks split by role: welded positions, indices, the role and the optional two-role blend. No normals and no colour (today's `SurfaceChunk.normals` and `colours` go); the renderer computes normals. Outside `gameplayHash` | Q16.4, Q16.5, Q19.4, Q23 | `SurfaceChunk { cx; cz; material; positions; indices; role?: MaterialRole; liquid?: LiquidId; blend?: { role: MaterialRole; weight: Float32Array } }` (one second role per chunk, a weight per vertex); `normals` and `colours` removed |
 
 Two records stay outside the model: `GenReport` (the zone graph, edge requirements, gate results, metrics, repairs
 and the resolution log: Q2, Q12.10) and `Dressing` (the unhashed instance list, emitters included: Q17, Q18.9; since
