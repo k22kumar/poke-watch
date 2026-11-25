@@ -405,5 +405,7 @@ export interface SimContext {
   caplog: import('./caplog').CapLog;
   /** rules.physics.engine 'rapier': the physics bridge (sim/physseam.ts) worldOf and sim/spatial.ts ask; null on tiles */
   physics: import('./physseam').PhysicsBridge | null;
+  /** rules.nav.engine 'navmesh': the navigation bridge (sim/navseam.ts) worldOf asks; null on the flow fields */
+  nav: import('./navseam').NavBridge | null;
   recap: string[] | null;
 }

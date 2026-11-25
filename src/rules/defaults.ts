@@ -49,8 +49,12 @@ export const defaultRules = {
     engine: 'flow' as 'flow' | 'navmesh',
     /** [B] cell size and cell height (m), S1 §8 */
     cs: 0.1, ch: 0.05,
-    /** [B] cells: 12 × 0.05 = 0.6 m, rules.player.stepHeight (S1 §8) */
+    /** [B] cells: 12 × 0.05 = 0.6 m, rules.player.stepHeight (S1 §8): the agent's step (Detour's climb, locate's reach) */
     walkableClimb: 12,
+    /** [B] cells: the climb Recast's build tests. It compares tops rounded up to whole cells, so a count of n accepts a
+     *  true rise of up to n + 1 cells (0.615 m faces on tropical-lagoon seed 3 joined at 12, which moveBody's 0.6 m step
+     *  refuses); 11 keeps every joined rise at or under 0.6 m and may refuse one between 0.55 and 0.6 m */
+    recastClimb: 11,
     /** [B] degrees: above 45° so a 45° ramp is walkable in float; the controller's climb limit is 46° (S1 §8) */
     walkableSlopeAngle: 45.5,
     /** [C] cells per navmesh tile side (I3 measured; ROADMAP F56) */
@@ -71,6 +75,20 @@ export const defaultRules = {
     },
     /** [B] cells: a giant at the 3.57 m draw cap (72 × 0.05 = 3.60 m), built only by the report of what it would lose */
     giantHeight: 72,
+    /** [C] m: an agent off its group's navmesh (eroded edges, a crowd's push) steers from the nearest polygon this
+     *  close; farther, it has no route (the tile wide field's 2-tile rule) */
+    snap: 2,
+    /** [C] m: a point is on a polygon whose floor there lies within this of its feet (polygons have no detail mesh, so
+     *  one spanning flat ground and a ramp reads up to a ramp's rise off); under a deck's 2.9 m rise over its ground */
+    layer: 2,
+    /** [C] m: navReached's snap (a spawn or relocation spot must lie this close to the reached navmesh) */
+    reachSnap: 1,
+    /** [C] m: a goal off a group's navmesh seeds its field from the nearest polygon this close (rules.size.wideSeed) */
+    goalSnap: 4,
+    /** [C] m: how far a body in a liquid looks for the navmesh to swim to (ROADMAP F2; the tile shore's 16-tile reach) */
+    shoreReach: 16,
+    /** [C] m: the contest field's price for entering a vent-field polygon (more than any route on a map) */
+    hazardCost: 4096,
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.

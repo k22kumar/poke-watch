@@ -142,13 +142,16 @@ export interface TileExt {
   hazardAt(x: number, z: number): boolean;
 }
 
-/** what worldOf asks when the run is on physics (sim/physseam.ts PhysicsBridge) */
+/** what worldOf asks when the run is on physics (sim/physseam.ts PhysicsBridge) or the navmesh (sim/navseam.ts NavBridge) */
 export interface SeamSwap { seamFor(w: WorldQuery): WorldQuery }
 
-/** The one way sim systems reach the world (I1a's swap point): the tile World, or with rules.physics.engine 'rapier'
- *  the physics seam over it (sim/physseam.ts: rays on Rapier, everything else forwarded). Hoist it once per function, at
- *  entry or before the first loop, never inside a loop body. */
-export function worldOf(ctx: { readonly world: WorldQuery; readonly physics?: SeamSwap | null }): WorldQuery {
-  const p = ctx.physics;
-  return p ? p.seamFor(ctx.world) : ctx.world;
+/** The one way sim systems reach the world (I1a's and I3's swap point): the tile World; with rules.physics.engine
+ *  'rapier' the physics seam over it (sim/physseam.ts: rays on Rapier, everything else forwarded); with rules.nav.engine
+ *  'navmesh' the navigation seam over that (sim/navseam.ts: navDir, navReached, navDist on the navmesh). The two swaps
+ *  compose, so either flag works with the other on or off. Hoist it once per function, at entry or before the first loop,
+ *  never inside a loop body. */
+export function worldOf(ctx: { readonly world: WorldQuery; readonly physics?: SeamSwap | null; readonly nav?: SeamSwap | null }): WorldQuery {
+  const p = ctx.physics, n = ctx.nav;
+  const w = p ? p.seamFor(ctx.world) : ctx.world;
+  return n ? n.seamFor(w) : w;
 }

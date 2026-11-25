@@ -11,9 +11,8 @@
 //     column; a walkable face leaking into a wall column would make the wall's top walkable (rcAddSpan keeps the higher
 //     area of two spans whose tops are within walkableClimb). Inset by a tenth of a cell, each column is owned cleanly.
 //   - one rasterisation per tile serves every group: the groups are filtered in ascending agent height on the same
-//     heightfield (Recast's filters only clear spans, and a span too low for a short agent is too low for a taller one).
-//     The ledge filter's gap test makes this slightly conservative for a taller group: a span cleared as a ledge for a
-//     shorter agent (a drop it fits under an overhang beside) stays cleared. Every tile uses the widest group's border.
+//     heightfield (the height filter only clears spans, and a span too low for a short agent is too low for a taller
+//     one). Every tile uses the widest group's border. The ledge filter is not run (buildGroupTile says why).
 //   - areas: the navInput byte picks the polygon area (NAV_AREA.softSoil -> AREA.soft), hazard volumes are marked
 //     AREA.hazard, off-mesh links carry AREA.link and their index as user id.
 //   - tiles are rebuilt one at a time: the TileCache binding has no removeTile, so geometry changes could not replace a
@@ -37,8 +36,10 @@ const RC_WALKABLE = 63;
 export interface NavConfig {
   /** cell size and height (m) */
   cs: number; ch: number;
-  /** cells */
+  /** cells: the agent's step (Detour's climb) */
   walkableClimb: number;
+  /** cells: the climb the Recast build tests (rules.nav.recastClimb says why it is a cell under walkableClimb) */
+  recastClimb: number;
   /** degrees: Recast's rcMarkWalkableTriangles compares the normal's y with cos(angle) in wasm */
   walkableSlopeAngle: number;
   /** cells per tile side */
@@ -314,7 +315,7 @@ export class NavTiles {
       this.rasterise(hf, walk, true);
       if (solid.length) this.rasterise(hf, solid, false);
       mark('rasterise');
-      R.filterLowHangingWalkableObstacles(ctx, C.walkableClimb, hf);
+      R.filterLowHangingWalkableObstacles(ctx, C.recastClimb, hf);
       for (const g of this.groups) this.buildGroupTile(g, hf, tx, tz, bmin, bmax);
     } finally {
       R.freeHeightfield(hf);
@@ -324,13 +325,16 @@ export class NavTiles {
 
   private buildGroupTile(g: GroupMesh, hf: RecastHeightfield, tx: number, tz: number, bmin: [number, number, number], bmax: [number, number, number]) {
     const R = recast(), C = this.cfg, A = g.agent, ctx = this.ctx;
-    R.filterLedgeSpans(ctx, A.height, C.walkableClimb, hf);
+    // no rcFilterLedgeSpans: its steep-slope rule (a span whose reachable neighbours' floors differ by more than
+    // walkableClimb) clears the corner cells of every diagonal terraced slope on the tile maps (0.3-0.4 m a tile, so a
+    // corner cell sees +0.4 and -0.3), cutting ramps the sim walks (Viridian Forest seed 1). Drops need no filter here:
+    // a cell does not connect across a drop larger than the climb, and erosion keeps the agent its radius from it
     R.filterWalkableLowHeightSpans(ctx, A.height, hf);
     mark('filter');
     let chf: RecastCompactHeightfield | null = null, cset: ReturnType<typeof R.allocContourSet> | null = null, pmesh: ReturnType<typeof R.allocPolyMesh> | null = null;
     try {
       chf = R.allocCompactHeightfield();
-      if (!R.buildCompactHeightfield(ctx, A.height, C.walkableClimb, hf, chf)) throw new Error('nav: buildCompactHeightfield');
+      if (!R.buildCompactHeightfield(ctx, A.height, C.recastClimb, hf, chf)) throw new Error('nav: buildCompactHeightfield');
       // temporary obstacles: null before erosion, so the agent keeps its radius from them
       for (const o of this.obstacles.values()) {
         if (o.kind === 'cylinder') R.markCylinderArea(ctx, [o.x, o.y, o.z], o.r, o.h, 0, chf);
@@ -404,7 +408,7 @@ export class NavTiles {
         const av = areas.getHeapView();
         for (let i = 0; i < n; i++) av[i] = av[i] === RC_WALKABLE ? this.soup.areaOf(list[i]) : 0;
       }
-      if (!R.rasterizeTriangles(this.ctx, verts, this.soup.vertexCount, tris, areas, n, hf, this.cfg.walkableClimb)) throw new Error('nav: rasterizeTriangles');
+      if (!R.rasterizeTriangles(this.ctx, verts, this.soup.vertexCount, tris, areas, n, hf, this.cfg.recastClimb)) throw new Error('nav: rasterizeTriangles');
     } finally { tris.destroy(); areas.destroy(); }
   }
 
