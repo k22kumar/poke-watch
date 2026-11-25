@@ -52,8 +52,23 @@ export const defaultRules = {
       maxSlopeDeg: 46,
       /** [B] degrees: floors steeper than this slide it down */
       minSlideDeg: 46,
-      /** [B] m: a supported body going down sticks to the floor within this drop (the tile step's STICK) */
+      /** [B] m: a supported body stays supported while the support under its axis is less than this below where its feet
+       *  started the tick, after the tick's gravity (the tile model's STICK, sim/locomotion.ts: drops up to 0.3583 m are
+       *  walked down, deeper ones are falls, for every size class; ROADMAP F66) */
       snap: 0.35,
+      /** [B] m: the support ray under a body's axis starts this far above its feet: inside every capsule (Tiny's ball is
+       *  0.6 m tall), so the support does not depend on the body's height */
+      probe: 0.25,
+      /** [B] m: a grounded body whose feet end within this of the support under its axis stands exactly on it (the height
+       *  supportBelow returns: the tile model's feet on its support; it also lifts the dip Rapier lets a capsule sink where
+       *  two boxes meet, S1 §7 "Seams") */
+      rest: 0.015,
+      /** [B] m: a contact whose tangent plane passes more than this above the support under the axis is a ledge's edge, not
+       *  the floor: a falling body does not land on it, it is carried clear and falls on (F66) */
+      edge: 0.02,
+      /** [B] a set-down to a pose the capsule does not fit backs off by `offset` up to this many times (a cast grazing an
+       *  edge can stop past contact, ROADMAP F58) */
+      backoff: 3,
       // the step rule (sim/locomotion.ts on the controller; physics/controller.ts tryStep): a supported move that came up
       // short against a face lifts the capsule by the step height, carries its centre `margin` past the face, and sets it
       // down on a walkable top no more than the step height (+ `tolerance`) and at least `minRise` above its feet

@@ -43,12 +43,15 @@ type RWorld = InstanceType<Rapier['World']>;
 type RCollider = InstanceType<Rapier['Collider']>;
 type RShape = InstanceType<Rapier['Shape']>;
 
-/** what stops a query: shots (blocksShots) or sight (blocksSight) */
-export const STOPS = { shots: 0, sight: 1 } as const;
+/** what stops a query: shots (blocksShots) or sight (blocksSight); I1b: `bodies`, what stops the character controller
+ *  (MODE_MOVE, whatever the QF flags: the controller's own support query) */
+export const STOPS = { shots: 0, sight: 1, bodies: 2 } as const;
 export type Stops = typeof STOPS[keyof typeof STOPS];
 
-/** the query mode index of a stopper and QF flags: bit 0 sight, bit 1 foliage open, bit 2 wall tops */
+/** the query mode index of a stopper and QF flags: bit 0 sight, bit 1 foliage open, bit 2 wall tops; MODE_MOVE for
+ *  STOPS.bodies */
 export function modeOf(stops: number, flags: number): number {
+  if (stops === STOPS.bodies) return MODE_MOVE;
   return (stops & 1) | (flags & QF.foliage ? 2 : 0) | (flags & QF.tops ? 4 : 0);
 }
 /** every query mode */
@@ -362,6 +365,11 @@ export class PhysicsWorld {
     return this.cast(x, y, z, 0, -1, 0, drop, kinds, 0, stops, SUP_HIT) ? y - SUP_HIT.t : -Infinity;
   }
 
+  /** I1b: supportBelow for the character controller: what stops a body (liquids at their surface, the stair wedges),
+   *  unclocked (moveCharacter's clock already covers it) */
+  private readonly bodySupport = (x: number, y: number, z: number, drop: number): number =>
+    this.castOnce(x, y, z, 0, -1, 0, drop, MOVE_KINDS, 0, STOPS.bodies, SUP_HIT, 0, 0) ? y - SUP_HIT.t : -Infinity;
+
   /** The liquid at (x, y, z): 0 none, 1 water, 2 lava (sim/worldquery.ts liquidContact's ids); its surface in
    *  this.level. A point exactly at a surface is in it (closed). */
   liquidAt(x: number, y: number, z: number): number {
@@ -382,13 +390,13 @@ export class PhysicsWorld {
    *  are read when the controller is made (one set per world: rules.physics.controller of the run). */
   moveCharacter(io: CharacterMove, rules: ControllerRules): void {
     const clock = PhysicsWorld.clock, t0 = clock ? clock() : 0;
-    (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.kitHandles)).move(io);
+    (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.kitHandles)).move(io);
     if (clock) this.stats.ms += clock() - t0;
   }
 
   /** I1b: is a body's capsule (footprint r, height h, feet at (x, y, z)), shrunk by `shrink`, clear of what stops bodies? */
   characterClear(x: number, y: number, z: number, r: number, h: number, shrink: number, rules: ControllerRules): boolean {
-    return (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.kitHandles)).clearAt(x, y, z, r, h, shrink);
+    return (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.kitHandles)).clearAt(x, y, z, r, h, shrink);
   }
 
   /** the controller's counters (null before its first move) */

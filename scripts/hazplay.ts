@@ -109,11 +109,11 @@ function watch(ctx: SimContext) {
   return { o, since: () => (t0 < 0 ? 0 : ctx.time - t0) };
 }
 
-const gorge = (seed: number) => ['river-gorge', seed] as const;
+export const gorge = (seed: number) => ['river-gorge', seed] as const;
 const crater = (seed: number) => ['volcanic-ridge', seed] as const;
 
 /** a Pokémon wades in `metres`, stays `stay` s, walks back out to the shore it came from */
-function inAndOut(map: string, seed: number, species: string, metres: number, stay: number, opts: { surf?: boolean; hz?: number; heal?: number; extra?: Record<string, unknown>; members?: string[] } = {}) {
+export function inAndOut(map: string, seed: number, species: string, metres: number, stay: number, opts: { surf?: boolean; hz?: number; heal?: number; extra?: Record<string, unknown>; members?: string[] } = {}) {
   const extra = { ...(opts.extra ?? {}), ...(opts.hz ? { sim: { hz: opts.hz } } : {}) };
   const ctx = mkRun(map, seed, species, extra);
   if (opts.surf) ctx.player.m.moves.push({ key: 'surf', level: 1, cd: 9, spec: { ...compileMove(ctx.rules, ctx.player.m.moves[0].key), key: 'surf', name: 'Surf' } });

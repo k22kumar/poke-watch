@@ -210,19 +210,18 @@ export class PhysicsBridge {
   /** the controller's numbers */
   get controller(): ControllerRules { return this.ctl; }
 
-  /** the height the controller gives a body of footprint r and height h on tile world w (the mover's rule) */
-  bodyHeight(w: WorldQuery, r: number, h: number | undefined): number {
-    return h !== undefined && h > 0 && w.tiles.over ? h : this.classHeight(r);
+  /** the height the controller gives a body of footprint r and height h (the mover's rule, every map: ROADMAP F72) */
+  bodyHeight(r: number, h: number | undefined): number {
+    return h !== undefined && h > 0 ? h : this.classHeight(r);
   }
 
   /** a harness check (scripts/navwalk.ts on physics): is the capsule of a body (footprint r, height h, feet at x, y, z)
    *  shrunk by `shrink` clear of what stops bodies? */
   bodyClear(w: WorldQuery, x: number, y: number, z: number, r: number, h: number | undefined, shrink: number): boolean {
-    return this.worldFor(w).characterClear(x, y, z, r, this.bodyHeight(w, r, h), shrink, this.ctl);
+    return this.worldFor(w).characterClear(x, y, z, r, this.bodyHeight(r, h), shrink, this.ctl);
   }
 
-  /** the height of a size class's body by its footprint (a body that gives none: tests' plain bodies; and on a map with no
-   *  decks, where nothing is overhead, every body, as the tile model's `tall`) */
+  /** the height of a size class's body by its footprint (a body that gives none: tests' plain bodies) */
   classHeight(r: number): number {
     let best = this.classes[0], d = Infinity;
     for (const c of this.classes) { const e = Math.abs(c.body - r); if (e < d) { d = e; best = c; } }
@@ -317,15 +316,15 @@ export class PhysicsSeam implements WorldQuery {
 
 
 /** The partner's character controller over tile world w's physics (World.mover; docs/LOCOMOTION.md "Resolvers"). A
- *  body's height counts only where the map has decks (the tile model's `tall`: nothing else on an adapter map is
- *  overhead); elsewhere, and for a body that gives none, it is its footprint's size class height. */
+ *  body's capsule is its own height on every map (ROADMAP F72); a body that gives none takes its footprint's size class
+ *  height. */
 export class PhysicsMover implements BodyMover {
   private readonly io = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: 0, stepUp: 0, supported: false, onGround: false, ceiling: false, stepped: false };
   constructor(private readonly bridge: PhysicsBridge, readonly w: WorldQuery) {}
   move(b: BodyMove): void {
     const io = this.io, B = this.bridge;
     io.x = b.x; io.y = b.y; io.z = b.z; io.dx = b.dx; io.dy = b.dy; io.dz = b.dz;
-    io.r = b.r; io.h = B.bodyHeight(this.w, b.r, b.h);
+    io.r = b.r; io.h = B.bodyHeight(b.r, b.h);
     io.stepUp = b.stepUp; io.supported = b.supported;
     B.worldFor(this.w).moveCharacter(io, B.controller);
     b.x = io.x; b.y = io.y; b.z = io.z; b.onGround = io.onGround; b.ceiling = io.ceiling; b.stepped = io.stepped;

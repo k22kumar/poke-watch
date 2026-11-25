@@ -13,8 +13,9 @@
 //   tiles      the planar move with the step rule and the footprint (World.moveBody), headroom, the support (landing,
 //              slope stick, leaving the support), as before I1b
 //   controller rules.physics.engine 'rapier' (I1b): the world's `mover`, Rapier's character controller with our own step
-//              rule (physics/controller.ts): it slides, snaps to the ground within the stick drop, stops a rising head
-//              and says whether the body stands on something; the support comes from it, not from the tile model
+//              rule (physics/controller.ts): it slides, keeps a body supported by the tile model's own rule at the axis
+//              (a drop under STICK + g·dt² is walked down, a deeper one falls, every class; ROADMAP F66), lands it where
+//              the tile body lands, stops a rising head, and says whether the body stands on something
 // The integrator a tick runs follows from the body's state (`selectIntegrator`); the transitions it can make in one tick
 // are supported → ballistic (jump pressed, support ends) and ballistic → supported (contact).
 //
@@ -120,6 +121,9 @@ export interface LocoTick {
   foot: number;
   /** m: body height against deck slabs, undefined on a map with no decks */
   tall: number | undefined;
+  /** m: the body's height on the controller (I1b, ROADMAP F72): on every map, decks or none (the tile resolver reads
+   *  `tall`). Absent: `tall`, else the footprint's size class height (tests' plain bodies) */
+  height?: number;
   /** navigation lattice for the rock recovery (wide footprints route on navblocks) */
   wide: boolean;
   /** R1b wall tops (docs/SIZING.md "Wall tops"): the explicit permission to cross above a wall prop's finite top
@@ -299,9 +303,9 @@ function recoverFromRock(W: WorldQuery, b: LocoBody, t: LocoTick) {
 
 /** The controller resolver (I1b, rules.physics.engine 'rapier'): the vertical drive, then the whole translation (planar
  *  velocity and knockback, the vertical speed) through the world's character controller in one move. It slides along
- *  what it meets, snaps a supported body down within the stick drop, climbs rises up to `stepUp` by the step rule (only
- *  from a support, not on a take-off), stops a rising head (the jump's speed is spent), and says whether the body stands
- *  on something: grounded is that, unless the body is still rising. Liquids are floors at their surface (the tile
+ *  what it meets, keeps a supported body supported by the tile model's stick at its axis (F66), climbs rises up to
+ *  `stepUp` by the step rule (only from a support, not on a take-off), stops a rising head (the jump's speed is spent),
+ *  and says whether the body stands on something: grounded is that, unless the body is still rising. Liquids are floors at their surface (the tile
  *  model's swim kind: contact at the surface; WORLDGEN3D Q9's depth modes are I4's). Not used: `over` (no driver sets it
  *  before R6d; a wall prop's column is solid to any height here), the landing clear (a capsule never stands in a lip) */
 function resolveOnController(M: BodyMover, W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
@@ -309,7 +313,7 @@ function resolveOnController(M: BodyMover, W: WorldQuery, b: LocoBody, it: LocoI
   const m = BM;
   m.x = b.x; m.y = b.y; m.z = b.z;
   m.dx = (b.vx + b.kx) * dt; m.dy = b.vy * dt; m.dz = (b.vz + b.kz) * dt;
-  m.r = t.foot; m.h = t.tall; m.stepUp = t.stepUp; m.supported = b.grounded;
+  m.r = t.foot; m.h = t.height ?? t.tall; m.stepUp = t.stepUp; m.supported = b.grounded;
   M.move(m);
   const bd = W.bound;
   b.x = clamp(m.x, -bd, bd); b.y = m.y; b.z = clamp(m.z, -bd, bd);
