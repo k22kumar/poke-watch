@@ -90,13 +90,18 @@ and a resting body's shove of the partner go through the same choice (`pushFootp
 **The body.** One capsule per footprint and height (`capsuleOf`, S1 §8): radius footprint − `offset`, the shape
 `height − 2·offset − headMargin` tall, so the controller's envelope is the body with a 1 mm head margin (owner O5).
 Tiny (0.30 m, 0.6 m) leaves no cylinder: a ball of 0.29 m, envelope 0.60 m, no head margin (S1 review finding 5; it
-matters only for an exact 0.6 m gap). The height is the body's `tall` on a map with decks and its footprint's class
-height elsewhere: on an adapter map only deck slabs are overhead, as for the tile model's headroom (ROADMAP F72).
-Numbers: `rules.physics.controller` (offset 0.01, headMargin 0.001, maxSlopeDeg and minSlideDeg 46, snap 0.35, the
-step rule's margin 0.04, tolerance 0.002, minRise 0.01, short 0.98). The step height is `LocoTick.stepUp`
-(`rules.player.stepHeight`, 0.6, or the climb out of a liquid).
+matters only for an exact 0.6 m gap). Per class (radius, cylinder half-height): Tiny 0.29, ball; Small 0.39, 0.0495;
+Medium 0.45, 0.1395; Large 0.65, 0.1895; Extra Large 0.87, 0.3195 (`tests/stepping.test.ts` "capsules"). The height is
+the body's own on every map (`LocoTick.height`, the player's `partnerHeight`; ROADMAP F72); a body that gives none (the
+tests' plain bodies) takes its footprint's class height.
+Numbers: `rules.physics.controller`: `offset` 0.01, `headMargin` 0.001, `maxSlopeDeg` and `minSlideDeg` 46, `snap` 0.35
+(the support rule's stick), `probe` 0.25 (the support ray starts this far above the feet, inside every capsule), `rest`
+0.015, `edge` 0.02, `backoff` 3, and the step rule's `step.margin` 0.04, `tolerance` 0.002, `minRise` 0.01, `short` 0.98.
+The step height is `LocoTick.stepUp` (`rules.player.stepHeight`, 0.6, or the climb out of a liquid). No other probe
+distance is a literal.
 
-**One tick on the controller** (`resolveOnController`, then `CharacterKit.move`):
+**One tick on the controller** (`resolveOnController`, then `CharacterKit.move`; positions are kept as the feet, the
+centre is the capsule's lift above them only for Rapier's calls):
 1. The vertical drive sets `vy`; the desired translation is `(vx + kx, vy, vz + kz) · dt`.
 2. Rapier's controller slides it against everything that stops a body (collision mode `MODE_MOVE`: the model's
    colliders, liquids at their surface, the map edge, a wall prop's column above its top, the stair wedges). Autostep
@@ -109,14 +114,29 @@ step rule's margin 0.04, tolerance 0.002, minRise 0.01, short 0.98). The step he
    (+ tolerance) above what the capsule rested on at the start of the tick (a short cast down from there: the floor, a
    ramp, or the block edge it is perched on), and only where the capsule fits. Contact to contact, not feet to feet:
    a wide capsule climbs the location maps' diagonal tile staircases perched on block edges.
-4. Our snap: a supported body (or one the controller calls grounded) is set down within the snap distance on a shape
-   cast; it stays supported on a stand, or while the floor under its axis is within the snap (the tile stick: walking
-   off a 0.3 m ledge never leaves the ground). A falling body lands only when its fall was cut short or it ends
-   touching. A set-down of more than a millimetre is taken only to a pose the capsule fits, backing off up to three
-   offsets (casts grazing an edge can stop past contact, F58).
-5. The seat: a grounded capsule that dipped more than half its offset into the floor (Rapier lets it sink up to its
-   offset where two boxes meet, S1 §7 "Seams") is lifted back, only into free room.
-6. A rising head cut short by a slab spends the jump's speed; grounded is "on the ground and not rising"; x and z keep
+4. **The support rule (ROADMAP F66, owner 2026-11-25: the tile model's, for every size class).** A supported body stays
+   supported while the support under its axis at the end of the tick (`supportBelow` over what stops a body, the ray
+   from `probe` above the feet) is less than `snap` below the support under its axis at the start, after the tick's
+   gravity: the tile model's `STICK` (`b.y − g < 0.35` with `b.y` its support plus `vy·dt`). Drops up to 0.3583 m
+   (0.35 + g·dt²) are walked down, every deeper drop is a fall, whatever the class, speed or approach. A body walking
+   down is set down by a shape cast onto what is under it: the floor under its axis, or the edge of the ledge its round
+   bottom then rides down over the next ticks (the tile body drops the full height in one tick). A fall leaves the
+   support this tick: ballistic from the next, with coyote time and the air press as on tiles. The contact's own slope
+   does not decide it: a round bottom on a ledge's edge reads as a walkable slope until it has ridden 0.3 × its radius
+   down, which is what made I1b's first cut walk Medium to Extra Large down 0.5 m and Extra Large 0.6 m.
+5. **Landing.** A falling body lands as the tile body does: on the floor under its axis, on the tick its fall reaches
+   it (the controller cuts the fall there, or the feet end at or below the support: Rapier lets the shape come within
+   its offset without cutting). A ledge's edge that cuts a fall is not a landing (the tile body falls past it, its
+   footprint over the ledge; the edge is a contact whose tangent plane, carried to the axis, passes more than `edge`
+   above the support there, or a contact steeper than the climb angle): the capsule is carried clear by the least
+   horizontal shift away from the ledge (found from a ring of eight support rays at 0.9 × the radius) that lets the
+   tick's fall go on, its round bottom rolling off the edge, and it falls on. Only where that shift has no room does it
+   land on the edge, perched.
+6. **Rest.** A grounded body whose feet end within `rest` of the support under its axis stands exactly at that height,
+   where the capsule fits: the tile model's feet on its support, and the dip Rapier lets a walking capsule sink where
+   two boxes meet (S1 §7 "Seams") lifted out. A capsule on a ramp or perched on an edge stands where the controller left
+   it.
+7. A rising head cut short by a slab spends the jump's speed; grounded is "on the ground and not rising"; x and z keep
    the tile model's clamp to the map bound.
 
 **Not on the controller:** `LocoTick.over` (R1b's crossing permission; no driver sets it before R6d, so a wall prop's
@@ -134,32 +154,49 @@ the replay hash (ROADMAP F62). A restored snapshot reuses the capsule colliders 
 
 **Where it differs from the tile resolver** (all measured on the adapter maps):
 - A step is a hop: up to the step height and radius + 4 cm forward in one tick (the tile body walks its centre over the
-  edge first, overlapping the step, then rises).
+  edge first, overlapping the step, then rises). Measured (ROADMAP F69): the carry beyond the tick's own travel is
+  0.30–0.34 m (Tiny), 0.40–0.44 (Small), 0.40–0.50 (Medium), 0.61–0.70 (Large), 0.90–0.92 (Extra Large) at 0.5 and
+  6 m/s, and a flight of four 0.3 m or 0.5 m steps on 1 m treads is crossed 20–57 % faster than the same distance on
+  flat ground (the tile body: 0 %). Open: F69.
 - A round bottom rides small lips: the controller climbs a lip lower than about 0.3 × the radius as a slope, and a body
   perched on a block's edge stands up to that much below the block's top.
-- Walking off a ledge: the round bottom rides the edge down while the floor under its axis comes within the snap, so a
-  drop deeper than the tile stick (0.35 m) is walked down: every class 0.4 m, Medium to Extra Large 0.5 m, Extra Large
-  0.6 m; 0.8 m is a fall for every class (ROADMAP F66).
+- Walking off a ledge: supported and airborne exactly as on tiles (rule 4), from the tick the axis crosses the edge. The
+  round bottom rides the edge down a drop it walks down, and rolls off the edge of one it falls from (rule 5): up to
+  0.12 m beyond the tick's own travel in one tick (Extra Large walking at 0.5 m/s), 0.78 m in all over a 0.8 m fall;
+  at 6 m/s under 0.08 m. Rapier's planar moves lag the tile body's by up to a millimetre over a 3 m walk (box seams), so
+  the axis can cross an edge a tick later than on tiles (6 of the stepping test's 420 walks).
 - The crowd's and resting bodies' shoves of the partner are summed over their system's loop and resolved in one move
   (`Shoves`, `flushShoves`): the tile model moves the footprint at each shove, so a later shove there starts from where
   the earlier one left it.
-- Grounded feet sit within the controller's offset of the floor (f32 contact, a few mm after a slide), not exactly on it;
-  a landing can come a tick earlier or later than on tiles from that millimetre (`scripts/jumptiming.ts --physics
-  rapier`: 8 Hz taps jump at ticks 12 53 94 against 12 54 96).
+- Grounded feet rest exactly on `supportBelow`'s height (rule 6), and `supportBelow` is Rapier's f32 ray: from an origin
+  0.3–3.3 m above a floor at 0 it reads the floor 1e-8 to 8e-8 m off (ROADMAP F70). A fall that ends within that much
+  above the floor lands a tick early: the ballistic case below lands at −4.7e-9 m, every jump from a flat floor at 0
+  lands a tick early (`scripts/jumptiming.ts --physics rapier`: 8 Hz taps jump at ticks 12 53 94 against 12 54 96),
+  and 90 of the stepping test's 420 walks (their coyote jumps end 2.4e-8 m above the floor).
 
-**Checks.** `tests/stepping.test.ts` (every class climbs 0.3, 0.5, 0.55 and 0.6 m at 0.5–9 m/s head-on and at 45°,
-refuses 0.62, 0.65 and 0.8 m; crease stalls, risk R13: 0 ticks on the climbs and on the range's stair flight; the 2.4 m
-underpass; the drops). The tile tests run unedited on the flag with a preload:
-`npx tsx --import ./tests/setup/physics-on.ts --test tests/locomotion.test.ts tests/jumpcontrol.test.ts` (26 of 27
-pass). The cases that are about tile geometry, not feel:
-- `locomotion: a ballistic body falls under gravity and lands on the support` asserts `y === 0` exactly at the first
-  supported tick: on the controller the feet land 4.7e-9 m below the floor (f32 contact). Its timing (within 2
-  ticks of free fall) holds. The one failure on the flag.
+**Checks.** `tests/stepping.test.ts`: the capsules; every class climbs 0.3, 0.5, 0.55 and 0.6 m at 0.5–9 m/s head-on and
+at 45° and refuses 0.62, 0.65 and 0.8 m; crease stalls (risk R13) 0 ticks on the climbs and on the range's stair flight;
+the 2.4 m underpass; **the drops (F66):** every class at 0.5–9 m/s from two starts off 0.3, 0.3582, 0.359, 0.4, 0.5, 0.6
+and 0.8 m, grounded per tick from the edge as on tiles (the one allowed difference the F70 landing above), coyote time on
+every fall; **liquids:** a plain body walks into a deep pool and rests at its surface in contact on both resolvers, and
+`scripts/hazplay.ts`'s wade-in on Shrine Gorge seed 3 runs on the flag (Totodile swims safely at the surface, Rattata is
+exposed, takes damage and wades out); **collision groups:** with a capsule at the body, the shot and aim ray, beam and
+orb sweeps, sight, solidAt, overlaps, the support below and the liquid at a point all pass through it in every query
+mode. The tile tests run unedited on the flag with a preload:
+`npx tsx --import ./tests/setup/physics-on.ts --test tests/locomotion.test.ts tests/jumpcontrol.test.ts` (25 of 27
+pass). The cases about tile geometry or tile-era construction, not feel:
+- `locomotion: a ballistic body falls under gravity and lands on the support` asserts `y === 0` exactly: the controller
+  lands on `supportBelow`'s height, −4.7e-9 m (F70). Its timing holds. Fails on the flag.
+- `locomotion: one body, two callers` builds its plain caller's tick the tile way (a height only on a map with decks):
+  on the flag the player's capsule is its own height (F72) and the copy's its class height, and Rapier's f32 contact
+  from a different centre height puts them 7e-9 m apart in x at tick 40. Fails on the flag.
 - `locomotion: the medium is derived from the world` reads the tile model's liquids on a map edited after the physics
   world was built (`mediumAt` asks `liquidContact`, which stays on the tile World on both resolvers): it passes, but
-  says nothing about the controller.
+  says nothing about the controller (the stepping test's liquids case does).
 - `coyote time` and `jump buffer` walk off a 2 m ledge and fall from 3 m on a flat tile map: they pass, on adapter
   geometry.
+- `a press that cannot jump yet (exposed in a liquid)` and `jump takes off … a liquid that forbids the jump` set
+  `canJump` false on dry ground: the liquid is only the reason given; they pass.
 `scripts/navwalk.ts all 5 --physics rapier` (the trainer of every size class to every mandatory target, capsule clear
 of the physics world every tick) and `scripts/stuckwatch.ts all 3 --physics rapier` (TRAPPED by the controller's own
 headings) are the reachability gates.
