@@ -301,7 +301,7 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
-// I1a (docs/OVERHAUL_3D.md "Migration rules"): the same tracks with the world half of aim, line of sight, shots and beams
+// I1a (docs/OVERHAUL_3D.md "Migration rules"): the same tracks with the world half of the spatial aim, line of sight, spatial shots and beams
 // on Rapier (rules.physics.engine 'rapier', built from the tile adapter's model; sim/physseam.ts). Movement stays on the
 // tile World. Recorded once by I1a; a hash that moves later is a stop like any other.
 for (const id of ['range-charmander', 'gorge-hold']) {

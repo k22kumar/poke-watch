@@ -38,7 +38,7 @@ import { artLoader } from './assets/loader';
 import { matchArt, wholeLine } from './sim/matchart';
 
 const params = new URLSearchParams(location.search);
-/** ?physics=rapier: runs answer aim, line of sight, shots and beams on Rapier (rules.physics.engine, task I1a; default the
+/** ?physics=rapier: runs answer the spatial aim, line of sight, spatial shots and beams on Rapier (rules.physics.engine, task I1a; enemy and planar shots stay on tiles; default the
  *  tile column model). Rapier is fetched and initialised once at boot, and only then; createRun stays synchronous */
 const physicsEngine = params.get('physics') === 'rapier' ? 'rapier' : 'tiles';
 /** a run being replaced or dropped frees what it owns outside the JS heap (its physics world: S1 §6) */

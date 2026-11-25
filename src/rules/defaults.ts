@@ -33,8 +33,9 @@ export const defaultRules = {
     gridCell: 3, // [C] spatial grid cell (m)
   },
   // The 3D overhaul's physics flag (docs/OVERHAUL_3D.md "Migration rules", task I1a): 'rapier' answers the world half of
-  // aim, line of sight, shots and beams with src/physics (Rapier, built from the tile adapter's WorldModel; sim/physseam.ts);
-  // 'tiles' keeps the tile column model. Movement stays on the tile World either way until I1b. Default off until X1a.
+  // the spatial aim, line of sight, the spatial player shots (traj 1) and beams with src/physics (Rapier, built from the
+  // tile adapter's WorldModel; sim/physseam.ts); 'tiles' keeps the tile column model. Enemy shots, the planar player shots
+  // (ROADMAP F60) and movement stay on the tile World either way until I1c and I1b. Default off until X1a.
   physics: {
     engine: 'tiles' as 'tiles' | 'rapier',
   },
