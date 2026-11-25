@@ -1,8 +1,9 @@
 // The physics world (task I1a; docs/OVERHAUL_3D.md "Division of responsibilities", docs/spikes/S1-physics.md): one
 // Rapier World per loaded map, built from a WorldModel's static colliders, answering the world half of the sim's
-// queries (rays, swept upright cylinders, overlaps, the support below a point, the liquid at a point). Actors are not
-// Rapier bodies (owner O2): hits on enemies, partners and bodies stay in sim/spatial.ts's actor broad phase, which calls
-// this for its world contact. Movement stays on the tile World until I1b.
+// queries (rays, swept upright cylinders, overlaps, the support below a point, the liquid at a point), and since I1b the
+// partner's character controller (physics/controller.ts, `moveCharacter`). Actors are not Rapier bodies (owner O2):
+// hits on enemies, partners and bodies stay in sim/spatial.ts's actor broad phase, which calls this for its world
+// contact. Enemies and bodies move on the tile World until I1c.
 //
 // What a collider is to a query. Every collider carries
 //   kind   one world kind bit (world/sight.ts SK: bounds, wall, deck, terrain, liquid), its collision-group membership:
@@ -14,6 +15,9 @@
 //          blocks that mode's stopper (blocksShots / blocksSight), or when it is foliage and the mode does not open
 //          foliage (legacy cover: without QF.foliage every query treats foliage as solid, sim/spatial.ts header)
 // so one Rapier group test decides "kind in mask and solid in this mode", with no filter callback on the common path.
+// A ninth mode, MODE_MOVE (filter bit 8, I1b), is the character controller's: what stops a body. Every model collider
+// stops it, and so do the liquids (a body stands at a liquid's surface, as on the tile model: no bed, F25), the map edge
+// and the extras the caller marks (the bridge: a wall prop's column over its top, a bare wall's column, the stair wedges).
 //
 // Liquids (WorldModel volumes of kind 'liquid') and the map edge are query-only colliders (Rapier sensors, so I1b's
 // controller can exclude them): a liquid stops a query whose mask has SK.liquid at its surface, as the tile column
@@ -31,6 +35,7 @@
 // Scratch: one Ray and one cylinder per world, so a query allocates only the bindings' own per-call objects.
 
 import { rapier, type Rapier } from './rapier';
+import { CharacterKit, type CharacterMove, type ControllerRules } from './controller';
 import { SK, CF, QF, RayHit, RANK } from '../world/sight';
 import type { WorldModel } from '../world/model';
 
@@ -46,8 +51,13 @@ export type Stops = typeof STOPS[keyof typeof STOPS];
 export function modeOf(stops: number, flags: number): number {
   return (stops & 1) | (flags & QF.foliage ? 2 : 0) | (flags & QF.tops ? 4 : 0);
 }
-/** every mode */
+/** every query mode */
 export const MODES_ALL = 0xff;
+/** I1b: the character controller's mode (a filter bit no query mode uses), and its bit */
+export const MODE_MOVE = 8;
+export const MOVES = 1 << MODE_MOVE;
+/** the kinds that stop a body (the controller's kind mask) */
+export const MOVE_KINDS = SK.bounds | SK.wall | SK.deck | SK.terrain | SK.liquid;
 /** the modes without QF.tops (a wall prop's column above its top stops these) */
 export const MODES_UNTOPPED = (() => { let m = 0; for (let i = 0; i < 8; i++) if (!(i & 4)) m |= 1 << i; return m; })();
 /** the modes with QF.foliage (the ground under a foliage wall stops these; foliage itself does not) */
@@ -68,7 +78,7 @@ export interface ExtraPiece {
   min?: [number, number, number]; max?: [number, number, number];
   hull?: Float32Array;
   kind: number;
-  /** the modes it stops (MODES_* bits) */
+  /** the modes it stops (MODES_* bits; MOVES: it stops bodies too) */
   modes: number;
 }
 export interface BuildExtra {
@@ -119,6 +129,10 @@ export class PhysicsWorld {
   private readonly skipFn = (c: RCollider) => !this.skip.has(c.handle);
   private readonly vo = { x: 0, y: 0, z: 0 };
   private readonly vd = { x: 0, y: 0, z: 0 };
+  /** I1b: the character controller, made on the first move (physics/controller.ts) */
+  private kit: CharacterKit | null = null;
+  /** a restored world's capsule colliders, for its kit (PhysicsWorld.restore) */
+  private kitHandles: [string, number][] | undefined;
 
   private constructor(R: Rapier, W: RWorld, meta: Meta, byHandle: Map<number, number>, source: string) {
     this.R = R; this.W = W; this.meta = meta; this.byHandle = byHandle; this.source = source;
@@ -142,7 +156,7 @@ export class PhysicsWorld {
     };
     const box = (mn: number[], mx: number[]) => R.ColliderDesc.cuboid((mx[0] - mn[0]) / 2, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2).setTranslation((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2);
     model.colliders.forEach((c, i) => {
-      const kind = extra.kinds ? extra.kinds[i] : SK.terrain, modes = modesOf(c.blocksShots, c.blocksSight, c.foliage);
+      const kind = extra.kinds ? extra.kinds[i] : SK.terrain, modes = modesOf(c.blocksShots, c.blocksSight, c.foliage) | MOVES;
       if (c.shape === 'box') {
         if (c.yaw !== 0) throw new Error('physics: yawed boxes are not built yet (the adapter writes yaw 0)');
         const mn = [c.centre[0] - c.half[0], c.centre[1] - c.half[1], c.centre[2] - c.half[2]], mx = [c.centre[0] + c.half[0], c.centre[1] + c.half[1], c.centre[2] + c.half[2]];
@@ -154,7 +168,7 @@ export class PhysicsWorld {
     // liquids: query-only boxes to their surface
     for (const v of model.volumes) {
       if (v.kind !== 'liquid') continue;
-      add(box(v.box.min, v.box.max), SK.liquid, MODES_ALL, true, [v.box.min.slice(), v.box.max.slice()], v.level ?? v.box.max[1], LIQUID[v.element ?? 'tide'] ?? 1);
+      add(box(v.box.min, v.box.max), SK.liquid, MODES_ALL | MOVES, true, [v.box.min.slice(), v.box.max.slice()], v.level ?? v.box.max[1], LIQUID[v.element ?? 'tide'] ?? 1);
     }
     // the map edge: four slabs outside the bounds, past its floor and top
     const b = model.bounds, y0 = b.min[1] - EDGE_PAD, y1 = b.max[1] + EDGE_PAD, T = EDGE_THICK;
@@ -162,7 +176,7 @@ export class PhysicsWorld {
     for (const [mn, mx] of [
       [[x0 - T, y0, z0 - T], [x0, y1, z1 + T]], [[x1, y0, z0 - T], [x1 + T, y1, z1 + T]],
       [[x0, y0, z0 - T], [x1, y1, z0]], [[x0, y0, z1], [x1, y1, z1 + T]],
-    ] as [number[], number[]][]) add(box(mn, mx), SK.bounds, MODES_ALL, true, [mn, mx]);
+    ] as [number[], number[]][]) add(box(mn, mx), SK.bounds, MODES_ALL | MOVES, true, [mn, mx]);
     for (const p of extra.pieces ?? []) {
       if (p.hull) {
         const d = R.ColliderDesc.convexHull(p.hull);
@@ -364,6 +378,22 @@ export class PhysicsWorld {
     return best;
   }
 
+  /** I1b: resolve one tick's move of a partner's body through the character controller (physics/controller.ts). `rules`
+   *  are read when the controller is made (one set per world: rules.physics.controller of the run). */
+  moveCharacter(io: CharacterMove, rules: ControllerRules): void {
+    const clock = PhysicsWorld.clock, t0 = clock ? clock() : 0;
+    (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.kitHandles)).move(io);
+    if (clock) this.stats.ms += clock() - t0;
+  }
+
+  /** I1b: is a body's capsule (footprint r, height h, feet at (x, y, z)), shrunk by `shrink`, clear of what stops bodies? */
+  characterClear(x: number, y: number, z: number, r: number, h: number, shrink: number, rules: ControllerRules): boolean {
+    return (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.kitHandles)).clearAt(x, y, z, r, h, shrink);
+  }
+
+  /** the controller's counters (null before its first move) */
+  get characterStats(): CharacterKit['stats'] | null { return this.kit ? this.kit.stats : null; }
+
   /** the kind of collider `id` (SK bit) */
   kindOf(id: number): number { return id >= 0 && id < this.colliders ? this.meta.kind[id] : 0; }
 
@@ -378,14 +408,18 @@ export class PhysicsWorld {
     const W = R.World.restoreSnapshot(bytes);
     const M = from.meta;
     const meta: Meta = { kind: M.kind.slice(), sensor: M.sensor.slice(), lo: M.lo.slice(), hi: M.hi.slice(), level: M.level.slice(), liquid: M.liquid.slice() };
-    return new PhysicsWorld(R, W, meta, new Map(from.byHandle), from.source);
+    const out = new PhysicsWorld(R, W, meta, new Map(from.byHandle), from.source);
+    // the capsule colliders are in the snapshot: the restored controller reuses them by handle
+    out.kitHandles = from.kit ? from.kit.handles() : from.kitHandles;
+    return out;
   }
 
   /** free the Rapier world (S1 §6: an unfreed world leaks its wasm memory for good). Idempotent. */
   dispose(): void {
     if (!this.W) return;
-    this.W.free();
+    this.W.free(); // its character controller and capsule colliders with it
     this.W = null;
+    this.kit = null;
     for (const s of this.cyl.values()) (s as unknown as { free?: () => void }).free?.();
     this.cyl.clear();
   }

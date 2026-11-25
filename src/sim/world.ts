@@ -10,7 +10,8 @@ import type { BiomeDef } from '../rules/stages';
 import { regionMap } from '../world/maps';
 import { T, WATER_Y, ICE_LIFT, DECK_SLAB, deckTop, stairEdges, wallTopsOf, type ArenaMap, type ArenaProp } from '../world/tiles';
 import { sampledSight, raycastWorld, segmentClear, solidAt, type RayHit } from './spatial';
-import type { NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
+import type { BodyMover, NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
+import { PhysicsBridge } from './physseam';
 import { CellField, CS } from './cells';
 import { PropField } from './props';
 import { blockCentre, blockMask, blockNodes, DIAG_R, type NavGrid } from '../world/navblocks';
@@ -105,7 +106,15 @@ export class World implements WorldQuery {
   readonly tide: { tiles: Int32Array; terrain: Uint8Array; wlevel: Float32Array; high: number; mask: Uint8Array } | null = null;
   tideHigh = false;
 
-  constructor(rules: Rules, biome: BiomeDef, seed: number) {
+  /** rules.physics.engine 'rapier' (I1a, I1b; ROADMAP F64): the run's physics bridge. With it the four ray members
+   *  answer on Rapier and `mover` is the partner's character controller; every other member stays on this tile model.
+   *  Null on tiles */
+  readonly physics: PhysicsBridge | null;
+
+  /** `physics`: the run's bridge (sim/run.ts passes ctx.physics, null on tiles). Omitted, a World on rules that ask for
+   *  physics makes its own (tests and scripts that build a World directly; Rapier must be loaded) */
+  constructor(rules: Rules, biome: BiomeDef, seed: number, physics?: PhysicsBridge | null) {
+    this.physics = physics !== undefined ? physics : rules.physics.engine === 'rapier' ? new PhysicsBridge(rules) : null;
     const base = regionMap(rules.worldgen, biome.id, seed);
     // W4: wall and platform become this world's own overlay over the cached base map, so burning and breaking change
     // one run without touching the map other runs (and the renderer cache) share
@@ -404,10 +413,11 @@ export class World implements WorldQuery {
   /**
    * Line of sight between two points in 3D (location maps): false when a wall tile or terrain higher than the line
    * lies between them. Samples every 0.5 m, skipping the first and last half metre (the shooter's and target's own
-   * footing). Pure function of the map; no allocation.
+   * footing). Pure function of the map; no allocation. On physics, the exact segment on Rapier (F12)
    */
   sight(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
-    return sampledSight(this, x0, y0, z0, x1, y1, z1);
+    const B = this.physics;
+    return B ? B.sight(this, x0, y0, z0, x1, y1, z1) : sampledSight(this, x0, y0, z0, x1, y1, z1);
   }
 
   /** Frozen or thawed water changed what is walkable: refresh the open tiles and force a new flow field. */
@@ -1250,13 +1260,23 @@ export class World implements WorldQuery {
   fitsAt(x: number, y: number, z: number, r: number, step?: number, tall?: number, over?: boolean): boolean { return this.fits(x, z, y, r, step, tall, over); }
   topBelow(x: number, y: number, z: number, r: number): number { return this.topUnder(x, z, r, y); }
   insideRock(x: number, y: number, z: number, over?: boolean): boolean { return this.inRock(x, z, y, over); }
+  // the four ray members branch on the physics bridge (I1a's rays on Rapier, held here since I1b: ROADMAP F64)
   raycast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, mask: number, hit: RayHit, r?: number, h?: number, flags?: number): boolean {
+    const B = this.physics;
+    if (B) return B.castWorld(this, ox, oy, oz, dx, dy, dz, maxT, r ?? 0, h ?? 0, mask, flags ?? 0, hit);
     return raycastWorld(this, ox, oy, oz, dx, dy, dz, maxT, mask, hit, r, h, flags);
   }
   segmentClear(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask?: number, flags?: number): boolean {
+    const B = this.physics;
+    if (B) return B.segmentClear(this, x0, y0, z0, x1, y1, z1, mask, flags);
     return segmentClear(this, x0, y0, z0, x1, y1, z1, mask, flags);
   }
-  solidAt(x: number, y: number, z: number, mask?: number, flags?: number): number { return solidAt(this, x, y, z, mask, flags); }
+  solidAt(x: number, y: number, z: number, mask?: number, flags?: number): number {
+    const B = this.physics;
+    return B ? B.solidAt(this, x, y, z, mask, flags) : solidAt(this, x, y, z, mask, flags);
+  }
+  /** I1b: the character controller on physics (sim/physseam.ts PhysicsMover), else null */
+  get mover(): BodyMover | null { const B = this.physics; return B ? B.moverFor(this) : null; }
   walkableAt(x: number, y: RefY, z: number): boolean { return this.walkable(x, z, y); }
   nearestWalkableAt(x: number, _y: RefY, z: number): [number, number] { return this.nearestWalkable(x, z); }
   place(x: number, _y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number] { return this.nearestFit(x, z, r, wide, reach, tall); }

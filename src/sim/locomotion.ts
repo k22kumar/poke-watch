@@ -7,10 +7,16 @@
 //   ballistic  planar velocity eases toward the intent at air control; gravity and the optional lift row act
 //   scripted   an ability owns planar velocity for a duration (the dash and dash-shaped moves); support and gravity
 //              still act underneath it, so a dash that runs off a ledge falls and a grounded dash can jump
-// All three then share one body step (`advanceBody`): knockback decay, the planar move with the step rule and the
-// footprint (World.moveBody), the jump take-off, gravity and lift, headroom, and the support (landing, slope stick,
-// leaving the support). The integrator a tick runs follows from the body's state (`selectIntegrator`); the transitions
-// it can make in one tick are supported → ballistic (jump pressed, support ends) and ballistic → supported (contact).
+// All three then share one body step (`advanceBody`): knockback decay, the jump take-off, gravity and lift, then a
+// resolver turns the tick's translation into where the body ends (docs/LOCOMOTION.md "Resolvers"). The flag picks the
+// resolver, never the integrator:
+//   tiles      the planar move with the step rule and the footprint (World.moveBody), headroom, the support (landing,
+//              slope stick, leaving the support), as before I1b
+//   controller rules.physics.engine 'rapier' (I1b): the world's `mover`, Rapier's character controller with our own step
+//              rule (physics/controller.ts): it slides, snaps to the ground within the stick drop, stops a rising head
+//              and says whether the body stands on something; the support comes from it, not from the tile model
+// The integrator a tick runs follows from the body's state (`selectIntegrator`); the transitions it can make in one tick
+// are supported → ballistic (jump pressed, support ends) and ballistic → supported (contact).
 //
 // Medium (`mediumAt`) is derived from the world at the body's position, never chosen: liquid, support or air.
 //
@@ -29,7 +35,7 @@ import { dexp } from '../core/detmath';
 import { clamp } from '../core/util';
 import type { AirPress } from '../rules/traversal';
 import { HEAD_EPS } from './world';
-import { GROUND, type WorldQuery } from './worldquery';
+import { GROUND, type BodyMove, type BodyMover, type WorldQuery } from './worldquery';
 
 /** how velocity becomes motion this tick (stored as a small int so pools can hold it in R7) */
 export const LOCO = { supported: 0, ballistic: 1, scripted: 2 } as const;
@@ -133,6 +139,8 @@ const STICK = 0.35;
 const LAND_CLEAR = 0.3;
 
 const MOVE: [number, number] = [0, 0];
+/** the controller's scratch move (I1b) */
+const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: undefined, stepUp: 0, supported: false, onGround: false, ceiling: false, stepped: false };
 
 /** whole ticks of a duration in seconds (the jump buffer and coyote windows) */
 const ticksOf = (s: number, dt: number) => Math.max(0, Math.round(s / dt));
@@ -225,9 +233,8 @@ function movePlanar(W: WorldQuery, b: LocoBody, t: LocoTick, dt: number) {
   b.z = clamp(nz, -bd, bd);
 }
 
-/** vertical: the Jump control (jump, double jump), gravity and lift, headroom, then the support (landing, slope stick,
- *  leaving it) */
-function moveVertical(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, y0: number, integ: Integrator, out: LocoResult) {
+/** the vertical drive both resolvers share: the Jump control (jump, double jump), gravity and lift */
+function driveVertical(b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
   const act = jumpControl(b, it, t, L, dt, integ);
   if (act === ACT.jump || act === ACT.airJump) {
     b.vy = L.jumpVelocity;
@@ -237,6 +244,11 @@ function moveVertical(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L
   // ACT.takeoff: volume × air arrives in R6d; validateTraversal keeps every template from reaching it until then
   b.vy -= L.gravity * dt;
   if (t.lift && it.jump && b.vy < -L.glideFallSpeed) b.vy = -L.glideFallSpeed;
+}
+
+/** vertical on the tile model: the vertical drive, headroom, then the support (landing, slope stick, leaving it) */
+function moveVertical(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, y0: number, integ: Integrator, out: LocoResult) {
+  driveVertical(b, it, t, L, dt, integ, out);
   b.y += b.vy * dt;
   // headroom: a rising head stops at the lowest deck underside over the footprint (the jump's speed is spent there, then
   // gravity brings it down). A head already in a slab (a body evolved under one) rises no further. Falling is never
@@ -285,16 +297,71 @@ function recoverFromRock(W: WorldQuery, b: LocoBody, t: LocoTick) {
   b.y = W.surfaceAt(b.x, b.y, b.z); b.vy = 0; b.grounded = true;
 }
 
+/** The controller resolver (I1b, rules.physics.engine 'rapier'): the vertical drive, then the whole translation (planar
+ *  velocity and knockback, the vertical speed) through the world's character controller in one move. It slides along
+ *  what it meets, snaps a supported body down within the stick drop, climbs rises up to `stepUp` by the step rule (only
+ *  from a support, not on a take-off), stops a rising head (the jump's speed is spent), and says whether the body stands
+ *  on something: grounded is that, unless the body is still rising. Liquids are floors at their surface (the tile
+ *  model's swim kind: contact at the surface; WORLDGEN3D Q9's depth modes are I4's). Not used: `over` (no driver sets it
+ *  before R6d; a wall prop's column is solid to any height here), the landing clear (a capsule never stands in a lip) */
+function resolveOnController(M: BodyMover, W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
+  driveVertical(b, it, t, L, dt, integ, out);
+  const m = BM;
+  m.x = b.x; m.y = b.y; m.z = b.z;
+  m.dx = (b.vx + b.kx) * dt; m.dy = b.vy * dt; m.dz = (b.vz + b.kz) * dt;
+  m.r = t.foot; m.h = t.tall; m.stepUp = t.stepUp; m.supported = b.grounded;
+  M.move(m);
+  const bd = W.bound;
+  b.x = clamp(m.x, -bd, bd); b.y = m.y; b.z = clamp(m.z, -bd, bd);
+  if (m.ceiling && b.vy > 0) b.vy = 0;
+  if (m.onGround && b.vy <= 0) { b.vy = 0; b.grounded = true; } else b.grounded = false;
+}
+
 /** the body step every integrator shares, after its drive set the planar velocity (`integ`: which one ran, for the
- *  Jump control) */
+ *  Jump control). The world's mover, when it has one (physics), is the resolver; else the tile model's */
 function advanceBody(W: WorldQuery, b: LocoBody, it: LocoIntent, t: LocoTick, L: LocoNumbers, dt: number, integ: Integrator, out: LocoResult) {
   out.jumped = false;
   const y0 = b.y;
   const kd = dexp(-L.knockDecay * dt);
   b.kx *= kd; b.kz *= kd;
-  movePlanar(W, b, t, dt);
-  moveVertical(W, b, it, t, L, dt, y0, integ, out);
+  const M = t.foot > 0 ? W.mover : null;
+  if (M) resolveOnController(M, W, b, it, t, L, dt, integ, out);
+  else {
+    movePlanar(W, b, t, dt);
+    moveVertical(W, b, it, t, L, dt, y0, integ, out);
+  }
   recoverFromRock(W, b, t);
+}
+
+/** The shoves one system's loop gives a body (I1b): on physics they are summed and resolved in one controller move after
+ *  the loop (`flushShoves`), where the tile model moves the footprint at each shove (a crowd of 500 shoving the partner
+ *  one controller move each cost 2 ms a tick). Caller-owned, one per system */
+export interface Shoves { dx: number; dz: number; n: number; step: number; foot: number; tall: number | undefined }
+/** a fresh accumulator (a function declaration: enemies.ts and bodies.ts make theirs at module load, and the sim's
+ *  import cycle can load them before this module's body has run) */
+export function newShoves(): Shoves { return { dx: 0, dz: 0, n: 0, step: 0, foot: 0, tall: undefined }; }
+
+/** Push a body's footprint by (dx, dz) (a crowd or a resting body shoving the partner): the tile model's footprint move
+ *  at once; on physics added to `acc`, for `flushShoves` to resolve. Keeps velocity and support */
+export function pushFootprint(W: WorldQuery, b: LocoBody, dx: number, dz: number, step: number, foot: number, tall: number | undefined, acc: Shoves) {
+  if (W.mover) { acc.dx += dx; acc.dz += dz; acc.n++; acc.step = step; acc.foot = foot; acc.tall = tall; return; }
+  W.moveFootprint(b.x, b.y, b.z, dx, dz, step, foot, MOVE, undefined, tall);
+  b.x = MOVE[0]; b.z = MOVE[1];
+}
+
+/** Resolve the summed shoves through the controller (physics; no vertical intent, the step rule from a support) and clear
+ *  them. Nothing to do on tiles, where each shove already moved the body */
+export function flushShoves(W: WorldQuery, b: LocoBody, acc: Shoves) {
+  if (acc.n === 0) return;
+  const M = W.mover;
+  if (M) {
+    const m = BM;
+    m.x = b.x; m.y = b.y; m.z = b.z; m.dx = acc.dx; m.dy = 0; m.dz = acc.dz;
+    m.r = acc.foot; m.h = acc.tall; m.stepUp = acc.step; m.supported = b.grounded;
+    M.move(m);
+    b.x = m.x; b.y = m.y; b.z = m.z;
+  }
+  acc.dx = acc.dz = 0; acc.n = 0;
 }
 
 /** one supported tick: drive on the surface, then the shared body step */

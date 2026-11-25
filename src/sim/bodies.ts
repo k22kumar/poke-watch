@@ -11,6 +11,7 @@
 // Every change of owner costs a quarter of its integrity, so nothing can be passed back and forth forever.
 
 import { partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
+import { flushShoves, newShoves, pushFootprint } from './locomotion';
 import { datan2, dcos, dhypot, dsin } from '../core/detmath';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
 import { capOf, deriveHold, derivePush } from '../rules/capabilities';
@@ -26,7 +27,8 @@ import { currentCastSlot, holdAim, holdButton } from './capabilities';
 import { applyAgent } from './cells';
 import { GROUND, worldOf } from './worldquery';
 
-const PUSH: [number, number] = [0, 0];
+/** the resting bodies' shoves of the partner this tick (sim/locomotion.ts: summed on physics) */
+const SHOVES = newShoves();
 
 export const TEAM = { neutral: 0, player: 1, enemy: 2 } as const;
 const HIT_RING = 8;
@@ -433,10 +435,11 @@ export const bodySystem = {
         const d = Math.sqrt(dp2), push = rs - d;
         const qx = P.x + (dxp / d) * push, qz = P.z + (dzp / d) * push;
         const ph = partnerHeight(ctx.player.species, ctx.rules); // headroom: the partner's height meets deck slabs
-        if (pf > 0) { W.moveFootprint(P.x, P.y, P.z, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, PUSH, undefined, ph); P.x = PUSH[0]; P.z = PUSH[1]; }
+        if (pf > 0) pushFootprint(W, P, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, ph, SHOVES); // summed on physics (I1b)
         else if (!W.solidFor(qx, P.y, qz, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
       }
     }
+    flushShoves(W, P, SHOVES); // the resting bodies' shoves of the partner, in one controller move on physics (I1b)
   },
 };
 

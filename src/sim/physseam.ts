@@ -1,8 +1,10 @@
-// The sim's physics bridge (task I1a; docs/OVERHAUL_3D.md "World seam" Q14): with rules.physics.engine = 'rapier' the
-// world half of every ray, sweep, line of sight and overlap sight line is answered by src/physics (Rapier) instead of
-// the tile column model, at the two swap points: worldOf(ctx) returns a PhysicsSeam (its ray members on physics, every
-// other member forwarded to the tile World unchanged), and sim/spatial.ts's sweeps and overlaps call castWorld here.
-// Movement, support, liquids for bodies and navigation stay on the tile World (I1b, I3 move them).
+// The sim's physics bridge (task I1a; docs/OVERHAUL_3D.md "World seam" Q14, "Physics"): with rules.physics.engine =
+// 'rapier' the world half of every ray, sweep, line of sight and overlap sight line is answered by src/physics (Rapier)
+// instead of the tile column model: the tile World holds this bridge and its four ray members ask it (since I1b; at I1a
+// worldOf returned a PhysicsSeam that forwarded every other member, ROADMAP F64), and sim/spatial.ts's sweeps and
+// overlaps call castWorld here. I1b: the partner's body moves through the character controller (PhysicsMover, the
+// World's `mover`; physics/controller.ts). Enemies, bodies, the other movement members and navigation stay on the tile
+// World (I1c, I3).
 //
 // The physics world is built from the tile adapter's WorldModel (world/adapter.ts fromArenaMap) of the World's live map
 // state, plus the column model's pieces the adapter's colliders leave out (query-only, tile-legacy, deleted at X1b; the
@@ -14,6 +16,9 @@
 //   bare walls   a bare wall's column goes on past the adapter's bounds top
 //   soft ground  under a foliage wall tile, the ground to its elevation, for the modes where foliage is open
 //   stair wedges the solid between a ramp's plane and its base box (the adapter leaves the wedge open)
+// The wall columns and the wedges stop bodies too (MOVES, I1b): without the R1b crossing permission a wall tile is solid
+// to any height for the tile model's movement, so the controller meets the same column. The soft ground does not (the
+// foliage wall over it already stops a body).
 // The tile World's geometry changes at run time (a prop burns or breaks: World.setBlock; the tide: setTide; water
 // freezes or thaws: refreshNav), and each bumps World.geoGen: the physics world is rebuilt from the live map at the
 // next query after a change (counted in `rebuilds`). Ice is read from the cells (a frozen tile is terrain at the ice),
@@ -21,13 +26,15 @@
 //
 // Ownership: the bridge owns its PhysicsWorld; reset() and dispose() free it (sim/run.ts disposeRun; S1 O7).
 
-import { PhysicsWorld, STOPS, MODES_ALL, MODES_UNTOPPED, MODES_FOLIAGE_OPEN, modesOf, EDGE_PAD, type ExtraPiece } from '../physics/world';
+import { PhysicsWorld, STOPS, MODES_ALL, MODES_UNTOPPED, MODES_FOLIAGE_OPEN, MOVES, modesOf, EDGE_PAD, type ExtraPiece } from '../physics/world';
+import type { ControllerRules } from '../physics/controller';
+import { defaultRules, type Rules } from '../rules/defaults';
 import { fromArenaMap } from '../world/adapter';
 import { rapier, rapierReady } from '../physics/rapier';
 import { DECK_SLAB, ICE_LIFT, T, WATER_Y, stairEdges, wallTopsOf, type ArenaMap } from '../world/tiles';
 import { SK, SK_WORLD, QF_WORLD, type RayHit } from '../world/sight';
 import type { WorldModel } from '../world/model';
-import type { NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
+import type { BodyMove, BodyMover, NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
 
 /** a cast with Infinity as its length goes this far (m) */
 const FAR = 1e4;
@@ -99,7 +106,7 @@ export function tileExtras(m: ArenaMap, model: WorldModel): { kinds: Uint8Array;
     const ov = over(k), under = ov > 0 ? ov - DECK_SLAB : sky;
     const adapterTop = Math.min(top[k] === Infinity ? ceil : top[k], ov > 0 ? ov - DECK_SLAB : Infinity);
     if (!(under > adapterTop)) continue;
-    const modes = wallModes(k) & (top[k] === Infinity ? MODES_ALL : MODES_UNTOPPED);
+    const modes = (wallModes(k) & (top[k] === Infinity ? MODES_ALL : MODES_UNTOPPED)) | MOVES;
     grid[k] = put(adapterTop, under, SK.wall, modes);
   }
   mergeInto(grid, W, H, payload, pieces, hx, hz);
@@ -119,7 +126,7 @@ export function tileExtras(m: ArenaMap, model: WorldModel): { kinds: Uint8Array;
     const [a, b] = stairEdges(m, i, j), base = Math.min(a, b);
     if (!(Math.abs(a - b) > 1e-9)) continue;
     const x0 = i - hx, x1 = x0 + 1, z0 = j - hz, z1 = z0 + 1;
-    pieces.push({ kind: SK.terrain, modes: MODES_ALL, hull: Float32Array.from([
+    pieces.push({ kind: SK.terrain, modes: MODES_ALL | MOVES, hull: Float32Array.from([
       x0, base, z0, x1, base, z0, x0, base, z1, x1, base, z1,
       x0, a, z0, x1, a, z0, x0, b, z1, x1, b, z1,
     ]) });
@@ -153,11 +160,17 @@ export function buildTilePhysics(T0: TileExt): PhysicsWorld {
   return PhysicsWorld.build(model, tileExtras(m, model));
 }
 
-/** The bridge a run with rules.physics.engine = 'rapier' carries (SimContext.physics). */
+/** The bridge a run with rules.physics.engine = 'rapier' carries (SimContext.physics; the run's World holds it too). */
 export class PhysicsBridge {
-  constructor() {
+  /** the controller's numbers (rules.physics.controller) and the size classes a height-less body takes its height from */
+  private readonly ctl: ControllerRules;
+  private readonly classes: Rules['size']['classes'];
+  constructor(rules: Rules = defaultRules) {
     if (!rapierReady()) rapier(); // throws the init message: Rapier loads once, asynchronously, before createRun
+    this.ctl = rules.physics.controller;
+    this.classes = rules.size.classes;
   }
+  private mover: PhysicsMover | null = null;
   private W: WorldQuery | null = null;
   private T: TileExt | null = null;
   private gen = -1;
@@ -180,10 +193,54 @@ export class PhysicsBridge {
     return this.physics;
   }
 
-  /** the WorldQuery the systems see for tile world w (worldOf's swap) */
+  /** A WorldQuery over tile world w with its rays on physics and every other member forwarded: the view worldOf
+   *  returned at I1a. Since I1b (F64) the World holds the bridge instead; tests/physics-parity.test.ts compares a World
+   *  without one against this view */
   seamFor(w: WorldQuery): WorldQuery {
     if (w !== this.W || !this.seam) { this.worldFor(w); this.seam = new PhysicsSeam(w, this); }
     return this.seam;
+  }
+
+  /** the character controller for tile world w (World.mover) */
+  moverFor(w: WorldQuery): BodyMover {
+    if (!this.mover || this.mover.w !== w) this.mover = new PhysicsMover(this, w);
+    return this.mover;
+  }
+
+  /** the controller's numbers */
+  get controller(): ControllerRules { return this.ctl; }
+
+  /** the height the controller gives a body of footprint r and height h on tile world w (the mover's rule) */
+  bodyHeight(w: WorldQuery, r: number, h: number | undefined): number {
+    return h !== undefined && h > 0 && w.tiles.over ? h : this.classHeight(r);
+  }
+
+  /** a harness check (scripts/navwalk.ts on physics): is the capsule of a body (footprint r, height h, feet at x, y, z)
+   *  shrunk by `shrink` clear of what stops bodies? */
+  bodyClear(w: WorldQuery, x: number, y: number, z: number, r: number, h: number | undefined, shrink: number): boolean {
+    return this.worldFor(w).characterClear(x, y, z, r, this.bodyHeight(w, r, h), shrink, this.ctl);
+  }
+
+  /** the height of a size class's body by its footprint (a body that gives none: tests' plain bodies; and on a map with no
+   *  decks, where nothing is overhead, every body, as the tile model's `tall`) */
+  classHeight(r: number): number {
+    let best = this.classes[0], d = Infinity;
+    for (const c of this.classes) { const e = Math.abs(c.body - r); if (e < d) { d = e; best = c; } }
+    return best.height;
+  }
+
+  /** segmentClear on physics (sight stops it) */
+  segmentClear(w: WorldQuery, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask: number = SK_WORLD, flags = 0): boolean {
+    return this.worldFor(w).clear(x0, y0, z0, x1, y1, z1, mask & SK_WORLD, flags & QF_WORLD, STOPS.sight);
+  }
+  /** solidAt on physics (shots stop it) */
+  solidAt(w: WorldQuery, x: number, y: number, z: number, mask: number = SK_WORLD, flags = 0): number {
+    return this.worldFor(w).solidAt(x, y, z, mask & SK_WORLD, flags & QF_WORLD, STOPS.shots);
+  }
+  /** enemy line of sight: the exact segment (F12: the 0.5 m samples saw through wall corners), every wall infinite
+   *  (no QF.tops) and foliage solid, as World.sight */
+  sight(w: WorldQuery, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
+    return this.worldFor(w).clear(x0, y0, z0, x1, y1, z1, SK_WORLD, 0, STOPS.sight);
   }
 
   /** sim/spatial.ts's world contact: the cast in (o, d, maxT, r, h) against w's physics (shots stop it) */
@@ -209,7 +266,7 @@ export class PhysicsBridge {
   /** free the physics world (a map change; the next query builds the new one) */
   reset(): void {
     this.physics?.dispose();
-    this.physics = null; this.W = null; this.T = null; this.seam = null; this.gen = -1;
+    this.physics = null; this.W = null; this.T = null; this.seam = null; this.mover = null; this.gen = -1;
   }
 
   dispose(): void { this.reset(); }
@@ -240,16 +297,15 @@ export class PhysicsSeam implements WorldQuery {
     return this.bridge.castWorld(this.w, ox, oy, oz, dx, dy, dz, maxT, r, h, mask, flags, hit);
   }
   segmentClear(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask: number = SK_WORLD, flags = 0): boolean {
-    return this.bridge.worldFor(this.w).clear(x0, y0, z0, x1, y1, z1, mask & SK_WORLD, flags & QF_WORLD, STOPS.sight);
+    return this.bridge.segmentClear(this.w, x0, y0, z0, x1, y1, z1, mask, flags);
   }
   solidAt(x: number, y: number, z: number, mask: number = SK_WORLD, flags = 0): number {
-    return this.bridge.worldFor(this.w).solidAt(x, y, z, mask & SK_WORLD, flags & QF_WORLD, STOPS.shots);
+    return this.bridge.solidAt(this.w, x, y, z, mask, flags);
   }
-  /** enemy line of sight: the exact segment (F12: the 0.5 m samples saw through wall corners), every wall infinite
-   *  (no QF.tops) and foliage solid, as World.sight */
   sight(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
-    return this.bridge.worldFor(this.w).clear(x0, y0, z0, x1, y1, z1, SK_WORLD, 0, STOPS.sight);
+    return this.bridge.sight(this.w, x0, y0, z0, x1, y1, z1);
   }
+  get mover(): BodyMover | null { return this.bridge.moverFor(this.w); }
   walkableAt(x: number, y: RefY, z: number): boolean { return this.w.walkableAt(x, y, z); }
   nearestWalkableAt(x: number, y: RefY, z: number): [number, number] { return this.w.nearestWalkableAt(x, y, z); }
   place(x: number, y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number] { return this.w.place(x, y, z, r, wide, reach, tall); }
@@ -259,3 +315,19 @@ export class PhysicsSeam implements WorldQuery {
   navDist(goal: 'player', x: number, y: RefY, z: number): number { return this.w.navDist(goal, x, y, z); }
 }
 
+
+/** The partner's character controller over tile world w's physics (World.mover; docs/LOCOMOTION.md "Resolvers"). A
+ *  body's height counts only where the map has decks (the tile model's `tall`: nothing else on an adapter map is
+ *  overhead); elsewhere, and for a body that gives none, it is its footprint's size class height. */
+export class PhysicsMover implements BodyMover {
+  private readonly io = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: 0, stepUp: 0, supported: false, onGround: false, ceiling: false, stepped: false };
+  constructor(private readonly bridge: PhysicsBridge, readonly w: WorldQuery) {}
+  move(b: BodyMove): void {
+    const io = this.io, B = this.bridge;
+    io.x = b.x; io.y = b.y; io.z = b.z; io.dx = b.dx; io.dy = b.dy; io.dz = b.dz;
+    io.r = b.r; io.h = B.bodyHeight(this.w, b.r, b.h);
+    io.stepUp = b.stepUp; io.supported = b.supported;
+    B.worldFor(this.w).moveCharacter(io, B.controller);
+    b.x = io.x; b.y = io.y; b.z = io.z; b.onGround = io.onGround; b.ceiling = io.ceiling; b.stepped = io.stepped;
+  }
+}

@@ -34,10 +34,40 @@ export const defaultRules = {
   },
   // The 3D overhaul's physics flag (docs/OVERHAUL_3D.md "Migration rules", task I1a): 'rapier' answers the world half of
   // the spatial aim, line of sight, the spatial player shots (traj 1) and beams with src/physics (Rapier, built from the
-  // tile adapter's WorldModel; sim/physseam.ts); 'tiles' keeps the tile column model. Enemy shots, the planar player shots
-  // (ROADMAP F65) and movement stay on the tile World either way until I1c and I1b. Default off until X1a.
+  // tile adapter's WorldModel; sim/physseam.ts); 'tiles' keeps the tile column model. Enemy shots and the planar player
+  // shots (ROADMAP F65) stay on the tile World either way until I1c. Default off until X1a.
   physics: {
     engine: 'tiles' as 'tiles' | 'rapier',
+    // I1b: the partner's body on the flag moves through Rapier's character controller (src/physics/controller.ts; docs/
+    // LOCOMOTION.md "Resolvers"). Its capsule is the body's footprint (rules.size `body`) and height, shrunk by `offset`,
+    // with `headMargin` off its top (S1 O5; sim/world.ts HEAD_EPS). Rapier's autostep is off: rises up to
+    // rules.player.stepHeight are our own step rule's (S1 O4, ROADMAP F34). Enemies and bodies stay on the tile World (I1c)
+    controller: {
+      /** [B] m: the controller's skin (S1 §7: 0.001 stalled slow moves) */
+      offset: 0.01,
+      /** [B] m: the capsule's head stops this far below the body's height (S1 O5: an Extra Large body of exactly 2.4 m fits a
+       *  2.4 m gap). A Tiny body (0.30 m footprint, 0.6 m) is a ball of 0.29 m and keeps no margin (S1 §8) */
+      headMargin: 0.001,
+      /** [B] degrees: the steepest floor it climbs (the stair ramps are 45°; S1 §8: 46° against float noise) */
+      maxSlopeDeg: 46,
+      /** [B] degrees: floors steeper than this slide it down */
+      minSlideDeg: 46,
+      /** [B] m: a supported body going down sticks to the floor within this drop (the tile step's STICK) */
+      snap: 0.35,
+      // the step rule (sim/locomotion.ts on the controller; physics/controller.ts tryStep): a supported move that came up
+      // short against a face lifts the capsule by the step height, carries its centre `margin` past the face, and sets it
+      // down on a walkable top no more than the step height (+ `tolerance`) and at least `minRise` above its feet
+      step: {
+        /** [B] m: how far past the face the centre lands (on the top, not perched on its edge) */
+        margin: 0.04,
+        /** [B] m: float slack over the step height (a 0.6 m rise is a step, 0.62 m is not: S1 O4) */
+        tolerance: 0.002,
+        /** [B] m: a lower rise is the controller's own (it rides small lips as slopes) */
+        minRise: 0.01,
+        /** [B] the plain move counts as short when it covered less than this share of the wish */
+        short: 0.98,
+      },
+    },
   },
   // The 3D overhaul's navigation flag (docs/OVERHAUL_3D.md "Navigation (I3)"): 'navmesh' answers navDir, navReached and
   // navDist from src/nav (Recast/Detour, one tiled navmesh per width group, built from the tile adapter's WorldModel;
