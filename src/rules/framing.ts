@@ -75,7 +75,8 @@ export interface CameraClearance {
 }
 
 /** CL-Q8: what the generator sizes spaces from, for the Extra Large class (Q7), from the rules alone (no roster, no art).
- *  Default rules: eye 3.21 m, ceiling 3.66 m, short side 10.18 m, keep-out 9.30 m */
+ *  Default rules: eye 3.21 m, ceiling 3.66 m, short side 10.18 m, keep-out 9.30 m. Authored boss bodies
+ *  (SpeciesDef.scale; Sudowoodo's eye 3.72 m) are outside it: no mode uses a boss role (ROADMAP F99) */
 export function cameraClearance(rules: Pick<Rules, 'size' | 'anatomy'> = defaultRules, F: Framing = FRAMING): CameraClearance {
   const eye = tallestBody(rules) * maxEyeFraction(rules);
   const xl = rules.size.classes[rules.size.classes.length - 1];

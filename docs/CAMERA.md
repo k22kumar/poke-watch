@@ -30,8 +30,9 @@ What CL settled (2026-11-25; answers CL-Q2 to CL-Q13 and their measurements are 
 - **Camera peek.** The shoulder offset and the orbit stay as today; an information gate draws enemy bodies and the
   signals declared "hidden by the world" only when the player's eye sees them (`eyeSees`, two thin rays, top and
   centre). Telegraphs and attacks aimed at the player, teammates and the player's own partner are never gated
-  (CL-Q7). Cost at about 500 enemies, a full pass: p95 0.84 ms on tiles, 2.57 ms on Rapier (`scripts/eyecost.ts`);
-  the proposed rate for I2b is in-view enemies only, staggered over 4 frames.
+  (CL-Q7). The eye is computed once per frame (`frameEye`), by the shot's own heading rule. Cost at about 500 enemies,
+  a full pass: p95 0.70 ms on tiles, 1.09 ms on Rapier (`scripts/eyecost.ts`, every query counted); the proposed rate
+  for I2b is in-view enemies only, staggered over 4 frames (a quarter pass p95 0.18 ms on tiles, 0.28 ms on Rapier).
 - **Pull-in and fade.** I2b's. The generator leaves no room beyond the `camera-clearance` spaces and the transit rule;
   I2b reports the fade rate on G2's map (CL-Q9).
 - **Shots** (behind `rules.aim.viewSight`, off until X1a): spatial shots and beams launch from the eye and are checked

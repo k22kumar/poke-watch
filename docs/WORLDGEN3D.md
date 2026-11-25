@@ -1177,13 +1177,19 @@ grilling and recorded under "Open items"):
     by the renderer, not part of the sim tick or the replay hash. A target counts as seen when either sample (its top
     or its centre) is visible from the eye. Partial visibility stays F90.
   - Cost: CL measures it at 500 enemies (two rays each) and proposes a rate (staggered, in-view only) that keeps it
-    inside the frame budget, in the CL report. *Measured (`scripts/eyecost.ts`, the perf-sim crowd at about 500
-    enemies, every 10th tick, 3 seeds):* a full pass over every live enemy costs p50 0.44 / p95 0.84 / p99 0.96 ms on
-    tiles (0.74 µs a ray) and p50 1.50 / p95 2.57 / p99 3.06 ms on Rapier (2.6 µs a ray); about 83 % of the crowd is
-    seen. *Proposed rate (for I2b):* enemies in the view frustum only, staggered over 4 frames (each re-tested every
-    4th frame, 15 Hz at 60 fps), and one entering the frustum tested on its first frame: about a quarter of a full pass
-    times the in-view share per frame, under 0.7 ms at p95 on Rapier even with every enemy in view (3.9 % of a 60 fps
-    frame), with the gate's fade hiding the 67 ms latency.
+    inside the frame budget, in the CL report. *Measured after the review fix (`scripts/eyecost.ts`, the perf-sim crowd
+    at about 500 enemies, every 10th tick, 3 seeds, every world query counted):* the eye is computed once per frame
+    (`frameEye`: one upward ray and one wall check), then one or two sight rays per enemy, 580–585 queries per full
+    pass at the median (1,002 at most). A full pass costs p50 0.30 / p95 0.70 / p99 0.83 ms on tiles (0.51 µs a
+    query) and p50 0.57 / p95 1.09 / p99 1.34 ms on Rapier (0.97 µs a query); about 83 % of the crowd is seen. (The
+    first measurement, 2.57 ms at p95 on Rapier, recomputed the eye for every sample: up to six queries an enemy.)
+    *Proposed rate (for I2b):* enemies in the view frustum only, staggered over 4 frames (each re-tested every 4th
+    frame, 15 Hz at 60 fps), and one entering the frustum tested on its first frame. A quarter pass with every enemy in
+    view measures p95 0.18 / p99 0.21 ms on tiles and p95 0.28 / p99 0.34 ms on Rapier (1.7 % of a 60 fps frame at
+    p95), before the in-view cut; the gate's fade hides the 67 ms latency.
+  - One heading rule (review fix): the gate's eye and the shot's launch point are offset along the same heading
+    (`aimHeading`: the ray's own, shortened past `rules.aim.muzzleFadeDeg`), so they are the same point at every
+    pitch; `tests/viewsight.test.ts` holds it at 11° and 80° down and 75° up.
   - Measured for it (today's rig, `main` 25e20ed): the shoulder offset is 0.49–4.01 m (median 1.50); the arm sits 14°
     over the pivot at the neutral pitch and up to 40° looking down, so for a 4.3 m arm the lens rises 1.0 m and 2.8 m
     above the eye.
@@ -1201,6 +1207,7 @@ grilling and recorded under "Open items"):
     above 2.57 m tall, which is no hero (the tallest, Hariyama, 2.29 m, D 8.02 m). Giants above 2.57 m frame at
     9.0 m and rely on pull-in and fade (I2b). If a body taller than 2.57 m becomes a hero, its framing is judged at a
     playtest, and raising the max is a planned layout change, not a tuning tweak (ROADMAP F99).
+  - Excluded: authored boss bodies (`SpeciesDef.scale`: Sudowoodo eye 3.72 m, above the 3.70 m clear height; Articuno and Houndoom 3.60 m; Magcargo 2.87 m) are excluded from the eye bound and from the anatomy lint: no mode uses a boss role today. If one returns on generated maps, or such a body becomes a partner, the bound and the clear height are a planned layout change (ROADMAP F99).
   - **Generator numbers** (camera clearance sized for the Extra Large class, Q7): the `camera-clearance` ceiling is
     the tallest eye + 0.45 m deck clearance (3.66 m for a giant at the cap with the largest fraction, 3.57 m for the
     tallest real eye, Celesteela's 3.12 m), inside the 3.70 m clear height; the short side is D max + footprint

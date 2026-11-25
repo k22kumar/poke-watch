@@ -132,24 +132,43 @@ export function eyePoint(ctx: SimContext, hx: number, hz: number, out = EYE): ty
   return out;
 }
 
-const SEE = { x: 0, y: 0, z: 0, ax: 0, ay: 0, az: 0 };
-/** CL-Q7, the information gate's query: does the player's eye see the point (x, y, z)? The eye is taken along the
- *  crosshair ray's heading (the partner's facing with no ray). A deterministic pure function of the sim state for the
- *  renderer: not part of the tick or the replay hash. Same sight test as the shot check (segmentClear, the attack cover
- *  policy) */
-export function eyeSeesPoint(ctx: SimContext, x: number, y: number, z: number): boolean {
+/** The horizontal heading the muzzle and the eye are offset along, for a unit ray (dx, dy, dz), written to HDG: the
+ *  ray's own heading, shortened past rules.aim.muzzleFadeDeg (R2, pole-safe: linear in the horizontal fraction, 0 straight
+ *  up or down). One rule for the shot's launch point and the information gate's eye (CL-Q7) */
+export const HDG = { x: 0, z: 0 };
+export function aimHeading(ctx: SimContext, dx: number, dz: number): typeof HDG {
+  const hl = dhypot(dx, dz);
+  const h0 = muzzleFadeHl(ctx);
+  HDG.x = hl >= h0 ? dx / hl : dx / h0; HDG.z = hl >= h0 ? dz / hl : dz / h0;
+  return HDG;
+}
+
+/** CL-Q7: the eye the information gate sees from this frame, written to `out`: eyePoint along the crosshair ray's
+ *  heading by the same rule as the shot (aimHeading), or along the partner's facing with no usable ray. Compute it once
+ *  per frame and pass it to eyeSeesPoint / eyeSeesEnemy. Costs one upward ray and one wall check (sim queries), at most */
+export const FRAME_EYE = { x: 0, y: 0, z: 0, ax: 0, ay: 0, az: 0 };
+export function frameEye(ctx: SimContext, out = FRAME_EYE): typeof EYE {
   const ray = ctx.input.aim, P = ctx.player;
-  let hx = 0, hz = 0;
-  const rl = ray ? dhypot(ray.dx, ray.dz) : 0;
-  if (ray && rl > 1e-6) { hx = ray.dx / rl; hz = ray.dz / rl; } else { hx = dsin(P.facing); hz = dcos(P.facing); }
-  const e = eyePoint(ctx, hx, hz, SEE);
+  if (ray) {
+    const L = Math.sqrt(ray.dx * ray.dx + ray.dy * ray.dy + ray.dz * ray.dz);
+    if (L > 1e-6) {
+      const h = aimHeading(ctx, ray.dx / L, ray.dz / L);
+      if (h.x !== 0 || h.z !== 0) return eyePoint(ctx, h.x, h.z, out);
+    }
+  }
+  return eyePoint(ctx, dsin(P.facing), dcos(P.facing), out);
+}
+/** CL-Q7, the information gate's query: does the eye `e` (frameEye) see the point (x, y, z)? A deterministic pure
+ *  function of the sim state for the renderer: not part of the tick or the replay hash. Same sight test as the shot check
+ *  (segmentClear, the attack cover policy): one query */
+export function eyeSeesPoint(ctx: SimContext, e: { x: number; y: number; z: number }, x: number, y: number, z: number): boolean {
   return worldOf(ctx).segmentClear(e.x, e.y, e.z, x, y, z, MASK.los, combatFlags(ctx));
 }
-/** CL-Q7: does the player's eye see live enemy i? Seen when either sample, its top or its centre, is visible
- *  (two rays at most). Partial visibility is ROADMAP F90 */
-export function eyeSeesEnemy(ctx: SimContext, i: number): boolean {
+/** CL-Q7: does the eye `e` (frameEye) see live enemy i? Seen when either sample, its top or its centre, is visible: one
+ *  or two queries. Partial visibility is ROADMAP F90 */
+export function eyeSeesEnemy(ctx: SimContext, e: { x: number; y: number; z: number }, i: number): boolean {
   const E = ctx.enemies;
-  return eyeSeesPoint(ctx, E.x[i], E.y[i] + E.tall[i], E.z[i]) || eyeSeesPoint(ctx, E.x[i], E.y[i] + E.tall[i] / 2, E.z[i]);
+  return eyeSeesPoint(ctx, e, E.x[i], E.y[i] + E.tall[i], E.z[i]) || eyeSeesPoint(ctx, e, E.x[i], E.y[i] + E.tall[i] / 2, E.z[i]);
 }
 
 /** a body the partner is holding: its own shots pass it (effects.ts effectOnBody) */
@@ -172,8 +191,7 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   // (dx, dz) / h0: linear in the horizontal fraction hl, 0 at the pole, no division by a vanishing hl and no facing
   const sp = P.species, m = muzzleOf(ctx, s);
   const up = partnerHeight(sp, ctx.rules) * m.up, fwd = (partnerFootprint(sp, ctx.rules) || partnerRadius(sp, ctx.rules)) * m.fwd;
-  const hl = dhypot(dx, dz);
-  const h0 = muzzleFadeHl(ctx), hx = hl >= h0 ? dx / hl : dx / h0, hz = hl >= h0 ? dz / hl : dz / h0;
+  const hd = aimHeading(ctx, dx, dz), hx = hd.x, hz = hd.z;
   let cx = P.x, cy = P.y + up, cz = P.z;
   let mx = cx + hx * fwd, my = cy, mz = cz + hz * fwd;
   const cf = combatFlags(ctx);

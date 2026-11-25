@@ -19,7 +19,7 @@ import { createRun, disposeRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { compileMove } from '../src/sim/moves';
 import { SK } from '../src/sim/spatial';
-import { eyePoint, eyeSeesPoint, resolveSpatial } from '../src/sim/aim';
+import { eyePoint, eyeSeesPoint, frameEye, resolveSpatial } from '../src/sim/aim';
 import { worldOf } from '../src/sim/worldquery';
 import { BTN, NO_INPUT, freshAimState, type InputFrame, type SimContext, type SimEvent } from '../src/sim/types';
 import { runScenario, SCENARIOS } from './fixtures/scenarios';
@@ -173,8 +173,8 @@ test('CL-Q3 vertical pull-back: a Tiny under an overhang lower than its eye has 
     assert.equal(worldOf(ctx).solidAt(E.x, E.y, E.z), 0, `${engine}: the eye is not inside a solid`);
     // an enemy above the deck, 4 m ahead and 2.5 m up: the line from the eye climbs into the slab
     const e = put(ctx, P[0], P[2] + 4, 2.5);
-    assert.equal(eyeSeesPoint(ctx, ctx.enemies.x[e], 2.5, ctx.enemies.z[e]), false, `${engine}: the eye does not see through the slab`);
     ctx.input = input(ray([P[0] + 1.25, 6, P[2] - 4.5], [P[0], 2.5, P[2] + 4 - ctx.enemies.radius[e] + 0.02]));
+    assert.equal(eyeSeesPoint(ctx, frameEye(ctx), ctx.enemies.x[e], 2.5, ctx.enemies.z[e]), false, `${engine}: the eye does not see through the slab`);
     const out = freshAimState();
     resolveSpatial(ctx, ctx.player.moves[0].spec, out);
     assert.ok(out.eye && Math.abs(out.oy - E.y) < 1e-9, `${engine}: the shot starts at the pulled-down eye`);
@@ -199,6 +199,23 @@ test('CL-Q3 wall pull-back and the ray heading: a wall between the axis and the 
     const out = freshAimState();
     resolveSpatial(ctx, ctx.player.moves[0].spec, out);
     assert.ok(Math.abs(out.ox - (P[0] + an.eye.fwd)) < 1e-6 && Math.abs(out.oz - P[2]) < 1e-6, `${engine}: the launch point is ahead along the ray (${out.ox - P[0]}, ${out.oz - P[2]})`);
+    disposeRun(ctx);
+  }
+});
+
+// ----------------------------------------------------------------------------- CL-Q7: the gate's eye is the shot's eye
+
+test('CL-Q7: the information gate\'s eye is the shot\'s launch point, at the neutral pitch and past the muzzle fade (80° down, 75° up)', () => {
+  for (const engine of ENGINES) for (const deg of [-11, -80, 75]) {
+    // Tauros (quadruped): its eye is 0.59 m ahead, so a heading rule that differs moves the point
+    const { ctx, P } = scene(engine, 'tauros', true);
+    const a = deg * Math.PI / 180, d: V3 = [Math.cos(a) * 0.6, Math.sin(a), Math.cos(a) * 0.8];
+    ctx.input = input({ ox: P[0] - 2, oy: 1.5, oz: P[2] - 3, dx: d[0], dy: d[1], dz: d[2] });
+    const out = freshAimState();
+    assert.ok(resolveSpatial(ctx, ctx.player.moves[0].spec, out), `${engine} ${deg}°: a spatial aim`);
+    const g = frameEye(ctx);
+    assert.ok(out.eye && g.x === out.ox && g.y === out.oy && g.z === out.oz, `${engine} ${deg}°: gate eye (${g.x}, ${g.y}, ${g.z}), shot (${out.ox}, ${out.oy}, ${out.oz})`);
+    if (deg !== -11) assert.ok(Math.hypot(g.x - P[0], g.z - P[2]) < anatomyOf(ctx.player.species, ctx.rules).eye.fwd - 0.05, `${engine} ${deg}°: past the fade the offset is shortened`);
     disposeRun(ctx);
   }
 });
