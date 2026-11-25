@@ -392,9 +392,14 @@ export class CharacterKit {
     // lift the capsule by the step height plus two offsets (a ceiling cuts it short; keep 0: a body pressed against the
     // face is inside the offset of it, where a cast keeping the offset stops at once), carry it there (a slab overhead
     // refuses it), and set it down on what is under it
-    const lift = this.cast(col, io.x, io.y + L, io.z, 0, 1, 0, reach, 0);
-    const ly = io.y + lift, cx = tx - io.x, cz = tz - io.z, cl = Math.sqrt(cx * cx + cz * cz);
-    if (cl > 0 && this.cast(col, io.x, ly + L, io.z, cx / cl, 0, cz / cl, cl) < cl) return ROLL.none;
+    let lift = this.cast(col, io.x, io.y + L, io.z, 0, 1, 0, reach, 0);
+    const cx = tx - io.x, cz = tz - io.z, cl = Math.sqrt(cx * cx + cz * cz);
+    if (lift < reach && cl > 0) {
+      // a ceiling over the start cut the lift short (a deck's corner at head height: navwalk chargestone-cave seed 5,
+      // both flags): lift where the carry arrives instead, out from under it, the carry itself the planar slide above
+      lift = this.cast(col, tx, io.y + L, tz, 0, 1, 0, reach, 0);
+    } else if (cl > 0 && this.cast(col, io.x, io.y + lift + L, io.z, cx / cl, 0, cz / cl, cl) < cl) return ROLL.none;
+    const ly = io.y + lift;
     const drop = this.cast(col, tx, ly + L, tz, 0, -1, 0, lift + 2 * off);
     // what it lands on must be a rise (higher than the support under its axis at the start: a slide along a wall sets it
     // back on its own floor, and that is the controller's answer) no more than the step above what it rested on
