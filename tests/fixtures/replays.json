@@ -100,6 +100,26 @@
     "3e0f71df"
    ],
    "end": "5ce05575"
+  },
+  "range-charmander-rapier": {
+   "checkpoints": [
+    "d1f0a9af",
+    "acbc53f5",
+    "c0eba315",
+    "960f1de2",
+    "311b2dfa"
+   ],
+   "end": "429d96b0"
+  },
+  "gorge-hold-rapier": {
+   "checkpoints": [
+    "e862cd46",
+    "5affd9c7",
+    "e826397e",
+    "c4d2b2e1",
+    "f8ded7f6"
+   ],
+   "end": "9aca717d"
   }
  }
 }
