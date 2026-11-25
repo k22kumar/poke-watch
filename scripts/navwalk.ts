@@ -10,6 +10,10 @@
 //   optional and size-restricted (a chamber or nook behind a one-tile neck, a narrow-only anchor)
 //                                                               the narrow body must arrive; the wide body must not
 // Every tick, every walker's footprint must stay clear of solid geometry (World.fits): navigation and collision agree.
+//   --known <file> (I1b review): a known-failure list (tests/fixtures/navwalk-known.json). A failure that matches a
+//   listed case by identity (map, seed, space, walker size class) and fails the same way (stuck, overlap or budget) is
+//   KNOWN; any other failure is NEW and a listed case failing another way is DIFFERENT (both exit 1); a listed case that
+//   now arrives is FIXED. The list is for one flag setting and refuses another
 //   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'): only the trainer
 //   walks, one per size class, to every mandatory target; its capsule must stay clear of the physics world (the
 //   enemies stay on the tile World until I1c, so their walks are the flag-off run's)
@@ -304,6 +308,7 @@ if (process.argv[1]?.endsWith('navwalk.ts')) {
   const pf = process.argv.indexOf('--physics'), argv = process.argv.slice();
   if (pf >= 0) { PHYSICS = argv[pf + 1] === 'rapier' ? 'rapier' : 'tiles'; argv.splice(pf, 2); }
   if (PHYSICS === 'rapier') await (await import('../src/physics/node')).initPhysicsNode();
+  const ki = argv.indexOf('--known'), knownPath = ki >= 0 ? argv.splice(ki, 2)[1] : null;
   const which = argv[2] ?? 'all', N = Number(argv[3] ?? 5), first = Number(argv[4] ?? 1);
   const ids: ['location' | 'habitat', string][] = [];
   if (which === 'all' || which === 'location') for (const id of Object.keys(LOCATIONS)) ids.push(['location', id]);
@@ -311,15 +316,37 @@ if (process.argv[1]?.endsWith('navwalk.ts')) {
   if (LOCATIONS[which]) ids.push(['location', which]);
   if (HABITATS[which]) ids.push(['habitat', which]);
   const tally: Record<string, { ok: number; n: number }> = {};
+  const failed: WalkResult[] = [], ran: WalkResult[] = [];
   let fails = 0;
   for (const [kind, id] of ids) for (let s = first; s < first + N; s++) {
     for (const r of kind === 'location' ? walkLocation(id, s) : walkHabitat(id, s)) {
       const key = `${r.walker} ${r.expect}`;
       tally[key] ??= { ok: 0, n: 0 }; tally[key].n++; if (r.ok) tally[key].ok++;
-      if (!r.ok) { fails++; console.log(`FAIL ${r.map} seed ${r.seed} ${r.target} ${r.walker} expect ${r.expect} t ${r.t} ${r.note}`); }
+      if (!r.ok) { fails++; failed.push(r); console.log(`FAIL ${r.map} seed ${r.seed} ${r.target} ${r.walker} expect ${r.expect} t ${r.t} ${r.note}`); }
+      ran.push(r);
     }
   }
   for (const [k, v] of Object.entries(tally).sort()) console.log(`${k.padEnd(22)} ${v.ok}/${v.n}`);
   console.log(`\n${fails} failures${PHYSICS === 'rapier' ? ' (physics: the trainer on the character controller)' : ''}`);
   if (fails) process.exitCode = 1;
+  if (knownPath) {
+    type Known = { map: string; seed: number; target: string; walker: string; failure: string; why?: string };
+    const K = JSON.parse((await import('node:fs')).readFileSync(knownPath, 'utf8')) as { setting: { physics: string; nav: string }; cases: Known[] };
+    if (K.setting.physics !== PHYSICS || K.setting.nav !== NAV_ENGINE) throw new Error(`--known: ${knownPath} is for physics ${K.setting.physics}, nav ${K.setting.nav}; this run is physics ${PHYSICS}, nav ${NAV_ENGINE}`);
+    const failureOf = (r: WalkResult) => r.note.startsWith('stuck') ? 'stuck' : r.note.startsWith('overlap') ? 'overlap' : r.note === 'budget' ? 'budget' : 'other';
+    const id = (c: { map: string; seed: number; target: string; walker: string }) => `${c.map} seed ${c.seed} ${c.target} ${c.walker}`;
+    const known = new Map(K.cases.map((c) => [id(c), c]));
+    let bad = 0;
+    console.log(`\nfailures against the known list ${knownPath} (physics ${PHYSICS}, nav ${NAV_ENGINE}):`);
+    for (const r of failed) {
+      const k = known.get(id(r)), f = failureOf(r);
+      if (k && k.failure === f) console.log(`  KNOWN     ${id(r)}: ${f} (${r.note})`);
+      else if (k) { bad++; console.log(`  DIFFERENT ${id(r)}: ${f}, listed as ${k.failure} (${r.note})`); }
+      else { bad++; console.log(`  NEW       ${id(r)}: ${f} (${r.note})`); }
+    }
+    const ranIds = new Set(ran.map(id)), failedIds = new Set(failed.map(id));
+    for (const c of K.cases) if (!failedIds.has(id(c))) console.log(`  ${ranIds.has(id(c)) ? 'FIXED    ' : 'NOT RUN  '} ${id(c)}: listed as ${c.failure}`);
+    console.log(`known-failure gate: ${failed.length - bad} known, ${bad} new or different: ${bad === 0 ? 'PASS' : 'FAIL'}`);
+    process.exitCode = bad ? 1 : 0;
+  }
 }

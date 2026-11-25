@@ -1,0 +1,7 @@
+{
+ "comment": "scripts/navwalk.ts --known: the failures the navwalk gate with both flags may have (owner, 2026-11-25; ROADMAP F74). Matched by map, seed, space and walker size class, and by how the case fails.",
+ "setting": { "physics": "rapier", "nav": "navmesh" },
+ "cases": [
+  { "map": "viridian-forest", "seed": 4, "target": "arena2", "walker": "trainer-medium", "failure": "stuck", "why": "F74: perched on a 0.434 m step's edge beside a 0.934 m block; the climb check measures from the support it rests on, the roll's lift from its feet. The lift-from-support fix moves gorge-hold-rapier and is not in (owner, 2026-11-25); linked to F71." }
+ ]
+}
