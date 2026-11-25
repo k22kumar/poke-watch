@@ -1165,6 +1165,20 @@ grilling and recorded under "Open items"):
   - Follow-up (ROADMAP F98): the fractions are balance values under Q15c, checked with this report at the first 3D
     playtest; whether eyes follow the drawn height instead of the sim height is decided then, through reviewed
     override data, so the sim still never reads the art.
+- **CL-Q7, camera peek (Q15f, reopened by Q15c): an information gate.** The camera keeps its composition (shoulder
+  offset and orbit as today; shrinking them for feel is I2b's call, not a peek fix). The renderer draws a gated thing
+  only when the player's eye sees it.
+  - Scope: the gate hides enemy bodies and the signal kinds whose declared occlusion rule is "hidden by the world"
+    (Q23 signal language). Signals marked "always visible" or "silhouette through cover", incoming telegraphs and
+    attacks aimed at the player, teammates and the player's own partner are never gated.
+  - The query is a deterministic pure function of the sim state (the shot check's sight test, from the eye), called
+    by the renderer, not part of the sim tick or the replay hash. A target counts as seen when either sample (its top
+    or its centre) is visible from the eye. Partial visibility stays F90.
+  - Cost: CL measures it at 500 enemies (two rays each) and proposes a rate (staggered, in-view only) that keeps it
+    inside the frame budget, in the CL report.
+  - Measured for it (today's rig, `main` 25e20ed): the shoulder offset is 0.49–4.01 m (median 1.50); the arm sits 14°
+    over the pivot at the neutral pitch and up to 40° looking down, so for a 4.3 m arm the lens rises 1.0 m and 2.8 m
+    above the eye.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
