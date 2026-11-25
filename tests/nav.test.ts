@@ -28,16 +28,21 @@ const g = (name: string) => GROUPS.indexOf(name as never);
 test('rules.nav: every Recast number is an integer cell count, the groups in ascending height', () => {
   const N = rules.nav;
   for (const k of ['walkableClimb', 'recastClimb', 'tileSize', 'maxEdgeLen', 'minRegionArea', 'mergeRegionArea', 'maxVertsPerPoly', 'giantHeight'] as const) assert.ok(Number.isInteger(N[k]), k);
-  assert.equal(N.walkableClimb, 12, '12 cells = 0.6 m, written (floor(0.6 / 0.05) is 11 in float)');
-  assert.equal(Math.floor(0.6 / 0.05), 11, 'the float trap S1 §8 names');
-  assert.equal(N.recastClimb, N.walkableClimb - 1, 'Recast tests rounded-up tops: one cell under the step keeps every joined rise <= 0.6 m');
-  assert.equal(N.cs, 0.1); assert.equal(N.ch, 0.05); assert.equal(N.walkableSlopeAngle, 45.5);
+  // the step is the sim's (rules.player.stepHeight), written as cells: 30 x 0.02 m (the I3 review's cell height, F79)
+  assert.equal(N.cs, 0.1); assert.equal(N.ch, 0.02); assert.equal(N.walkableSlopeAngle, 45.5);
+  assert.equal(N.walkableClimb, 30, '30 cells = 0.6 m, written');
+  assert.ok(Math.abs(N.walkableClimb * N.ch - rules.player.stepHeight) < 1e-12, 'the step in cells is the sim\'s step');
+  assert.equal(Math.floor(0.6 / 0.05), 11, 'the float trap S1 §8 names (why counts are written, not computed)');
+  assert.equal(N.recastClimb, N.walkableClimb - 1, 'Recast tests rounded-up tops: one cell under the step joins no rise over 0.6 m');
   let last = 0;
   for (const name of GROUPS) {
     const a = N.groups[name];
     assert.ok(Number.isInteger(a.radius) && Number.isInteger(a.height), name);
     assert.ok(a.height >= last, 'ascending agent height'); last = a.height;
   }
+  // Recast's compact span stores clearance in 8 bits (rcCompactSpan::h, clamped to 255): a walkable height over it
+  // never connects (at ch 0.01 Extra Large would be 278 cells)
+  for (const v of [...GROUPS.map((g) => N.groups[g].height), N.giantHeight, N.walkableClimb, N.recastClimb]) assert.ok(v <= 255, `${v} cells fit the 8-bit clearance`);
 });
 
 test('each group\'s agent covers its widest footprint and the tallest body today\'s gates carry for it', () => {
@@ -83,6 +88,40 @@ test('F77 (owner, 2026-11-25): the narrow agent is 4 cells on adapter maps, so a
   }
 });
 
+test('the step boundary (F79): every rise up to 0.58 m joins and none over 0.6 m does, at every voxel alignment and for every group', () => {
+  // two floors meeting at x = 0, the upper `rise` above the lower; the lower floor's top at 20 offsets across 5 cm (2.5
+  // cells), so the rounding of both tops to cells takes every case. The sim climbs a rise <= 0.6 m (rules.player
+  // .stepHeight) and refuses one above: the navmesh may route round one in (0.58, 0.6] (the conservative band of one
+  // cell, ROADMAP F79) but must never join one the sim refuses
+  const always = [0.3, 0.5, 0.55, 0.57, 0.58], never = [0.6005, 0.601, 0.605, 0.61, 0.62, 0.65];
+  const joins = (rise: number, y0: number) => withNav({ size: [16, 16], source: 'habitat:fixture', floors: [{ x0: -8, z0: -8, x1: 0, z1: 8, y: y0 }, { x0: 0, z0: -8, x1: 8, z1: 8, y: y0 + rise }] }, small(), (N) =>
+    GROUPS.map((name) => { const G = g(name), F = N.field(G, 'top', 3, y0 + rise, 0, 1); return !!F && F.goal !== NONE && N.reaches(G, F, -3, y0, 0, 0); }));
+  for (let i = 0; i < 20; i++) {
+    const y0 = 0.3 + 0.0025 * i;
+    for (const rise of always) assert.deepEqual(joins(rise, y0), [true, true, true], `a ${rise} m rise over a floor at ${y0.toFixed(4)} m joins for narrow, large, xl`);
+    for (const rise of never) assert.deepEqual(joins(rise, y0), [false, false, false], `a ${rise} m rise over a floor at ${y0.toFixed(4)} m joins for no group`);
+  }
+});
+
+test('overhead clearance: each group passes under a deck 5 cm higher than its tallest gated body and not under one 5 cm lower, at every alignment', () => {
+  // a corridor whose only way through runs under a slab; the gap from the floor to the slab's underside is the body's
+  // height plus or minus 5 cm (2.5 cells), the floor at 10 offsets across a cell pair
+  const tallest: Record<string, string[]> = { narrow: ['slugma', 'totodile'], large: ['heracross'], xl: ['onix', 'feraligatr'] };
+  for (const name of GROUPS) {
+    const h = Math.max(...tallest[name].map((id) => enemyHeight(SPECIES_BY_ID[id], 1, rules)));
+    for (let i = 0; i < 10; i++) {
+      const y0 = 0.2 + 0.004 * i;
+      for (const [gap, ok] of [[h + 0.05, true], [h - 0.05, false]] as const) {
+        const f: Fixture = { size: [24, 24], floors: [{ x0: -12, z0: -12, x1: 12, z1: 12, y: y0 }], walls: [{ x0: -12, z0: -2, x1: -3, z1: 2, y: 8 }, { x0: 3, z0: -2, x1: 12, z1: 2, y: 8 }], slabs: [{ x0: -3, z0: -2, x1: 3, z1: 2, y0: y0 + gap, y1: y0 + gap + 0.6 }] };
+        withNav(f, small(), (N) => {
+          const G = g(name), F = N.field(G, 'goal', 0, y0, 8, 2)!;
+          assert.equal(N.reaches(G, F, 0, y0, -8, 0), ok, `${name} (${h.toFixed(3)} m) under a ${gap.toFixed(3)} m gap, floor at ${y0.toFixed(3)} m`);
+        });
+      }
+    }
+  }
+});
+
 test('a floor with a wall across it: every group routes round the gap, by corridor following', () => {
   // a 24 x 24 m floor, a wall from the north edge to 4 m short of the south edge
   const f: Fixture = { size: [24, 24], floors: [{ x0: -12, z0: -12, x1: 12, z1: 12, y: 0 }], walls: [{ x0: -0.5, z0: -12, x1: 0.5, z1: 8, y: 3 }] };
@@ -120,7 +159,7 @@ test('width: a 1.2 m gap admits narrow only, 1.6 m narrow and large, 2.0 m every
   }
 });
 
-test('headroom: a 2.4 m gap under a deck admits narrow and large, not Extra Large (56 cells); the giant report height is shut out of 3.5 m', () => {
+test('headroom: a 2.4 m gap under a deck admits narrow and large, not Extra Large (2.78 m); the giant report height is shut out of 3.5 m', () => {
   // a corridor 6 m wide whose only way through runs under a slab 2.4 m above the floor (walls either side)
   const deck = (gap: number): Fixture => ({ size: [24, 24], floors: [{ x0: -12, z0: -12, x1: 12, z1: 12, y: 0 }], walls: [{ x0: -12, z0: -2, x1: -3, z1: 2, y: 6 }, { x0: 3, z0: -2, x1: 12, z1: 2, y: 6 }], slabs: [{ x0: -3, z0: -2, x1: 3, z1: 2, y0: gap, y1: gap + 0.6 }] });
   withNav(deck(2.4), small(), (N) => {

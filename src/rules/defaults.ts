@@ -44,17 +44,22 @@ export const defaultRules = {
   // sim/navseam.ts); 'flow' keeps the tile World's flow and wide fields. Independent of physics.engine. Enemies still
   // move on the tile World (I1c); only their steering changes. Default off until X1a.
   // Every Recast number is an integer cell count, written here and never computed (docs/spikes/S1-physics.md §8, O9:
-  // floor(0.6 / 0.05) is 11 in float).
+  // floor(0.6 / 0.05) is 11 in float). The vertical counts follow the physical sizes they stand for (the sim's 0.6 m
+  // step and the bodies' heights are the authority; tests/nav.test.ts derives them again); the I3 review moved the cell
+  // height from O9's 0.05 m to 0.02 m (ROADMAP F79) and every vertical count with it. Recast stores a compact span's
+  // clearance in 8 bits, so no vertical count may pass 255 cells (5.1 m at 0.02; 0.01 m would put Extra Large at 278).
   nav: {
     engine: 'flow' as 'flow' | 'navmesh',
-    /** [B] cell size and cell height (m), S1 §8 */
-    cs: 0.1, ch: 0.05,
-    /** [B] cells: 12 × 0.05 = 0.6 m, rules.player.stepHeight (S1 §8): the agent's step (Detour's climb, locate's reach) */
-    walkableClimb: 12,
-    /** [B] cells: the climb Recast's build tests. It compares tops rounded up to whole cells, so a count of n accepts a
-     *  true rise of up to n + 1 cells (0.615 m faces on tropical-lagoon seed 3 joined at 12, which moveBody's 0.6 m step
-     *  refuses); 11 keeps every joined rise at or under 0.6 m and may refuse one between 0.55 and 0.6 m */
-    recastClimb: 11,
+    /** [B] cell size (m, S1 §8) and cell height (m: 0.02, the I3 review, ROADMAP F79; O9 had 0.05) */
+    cs: 0.1, ch: 0.02,
+    /** [B] cells: 30 × 0.02 = 0.6 m, rules.player.stepHeight: the agent's step (Detour's climb) */
+    walkableClimb: 30,
+    /** [B] cells: the climb Recast's build tests. Recast compares span tops rounded up to whole cells, so a rise joins by
+     *  where its two tops fall in their cells as well as by its size: a count of n joins every rise up to n cells and
+     *  some up to n + 1. One cell under the step (29) never joins a rise over 0.6 m and joins every rise up to 0.58 m
+     *  (tests/nav.test.ts, at every alignment); one in (0.58, 0.6] m may be cut and routed round (scripts/navrises.ts:
+     *  8 of the 223 on the adapter maps, each about 2 m round). At the step (30) rises up to 0.62 m would join */
+    recastClimb: 29,
     /** [B] degrees: above 45° so a 45° ramp is walkable in float; the controller's climb limit is 46° (S1 §8) */
     walkableSlopeAngle: 45.5,
     /** [C] cells per navmesh tile side (I3 measured; ROADMAP F56) */
@@ -63,24 +68,24 @@ export const defaultRules = {
     inset: 0.01,
     /** [C] Recast's contour and region settings (cells; areas in cells²) */
     maxSimplificationError: 1.3, maxEdgeLen: 120, minRegionArea: 64, mergeRegionArea: 400, maxVertsPerPoly: 6,
-    /** [B] the width groups (WORLDGEN3D Q7): agent radius = the group's widest footprint, agent height = the tallest
-     *  body today's gates carry for it (scripts/navwalk.ts walkers and trainers), both as cells rounded up:
-     *  narrow  Tiny, Small, Medium   r 5 (0.5 m: Medium 0.46)      h 20 (1.00 m: Totodile 0.953)
-     *  large   Large                 r 7 (0.7 m: Large 0.66)       h 34 (1.70 m: Heracross 1.689)
-     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 56 (2.80 m: Onix 2.777)
+    /** [B] the width groups (WORLDGEN3D Q7): agent radius = the group's widest footprint (cs cells), agent height = the
+     *  tallest body today's gates carry for it (scripts/navwalk.ts walkers and trainers; ch cells), both rounded up:
+     *  narrow  Tiny, Small, Medium   r 5 (0.5 m: Medium 0.46)      h 48 (0.96 m: Totodile 0.953)
+     *  large   Large                 r 7 (0.7 m: Large 0.66)       h 85 (1.70 m: Heracross 1.689)
+     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 139 (2.78 m: Onix 2.777)
      *  These radii are the generated maps' (G1's mesh worlds); adapter maps override narrow (adapterRadius). */
     groups: {
-      narrow: { radius: 5, height: 20 },
-      large: { radius: 7, height: 34 },
-      xl: { radius: 9, height: 56 },
+      narrow: { radius: 5, height: 48 },
+      large: { radius: 7, height: 85 },
+      xl: { radius: 9, height: 139 },
     },
     /** [B] cells: the radii on adapter maps (world/adapter.ts isAdapterModel: the tile maps' WorldModels) where they
      *  differ from groups. Owner's decision on F77 (2026-11-25): narrow is 4 cells (0.4 m) on adapter maps, so the tile
      *  maps' 1.0 m one-tile necks stay open as the tile sim has them (at 5 cells they erode shut); Medium (0.46 m)
      *  overlaps a neck's walls by 6 cm there, which I1c re-checks (ROADMAP F77). Generated maps keep 5 (groups.narrow) */
     adapterRadius: { narrow: 4 },
-    /** [B] cells: a giant at the 3.57 m draw cap (72 × 0.05 = 3.60 m), built only by the report of what it would lose */
-    giantHeight: 72,
+    /** [B] cells: a giant at the 3.57 m draw cap (179 × 0.02 = 3.58 m), built only by the report of what it would lose */
+    giantHeight: 179,
     /** [C] m: an agent off its group's navmesh (eroded edges, a crowd's push) steers from the nearest polygon this
      *  close; farther, it has no route (the tile wide field's 2-tile rule) */
     snap: 2,
