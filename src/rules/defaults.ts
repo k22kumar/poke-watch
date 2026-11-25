@@ -39,6 +39,39 @@ export const defaultRules = {
   physics: {
     engine: 'tiles' as 'tiles' | 'rapier',
   },
+  // The 3D overhaul's navigation flag (docs/OVERHAUL_3D.md "Navigation (I3)"): 'navmesh' answers navDir, navReached and
+  // navDist from src/nav (Recast/Detour, one tiled navmesh per width group, built from the tile adapter's WorldModel;
+  // sim/navseam.ts); 'flow' keeps the tile World's flow and wide fields. Independent of physics.engine. Enemies still
+  // move on the tile World (I1c); only their steering changes. Default off until X1a.
+  // Every Recast number is an integer cell count, written here and never computed (docs/spikes/S1-physics.md §8, O9:
+  // floor(0.6 / 0.05) is 11 in float).
+  nav: {
+    engine: 'flow' as 'flow' | 'navmesh',
+    /** [B] cell size and cell height (m), S1 §8 */
+    cs: 0.1, ch: 0.05,
+    /** [B] cells: 12 × 0.05 = 0.6 m, rules.player.stepHeight (S1 §8) */
+    walkableClimb: 12,
+    /** [B] degrees: above 45° so a 45° ramp is walkable in float; the controller's climb limit is 46° (S1 §8) */
+    walkableSlopeAngle: 45.5,
+    /** [C] cells per navmesh tile side (I3 measured; ROADMAP F56) */
+    tileSize: 128,
+    /** [C] m: every rasterised triangle is inset this far in plan (src/nav/build.ts says why) */
+    inset: 0.01,
+    /** [C] Recast's contour and region settings (cells; areas in cells²) */
+    maxSimplificationError: 1.3, maxEdgeLen: 120, minRegionArea: 64, mergeRegionArea: 400, maxVertsPerPoly: 6,
+    /** [B] the width groups (WORLDGEN3D Q7): agent radius = the group's widest footprint, agent height = the tallest
+     *  body today's gates carry for it (scripts/navwalk.ts walkers and trainers), both as cells rounded up:
+     *  narrow  Tiny, Small, Medium   r 5 (0.5 m: Medium 0.46)      h 20 (1.00 m: Totodile 0.953)
+     *  large   Large                 r 7 (0.7 m: Large 0.66)       h 34 (1.70 m: Heracross 1.689)
+     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 56 (2.80 m: Onix 2.777) */
+    groups: {
+      narrow: { radius: 5, height: 20 },
+      large: { radius: 7, height: 34 },
+      xl: { radius: 9, height: 56 },
+    },
+    /** [B] cells: a giant at the 3.57 m draw cap (72 × 0.05 = 3.60 m), built only by the report of what it would lose */
+    giantHeight: 72,
+  },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
   spatial: {
