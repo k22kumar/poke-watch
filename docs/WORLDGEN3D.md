@@ -1179,6 +1179,32 @@ grilling and recorded under "Open items"):
   - Measured for it (today's rig, `main` 25e20ed): the shoulder offset is 0.49–4.01 m (median 1.50); the arm sits 14°
     over the pivot at the neutral pitch and up to 40° looking down, so for a 4.3 m arm the lens rises 1.0 m and 2.8 m
     above the eye.
+  - *Correction (CL, same day):* the question's text said both that the lens is at eye height at the neutral pose and
+    that the orbit raises it 1.0 m above the eye there; the second is today's rig (a pivot under the eye, the arm 14°
+    over it). Under CL-Q4 the lens is at eye height at the neutral pitch, and looking down orbits it up from there,
+    by D × (sin 40° − sin 14°) at 40° down.
+- **CL-Q8, the camera distance law (the 3D rig; the old renderer's framing stays as is): D = 3.5 × the anatomy
+  table's height, inside 1.8–9.0 m.** k, min and max are provisional rules values in the single framing source (Q7c).
+  The camera law is presentation: it never changes physical scale, line of sight, concealment, targeting or combat.
+  The one exception is the map generator, which sizes spaces from it (camera clearance and the tall-dressing keep-out).
+  - k 3.5 is today's median arm ÷ sim height (3.48 over 240 species, p10–p90 3.05–4.39, steady across classes:
+    Tiny 3.42, Small 3.49, Medium 3.54, Large 3.34, Extra Large 3.50), without reading art.
+  - The max was 14 as first answered; the owner chose 9.0 after the generator consequences (below). It binds only
+    above 2.57 m tall, which is no hero (the tallest, Hariyama, 2.29 m, D 8.02 m). Giants above 2.57 m frame at
+    9.0 m and rely on pull-in and fade (I2b). If a body taller than 2.57 m becomes a hero, its framing is judged at a
+    playtest, and raising the max is a planned layout change, not a tuning tweak (ROADMAP F99).
+  - **Generator numbers** (camera clearance sized for the Extra Large class, Q7): the `camera-clearance` ceiling is
+    the tallest eye + 0.45 m deck clearance (3.66 m for a giant at the cap with the largest fraction, 3.57 m for the
+    tallest real eye, Celesteela's 3.12 m), inside the 3.70 m clear height; the short side is D max + footprint
+    radius 0.88 + lens clearance 0.30 = **10.18 m**; the tall-dressing keep-out grows reachable space by
+    D max + 0.30 = **9.30 m** (Q17.5). This replaces the void 8.00 m short side and the Q7(b) camera table.
+  - Measured for it (16 adapter maps: the 10 tile replay scenarios and the 6 habitat recipes at seed 1; every third
+    walkable tile, 4 headings, neutral pose, the arm straight back from the axis at eye height with no shoulder
+    offset, props never stopping the lens; footprint fit ignored, so giants are overcounted). Share of samples where
+    the arm comes within 0.30 m of ground, a deck underside or a bare wall, k 3.5 / k 2.5: giant at the cap (D 12.49 /
+    8.92 m before the max) 26.6 % / 19.8 %; Hariyama (8.02 / 5.72) 19.3 % / 13.7 %; a Medium upright (4.20 / 3.00)
+    10.7 % / 8.5 %; Tynamo (1.93 / 1.80) 8.7 % / 8.7 %, set by the floor clearance, not by D (F96). The lens at 40°
+    down for the giant: 8.22 m (k 3.5, D 12.49), 6.79 m (k 2.5).
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
