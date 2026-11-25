@@ -1243,6 +1243,19 @@ grilling and recorded under "Open items"):
     and the shot never disagree, on both engines.
   - Known edge case: the CL-Q7 gate samples with thin rays and the shot sweeps a volume, so near a cover edge an enemy
     can be drawn while the shot is blocked; the red crosshair covers it. Partial visibility stays F90.
+- **CL-Q12, the bot, the fixed views and the replay crosshair (question g): the aimbot follows the law when
+  flagged.** The bot and the fixed views send no crosshair ray and stay on the planar path, which the flag does not
+  touch, in CL. When the bot moves onto the spatial path (Stage 7A) it takes the eye check and the eye launch; the
+  fixed views retire at X1a (ROADMAP X1a row).
+  - `scripts/lib/aimbot.ts` with `rules.aim.viewSight` on: the lens is at eye height, D from the framing source, and
+    the shoulder stays 1.25 m (a test value only; I2b sets the real shoulder); its target pick uses sight from the eye.
+    Flag off it is unchanged byte for byte, so every hash is as recorded, range-charmander's own rays included.
+  - Measured for it: today's aimbot lens (4.5 m back, 1.7 m up) is 0.15–1.19 m above the draft eye of 9 of the 12
+    scenario species (Caterpie +1.19, Charmander +0.89, Tauros +0.37, Mewtwo +0.15) and below it for Onix (−0.66) and
+    Wailord (−0.24).
+  - The `-viewsight` scenario includes a body whose shots change under the flag (an eye well above the muzzle, or a
+    giant). The CL report says whether its hashes differ from the unflagged twin's, beside the test that the flagged
+    path ran.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 

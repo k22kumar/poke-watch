@@ -550,6 +550,9 @@ because claim 10 shows no stage can be verified without it.
 - **Scope:** enemy melee and ranged use `spatial` (flag); the bot sends an `aim` ray (from its target) so that hashes cover
   the new path. **Risk:** high (every hash moves). **Gates:** one documented migration of the `on` and `gen` sets;
   the balance band from 4B.
+- **CL (2026-11-25):** under `rules.aim.viewSight` (default off until X1a) a spatial shot launches from the anatomy
+  table's eye and is checked from it (docs/WORLDGEN3D.md CL-Q10, CL-Q11). A bot that sends a ray here takes the same eye
+  check and eye launch.
 
 ### Stage 7B: default flip and legacy retirement
 - **Scope:** turn the flags on by default. Older checksum sets turn the new flags off (the established pattern). Retire
