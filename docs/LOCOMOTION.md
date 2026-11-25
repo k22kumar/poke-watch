@@ -3,7 +3,9 @@
 How a Pokémon body's velocity becomes motion. Code: `src/sim/locomotion.ts`. Tests: `tests/locomotion.test.ts`.
 Capabilities: `src/rules/traversal.ts`, `traversalOf` in `src/rules/profiles.ts`, tests `tests/traversal.test.ts`.
 Roadmap: R6 in the architecture audit plan (R6a landed: the seam; R6b: capability data; neither changes behaviour;
-R6c: the Jump control and the vertical intent, behaviour changed only for edge-sending input, see "Controls").
+R6c: the Jump control and the vertical intent, behaviour changed only for edge-sending input, see "Controls"). The 3D
+overhaul's I1b (2026-11-25): the partner's body on Rapier's character controller behind `rules.physics.engine`, see
+"Resolvers"; code `src/physics/controller.ts`, tests `tests/stepping.test.ts`.
 Related: `docs/SIZING.md` (footprints, headroom, `World.moveBody`), `docs/HAZARDS.md` (liquids and falls),
 `docs/CONTROLS.md` (bindings, the input side of the Jump edge, descend).
 
@@ -29,10 +31,11 @@ physics does not.
 | `scripted` | an ability owns planar velocity (direction × speed) | Dash, dash-shaped moves |
 | `volume` | 3-axis thrust, drag, limits | **R6d** (not built) |
 
-All three run the same body step after their drive (`advanceBody`): knockback decay, the planar move (step rule,
-footprint through `World.moveBody`), take-off, gravity and the lift
-row, headroom, the support (landing with the footprint clear, an airborne footprint cleared at its new feet, slope stick, leaving the support), and the rock recovery on
-location maps. A scripted tick keeps gravity and support under it: a dash off a ledge falls, a grounded dash can jump.
+All three run the same body step after their drive (`advanceBody`): knockback decay, take-off, gravity and the lift row
+(`driveVertical`), then a resolver: on the tile model the planar move (step rule, footprint through `World.moveBody`),
+headroom, the support (landing with the footprint clear, an airborne footprint cleared at its new feet, slope stick,
+leaving the support); on physics the character controller ("Resolvers"). Then the rock recovery on location maps. A
+scripted tick keeps gravity and support under it: a dash off a ledge falls, a grounded dash can jump.
 
 **Crossing above wall tops (R1b, docs/SIZING.md "Wall tops").** `LocoTick.over` is an explicit permission to cross above
 a wall prop's finite top. It is separate from the integrator: no integrator grants it by itself, and no driver sets it
@@ -75,6 +78,91 @@ Derived from the world, never chosen. Nothing reads it yet (camera envelopes and
 - Windows are whole ticks: `round(jumpBuffer / dt)` = 7, `round(coyote / dt)` = 6 at the default rules.
 - `my` is carried in the intent and read by no integrator here; look pitch is an input of nothing in this file.
 - Allowed driver difference (contract below): only an edge-sending driver buffers. AI intents carry no edge.
+
+## Resolvers (I1b)
+
+The flag picks the resolver, never the integrator: the drives, the Jump control, gravity and the lift row are one code
+path (`driveVertical` and the three drives), and `advanceBody` hands the tick's translation to the world's `mover` when
+it has one (`rules.physics.engine = 'rapier'`: `World.mover`, `sim/physseam.ts` `PhysicsMover`), else to the tile
+model. Only the partner moves on the controller: enemies and bodies stay on the tile World (I1c, owner O2). The crowd's
+and a resting body's shove of the partner go through the same choice (`pushFootprint`).
+
+**The body.** One capsule per footprint and height (`capsuleOf`, S1 §8): radius footprint − `offset`, the shape
+`height − 2·offset − headMargin` tall, so the controller's envelope is the body with a 1 mm head margin (owner O5).
+Tiny (0.30 m, 0.6 m) leaves no cylinder: a ball of 0.29 m, envelope 0.60 m, no head margin (S1 review finding 5; it
+matters only for an exact 0.6 m gap). The height is the body's `tall` on a map with decks and its footprint's class
+height elsewhere: on an adapter map only deck slabs are overhead, as for the tile model's headroom (ROADMAP F72).
+Numbers: `rules.physics.controller` (offset 0.01, headMargin 0.001, maxSlopeDeg and minSlideDeg 46, snap 0.35, the
+step rule's margin 0.04, tolerance 0.002, minRise 0.01, short 0.98). The step height is `LocoTick.stepUp`
+(`rules.player.stepHeight`, 0.6, or the climb out of a liquid).
+
+**One tick on the controller** (`resolveOnController`, then `CharacterKit.move`):
+1. The vertical drive sets `vy`; the desired translation is `(vx + kx, vy, vz + kz) · dt`.
+2. Rapier's controller slides it against everything that stops a body (collision mode `MODE_MOVE`: the model's
+   colliders, liquids at their surface, the map edge, a wall prop's column above its top, the stair wedges). Autostep
+   and Rapier's snap are off. A supported body sends a planar move only (Rapier returns no movement at all for a capsule
+   resting at its offset asked to move even slightly into the floor).
+3. The step rule, when a supported move came up short against a face: lift the capsule by the step height plus two
+   offsets, carry it along the face's inward normal by radius + margin (then turned 45° to the wish's side, then 45° to
+   the other, where a higher block meets the step at a corner), set it down, and take it only on a stand (the
+   capsule's own contact normal within the climb angle) whose contact point is between `minRise` and the step height
+   (+ tolerance) above what the capsule rested on at the start of the tick (a short cast down from there: the floor, a
+   ramp, or the block edge it is perched on), and only where the capsule fits. Contact to contact, not feet to feet:
+   a wide capsule climbs the location maps' diagonal tile staircases perched on block edges.
+4. Our snap: a supported body (or one the controller calls grounded) is set down within the snap distance on a shape
+   cast; it stays supported on a stand, or while the floor under its axis is within the snap (the tile stick: walking
+   off a 0.3 m ledge never leaves the ground). A falling body lands only when its fall was cut short or it ends
+   touching. A set-down of more than a millimetre is taken only to a pose the capsule fits, backing off up to three
+   offsets (casts grazing an edge can stop past contact, F58).
+5. The seat: a grounded capsule that dipped more than half its offset into the floor (Rapier lets it sink up to its
+   offset where two boxes meet, S1 §7 "Seams") is lifted back, only into free room.
+6. A rising head cut short by a slab spends the jump's speed; grounded is "on the ground and not rising"; x and z keep
+   the tile model's clamp to the map bound.
+
+**Not on the controller:** `LocoTick.over` (R1b's crossing permission; no driver sets it before R6d, so a wall prop's
+column is solid to any height here) and the landing clear (a capsule never stands in a lip). The rock recovery runs on
+both resolvers.
+
+**Liquids** keep today's behaviour (owner, 2026-11-25): the adapter puts no bed under a liquid (F25), so a liquid is a
+floor at its surface for the controller, as the tile model supports a body at the surface; contact (`liquidContact`),
+exposure and the shipped `swim` kind are unchanged. WORLDGEN3D Q9's wade, float, dive and depth-relative damage are
+I4's, with the liquids registry, on maps that have beds.
+
+**State.** The capsule colliders (collision groups 0: no query meets them) are moved to the body before each move, and
+the controller object holds settings only: the Rapier world keeps nothing a later tick reads, so nothing of it is in
+the replay hash (ROADMAP F62). A restored snapshot reuses the capsule colliders by handle.
+
+**Where it differs from the tile resolver** (all measured on the adapter maps):
+- A step is a hop: up to the step height and radius + 4 cm forward in one tick (the tile body walks its centre over the
+  edge first, overlapping the step, then rises).
+- A round bottom rides small lips: the controller climbs a lip lower than about 0.3 × the radius as a slope, and a body
+  perched on a block's edge stands up to that much below the block's top.
+- Walking off a ledge: the round bottom rides the edge down while the floor under its axis comes within the snap, so a
+  drop deeper than the tile stick (0.35 m) is walked down: every class 0.4 m, Medium to Extra Large 0.5 m, Extra Large
+  0.6 m; 0.8 m is a fall for every class (ROADMAP F66).
+- The crowd's and resting bodies' shoves of the partner are summed over their system's loop and resolved in one move
+  (`Shoves`, `flushShoves`): the tile model moves the footprint at each shove, so a later shove there starts from where
+  the earlier one left it.
+- Grounded feet sit within the controller's offset of the floor (f32 contact, a few mm after a slide), not exactly on it;
+  a landing can come a tick earlier or later than on tiles from that millimetre (`scripts/jumptiming.ts --physics
+  rapier`: 8 Hz taps jump at ticks 12 53 94 against 12 54 96).
+
+**Checks.** `tests/stepping.test.ts` (every class climbs 0.3, 0.5, 0.55 and 0.6 m at 0.5–9 m/s head-on and at 45°,
+refuses 0.62, 0.65 and 0.8 m; crease stalls, risk R13: 0 ticks on the climbs and on the range's stair flight; the 2.4 m
+underpass; the drops). The tile tests run unedited on the flag with a preload:
+`npx tsx --import ./tests/setup/physics-on.ts --test tests/locomotion.test.ts tests/jumpcontrol.test.ts` (26 of 27
+pass). The cases that are about tile geometry, not feel:
+- `locomotion: a ballistic body falls under gravity and lands on the support` asserts `y === 0` exactly at the first
+  supported tick: on the controller the feet land 4.7e-9 m below the floor (f32 contact). Its timing (within 2
+  ticks of free fall) holds. The one failure on the flag.
+- `locomotion: the medium is derived from the world` reads the tile model's liquids on a map edited after the physics
+  world was built (`mediumAt` asks `liquidContact`, which stays on the tile World on both resolvers): it passes, but
+  says nothing about the controller.
+- `coyote time` and `jump buffer` walk off a 2 m ledge and fall from 3 m on a flat tile map: they pass, on adapter
+  geometry.
+`scripts/navwalk.ts all 5 --physics rapier` (the trainer of every size class to every mandatory target, capsule clear
+of the physics world every tick) and `scripts/stuckwatch.ts all 3 --physics rapier` (TRAPPED by the controller's own
+headings) are the reachability gates.
 
 ## Capabilities (R6b)
 
