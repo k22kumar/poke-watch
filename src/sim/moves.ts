@@ -849,7 +849,7 @@ function straight(ctx: SimContext, s: MoveSpec, slot: number, spread: number): b
     }
     p.facing = datan2(AIM.ux, AIM.uz);
     ctx.events.push({ t: 'cast', archetype: s.archetype, element: s.element, x: p.x, z: p.z, tx: A3.tx, tz: A3.tz, key: s.key,
-      o: { o: [A3.ox, A3.oy, A3.oz], t: [A3.tx, A3.ty, A3.tz], kind: A3.hitKind, blocked: A3.blocked } });
+      o: A3.eye ? { o: [A3.ox, A3.oy, A3.oz], t: [A3.tx, A3.ty, A3.tz], kind: A3.hitKind, blocked: A3.blocked, eye: true } : { o: [A3.ox, A3.oy, A3.oz], t: [A3.tx, A3.ty, A3.tz], kind: A3.hitKind, blocked: A3.blocked } });
     return true;
   }
   let base: number;

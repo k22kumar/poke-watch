@@ -52,8 +52,10 @@ export interface AimRay { ox: number; oy: number; oz: number; dx: number; dy: nu
  *  `on` is false whenever the spatial path is not in use (flag off, no ray, a move that is not migrated, auto mode). */
 export interface AimState {
   on: boolean;
-  /** the muzzle the shot leaves from (m) */
+  /** the muzzle the shot leaves from (m); the eye under rules.aim.viewSight */
   ox: number; oy: number; oz: number;
+  /** CL-Q10: the launch point is the partner's eye (rules.aim.viewSight), not the muzzle */
+  eye: boolean;
   /** the aim point: where the crosshair ray first meets the world or a target, or its end in empty space */
   tx: number; ty: number; tz: number;
   /** what the crosshair ray met (SK bit from sim/spatial.ts; 0 = nothing within rules.aim.sightRange) and its id */
@@ -66,7 +68,7 @@ export interface AimState {
   reach: number; dist: number;
 }
 export function freshAimState(): AimState {
-  return { on: false, ox: 0, oy: 0, oz: 0, tx: 0, ty: 0, tz: 0, hitKind: 0, hitId: -1, ux: 0, uy: 0, uz: 1, blocked: false, blockKind: 0, bx: 0, by: 0, bz: 0, reach: 0, dist: 0 };
+  return { on: false, ox: 0, oy: 0, oz: 0, eye: false, tx: 0, ty: 0, tz: 0, hitKind: 0, hitId: -1, ux: 0, uy: 0, uz: 1, blocked: false, blockKind: 0, bx: 0, by: 0, bz: 0, reach: 0, dist: 0 };
 }
 /** held-button bits in InputFrame.btn: Move A, Move B, Signature, Guard, and the basic attack (slot 0) */
 export const BTN = { a: 1, b: 2, sig: 4, guard: 8, basic: 16, touch: 32 } as const;
@@ -274,8 +276,9 @@ export type SimEvent =
   | { t: 'kill'; x: number; y: number; z: number; species: number; roles: number; element: Element }
   /** `o`: a cast on the spatial path (Phase 2B): the muzzle `o`, the aim point `t`, what the crosshair met (`kind`, SK
    *  bit, 0 = nothing) and whether the muzzle's line to the aim point is obstructed.
+   *  `eye` (CL-Q10): present and true when the cast launched from the eye (rules.aim.viewSight).
    *  `assist` (Phase 3): the enemy a device's aim assistance (rules.aim.assist) bent this planar cast to */
-  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string; o?: { o: [number, number, number]; t: [number, number, number]; kind: number; blocked: boolean }; assist?: number }
+  | { t: 'cast'; archetype: string; element: Element; x: number; z: number; tx: number; tz: number; key: string; o?: { o: [number, number, number]; t: [number, number, number]; kind: number; blocked: boolean; eye?: true }; assist?: number }
   /** a spatial (3D) player shot ended: on a world solid (`kind`: SK bit), on the actor that used up its pierce
    *  ('actor'), or at the end of its reach ('range'), at (x, y, z) */
   | { t: 'shotEnd'; why: 'world' | 'actor' | 'range'; kind: number; x: number; y: number; z: number; element: Element }

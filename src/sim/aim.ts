@@ -20,11 +20,18 @@
 // Every trace here and in the shots and beams uses one cover policy (combatFlags): foliage is open unless
 // rules.aim.foliageCover, and wall props end at their measured tops (R1b; sim/spatial.ts header).
 //
+// CL, behind rules.aim.viewSight (docs/WORLDGEN3D.md Q15c, CL-Q3, CL-Q10, CL-Q11, CL-Q13; off until X1a): the shot
+// launches from the partner's anatomical eye (src/rules/anatomy.ts; eyePoint below) instead of the muzzle, and the
+// camera trace starts where the ray passes the eye's plane. Step 4's sweep from the eye, which never skips the world,
+// is then the line-of-sight check and the HUD's `blocked`: "what you see is what you can hit". eyeSees is the
+// information gate's query (CL-Q7), for the renderer; nothing in the tick calls it.
+//
 // Nothing here bends the aim toward an enemy (no magnetism) or leads a moving one: the shot goes where the crosshair is.
 // The bot and the fixed views send no ray and stay on moves.ts's planar path (magnetism, lead), as every checksum set
 // expects. Allocation-free: callers own the AimState, the contact lists and queries are module scratch.
 
-import { Contacts, MASK, QF, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
+import { Contacts, MASK, QF, RayHit, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
+import { anatomyOf } from '../rules/anatomy';
 import { partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { dcos, dhypot, dsin } from '../core/detmath';
 import type { AimState, MoveSpec, SimContext } from './types';
@@ -99,6 +106,52 @@ export function launchHeading(ctx: SimContext, ux: number, uz: number): void {
   HEAD.x = dsin(f); HEAD.z = dcos(f);
 }
 
+/** CL-Q3: the world kinds that stop the eye's vertical pull-back (a solid over the body) */
+const OVER = SK.wall | SK.deck | SK.terrain;
+const UPHIT = new RayHit();
+/** how far above the feet the vertical pull-back's ray starts (m): off the floor the feet rest on */
+const UP_LIFT = 0.01;
+
+/** The partner's eye point (CL-Q3), written to `out`: its feet + the anatomy table's `eye.up`, + `eye.fwd` (capped at
+ *  the footprint radius) along the horizontal heading (hx, hz). A solid over the body below the eye (a low overhang, a
+ *  deck underside) pulls the eye down to rules.aim.eyeGap under it; a wall between the body's axis and the eye puts it
+ *  back on the axis. `ax, ay, az`: the axis point at the eye's height. Reads the world, changes nothing */
+export const EYE = { x: 0, y: 0, z: 0, ax: 0, ay: 0, az: 0 };
+export function eyePoint(ctx: SimContext, hx: number, hz: number, out = EYE): typeof EYE {
+  const P = ctx.player, W = worldOf(ctx), sp = P.species, an = anatomyOf(sp, ctx.rules), cf = combatFlags(ctx);
+  const foot = partnerFootprint(sp, ctx.rules) || partnerRadius(sp, ctx.rules);
+  let up = an.eye.up;
+  const fwd = an.eye.fwd < foot ? an.eye.fwd : foot;
+  if (up > UP_LIFT && W.raycast(P.x, P.y + UP_LIFT, P.z, 0, 1, 0, up - UP_LIFT, OVER, UPHIT, 0, 0, cf)) {
+    const y = UP_LIFT + UPHIT.t - ctx.rules.aim.eyeGap;
+    up = y > 0 ? y : 0;
+  }
+  out.ax = P.x; out.ay = P.y + up; out.az = P.z;
+  out.x = P.x + hx * fwd; out.y = out.ay; out.z = P.z + hz * fwd;
+  if (fwd > 0 && !W.segmentClear(out.ax, out.ay, out.az, out.x, out.y, out.z, MASK.los, cf)) { out.x = out.ax; out.z = out.az; }
+  return out;
+}
+
+const SEE = { x: 0, y: 0, z: 0, ax: 0, ay: 0, az: 0 };
+/** CL-Q7, the information gate's query: does the player's eye see the point (x, y, z)? The eye is taken along the
+ *  crosshair ray's heading (the partner's facing with no ray). A deterministic pure function of the sim state for the
+ *  renderer: not part of the tick or the replay hash. Same sight test as the shot check (segmentClear, the attack cover
+ *  policy) */
+export function eyeSeesPoint(ctx: SimContext, x: number, y: number, z: number): boolean {
+  const ray = ctx.input.aim, P = ctx.player;
+  let hx = 0, hz = 0;
+  const rl = ray ? dhypot(ray.dx, ray.dz) : 0;
+  if (ray && rl > 1e-6) { hx = ray.dx / rl; hz = ray.dz / rl; } else { hx = dsin(P.facing); hz = dcos(P.facing); }
+  const e = eyePoint(ctx, hx, hz, SEE);
+  return worldOf(ctx).segmentClear(e.x, e.y, e.z, x, y, z, MASK.los, combatFlags(ctx));
+}
+/** CL-Q7: does the player's eye see live enemy i? Seen when either sample, its top or its centre, is visible
+ *  (two rays at most). Partial visibility is ROADMAP F90 */
+export function eyeSeesEnemy(ctx: SimContext, i: number): boolean {
+  const E = ctx.enemies;
+  return eyeSeesPoint(ctx, E.x[i], E.y[i] + E.tall[i], E.z[i]) || eyeSeesPoint(ctx, E.x[i], E.y[i] + E.tall[i] / 2, E.z[i]);
+}
+
 /** a body the partner is holding: its own shots pass it (effects.ts effectOnBody) */
 const held = (ctx: SimContext, kind: number, id: number) => kind === SK.body && ctx.bodies.holdT[id] > 0;
 
@@ -121,12 +174,16 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   const up = partnerHeight(sp, ctx.rules) * m.up, fwd = (partnerFootprint(sp, ctx.rules) || partnerRadius(sp, ctx.rules)) * m.fwd;
   const hl = dhypot(dx, dz);
   const h0 = muzzleFadeHl(ctx), hx = hl >= h0 ? dx / hl : dx / h0, hz = hl >= h0 ? dz / hl : dz / h0;
-  const cx = P.x, cy = P.y + up, cz = P.z;
+  let cx = P.x, cy = P.y + up, cz = P.z;
   let mx = cx + hx * fwd, my = cy, mz = cz + hz * fwd;
   const cf = combatFlags(ctx);
-  if (!W.segmentClear(cx, cy, cz, mx, my, mz, MASK.los, cf)) { mx = cx; my = cy; mz = cz; }
+  if (R.viewSight) {
+    // CL-Q10, CL-Q13: the eye is the launch point and the trace starts at its plane
+    const e = eyePoint(ctx, hx, hz);
+    mx = cx = e.x; my = cy = e.y; mz = cz = e.z;
+  } else if (!W.segmentClear(cx, cy, cz, mx, my, mz, MASK.los, cf)) { mx = cx; my = cy; mz = cz; }
 
-  // 1. the camera trace, from the chest plane out
+  // 1. the camera trace, from the chest plane out (the eye's plane under rules.aim.viewSight)
   const vx0 = cx - ray.ox, vy0 = cy - ray.oy, vz0 = cz - ray.oz;
   let t0 = vx0 * dx + vy0 * dy + vz0 * dz;
   if (!(t0 > 0)) t0 = 0;
@@ -166,7 +223,7 @@ export function resolveSpatial(ctx: SimContext, s: MoveSpec, out: AimState): boo
   }
 
   out.on = true;
-  out.ox = mx; out.oy = my; out.oz = mz;
+  out.ox = mx; out.oy = my; out.oz = mz; out.eye = R.viewSight;
   out.tx = tx; out.ty = ty; out.tz = tz; out.hitKind = kind; out.hitId = id;
   out.ux = ux; out.uy = uy; out.uz = uz;
   out.blocked = blocked; out.blockKind = bk; out.bx = bx; out.by = by; out.bz = bz;
