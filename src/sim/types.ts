@@ -403,5 +403,7 @@ export interface SimContext {
   targets: import('./targets').TargetState | null;
   /** Phase 8a: the capability event log (death recap, pokewatch.debug('caps')) and the recap written when the run ends */
   caplog: import('./caplog').CapLog;
+  /** rules.physics.engine 'rapier': the physics bridge (sim/physseam.ts) worldOf and sim/spatial.ts ask; null on tiles */
+  physics: import('./physseam').PhysicsBridge | null;
   recap: string[] | null;
 }

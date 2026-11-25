@@ -58,6 +58,10 @@
 // no contact depends on the slack. Other grid readers (grid.query) still miss them until the next rebuild. The renderer may call the world-only
 // functions (raycastWorld, segmentClear, solidAt): they read static map state only. It must not call the actor queries.
 //
+// Physics (I1a): with rules.physics.engine 'rapier' (ctx.physics set) a sweep's world contact and an overlap's sight lines
+// come from src/physics through sim/physseam.ts instead of castWorld; the actor half below is the same either way.
+// tests/physics-parity.test.ts lists where the two world models differ.
+//
 // Module split (C2): the world kinds, the column model, the tile walk and the map-only tests (mapSegmentClear,
 // mapExposureClear) live in world/sight.ts so world code can read them without importing the sim; this module adds the
 // World-bound entries and the actor queries.
@@ -76,6 +80,8 @@ import type { SpeciesDef } from '../rules/species';
 import type { Rules } from '../rules/defaults';
 import { partnerHeight, partnerRadius } from '../rules/sizing';
 import { BODY_KINDS, BODY_TEMPLATES } from '../rules/materials';
+import type { PhysicsBridge } from './physseam';
+import { STOPS } from '../physics/world';
 
 /** the world kinds, flags and first-hit record (world/sight.ts), re-exported for the sim's readers */
 export { SK, SK_WORLD, CF, QF, RayHit } from '../world/sight';
@@ -356,7 +362,9 @@ function sweepCore(ctx: SimContext, q: SpatialQuery, out: Contacts): number {
   if (!(F[MAXT] >= 0)) F[MAXT] = 0;
   if (F[MAXT] === Infinity) F[MAXT] = 2 * (W.w + W.h) + 64;
   F[KL] = F[MAXT];
-  if (q.mask & SK_WORLD && castWorld(geoOf(W), q.mask, q.flags, WH)) {
+  // I1a swap: with rules.physics.engine 'rapier' the world contact comes from src/physics (sim/physseam.ts)
+  const PB = ctx.physics;
+  if (q.mask & SK_WORLD && (PB ? PB.castWorld(W, F[OX], F[OY], F[OZ], F[DX], F[DY], F[DZ], F[MAXT], F[RAD], F[HH], q.mask, q.flags, WH) : castWorld(geoOf(W), q.mask, q.flags, WH))) {
     F[IT] = WH.t; F[IX] = WH.x; F[IY] = WH.y; F[IZ] = WH.z; F[INX] = WH.nx; F[INY] = WH.ny; F[INZ] = WH.nz;
     insert(out, WH.kind, WH.id, WH.flags & (CF.initial | CF.seal));
     F[KL] = WH.t;
@@ -423,6 +431,8 @@ export function sweepTo(ctx: SimContext, x0: number, y0: number, z0: number, x1:
 
 let QWEDGE = false, QLOS = 0, QLOSF = 0;
 let QW: Geo | null = null;
+/** I1a: the overlap's sight lines on physics (the run's bridge and tile world), else null */
+let QPB: PhysicsBridge | null = null, QPW: World | null = null;
 
 /** the actor cylinder in F[KX..KR] (KYB..KYT its vertical extent, KR its radius) against the overlap shape in F[Q*] */
 function overlapActor(out: Contacts, kind: number, id: number) {
@@ -450,7 +460,7 @@ function overlapActor(out: Contacts, kind: number, id: number) {
     const lx = cx - F[QX], ly = cy - F[QYM], lz = cz - F[QZ], L = Math.sqrt(lx * lx + ly * ly + lz * lz);
     if (L > 0) {
       F[OX] = F[QX]; F[OY] = F[QYM]; F[OZ] = F[QZ]; F[DX] = lx / L; F[DY] = ly / L; F[DZ] = lz / L; F[MAXT] = L; F[RAD] = 0; F[HH] = 0;
-      if (castWorld(QW!, QLOS, QLOSF, LOS_HIT)) { out.occluded++; return; }
+      if (QPB ? !QPB.worldFor(QPW!).clear(F[QX], F[QYM], F[QZ], cx, cy, cz, QLOS, QLOSF, STOPS.sight) : castWorld(QW!, QLOS, QLOSF, LOS_HIT)) { out.occluded++; return; }
     }
   }
   F[IT] = d; F[IX] = cx; F[IY] = cy; F[IZ] = cz; F[INX] = d > 0 ? ux / d : 0; F[INY] = 0; F[INZ] = d > 0 ? uz / d : 0;
@@ -460,7 +470,8 @@ function overlapActor(out: Contacts, kind: number, id: number) {
 /** the shape is in F[Q*] */
 function overlap(ctx: SimContext, q: SpatialQuery, out: Contacts): number {
   out.n = 0; out.truncated = false; out.occluded = 0; out.stop = -1; out.stopT = F[QR];
-  QW = geoOf(ctx.world); QLOS = (q.flags & QF.sight) !== 0 ? q.mask & SK_WORLD : 0; QLOSF = q.flags & QF_WORLD;
+  QPB = ctx.physics; QPW = ctx.world;
+  QW = QPB ? null : geoOf(ctx.world); QLOS = (q.flags & QF.sight) !== 0 ? q.mask & SK_WORLD : 0; QLOSF = q.flags & QF_WORLD;
   if (q.mask & SK.enemy) {
     const E = ctx.enemies, G = ctx.grid, cell = G.cell, ext = G.extent / 2, dim = G.dim, x = F[QX], z = F[QZ];
     const BR = enemyBroad(ctx), mark = BR.mark, sg = BR.stamp;
@@ -501,7 +512,7 @@ function overlap(ctx: SimContext, q: SpatialQuery, out: Contacts): number {
       overlapActor(out, SK.body, b);
     }
   }
-  QW = null;
+  QW = null; QPB = null; QPW = null;
   return out.n;
 }
 

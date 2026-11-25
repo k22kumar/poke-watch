@@ -32,6 +32,12 @@ export const defaultRules = {
     size: 112, // [B] handcrafted arena, 1 tile = 1 m (src/world/arenas.ts). PokéBonk's heightfield was 280 m [C]
     gridCell: 3, // [C] spatial grid cell (m)
   },
+  // The 3D overhaul's physics flag (docs/OVERHAUL_3D.md "Migration rules", task I1a): 'rapier' answers the world half of
+  // aim, line of sight, shots and beams with src/physics (Rapier, built from the tile adapter's WorldModel; sim/physseam.ts);
+  // 'tiles' keeps the tile column model. Movement stays on the tile World either way until I1b. Default off until X1a.
+  physics: {
+    engine: 'tiles' as 'tiles' | 'rapier',
+  },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
   spatial: {
