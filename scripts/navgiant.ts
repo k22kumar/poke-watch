@@ -17,6 +17,8 @@ const N0 = Number(process.argv[2] ?? 5), first = Number(process.argv[3] ?? 1);
 const rulesFor = (id: string, seed: number): Rules => ({ ...defaultRules, worldgen: { ...defaultRules.worldgen, mode: 'generated' as const, regionSeed: seed, locations: { meadow: id } } }) as Rules;
 const giant = { name: 'giant', agent: { radius: defaultRules.nav.groups.xl.radius, height: defaultRules.nav.giantHeight } };
 let lost = 0, lostMandatory = 0, checked = 0;
+/** the targets checked by kind (a Hold's contest and spawn, a map's zones and anchors) */
+const kinds: Record<string, number> = {};
 for (const id of [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)]) for (let s = first; s < first + N0; s++) {
   const rules = rulesFor(id, s), W = new World(rules, BIOMES.meadow, s), half = W.half;
   const N = NavWorld.build(fromArenaMap(W.map), rules, [giant]);
@@ -28,11 +30,15 @@ for (const id of [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)]) for (let
     const targets: { name: string; x: number; z: number; mandatory: boolean }[] = [];
     if (W.hab) targets.push({ name: 'contest', x: W.hab.contest.x - half, z: W.hab.contest.y - half, mandatory: true }, { name: 'spawn', x: W.spawn[0], z: W.spawn[1], mandatory: true });
     for (const z of L?.zones ?? []) if (z.kind !== 'hub' && z.kind !== 'entrance') targets.push({ name: z.kind + z.id, x: Math.floor(z.x) - half + 0.5, z: Math.floor(z.y) - half + 0.5, mandatory: z.kind === 'boss' || z.kind === 'arena' });
+    // the anchors (scripts/navwalk.ts walks the Extra Large walker to those its wide field reaches)
+    for (const [ax, ay] of L?.anchors ?? []) targets.push({ name: `anchor${ax},${ay}`, x: ax - half + 0.5, z: ay - half + 0.5, mandatory: false });
     const Fx = N.field(xl, 'start', sx, W.height(sx, sz), sz, 4), Fg = N.field(gi, 'start', sx, W.height(sx, sz), sz, 4);
     for (const t of targets) {
       const y = W.height(t.x, t.z), a = N.reaches(xl, Fx, t.x, y, t.z, 3), b = N.reaches(gi, Fg, t.x, y, t.z, 3);
       if (!a) continue;
       checked++;
+      const kind = t.name === 'contest' || t.name === 'spawn' ? t.name : t.name.startsWith('anchor') ? 'anchor' : 'zone';
+      kinds[kind] = (kinds[kind] ?? 0) + 1;
       if (!b) { lost++; if (t.mandatory) lostMandatory++; console.log(`LOST ${id} seed ${s} ${t.name}${t.mandatory ? ' (mandatory)' : ''}: the Extra Large navmesh reaches it, a giant at the cap does not`); }
     }
     // walkable area (m²) on the Extra Large navmesh with no giant polygon over it, sampled on a 0.5 m lattice
@@ -45,4 +51,4 @@ for (const id of [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)]) for (let
     if (only > 0) console.log(`  ${id} seed ${s}: ${only.toFixed(0)} m² Extra Large ground a giant cannot stand on (under decks)`);
   } finally { N.dispose(); }
 }
-console.log(`\n${checked} targets the Extra Large navmesh reaches; a giant at the 3.57 m cap loses ${lost} (${lostMandatory} mandatory)`);
+console.log(`\n${checked} targets the Extra Large navmesh reaches (${Object.entries(kinds).map(([k, v]) => `${k} ${v}`).join(', ')}); a giant at the 3.57 m cap loses ${lost} (${lostMandatory} mandatory)`);

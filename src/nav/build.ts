@@ -52,6 +52,12 @@ export interface NavConfig {
   /** cells² */
   minRegionArea: number; mergeRegionArea: number;
   maxVertsPerPoly: number;
+  /** a measurement switch, not a rule (I3 review, ROADMAP F78): build Recast's detail mesh with this sample distance
+   *  and max error (m, rcBuildPolyMeshDetail's own units) and hand it to Detour. Absent (the game): no detail mesh;
+   *  NavGraph reads polygon heights from their vertices either way */
+  detail?: { sampleDist: number; sampleMaxError: number };
+  /** a measurement switch, not a rule (I3 review, ROADMAP F80): run rcFilterLedgeSpans (the game does not) */
+  ledgeFilter?: boolean;
 }
 
 /** one width group's agent, in cells */
@@ -329,9 +335,11 @@ export class NavTiles {
     // walkableClimb) clears the corner cells of every diagonal terraced slope on the tile maps (0.3-0.4 m a tile, so a
     // corner cell sees +0.4 and -0.3), cutting ramps the sim walks (Viridian Forest seed 1). Drops need no filter here:
     // a cell does not connect across a drop larger than the climb, and erosion keeps the agent its radius from it
+    if (C.ledgeFilter) R.filterLedgeSpans(ctx, A.height, C.recastClimb, hf);
     R.filterWalkableLowHeightSpans(ctx, A.height, hf);
     mark('filter');
     let chf: RecastCompactHeightfield | null = null, cset: ReturnType<typeof R.allocContourSet> | null = null, pmesh: ReturnType<typeof R.allocPolyMesh> | null = null;
+    let dmesh: ReturnType<typeof R.allocPolyMeshDetail> | null = null;
     try {
       chf = R.allocCompactHeightfield();
       if (!R.buildCompactHeightfield(ctx, A.height, C.recastClimb, hf, chf)) throw new Error('nav: buildCompactHeightfield');
@@ -358,8 +366,14 @@ export class NavTiles {
       const polys = pmesh.npolys();
       if (polys === 0) return;
       for (let i = 0; i < polys; i++) pmesh.setFlags(i, FLAG.walk);
+      if (C.detail) {
+        dmesh = R.allocPolyMeshDetail();
+        if (!R.buildPolyMeshDetail(ctx, pmesh, chf, C.detail.sampleDist, C.detail.sampleMaxError, dmesh)) throw new Error('nav: buildPolyMeshDetail');
+        mark('detail');
+      }
       const P = new R.NavMeshCreateParams();
       P.setPolyMeshCreateParams(pmesh);
+      if (dmesh) P.setPolyMeshDetailCreateParams(dmesh);
       P.setWalkableHeight(A.height * C.ch);
       P.setWalkableRadius(A.radius * C.cs);
       P.setWalkableClimb(C.walkableClimb * C.ch);
@@ -381,6 +395,7 @@ export class NavTiles {
       if (chf) R.freeCompactHeightfield(chf);
       if (cset) R.freeContourSet(cset);
       if (pmesh) R.freePolyMesh(pmesh);
+      if (dmesh) R.freePolyMeshDetail(dmesh);
     }
   }
 
