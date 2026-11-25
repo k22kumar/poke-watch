@@ -38,6 +38,14 @@ What was dropped:
 - The 3-axis shape profile, because no asset has 3-axis bounds.
 - `scaleSpriteFrame`, because the renderer already scales against the idle feet anchor.
 
+## The anatomy table
+
+`src/rules/anatomy.ts` (CL, 2026-11-25; docs/WORLDGEN3D.md Q15c, CL-Q2, CL-Q6) builds on these bodies: per species a
+height (the sim height here), a length and a width (the footprint diameter), the gameplay eye and named attack origins,
+from defaults by official shape (`rules.anatomy`) with reviewed overrides. Only the 3D camera law and
+`rules.aim.viewSight` read it; the sim bodies still come from this table's classes (ROADMAP F91). Its lint against the
+sprites is docs/anatomy-lint.md.
+
 ## Which class a Pokémon gets
 
 `bodyOf(species)` in `src/rules/sizing.ts` checks these in order:

@@ -1177,7 +1177,13 @@ grilling and recorded under "Open items"):
     by the renderer, not part of the sim tick or the replay hash. A target counts as seen when either sample (its top
     or its centre) is visible from the eye. Partial visibility stays F90.
   - Cost: CL measures it at 500 enemies (two rays each) and proposes a rate (staggered, in-view only) that keeps it
-    inside the frame budget, in the CL report.
+    inside the frame budget, in the CL report. *Measured (`scripts/eyecost.ts`, the perf-sim crowd at about 500
+    enemies, every 10th tick, 3 seeds):* a full pass over every live enemy costs p50 0.44 / p95 0.84 / p99 0.96 ms on
+    tiles (0.74 µs a ray) and p50 1.50 / p95 2.57 / p99 3.06 ms on Rapier (2.6 µs a ray); about 83 % of the crowd is
+    seen. *Proposed rate (for I2b):* enemies in the view frustum only, staggered over 4 frames (each re-tested every
+    4th frame, 15 Hz at 60 fps), and one entering the frustum tested on its first frame: about a quarter of a full pass
+    times the in-view share per frame, under 0.7 ms at p95 on Rapier even with every enemy in view (3.9 % of a 60 fps
+    frame), with the gate's fade hiding the 67 ms latency.
   - Measured for it (today's rig, `main` 25e20ed): the shoulder offset is 0.49–4.01 m (median 1.50); the arm sits 14°
     over the pivot at the neutral pitch and up to 40° looking down, so for a 4.3 m arm the lens rises 1.0 m and 2.8 m
     above the eye.
@@ -1271,7 +1277,14 @@ grilling and recorded under "Open items"):
     the same except Gorge (6 → 2, on both engines).
   - The CL report gives the counts for the flagged aimbot (lens at eye height, CL-Q8's distance). If they stay high
     (Grotto), the aimbot gets a simple lens pull-in (a ray back from the eye, stopping short of the first hit), in the
-    test harness only.
+    test harness only. *Measured:* without the pull-in the flagged aimbot's trace starts inside a solid on 2,175 of
+    3,600 Grotto ticks (60 %), so it has one (`scripts/lib/aimbot.ts`, flagged only). With it: range-charmander 11
+    (its own rays), range-caterpie 0, range-tauros 0, range-mewtwo 0, Mt. Moon Onix 0, Wailord 0, Grotto 207, Crater
+    188, Gorge 99 (the same on Rapier and on the navmesh), range-swap 371, of 3,600 each. The rest are rays crossing
+    the eye's plane inside a wall or prop the body stands beside, which the skip handles (D6, the aim point only).
+  - *Shown by the test (`tests/viewsight.test.ts`):* with the trace starting inside a 3 m block, the aim point lies
+    0.5 m ahead, at the next tile boundary inside the rock, on tiles, and on the ground 10 m ahead, beyond the merged
+    box, on Rapier; on both the shot from the eye is blocked and the HUD says so.
   - ROADMAP F59 is narrowed to an aim-point difference, re-measured on the mesh world at G1.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
