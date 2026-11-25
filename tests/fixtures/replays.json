@@ -123,13 +123,13 @@
   },
   "gorge-hold-navmesh": {
    "checkpoints": [
-    "d47cf412",
-    "441ba614",
-    "88102a87",
-    "c8b7b005",
-    "fc1ab12e"
+    "a2e854f7",
+    "e3ff4e0e",
+    "f58c04f8",
+    "a692ccd5",
+    "3d4b2abd"
    ],
-   "end": "0fcabbbd"
+   "end": "e033c9b2"
   }
  }
 }
