@@ -6,7 +6,11 @@ Hold map. Every decision below is the owner's, dated, from the G0 grilling unles
 
 **Status: grilling complete (2026-11-23 to 2026-11-24), Q1–Q22.** Every topic of the G0 brief has a decision. What
 is still undecided, unmeasured or missing is listed under "Open items" at the end. "WorldModel contract changes"
-collects what G1 has to add to `src/world/model.ts`. No code was written.
+collects what has to be added to `src/world/model.ts` (task WM2, by the owner's answer C). No code was written.
+
+**The owner's review of 2026-11-24** corrected five points (two in Q3, Q8h, Q14.2, G1's dependencies) and gave four
+answers: A (Q19 amendment d), B (the cutover's scope), C (task WM2) and D (task CL). Each is recorded where it
+applies, dated; B, C and D are also under "Open items", task order and scope.
 
 **Q23 (the low-poly profile and the render plan) is the owner's addition of 2026-11-24, after the grilling.** The
 wording it replaces in the earlier sections (Q14 to Q22, the contract table, the open items) is kept where it was
@@ -128,10 +132,19 @@ The WorldModel gains a slim projection of the space IR. This is a contract chang
   - Blueprint §7 says "heightfield per terrain chunk". The generator keeps a height grid as its authoring form and
     emits it as trimesh chunks; the Rapier heightfield collider is not used.
   - Blueprint rule 4 allows trimesh only for SDF caves. Here trimesh is also the collider for sweeps and for terrain.
-  - The reason is S1's measurements (docs/spikes/S1-physics.md §2, §3, §7): per body-tick the heightfield cost
-    148 µs against 28 µs for merged trimesh and 77 µs for boxes; it has no holes, so it forces a bed under liquids and
-    cannot open at a cave mouth or a shaft; and an Extra Large body stuck under a 2.4 m deck at margin 0 on a
-    heightfield floor only. The research report's "heightfields for open ground (per S1)" misreads S1.
+  - **The reason is holes and one source** (rewritten in the owner's review, 2026-11-24).
+    - A heightfield has no holes. It forces a bed under liquids and cannot open at a cave mouth or a shaft.
+    - A trimesh cut from the generator's own grid is also the drawn ground, so what is drawn is what collides ("One
+      source", below).
+    - **Cost does not decide it, and controller cost on a terrain trimesh is unmeasured.** S1 §3 timed one body per
+      world, per body-tick: boxes 76.9 µs, the 9,190-triangle boxmesh 28.1 µs, the trimesh at terrain resolution
+      ("chunks", 29,234 triangles) 145.9 µs, the heightfield 148.0 µs. A trimesh at terrain resolution is level with
+      the heightfield. S1 §5 has the boxmesh 1.7–2.1 × slower than boxes per controller in a crowd of 50. G1
+      measures the generated terrain before the 80,000-triangle cap is accepted ("Open items").
+    - The first version of this bullet gave "28 µs for merged trimesh" against the heightfield's 148 µs as the
+      reason. That 28.1 µs is the small boxmesh, not a terrain mesh.
+    - S1 also saw an Extra Large body stuck under a 2.4 m deck at margin 0 on a heightfield floor only (§7 D).
+    - The G0 brief's summary "heightfields for open ground (per S1)" misreads S1.
 - **S1 O3 is refined, not reversed.** O3's "trimesh chunks from the collision output" now covers terrain and sweeps;
   structures stay boxes (one box per wall: the collider comes from the piece's meaning, not from a render mesh). G1's
   re-measure is the tie-break: it compares this hybrid with all-merged trimesh on the first map and may move
@@ -338,7 +351,9 @@ Every number here is computed from `rules.size` with Q6's 0.10 m keep-away. None
      every movement mode (walk, fly, burrow, swim) and does not block shots or sight. The spawn-safety gate therefore
      checks that spawn exits are not exposed to long sight lines. Roofs and canopies near spawns are optional art.
      The barrier is team-specific, so it is emitted as a volume with its team and enforced by the sim, not as a
-     static collider (a `model.ts` volume kind; I1b enforces it).
+     static collider (a `model.ts` volume kind). The sim rule that enforces it lands with G2, the first map with a
+     barrier, and is tested on the range's spawn-barrier station (Q22a), whose geometry G1 builds. *(Corrected in
+     the owner's review, 2026-11-24: this read "I1b enforces it".)*
 5. **Fly-only space is allowed, budgeted and never essential.** A space reached only by `fly` edges may be a
    `vantage` or `hidden`, never an `objective`, `staging` or `spawn`, and never on a required route. It counts toward
    `exclusiveAccessShare`, and it has a ground counter position: reachable by every body, within weapon range, with
@@ -402,6 +417,9 @@ bed). The sim side is input to I4 and I1b; the generator's part is depth, banks,
 - **(10) Tunables.** All of these numbers live in one data-driven rules file. The tunables version is part of
   `gameplayHash`, so changing a tunable marks the affected maps for re-validation. (`gameplayHash` is defined with
   determinism, below.)
+  - *(Superseded by Q19(d), 2026-11-24.)* The tunables reach `requirementsHash`, which is a validation stamp beside
+    `gameplayHash`, not a part of it. A changed stamp marks the curated seeds for re-validation. A map's
+    `gameplayHash` moves only when the tunable changes the map itself.
 - **Baseline stays dry** (as proposed, unchanged by 1–10): required routes never enter a liquid, in any environment
   state. `swim` and `dive` are capability overlays added after the baseline passes; swim-only or dive-only space
   counts toward `exclusiveAccessShare` and needs a ground counter and reach-and-return (as Q8.5).
@@ -778,6 +796,10 @@ carries per-recipe sub-schemas (`tide`, `graves`).
    }
    ```
 
+   - *(Owner's review, 2026-11-24.)* `curatedSeeds: number[]` is shorthand. The curated list must carry each
+     seed's recorded `gameplayHash`, which run start compares against (Q12.3), and beside it the `requirementsHash`
+     stamp of Q19(d). The shape of that record is G1's.
+
 3. **What a recipe cannot hold:** any class A–C threshold; movement, size or camera numbers (derived from rules).
    *(Species names were on this list in the proposal; (e) removes them from it.)*
    - *Reworded by Q16(a):* a recipe may hold both the **physical binding** (role → `MaterialId`, hashed) and an
@@ -805,6 +827,8 @@ carries per-recipe sub-schemas (`tide`, `graves`).
     other five recipes is a roadmap item.
     - *(c)* **It is built in layers, each a passing checkpoint:** baseline walking routes → the "over" tertiary →
       the "under" tertiary (burrow, then dive) → liquid states → stateful features and the concealment volume.
+      - *(Owner, 2026-11-24, answer B.)* The cutover X1a needs layer 1 only. Layers 2–5 are tasks after X1c
+        ("Open items", task order and scope).
 
 **(a) A dev-only experiment overrides file** (the blueprint's expert layer). It may override any tunable or threshold
 for experimentation. A map generated with it is always unranked, never curated, and can never ship. Shipped recipes
@@ -823,6 +847,8 @@ blueprint (the owner's 2026-11-23 decision in the brief: no schema library).
   recipe's species through `traversalOf` and uses capabilities only.
 - `validateRecipe` fails if a tertiary serves a capability that no species in the pool holds.
 - The species selection is part of `gameplayHash` when it affects validation.
+  - *(Superseded by Q19(d), 2026-11-24.)* The species capability set is part of `requirementsHash`, the validation
+    stamp. It moves a map's `gameplayHash` only through the geometry it changes.
 - This supersedes "no recipe names a species" in Q8.1; the rest of Q8.1 stands.
 
 **(f) No visual variants of a map.** No snow or ash versions; each map has one style binding.
@@ -930,6 +956,9 @@ What (g) leaves standing and what it voids, as read here:
   camera justification is void.
 - The 8.00 m short side and the Q7(b) camera table are void until the camera law has its numbers (the view band and
   the camera distance). The `camera-clearance` tag stays; its dimension rule is open until then.
+  - *(Owner, 2026-11-24, answer D.)* "The camera task" in this document is the new task **CL, "Camera law"**,
+    queued before G2 and I2b: the view band and the camera distance law in `src/rules` (Q7c), and the sim rule
+    above (line of sight from the clamped view point, `src/sim/aim.ts`), flagged off until X1a.
 - A sight sample has two ends: the viewer at its clamped view height, the target as its body (to its top). Cover
   hides by body height; a body sees over cover by view height.
 - The camera documents (docs/CAMERA.md, docs/THIRD_PERSON.md) still describe the framing law this replaces. They
@@ -1135,7 +1164,7 @@ Today the look is spread over four tables: `BIOMES` colours (`src/rules/stages.t
      still computes light levels from that data.
 10. **The old tables** are deleted with the tile stack at X1b.
 
-### Q19 Determinism, versions, hashes and replay links (owner, 2026-11-24: accepted with amendments a–c)
+### Q19 Determinism, versions, hashes and replay links (owner, 2026-11-24: accepted with amendments a–c; amendment (d) added 2026-11-24)
 
 Checked on main 583dcea. `src/core/detmath.ts` exports `dsin`, `dcos`, `datan2`, `dhypot`, `dexp`, `dlog` and `dpow`.
 `src/core/rng.ts` has `Rng` and named streams (`streamSeed(seed, name)`); its `fnv1a` is 32-bit. `WorldMeta.version`
@@ -1160,9 +1189,13 @@ checkpoints and an end hash, and nothing about the map.
    - `requirementsHash`: the hash of what `compile` returns (Q14.5). That record already holds every generation
      parameter, every threshold and the species capability set, so tunables need no hand-kept version number, and
      only a tunable that reaches generation or validation moves the hash.
+     - *(d)* It is a **validation stamp**, stored beside `gameplayHash` in the curated record. It is not part of a
+       map's identity.
 4. **`gameplayHash`** is the hash of `MODEL_VERSION`, `WORLD_VERSION`, `requirementsHash` and the canonical bytes of
    the gameplay model: colliders, volumes, `navInput` with the volume-routing graph, markers, spaces, portals, and
    features in every state.
+   - *(Superseded by (d), 2026-11-24.)* **`gameplayHash` covers `MODEL_VERSION`, `WORLD_VERSION` and the canonical
+     bytes of the gameplay model only.** `requirementsHash` leaves it.
    - Excluded: render chunks, `Dressing`, `look`, lighting and display names.
    - Canonical form: arrays sorted by id; floats as 32-bit patterns, little-endian; −0 written as +0. `emit` rejects
      a non-finite value.
@@ -1176,6 +1209,10 @@ checkpoints and an end hash, and nothing about the map.
    - *(b)* **Version discipline is enforced by CI.** A commit that changes any curated golden `gameplayHash` must
      also bump `WORLD_VERSION` or `MODEL_VERSION`, or change `requirementsHash` through the tunables, and must say
      why in its commit message. Otherwise CI fails.
+     - *(Adjusted by (d), 2026-11-24.)* The rule keeps its form: a moved golden `gameplayHash` needs a version bump
+       or a changed `requirementsHash` stamp in the same commit (a tunable that changed the map), and the reason. A
+       changed stamp with an unchanged `gameplayHash` is not a map change: CI re-validates the curated seeds
+       against the new requirements, and the commit records the new stamp.
 7. **Tests at G1.**
    - The same inputs twice give the same hash; a golden hash per curated seed.
    - Stream isolation: extra draws in `dress` leave `gameplayHash` unchanged.
@@ -1187,6 +1224,15 @@ checkpoints and an end hash, and nothing about the map.
    ranked play being scheduled. **"No shipped map files" stands until then.** The model is plain serialisable data,
    so a bundle is one serialise call added later; nothing in this design blocks it. Until then drift is caught by
    the run-start hash compare, and a mismatch plays unranked (Q13.9).
+
+**(d) `requirementsHash` is a validation stamp, not identity (owner, 2026-11-24).**
+
+- `gameplayHash` covers `MODEL_VERSION`, `WORLD_VERSION` and the canonical bytes of the gameplay model only.
+- `requirementsHash` leaves it and is stored beside it in the curated record, as a validation stamp.
+- A changed stamp makes CI re-validate the curated seeds. It does not change a map's identity, refuse a replay, or
+  move a scenario's checkpoint 0.
+- Adjusted to match: Q9.10, Q14(e), and points 3, 4 and 6(b) above. The replay link of point 5 never carried
+  `requirementsHash` and stands as written.
 
 **Notes for G1.**
 - The commit-message half of (b) needs a rule CI can check: for example, a line `gameplayHash: <reason>` in the
@@ -1227,6 +1273,9 @@ has never been measured.
    - **80,000 collision triangles, not the research report's 150,000** (owner confirmed). Terrain collision is the
      terrain render mesh (one source, Q3), and nothing above 43k has been measured. G1 may raise it with data. This
      settles Q3(c).
+     - *(Owner's review, 2026-11-24.)* The cap is not accepted until G1 has measured controller cost on the
+       generated terrain at its real triangle count (Q3, "Open items"). S1's only terrain-resolution trimesh cost
+       145.9 µs per body-tick, level with the heightfield.
    - *(a)* **Plan bounds are a starting tunable.** G2 reports the five-route embed success rate against plan bounds
      and staging distance (Q11), and the bounds are raised if the template often fails to fit. Research report 1
      assumed arenas of 150–300 m.
@@ -1510,10 +1559,16 @@ decision or fills a gap in the wording above. None is an owner decision until co
 Everything the decisions above add to `src/world/model.ts`, in one place for G1. The field names and exact shapes
 are G1's to settle; the content is decided. Each is a `MODEL_VERSION` change.
 
+*(Owner, 2026-11-24, answer C.)* **A new task, WM2 "WorldModel contract v2", takes this table**, queued after G0 and
+run before I2a, I3 and G1. It writes the table as types in `src/world/model.ts` (render chunks without normals or
+colour, per Q23), adds `MODEL_VERSION`, and has the tile adapter fill defaults. Where the table says a field name
+or a shape is G1's to settle, that is now WM2's. G1 fills the types from the generator. The convex-hull row stays
+conditional on G1's measurement.
+
 | Change | From |
 |---|---|
 | A `MODEL_VERSION` constant | Q19.3 |
-| `meta`: the requested seed, the used seed and why they differ. Where `WORLD_VERSION`, `requirementsHash` and `gameplayHash` travel (in `meta` or beside the model) is G1's choice | Q13.8, Q19 |
+| `meta`: the requested seed, the used seed and why they differ. Where `WORLD_VERSION`, `requirementsHash` and `gameplayHash` travel (in `meta` or beside the model) is G1's choice. *(Q19(d): `requirementsHash` is a validation stamp in the curated record, beside the recorded `gameplayHash`; it is not part of the map's identity.)* | Q13.8, Q19 |
 | `spaces[]`: id, role, tags, footprint polygon, floor, ceiling (`null` for open sky), `medium` (`'air'` or a liquid id) | Q2, Q9 |
 | `portals[]`: id, the two spaces, centre, clear width and height | Q2 |
 | The closed tag union: `camera-clearance`, `long-lane`, `cover-zone`, `landmark-anchor`, `soft-soil` | Q2, Q10 |
@@ -1567,7 +1622,22 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - **The reads recorded with Q23** wait for the owner's confirmation. Two are open questions rather than reads: how
   many ambient colours a set holds, and whether effect cards may use an atlas.
 
-**Numbers that wait for the camera task (I2b).**
+**Task order and scope (owner, 2026-11-24).**
+
+- **G1 depends on I3** as well as I1b and I2a: its class A gate needs the navmesh (the `Probe` of Q12.2). It also
+  follows WM2.
+- **The cutover is narrow (answer B).** X1a needs layer 1 of Q14.10(c) only: baseline walking routes, with
+  liquids, timed hazards and breakables per Q9 and Q21. Layers 2–5 and their mechanics are tasks after X1c: fly,
+  climb, burrow, dive, stateful features, concealment, items, the species section, day/night and overlays.
+- **WM2, "WorldModel contract v2" (answer C)**, queued after G0 and run before I2a, I3 and G1: the consolidated
+  contract table as types in `src/world/model.ts` (render chunks without normals or colour, per Q23),
+  `MODEL_VERSION`, and the tile adapter filling defaults.
+- **CL, "Camera law" (answer D)**, queued before G2 and I2b: the view band and the camera distance law in
+  `src/rules` (Q7c), and the sim rule of Q15(g) (line of sight from the clamped view point, `src/sim/aim.ts`),
+  flagged off until X1a. ROADMAP F45 and F51.
+- **The blueprint** (ROADMAP F49): the owner will add it to `docs/`, or name this document the record.
+
+**Numbers that wait for the camera task (CL; this heading read "I2b" before answer D).**
 
 - The camera distance. Until it exists the `camera-clearance` dimension rule (Q7, Q15g) and the tall-dressing
   keep-out (Q17) have no number, and the Q7 camera table and its 8.00 m short side are void.
@@ -1578,6 +1648,9 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 
 - The hybrid of boxes and trimesh against all-merged trimesh, on the first map (Q3).
 - A convex hull for straight ramps and stairs (Q3d); cylinder and hull proxies (Q15.2, amendment b).
+- **Controller cost on the generated terrain, before the 80,000 cap is accepted** (owner's review, 2026-11-24):
+  per body-tick at the terrain's real triangle count, at 6 controllers, and physics' share of the `perf-sim` p95
+  (Q3, Q20).
 - Whether the collision trimesh budget can rise above 80,000 (Q20).
 - The band margins, named in `src/rules/` with a test that pins today's controller and navmesh results (Q6).
 - The camera probe per size class in a 3.70 m space (Q7b, hosted on the range: Q22a).
