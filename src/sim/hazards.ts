@@ -20,6 +20,7 @@ import { GROUND, worldOf, type TileExt } from './worldquery';
 import { faint, onHpLoss } from './squad';
 import { rec, setSrc } from './caplog';
 import { T } from '../world/tiles';
+import { DIAG_R } from '../world/navblocks';
 import { canSwim, traversalOf } from '../rules/profiles';
 
 type VentPhase = 'dormant' | 'warn' | 'active';
@@ -313,7 +314,10 @@ function exposeEnemies(ctx: SimContext, dt: number) {
       if (!E.hzKind[e]) {
         E.hzT[e] = 0; E.hzAcc[e] = 0; E.hzCue[e] = 0; E.hzCueT[e] = 0;
         // the way out: the nearest dry shore with room, on the level it is swimming at
-        const s = WT.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e]) ?? (E.foot[e] > 0 ? W.place(E.x[e], GROUND, E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules), true, E.tall[e]) : W.nearestWalkableAt(E.x[e], GROUND, E.z[e]));
+        // (on the navmesh, rules.nav.engine 'navmesh': the nearest reached navmesh within shoreReach, a bounded search:
+        // ROADMAP F2, sim/navseam.ts shoreFor)
+        const wide = E.foot[e] > 0 && navWide(E.foot[e], ctx.rules);
+        const s = (ctx.nav ? ctx.nav.shoreFor(W, E.x[e], E.y[e], E.z[e], wide, E.foot[e] < DIAG_R) : WT.shore(E.x[e], E.z[e], E.foot[e] || E.radius[e], E.y[e])) ?? (E.foot[e] > 0 ? W.place(E.x[e], GROUND, E.z[e], E.foot[e], navWide(E.foot[e], ctx.rules), true, E.tall[e]) : W.nearestWalkableAt(E.x[e], GROUND, E.z[e]));
         E.hzX[e] = s[0]; E.hzZ[e] = s[1];
         ctx.events.push({ t: 'hazard', kind: KIND_NAME[kind] as 'water' | 'lava', phase: 'enter', who: 'enemy', id: e, lethal: lethalOf(ctx, kind), x: E.x[e], z: E.z[e] });
       }

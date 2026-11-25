@@ -15,7 +15,7 @@ python3 -m venv .venv                                       # .venv/ is gitignor
 npx playwright install chromium                             # only if the Chromium build is not downloaded yet (both share it)
 ```
 
-The merge check is `.venv/bin/python -I tests/browser/range.py <html> <outdir>`: title, Training range, a featured hero, fire at a dummy and see its health drop, then Caterpie's Breakthrough on a held F, in capture mode, with screenshots; it exits 1 on any failed step or console error. `--query physics=rapier` (any URL parameters) adds to the page's query: on the physics flag it also checks that the run asks Rapier.
+The merge check is `.venv/bin/python -I tests/browser/range.py <html> <outdir>`: title, Training range, a featured hero, fire at a dummy and see its health drop, then Caterpie's Breakthrough on a held F, in capture mode, with screenshots; it exits 1 on any failed step or console error. `--query physics=rapier` (any URL parameters) adds to the page's query: on the physics flag it also checks that the run asks Rapier, and with `--query nav=navmesh` that the run built its navmeshes (task I3).
 
 Scenes and tools from before the hero-shooter pivot were deleted at its merge check (the level-up, boss, card-tray, recruit, squad and swarm scenes, `menus.py`, `play.py`, `phase7scenes.json`, `squadscenes.json`, `traycheck.mjs`). A `go=1` query with no `loc` or `world` now starts the training range on the range arena.
 

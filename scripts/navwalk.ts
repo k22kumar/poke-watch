@@ -22,6 +22,8 @@ import { BODY_KINDS, BODY_TEMPLATES } from '../src/rules/materials';
 import { bodyTiles } from './habplay';
 
 import { RANGE } from '../src/mods';
+import { initNavNode } from '../src/nav/node';
+import { worldOf, GROUND } from '../src/sim/worldquery';
 import { assertRunning, endedNote, runEnded } from './lib/ended';
 /** enemies per class: a Medium (narrow, 0.46 m), a Large (wide with diagonal links, 0.66 m) and an Extra Large (0.88 m).
  *  The Large elite (×2, capped at 0.95 m) went with the elite role (pivot step 10) */
@@ -33,6 +35,47 @@ export interface WalkResult { map: string; seed: number; target: string; walker:
 // no spawns, no objectives, and no far-enemy relocation (rules.enemy.despawnDistance would teleport a walker that starts
 // more than 46 m from the player to a ring around it, skipping the very route under test; a holding wide body likewise)
 const calm = { enemy: { despawnDistance: 1e9, holdRelocate: 1e9 }, ...(process.env.NAVWALK_RULES ? JSON.parse(process.env.NAVWALK_RULES) : {}) };
+
+// I3: `--nav navmesh` (anywhere on the command line) runs every walker on rules.nav.engine 'navmesh' (src/nav): enemies
+// steer by the navmesh, and the trainer's route is its group's straight path (navTrainerRoute) instead of the tile lattice
+const navAt = process.argv.indexOf('--nav');
+const NAV_ENGINE = navAt > 1 ? process.argv.splice(navAt, 2)[1] : 'flow';
+if (NAV_ENGINE !== 'flow' && NAV_ENGINE !== 'navmesh') throw new Error(`--nav flow|navmesh, not ${NAV_ENGINE}`);
+if (NAV_ENGINE === 'navmesh') { const c = calm as Record<string, Record<string, unknown>>; c.nav = { ...c.nav, engine: 'navmesh' }; await initNavNode(); }
+
+/** the route length (m) on group g's navmesh from tile `from` to the player standing at tile `to`, Infinity with none */
+function navRouteLength(ctx: SimContext, from: number, to: number, g: number): number {
+  const W = worldOf(ctx), N = ctx.nav!.navFor(W), [fx, fz] = at(ctx, from), [tx, tz] = at(ctx, to);
+  const F = N.field(g, 'navwalk-length', tx, ctx.world.height(tx, tz), tz, ctx.rules.nav.goalSnap);
+  return N.distance(g, F, fx, ctx.world.height(fx, fz), fz, ctx.rules.nav.snap);
+}
+
+/** the trainer's route on the navmesh: its width group's straight path from tile `from` to tile `to` (the target counts
+ *  within 2 tiles, as on the lattice), the start first; null when the group's field does not reach the start. Resting
+ *  bodies (loose rocks: solid to the trainer, sim/bodies.ts) are TileCache-style obstacles while the route is made, as the
+ *  lattice route steps round them; when they close the way (a rock in a two-tile passage) the route goes through */
+function navTrainerRoute(ctx: SimContext, from: number, to: number, wide: boolean, diag: boolean, avoidRocks = true): [number, number][] | null {
+  const B = ctx.nav!, W = worldOf(ctx), g = wide ? (diag ? 1 : 2) : 0;
+  const [fx, fz] = at(ctx, from), [tx, tz] = at(ctx, to);
+  W.setNavGoal(fx, GROUND, fz);
+  const N = B.navFor(W), P = new Float64Array(3), Bo = ctx.bodies, rocks: number[] = [];
+  if (avoidRocks) {
+    for (let b = 0; b < Bo.hi; b++) if (Bo.alive[b] && Math.hypot(Bo.vx[b], Bo.vz[b]) <= 1) rocks.push(N.addObstacle({ kind: 'cylinder', x: Bo.x[b], y: Bo.y[b] - 0.5, z: Bo.z[b], r: BODY_TEMPLATES[BODY_KINDS[Bo.kind[b]]].radius, h: 2 }));
+    N.update();
+  }
+  const F = N.field(g, 'navwalk-target', tx, ctx.world.height(tx, tz), tz, 2);
+  const p = N.locate(g, fx, ctx.world.height(fx, fz), fz, ctx.rules.nav.snap, P);
+  const pts = F ? N.graphs[g].straight(F, p, P[0], P[2]) : [];
+  if (rocks.length) { for (const id of rocks) N.removeObstacle(id); N.update(); }
+  if (!pts.length) return avoidRocks ? navTrainerRoute(ctx, from, to, wide, diag, false) : null;
+  // waypoints at most 1 m apart, as the lattice's (driveTrainer counts progress by waypoints passed)
+  const out: [number, number][] = [[fx, fz]];
+  for (const [x, z] of pts) {
+    const [px, pz] = out[out.length - 1], n = Math.ceil(Math.hypot(x - px, z - pz));
+    for (let s = 1; s <= n; s++) out.push([px + ((x - px) * s) / n, pz + ((z - pz) * s) / n]);
+  }
+  return out;
+}
 const at = (ctx: SimContext, k: number): [number, number] => [(k % ctx.world.w) - ctx.world.half + 0.5, ((k / ctx.world.w) | 0) - ctx.world.half + 0.5];
 
 export function freshRun(kind: 'location' | 'habitat', id: string, seed: number, species = 'totodile'): SimContext {
@@ -182,7 +225,8 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
       const diag = w[0] === 'large', narrow = w[0] === 'narrow';
       const reach = narrow ? true : nearIn(diag ? wideDiag : wideStrict, T.k % m.w, (T.k / m.w) | 0, T.anchor ? 0 : 3);
       if (T.anchor && !narrow && !reach) continue; // the director never spawns a wide body at a narrow-only anchor
-      const expect = T.mandatory || reach ? 'arrive' : 'refuse';
+      // (on the navmesh too: an adapter map's narrow agent is 4 cells, so one-tile necks stay open, the owner's F77 decision)
+      const expect: WalkResult['expect'] = T.mandatory || reach ? 'arrive' : 'refuse';
       // where the walker is asked to come: the target tile for a narrow body; for a wide one the nearest tile of its wide
       // core within the gate's radius of the target (the gate's own test: a space is wide-reachable when wide ground lies
       // within 3 tiles of its centre, docs/LOCATIONS.md), so a pillar on the very centre tile does not fail the walk
@@ -195,7 +239,9 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
       const [hx, hz] = at(ctx, hubK), [tx, tz] = at(ctx, tk);
       // the time budget follows the walker's own route: a wide body may detour far round a one-tile neck
       const own = narrow ? null : trainerRoute(ctx, T.anchor ? tk : hubK, T.anchor ? hubK : tk, true, diag, false);
-      const tiles = Math.max(T.anchor ? dist(T.k, hubK) : dist(hubK, T.k), own ? own.length : 0);
+      // (on the navmesh, the walker's own group route too: a neck it does not fit sends it the long way)
+      const navLen = NAV_ENGINE === 'navmesh' ? navRouteLength(ctx, T.anchor ? tk : hubK, T.anchor ? hubK : tk, narrow ? 0 : diag ? 1 : 2) : 0;
+      const tiles = Math.max(T.anchor ? dist(T.k, hubK) : dist(hubK, T.k), own ? own.length : 0, navLen < Infinity ? navLen : 0);
       const r = T.anchor ? pursue(ctx, w, tx, tz, hx, hz, budgetFor(tiles)) : pursue(ctx, w, hx, hz, tx, tz, budgetFor(tiles), deck);
       const ok = !r.pen && (expect === 'arrive' ? r.arrived : !r.arrived);
       out.push({ map: id, seed, target: T.name, walker: w[0], expect, ok, t: +r.t.toFixed(1), note: r.note });
@@ -204,7 +250,7 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
   // the trainer to every mandatory target
   for (const [label, species] of TRAINERS) for (const T of targets.filter((t) => t.mandatory)) {
     const ctx = freshRun('location', id, seed, species), foot = partnerFootprint(ctx.player.species, ctx.rules), wide = navWide(foot, ctx.rules);
-    const route = trainerRoute(ctx, hubK, T.k, wide, foot < DIAG_R);
+    const route = NAV_ENGINE === 'navmesh' ? navTrainerRoute(ctx, hubK, T.k, wide, foot < DIAG_R) : trainerRoute(ctx, hubK, T.k, wide, foot < DIAG_R);
     if (!route) { out.push({ map: id, seed, target: T.name, walker: 'trainer-' + label, expect: 'arrive', ok: false, t: 0, note: 'no route on its lattice' }); continue; }
     place(ctx, ...route[0]);
     const r = driveTrainer(ctx, route, budgetFor(route.length, 3));
@@ -235,7 +281,7 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
   }
   for (const [label, species] of TRAINERS) {
     const ctx = freshRun('habitat', id, seed, species), foot = partnerFootprint(ctx.player.species, ctx.rules), wide = navWide(foot, ctx.rules);
-    const route = trainerRoute(ctx, sk, ck, wide, foot < DIAG_R);
+    const route = NAV_ENGINE === 'navmesh' ? navTrainerRoute(ctx, sk, ck, wide, foot < DIAG_R) : trainerRoute(ctx, sk, ck, wide, foot < DIAG_R);
     if (!route) { out.push({ map: id, seed, target: 'contest', walker: 'trainer-' + label, expect: 'arrive', ok: false, t: 0, note: 'no route on its lattice' }); continue; }
     place(ctx, ...route[0]);
     const r = driveTrainer(ctx, route, budgetFor(route.length, 3));

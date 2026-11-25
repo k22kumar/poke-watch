@@ -4,7 +4,8 @@
 #   python3 -m venv .venv && .venv/bin/pip install -r tests/browser/requirements.txt
 #   npx playwright install chromium         (only if the Chromium build is not downloaded yet)
 #   .venv/bin/python -I tests/browser/range.py <path/to/index.html> <outdir> [WxH] [--query k=v&...]
-# --query adds URL parameters to every page load (e.g. --query physics=rapier: the run on Rapier, task I1a).
+# --query adds URL parameters to every page load (e.g. --query physics=rapier: the run on Rapier, task I1a; --query
+# nav=navmesh: enemies steer by the navmesh, task I3).
 # Exits 1 when a step fails, printing what it saw. Console errors and page errors are listed at the end and fail it too.
 import sys, time, json, os
 from playwright.sync_api import sync_playwright
@@ -92,6 +93,10 @@ with sync_playwright() as p:
         ph = pg.evaluate("() => { const c = window.pokewatch.ctx, B = c && c.physics; return { engine: c && c.rules.physics.engine, boot: window.pokewatchPhysics || null, queries: B && B.physics ? B.physics.stats.queries : 0 }; }")
         print('physics', json.dumps(ph))
         check(ph['engine'] == 'rapier' and ph['boot'] is not None and ph['queries'] > 0, 'physics: the run asks Rapier (initialised at boot)')
+    if 'nav=navmesh' in query:
+        nv = pg.evaluate("() => { const c = window.pokewatch.ctx, B = c && c.nav; return { engine: c && c.rules.nav.engine, boot: window.pokewatchNav || null, builds: B ? B.builds : 0, polys: B && B.nav ? B.nav.graphs.map((g) => g.n) : [], answers: B ? B.answers : null }; }")
+        print('nav', json.dumps(nv))
+        check(nv['engine'] == 'navmesh' and nv['boot'] is not None and nv['builds'] == 1 and len(nv['polys']) == 3 and min(nv['polys']) > 0, 'nav: the run built its navmeshes on recast-navigation (initialised at boot)')
 
     # quit to the title, then Caterpie: hold F (Touch) for a Breakthrough into Metapod
     pg.evaluate("() => window.pokewatch.ui.hooks.quit()")

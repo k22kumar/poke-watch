@@ -31,6 +31,7 @@ import { swapSystem } from './swap';
 import { startTargets, targetSystem } from './targets';
 import { GROUND, worldOf } from './worldquery';
 import { PhysicsBridge } from './physseam';
+import { NavBridge } from './navseam';
 
 interface RunOptions {
   seed: number;
@@ -90,6 +91,7 @@ export function createRun(opts: RunOptions): SimContext {
     speciesIndex: SPECIES,
     caplog: new CapLog(rules.caps.logSize),
     physics: rules.physics.engine === 'rapier' ? new PhysicsBridge() : null,
+    nav: rules.nav.engine === 'navmesh' ? new NavBridge(rules) : null,
     recap: null,
     targets: null,
   };
@@ -111,8 +113,9 @@ export function createRun(opts: RunOptions): SimContext {
  *  World's navigation species list. */
 function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
   ctx.world = new World(ctx.rules, biome, seed);
-  // the previous map's physics world is freed here; worldOf builds the new one
+  // the previous map's physics world and navmeshes are freed here; worldOf builds the new ones
   ctx.physics?.reset();
+  ctx.nav?.reset();
   const W = worldOf(ctx);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
@@ -125,10 +128,11 @@ function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
 }
 
 /** Free what a run owns outside the JS heap: its physics world (wasm memory never shrinks, and an unfreed Rapier world
- *  leaks for good: docs/spikes/S1-physics.md §6, owner O7). Idempotent; a run on tiles has nothing to free. The run is
- *  not stepped again after it. */
+ *  leaks for good: docs/spikes/S1-physics.md §6, owner O7) and its navmeshes (recast-navigation's wasm heap, the same
+ *  rule). Idempotent; a run on tiles and flow fields has nothing to free. The run is not stepped again after it. */
 export function disposeRun(ctx: SimContext): void {
   ctx.physics?.dispose();
+  ctx.nav?.dispose();
 }
 
 export function startStage(ctx: SimContext, stage: number) {

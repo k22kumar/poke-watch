@@ -25,11 +25,16 @@ traversal. The elite, alpha, boss and stampede roles went at pivot step 10 (no s
 | Question | Answered by |
 |---|---|
 | **Location**: where? | The source's own point: a target's anchor and offset, team B's staging (the Raid party on a habitat map), else `ringPoint` (`src/sim/enemies.ts`, the spawn ring `rules.enemy.spawnRadius` around the player, or a location map's entry anchors) |
-| **Compatibility**: may it stand there? | `allowedAt` (`src/sim/placement.ts`): the species' hard `requires` / `avoids` habitat tags (`src/rules/profiles.ts`), and, for a wide footprint, ground the wide field toward the player reaches (docs/SIZING.md "Navigation classes") |
+| **Compatibility**: may it stand there? | `allowedAt` (`src/sim/placement.ts`): the species' hard `requires` / `avoids` habitat tags (`src/rules/profiles.ts`), and, for a wide footprint, ground the wide field toward the player reaches (docs/SIZING.md "Navigation classes"); with `rules.nav.engine = 'navmesh'` that is ground the player's field on the body's width-group navmesh reaches (`navReached`, within 1 m) |
 | **Fit**: exactly where? | `spawnEnemy` puts the body where it fits (`World.nearestFit`: a tile centre, or a wide block's centre) |
 
 A Raid party member that may not stand at its spot is left out with a `spawnSkipped` event; a target that may not is
 moved to the nearest walkable tile. Nothing is placed where it may not be.
+
+On the navmesh (task I3, docs/OVERHAUL_3D.md "Navigation (I3)") only the compatibility check's reach changes: the fit
+(`place`, `nearestFit`) and the far-enemy and holding relocations still put a body on the tile World's ground, and
+`place`'s `reach` still reads the tile World's wide field (ROADMAP F83). A wide body that holds (no route on its group's
+navmesh) is relocated after `rules.enemy.holdRelocate` as before, onto ground `navReached` accepts.
 
 ## Capability, preference, restriction
 
@@ -51,4 +56,4 @@ navigation profiles are frozen constants (`VALIDATED_PROFILES`, `src/world/habit
 ## Checking it
 
 - `npx tsx --test tests/range.test.ts tests/hold.test.ts tests/profiles.test.ts`
-- `tests/replays.test.ts`: the `range-*` scenarios cover the target sets, `gorge-hold` the Raid party.
+- `tests/replays.test.ts`: the `range-*` scenarios cover the target sets, `gorge-hold` the Raid party (`gorge-hold-navmesh` on the navmesh).

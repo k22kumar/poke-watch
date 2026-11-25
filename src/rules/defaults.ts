@@ -39,6 +39,68 @@ export const defaultRules = {
   physics: {
     engine: 'tiles' as 'tiles' | 'rapier',
   },
+  // The 3D overhaul's navigation flag (docs/OVERHAUL_3D.md "Navigation (I3)"): 'navmesh' answers navDir, navReached and
+  // navDist from src/nav (Recast/Detour, one tiled navmesh per width group, built from the tile adapter's WorldModel;
+  // sim/navseam.ts); 'flow' keeps the tile World's flow and wide fields. Independent of physics.engine. Enemies still
+  // move on the tile World (I1c); only their steering changes. Default off until X1a.
+  // Every Recast number is an integer cell count, written here and never computed (docs/spikes/S1-physics.md §8, O9:
+  // floor(0.6 / 0.05) is 11 in float). The vertical counts follow the physical sizes they stand for (the sim's 0.6 m
+  // step and the bodies' heights are the authority; tests/nav.test.ts derives them again); the I3 review moved the cell
+  // height from O9's 0.05 m to 0.02 m (ROADMAP F79) and every vertical count with it. Recast stores a compact span's
+  // clearance in 8 bits, so no vertical count may pass 255 cells (5.1 m at 0.02; 0.01 m would put Extra Large at 278).
+  nav: {
+    engine: 'flow' as 'flow' | 'navmesh',
+    /** [B] cell size (m, S1 §8) and cell height (m: 0.02, the I3 review, ROADMAP F79; O9 had 0.05) */
+    cs: 0.1, ch: 0.02,
+    /** [B] cells: 30 × 0.02 = 0.6 m, rules.player.stepHeight: the agent's step (Detour's climb) */
+    walkableClimb: 30,
+    /** [B] cells: the climb Recast's build tests. Recast compares span tops rounded up to whole cells, so a rise joins by
+     *  where its two tops fall in their cells as well as by its size: a count of n joins every rise up to n cells and
+     *  some up to n + 1. One cell under the step (29) never joins a rise over 0.6 m and joins every rise up to 0.58 m
+     *  (tests/nav.test.ts, at every alignment); one in (0.58, 0.6] m may be cut and routed round (scripts/navrises.ts:
+     *  8 of the 223 on the adapter maps, each about 2 m round). At the step (30) rises up to 0.62 m would join */
+    recastClimb: 29,
+    /** [B] degrees: above 45° so a 45° ramp is walkable in float; the controller's climb limit is 46° (S1 §8) */
+    walkableSlopeAngle: 45.5,
+    /** [C] cells per navmesh tile side (I3 measured; ROADMAP F56) */
+    tileSize: 128,
+    /** [C] m: every rasterised triangle is inset this far in plan (src/nav/build.ts says why) */
+    inset: 0.01,
+    /** [C] Recast's contour and region settings (cells; areas in cells²) */
+    maxSimplificationError: 1.3, maxEdgeLen: 120, minRegionArea: 64, mergeRegionArea: 400, maxVertsPerPoly: 6,
+    /** [B] the width groups (WORLDGEN3D Q7): agent radius = the group's widest footprint (cs cells), agent height = the
+     *  tallest body today's gates carry for it (scripts/navwalk.ts walkers and trainers; ch cells), both rounded up:
+     *  narrow  Tiny, Small, Medium   r 5 (0.5 m: Medium 0.46)      h 48 (0.96 m: Totodile 0.953)
+     *  large   Large                 r 7 (0.7 m: Large 0.66)       h 85 (1.70 m: Heracross 1.689)
+     *  xl      Extra Large           r 9 (0.9 m: Extra Large 0.88) h 139 (2.78 m: Onix 2.777)
+     *  These radii are the generated maps' (G1's mesh worlds); adapter maps override narrow (adapterRadius). */
+    groups: {
+      narrow: { radius: 5, height: 48 },
+      large: { radius: 7, height: 85 },
+      xl: { radius: 9, height: 139 },
+    },
+    /** [B] cells: the radii on adapter maps (world/adapter.ts isAdapterModel: the tile maps' WorldModels) where they
+     *  differ from groups. Owner's decision on F77 (2026-11-25): narrow is 4 cells (0.4 m) on adapter maps, so the tile
+     *  maps' 1.0 m one-tile necks stay open as the tile sim has them (at 5 cells they erode shut); Medium (0.46 m)
+     *  overlaps a neck's walls by 6 cm there, which I1c re-checks (ROADMAP F77). Generated maps keep 5 (groups.narrow) */
+    adapterRadius: { narrow: 4 },
+    /** [B] cells: a giant at the 3.57 m draw cap (179 × 0.02 = 3.58 m), built only by the report of what it would lose */
+    giantHeight: 179,
+    /** [C] m: an agent off its group's navmesh (eroded edges, a crowd's push) steers from the nearest polygon this
+     *  close; farther, it has no route (the tile wide field's 2-tile rule) */
+    snap: 2,
+    /** [C] m: a point is on a polygon whose floor there lies within this of its feet (polygons have no detail mesh, so
+     *  one spanning flat ground and a ramp reads up to a ramp's rise off); under a deck's 2.9 m rise over its ground */
+    layer: 2,
+    /** [C] m: navReached's snap (a spawn or relocation spot must lie this close to the reached navmesh) */
+    reachSnap: 1,
+    /** [C] m: a goal off a group's navmesh seeds its field from the nearest polygon this close (rules.size.wideSeed) */
+    goalSnap: 4,
+    /** [C] m: how far a body in a liquid looks for the navmesh to swim to (ROADMAP F2; the tile shore's 16-tile reach) */
+    shoreReach: 16,
+    /** [C] m: the contest field's price for entering a vent-field polygon (more than any route on a map) */
+    hazardCost: 4096,
+  },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
   spatial: {

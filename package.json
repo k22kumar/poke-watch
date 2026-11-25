@@ -27,6 +27,7 @@
     "typescript": "^6.0.0"
   },
   "dependencies": {
-    "@dimforge/rapier3d-deterministic": "0.21.0"
+    "@dimforge/rapier3d-deterministic": "0.21.0",
+    "recast-navigation": "0.44.0"
   }
 }

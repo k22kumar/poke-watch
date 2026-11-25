@@ -1,0 +1,37 @@
+# I3 navigation determinism (docs/OVERHAUL_3D.md "Navigation (I3)"): builds the navmeshes of scripts/navhash.ts's maps
+# on Linux and checks their path hashes against tests/fixtures/navhash.json, recorded on the owner's Mac, like S1's
+# controller course (docs/spikes/S1-physics.md §4). Run it from the Actions tab or
+# `gh workflow run nav-determinism.yml --ref <branch>`; it also runs on pushes to the I3 branches.
+name: Nav determinism
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['feat/i3-nav*']
+
+permissions:
+  contents: read
+
+jobs:
+  navhash:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - name: Platform
+        run: node -p "process.platform + '-' + process.arch + ' ' + process.version + ' ' + require('os').cpus()[0].model"
+      - name: Path hashes against the Mac's
+        run: npx tsx scripts/navhash.ts --check | tee navhash.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navhash-node${{ matrix.node }}
+          path: navhash.txt

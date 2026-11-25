@@ -120,6 +120,16 @@
     "f8ded7f6"
    ],
    "end": "9aca717d"
+  },
+  "gorge-hold-navmesh": {
+   "checkpoints": [
+    "a2e854f7",
+    "e3ff4e0e",
+    "f58c04f8",
+    "a692ccd5",
+    "3d4b2abd"
+   ],
+   "end": "e033c9b2"
   }
  }
 }
