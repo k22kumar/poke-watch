@@ -57,6 +57,8 @@ test('snapshot round trip: a restored world gives the next 600 ticks the same ha
   const s = { ...base, seconds: 20 };
   const plain: string[] = [], swapped: string[] = [];
   let snapBytes = 0, sameBytes = false;
+  // the restored world must be the one answering to the end (a rebuild would make the comparison vacuous)
+  let restored: unknown = null, restoredQueries = -1, lastWorld: unknown = null, lastQueries = -1;
   // the original: hashes of ticks 601..1200
   runScenario(s, (ctx) => { if (ctx.tick > 600) plain.push(replayHash(ctx).toString(16)); });
   // the same track, its physics world replaced at tick 600 by one restored from a snapshot
@@ -65,13 +67,37 @@ test('snapshot round trip: a restored world gives the next 600 ticks the same ha
       const B = ctx.physics!, bytes = B.snapshot();
       snapBytes = bytes.length;
       B.restore(bytes);
+      restored = B.physics; restoredQueries = B.physics!.stats.queries;
       const again = B.snapshot();
       sameBytes = again.length === bytes.length && again.every((v, i) => v === bytes[i]);
     }
     if (ctx.tick > 600) swapped.push(replayHash(ctx).toString(16));
+    if (ctx.tick === 1200) { lastWorld = ctx.physics!.physics; lastQueries = ctx.physics!.physics!.stats.queries; }
   });
   assert.equal(plain.length, 600);
   assert.ok(snapBytes > 0 && sameBytes, `the restored world snapshots to the same ${snapBytes} bytes`);
   const at = plain.findIndex((h, i) => h !== swapped[i]);
   assert.equal(at, -1, `diverges at tick ${601 + at}`);
+  assert.ok(restored !== null && lastWorld === restored, 'the world restored at tick 600 still answers at the last tick (no rebuild)');
+  assert.ok(lastQueries > restoredQueries, `the restored world was asked: ${restoredQueries} → ${lastQueries} queries`);
 });
+
+// The -rapier scenarios hash equal to their tile twins and physics state is not hashed (ROADMAP F57), so the replay gate
+// cannot see the flag stop reaching Rapier: this does. Each run must ask its physics world, built once (the 60 s tracks
+// asked 24,580 and 4,086 queries at I1a).
+for (const id of ['range-charmander-rapier', 'gorge-hold-rapier']) {
+  test(`${id}: the run asks one physics world (built once) for its queries`, () => {
+    const s = SCENARIOS.find((x) => x.id === id)!;
+    let first: unknown = null, last: unknown = null, queries = 0, rebuilds = 0;
+    runScenario(s, (ctx) => {
+      const B = ctx.physics!;
+      if (first === null) first = B.physics;
+      last = B.physics; rebuilds = B.rebuilds;
+      if (B.physics) queries = B.physics.stats.queries;
+    });
+    console.log(`${id}: ${queries} physics queries, ${rebuilds} build(s)`);
+    assert.equal(rebuilds, 1, 'one build at map entry, no rebuild');
+    assert.ok(first !== null && last === first, 'the same physics world from the first tick to the last');
+    assert.ok(queries > 0, `${id} asked physics ${queries} queries`);
+  });
+}
