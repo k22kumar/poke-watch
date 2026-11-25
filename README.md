@@ -59,7 +59,7 @@ npm run build
 
 ### URL parameters (testing)
 
-`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range`, or `hold` with a habitat `map`). Also: `map=river-gorge` or `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=authored` (the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
+`index.html?go=1&species=charmander&mode=range&seed=42` starts a match immediately (`mode` is `range`, or `hold` with a habitat `map`). Also: `map=river-gorge` or `loc=river-gorge` (every region built from that habitat recipe or Pokémon location; `loc=meadow:mt-moon,dusk:viridian-forest` per region; `mapseed=3` holds the map seed), `world=authored` (the handcrafted arenas), `evolve=N` (a Breakthrough after N s), `autoplay=1` (the bot), `speed=4`, `tp=56,84` (teleport to a tile), `cam=classic|steep|wide`, `combat=aimed|assist|auto`, `physics=rapier` (aim, line of sight, shots and beams on Rapier: docs/OVERHAUL_3D.md "Physics (I1a)"), `dev=1` (the hero pick lists every species, graded: `docs/PLAYABILITY.md`), `debug=caps`, `capture=1` (the sim only advances through `pokewatch.advance(seconds, {frames})`, for deterministic screenshots; see `tools/README.md`).
 
 ## Combat
 
@@ -86,16 +86,16 @@ npm run build
 
 ## Build
 
-The project needs Node 18+ and three dev tools: esbuild, TypeScript and tsx.
+The project needs Node 22.15+ (the Rapier loader uses `module.registerHooks`), three dev tools (esbuild, TypeScript and tsx) and one dependency, `@dimforge/rapier3d-deterministic` (pinned exactly; docs/OVERHAUL_3D.md "Physics (I1a)").
 
 ```bash
 npm install          # esbuild, typescript, tsx
-npm run build        # -> dist/index.html (code, UI icons, font), dist/art/ (sprites, portraits, cries), dist/music/; fails if the page is over 3 MB
+npm run build        # -> dist/index.html (code, UI icons, font), dist/art/ (sprites, portraits, cries), dist/music/, dist/physics/ (the Rapier wasm); fails if the page is over 3 MB
 npm run dev          # rebuild-on-change server at http://localhost:5173
 npm run check        # typecheck, tests, and production build
 npm test             # every tests/*.test.ts suite (headless, deterministic); one suite: npx tsx --test tests/<name>.test.ts
 npx tsx scripts/checksum.ts [scenario|all] [--update]   # the replay baseline (below)
-npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate       # sim cost per tick at ~500 enemies (the test crowd, scripts/lib/crowd.ts); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim
+npx tsx scripts/perf-sim.ts 500 --repeat 3 --gate       # sim cost per tick at ~500 enemies (the test crowd, scripts/lib/crowd.ts); fails if p95 > 2 ms or p99 > 3 ms; --aim drives the spatial aim; --physics rapier runs on Rapier and prints its share
 npx tsx scripts/navwalk.ts all 5                        # real walkers of every size class reach every mandatory space (docs/SIZING.md)
 npx tsx scripts/stuckwatch.ts all 3                     # live movement-deadlock watch (bot + crowd)
 npx tsx scripts/shotbench.ts --gate                     # player shots over a ~475-enemy crowd: planar vs 3D swept
@@ -105,7 +105,7 @@ npm run typecheck
 npm run fixtures && npm run import:fixture              # offline importer run on the test mirror
 ```
 
-**Replay baseline.** `tests/fixtures/scenarios.ts` holds ten 60 s scripted scenarios (the range with Charmander, Caterpie, Tauros and Mewtwo; Onix and Wailord under Mt. Moon's decks; Totodile in Shoal Grotto; Charmander in Cinder Crater; a Shrine Gorge Hold; the swap range). Each is hashed every 10 s and at the end (`replayHash`, `src/sim/checksum.ts`) against `tests/fixtures/replays.json`, and must reach the coverage it names; `tests/replays.test.ts` asserts both in `npm test`. `scripts/checksum.ts` runs them by name and prints MOVED for a hash that changed; `--update` rewrites the fixture, and a commit that moves a hash says why.
+**Replay baseline.** `tests/fixtures/scenarios.ts` holds twelve 60 s scripted scenarios (the range with Charmander, Caterpie, Tauros and Mewtwo; Onix and Wailord under Mt. Moon's decks; Totodile in Shoal Grotto; Charmander in Cinder Crater; a Shrine Gorge Hold; the swap range; the range Charmander and the Hold again with `rules.physics.engine = 'rapier'`, ids ending `-rapier`). Each is hashed every 10 s and at the end (`replayHash`, `src/sim/checksum.ts`) against `tests/fixtures/replays.json`, and must reach the coverage it names; `tests/replays.test.ts` asserts both in `npm test`. `scripts/checksum.ts` runs them by name and prints MOVED for a hash that changed; `--update` rewrites the fixture, and a commit that moves a hash says why.
 
 ## Architecture
 
@@ -121,7 +121,10 @@ src/
              (locations/, locgen/), habitat recipes (habitat/), what both generators share (tilenav.ts, genmeta.ts),
              the map factory (maps.ts), navblocks.ts (wide-body lattice), sight.ts (the exact tile-world casts and the
              map-only sight tests; sim/spatial.ts builds its queries on them)
+  physics/   the only importer of Rapier (I1a): rapier.ts / node.ts / web.ts (loading), world.ts (PhysicsWorld: static
+             colliders from a WorldModel, rays, sweeps, overlaps, support, liquids, snapshots, dispose)
   sim/       renderer-free deterministic simulation: run.ts, worldquery.ts (the world seam: WorldQuery, worldOf),
+             physseam.ts (the physics bridge behind rules.physics.engine),
              world.ts (the tile World: collision, flow fields), locomotion.ts, player.ts,
              enemies.ts (behaviours, navigation), targets.ts, modes/hold.ts, evolution.ts (Breakthrough), swap.ts,
              moves.ts, aim.ts and spatial.ts (3D aim and queries), effects.ts, combat.ts, bodies.ts, capabilities.ts,
@@ -233,9 +236,9 @@ and a known-valid fallback. Recipes include **Shrine Gorge** (`river-gorge`), **
 
 ## Deploying (GitHub Pages)
 
-The game is a static site: `dist/index.html` (about 1.4 MB: code, UI icons and the font), `dist/art/` (every Pokémon's atlas, frame table, portrait and cry, plus a manifest and the hero pick's portrait sheet, all content-hashed) and `dist/music/` (the adaptive score). The page fetches the manifest and the hero sheet at boot and a match's Pokémon before the match starts (docs/ROADMAP.md "Item 3: A1 plan"). It has no backend, so GitHub Pages hosts it for free.
+The game is a static site: `dist/index.html` (about 1.4 MB: code, UI icons and the font), `dist/art/` (every Pokémon's atlas, frame table, portrait and cry, plus a manifest and the hero pick's portrait sheet, all content-hashed) `dist/music/` (the adaptive score) and `dist/physics/` (the Rapier wasm, fetched only with `?physics=rapier` until the cutover). The page fetches the manifest and the hero sheet at boot and a match's Pokémon before the match starts (docs/ROADMAP.md "Item 3: A1 plan"). It has no backend, so GitHub Pages hosts it for free.
 
-`.github/workflows/deploy.yml` runs on every push to `main`: `npm ci`, `npm test`, `npm run build`, then publishes `index.html`, `art/` and `music/`. One-time setup: repository **Settings → Pages → Build and deployment → Source: GitHub Actions**. Progress shows under the **Actions** tab. To publish an update: commit and `git push`.
+`.github/workflows/deploy.yml` runs on every push to `main`: `npm ci`, `npm test`, `npm run build`, then publishes `index.html`, `art/`, `music/` and `physics/`. One-time setup: repository **Settings → Pages → Build and deployment → Source: GitHub Actions**. Progress shows under the **Actions** tab. To publish an update: commit and `git push`.
 
 `dist/` is not committed; CI rebuilds it.
 
