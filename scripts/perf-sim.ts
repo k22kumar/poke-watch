@@ -13,6 +13,8 @@
 // of --physics) and reports navigation's share the same way (a profiling clock on sim/navseam.ts NavBridge: steering,
 // fields, rebuilds and the shore search), with each map's navmesh build time (at entry, before sampling).
 //
+// `--viewsight` turns rules.aim.viewSight on (task CL: spatial shots launch from and are checked from the anatomical eye;
+// with --aim, the aimbot's lens follows the camera law).
 // `--repeat N` replays every run N times and keeps, for each tick, the fastest of the N timings. The runs are
 // deterministic, so tick i does the same work each time: the minimum strips scheduler and GC noise, which on a
 // shared machine can triple the raw p99. Both the raw (first pass) and the min-of-N percentiles are printed;
@@ -41,12 +43,14 @@ const physRaw: number[] = [];
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
 const repeat = Math.max(1, Number(process.argv[process.argv.indexOf('--repeat') + 1]) || 1);
 const aimed = process.argv.includes('--aim');
+// `--viewsight` turns rules.aim.viewSight on (CL: spatial shots launch from and are checked from the anatomical eye)
+const viewSight = process.argv.includes('--viewsight');
 const raw: number[] = [], best: number[] = [];
 let coated = 0, coatSamples = 0;
 for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 3]] as [string, number][]) {
   let mins: Float64Array | null = null, mask: Uint8Array | null = null;
   for (let r = 0; r < (process.argv.includes('--repeat') ? repeat : 1); r++) {
-    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: { physics: { engine }, nav: { engine: navEngine } } as never });
+    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: { physics: { engine }, nav: { engine: navEngine }, ...(viewSight ? { aim: { viewSight: true } } : {}) } as never });
     if (r === 0 && ctx.nav) navBuilds.push(`${species} seed ${seed} ${ctx.nav.buildMs.map((v) => v.toFixed(0)).join('+')} ms`);
     const times: number[] = [], inBand: number[] = [];
     // keep the bot alive so the crowd can build

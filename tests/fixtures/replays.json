@@ -130,6 +130,16 @@
     "3d4b2abd"
    ],
    "end": "e033c9b2"
+  },
+  "range-mewtwo-viewsight": {
+   "checkpoints": [
+    "5a0c4ab7",
+    "9b28ae54",
+    "0941b8a8",
+    "d5cd77fa",
+    "df07c701"
+   ],
+   "end": "16616a59"
   }
  }
 }

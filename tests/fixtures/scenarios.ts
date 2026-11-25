@@ -11,6 +11,8 @@
 // Aim: like the browser (src/main.ts sampleInput), every tick sends the crosshair ray (InputFrame.aim, read by the
 // direct shots) and the ground aim point (aimX / aimZ, read by every other move, the holds among them).
 import { createRun, disposeRun, step } from '../../src/sim/run';
+import type { Rules } from '../../src/rules/defaults';
+import type { DeepPartial } from '../../src/core/util';
 import '../setup/physics';
 import '../setup/nav';
 import { BTN, NO_INPUT, type AimRay, type InputFrame, type SimContext } from '../../src/sim/types';
@@ -46,6 +48,8 @@ export interface Scenario {
   needs: Partial<Record<Counter, number>>;
   /** counters that must stay 0 (what the scenario shows is refused) */
   never?: Counter[];
+  /** rule overrides merged over the defaults (CL: rules.aim.viewSight for the -viewsight scenario) */
+  rules?: DeepPartial<Rules>;
   /** rules.physics.engine (task I1a; default 'tiles'): a scenario on 'rapier' has an id ending -rapier */
   physics?: 'tiles' | 'rapier';
   /** rules.nav.engine (task I3; default 'flow'): a scenario on 'navmesh' has an id ending -navmesh */
@@ -57,6 +61,7 @@ export const COUNTERS = [
   'jumps', 'dashes', 'guards', 'parries', 'hits', 'kills', 'hurt', 'castPrimary', 'castQ', 'castE',
   'hitDummy', 'hitPatrol', 'hitStrafe', 'pitchUp', 'pitchDown', 'breakthroughs', 'respawns', 'tags', 'tagActions',
   'holds', 'throws', 'underDeck', 'deckEdge', 'swimTicks', 'hazardEnter', 'hazardExit', 'floods', 'cells', 'tileBurn', 'coats', 'holdTicks', 'raiders',
+  'eyeCasts',
 ] as const;
 export type Counter = typeof COUNTERS[number];
 
@@ -320,6 +325,15 @@ for (const id of ['gorge-hold']) {
   SCENARIOS.push({ ...s, id: `${id}-navmesh`, covers: `${s.covers}; enemies steer by the navmesh`, nav: 'navmesh' });
 }
 
+// CL (docs/WORLDGEN3D.md Q15c, CL-Q10 to CL-Q13): the Mewtwo track with spatial shots launched from and checked from
+// the anatomical eye (rules.aim.viewSight) and the aimbot's lens on the camera law (scripts/lib/aimbot.ts). Mewtwo's
+// eye (1.55 m) clears a 1.45 m rung that its muzzle (1.09 m) does not. Recorded once by CL; tests/viewsight.test.ts
+// shows it really launches from the eye (its hashes alone cannot) and compares them with the unflagged twin's.
+for (const id of ['range-mewtwo']) {
+  const s = SCENARIOS.find((x) => x.id === id)!;
+  SCENARIOS.push({ ...s, id: `${id}-viewsight`, covers: `${s.covers}; shots launched and checked from the eye`, rules: { aim: { viewSight: true } }, needs: { ...s.needs, eyeCasts: 1 } });
+}
+
 /** walk to the nearest Light throwable until within `reach` m, press the kit's hold move on it and keep the button
  *  down 1.5 s, the aim swinging from the body to the Geodude dummy after 0.5 s, then release (the throw); again 1 s
  *  later. State is the tick the press began, kept per run */
@@ -372,7 +386,7 @@ function count(ctx: SimContext, inp: InputFrame, cov: Coverage, held: Float64Arr
       case 'hit': { cov.hits++; const k = kindOf(e.enemy); if (k === 'dummy') cov.hitDummy++; else if (k === 'patrol') cov.hitPatrol++; else if (k === 'strafe') cov.hitStrafe++; break; }
       case 'kill': cov.kills++; break;
       case 'playerHurt': cov.hurt++; break;
-      case 'cast': { const s = keys.indexOf(e.key); if (s === 0) cov.castPrimary++; else if (s === 1) cov.castQ++; else if (s === 2) cov.castE++; break; }
+      case 'cast': { const s = keys.indexOf(e.key); if (s === 0) cov.castPrimary++; else if (s === 1) cov.castQ++; else if (s === 2) cov.castE++; if (e.o?.eye) cov.eyeCasts++; break; }
       case 'evolveEnd': cov.breakthroughs++; break;
       case 'respawn': cov.respawns++; break;
       case 'tag': cov.tags++; break;
@@ -414,7 +428,7 @@ function count(ctx: SimContext, inp: InputFrame, cov: Coverage, held: Float64Arr
 
 /** `observe` sees the run after createRun and after every tick (it must only read: tests/matchart.test.ts) */
 export function runScenario(s: Scenario, observe?: (ctx: SimContext) => void): ScenarioResult {
-  const ctx = createRun({ mode: s.mode, seed: 1, species: s.species, loadout: s.loadout, targets: s.targets, ruleOverrides: { worldgen: s.worldgen, ...(s.physics ? { physics: { engine: s.physics } } : {}), ...(s.nav ? { nav: { engine: s.nav } } : {}) } as never });
+  const ctx = createRun({ mode: s.mode, seed: 1, species: s.species, loadout: s.loadout, targets: s.targets, ruleOverrides: { ...(s.rules ?? {}), worldgen: s.worldgen, ...(s.physics ? { physics: { engine: s.physics } } : {}), ...(s.nav ? { nav: { engine: s.nav } } : {}) } as never });
   observe?.(ctx);
   const checkpoints: string[] = [];
   const cov = Object.fromEntries(COUNTERS.map((c) => [c, 0])) as Coverage;

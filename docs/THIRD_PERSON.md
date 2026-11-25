@@ -181,12 +181,19 @@ composition, not from its code.
 - **No shake.** The lens is the crosshair ray's origin: shaking it moved the aim and the whole view on every hit and boss
   slam. Third person never shakes; Settings → Screen shake applies to the fixed views only. (Cinemachine's third-person
   aim extension cancels camera noise for the same reason.)
+- **The 3D camera (CL, 2026-11-25).** This section describes the old renderer's rig, which stays as it is. Its framing
+  inputs (`frame`, `reticle`, `shoulderMax`, `elevation`, the neutral pitch, the lens and deck clearances) now live in
+  the single framing source, `src/rules/framing.ts` (WORLDGEN3D Q7c), and `CHASE_CONFIG` reads them unchanged. The 3D
+  rig's law is different (the lens at the anatomical eye's height, D = 3.5 × the anatomy table's height inside
+  1.8–9.0 m, an information gate against camera peek): docs/CAMERA.md "Direction for the 3D camera", and I2b builds it.
 - **Aim = camera.** The crosshair ray (`InputFrame.aim`, `aimRayOf(view)`) is the sample's lens and axis. The sim
   traces it for the direct shots (bolt, orb) and beams: they leave the body's muzzle (class
   height × 0.6 above the feet, ahead by the footprint) toward what the crosshair is on, in 3D, with no magnetism or lead,
   and the crosshair turns red when cover stands between muzzle and target (Phase 2B/2C, `docs/THIRD_PERSON_IMPLEMENTATION.md`
   §13, §14). This is the standard camera-ray targeting with physical attack origins: the camera picks the point, the body
-  is where the attack starts, and an obstruction the camera does not see is reported, not hidden. Every other move still
+  is where the attack starts, and an obstruction the camera does not see is reported, not hidden. Under
+  `rules.aim.viewSight` (CL, off until X1a) the attack starts at the anatomical eye instead (`src/rules/anatomy.ts`,
+  `sim/aim.ts eyePoint`), the trace from the eye's plane, so what the eye sees is what the shot can reach. Every other move still
   reads `aimX/aimZ`: the crosshair ray against the terrain, 4–26 m from the Pokémon, nudged by the shoulder offset so they
   converge on the crosshair (`chaseAim`: the sideways part is eased in over the first 16 m, so with the wider shoulder
   the planar ring sits further inside the crosshair's ground point at close range than it did). R2 keeps the aim maths
