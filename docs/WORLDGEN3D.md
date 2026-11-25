@@ -1143,6 +1143,28 @@ grilling and recorded under "Open items"):
     through it. Q15c asks for more than that where vegetation conceals ("concealment rules apply consistently to
     targeting, enemy detection and gameplay information"): vegetation that hides is a `foliage` or `screen` kind
     with a sight block (Q15.4), not dressing. F95 and F97 carry the gap.
+- **CL-Q6, the default eye fractions: accepted as provisional defaults, no class factor, 0 overrides.**
+  - `eye.up` × sim height by official shape: humanoid 0.90; upright, squiggle 0.85; quadruped, wings, armor 0.80;
+    bug-wings 0.75; legs, heads 0.70; ball, blob, arms, fish, tentacles 0.60; unknown 0.75. `eye.fwd` × footprint
+    radius: quadruped 0.9; armor 0.8; squiggle, fish 0.6; wings, heads 0.5; bug-wings, legs 0.4; upright, humanoid,
+    ball, blob, arms, tentacles 0.3; unknown 0.5. The size class enters only through the body it scales.
+  - Eyes: Tiny 0.33–0.57, Small 0.52–0.86, Medium 0.68–1.15, Large 0.95–1.62, Extra Large 1.33–3.12 m. On 240
+    species with art no eye lies above the drawn top (smallest margin 0.17 m, Roselia) or past the drawn side reach,
+    so the Q2 rule adds no override.
+  - Two additions to the report-only lint: (1) the eye against the drawn picture, (eye + drop) ÷ (top + drop) from
+    the lowest drawn point, listing species under 0.6 (the eye visibly below the drawn head); (2) who sees over cover:
+    per size class the species whose eye is above each rung (1.45, 2.00, 3.70 m), and the Large and Extra Large
+    species within 0.10 m of a rung, where a wrong shape label flips the result.
+  - Measured now (2026-11-25, `main` 25e20ed): the drawn fraction is 0.38–0.87, median 0.66; **80 of 240** species
+    fall under 0.6, mostly ball, arms, blob, tentacles and fish shapes at the 0.60 default (Poltchageist 0.38, Rotom
+    0.39), and heroes among them (Magnemite 0.46, Chandelure 0.49, Tynamo 0.49, Corviknight 0.54, Charmeleon 0.56).
+    Eye above 1.45 m: 21 of 57 Large, 36 of 38 Extra Large; above 2.00 m: 23 Extra Large; above 3.70 m: none. No
+    Tiny, Small or Medium eye is above any rung. 45 Large and Extra Large species lie within 0.10 m of a rung, 11 of
+    them heroes (Venusaur 1.46, Charizard 1.49, Blastoise 1.46, Meganium 1.42, Typhlosion 1.40, Togekiss 1.35,
+    Avalugg 1.46, Golem 1.49, Salamence 1.35 against 1.45; Feraligatr 1.94, Hariyama 2.06 against 2.00).
+  - Follow-up (ROADMAP F98): the fractions are balance values under Q15c, checked with this report at the first 3D
+    playtest; whether eyes follow the drawn height instead of the sim height is decided then, through reviewed
+    override data, so the sim still never reads the art.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
