@@ -1234,6 +1234,15 @@ grilling and recorded under "Open items"):
     melee, and `scripts/covercheck.ts` (class muzzle figures).
   - Where the attack is drawn from (mouth or body) is presentation, I2b's. F88 stays open: whether a table mouth ever
     becomes the gameplay origin is decided there.
+- **CL-Q11, the check's target end and a blocked shot (question f): the check ends at T, and a blocked shot fires
+  and is reported.** T is the aim point (the first thing the crosshair ray meets). Under the flag the check is the
+  shot's own volume swept from the eye point to T (`aim.ts` step 4). A blocked shot fires and meets the blocker (cover
+  takes the hit, breakables included), and the HUD shows it blocked, as today. No aim bending and no refused-cast
+  outcome.
+  - Under the flag the HUD's blocked indicator uses the identical check as the shot. A test holds that the indicator
+    and the shot never disagree, on both engines.
+  - Known edge case: the CL-Q7 gate samples with thin rays and the shot sweeps a volume, so near a cover edge an enemy
+    can be drawn while the shot is blocked; the red crosshair covers it. Partial visibility stays F90.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
