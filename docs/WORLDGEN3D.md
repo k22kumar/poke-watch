@@ -1256,6 +1256,21 @@ grilling and recorded under "Open items"):
   - The `-viewsight` scenario includes a body whose shots change under the flag (an eye well above the muzzle, or a
     giant). The CL report says whether its hashes differ from the unflagged twin's, beside the test that the flagged
     path ran.
+- **CL-Q13, where the crosshair trace starts and I1a's D6 (question h): at the eye's plane, with the skip; D6 is
+  accepted for the aim point only.** Flag off, unchanged (the chest plane, the muzzle's height).
+  - Under the flag the camera trace starts where the ray passes the eye's plane and keeps `QF.skipInitialWorld`, so
+    on Rapier a start inside a merged box skips the box and on tiles only its tile (D6). That moves only the aim
+    point T. The shot's own sweep starts at the eye point (after CL-Q3's pull-backs) with no skip, on both engines, so
+    no shot passes a solid. Tested on Rapier: a trace starting inside a merged box puts T beyond the rock; the shot is
+    blocked by the rock and the HUD shows it blocked (CL-Q11).
+  - Measured for it (the 12 replay tracks, today's aimbot, `main` 25e20ed): the trace start lies inside a solid on
+    0–28 of 3,600 ticks on most tracks, 184 in Crater, 209 in range-swap and 1,360 (38 %) in Grotto, where the
+    aimbot's lens, which has no wall clearance, puts the ray inside the cave rock; at the eye's plane the counts are
+    the same except Gorge (6 → 2, on both engines).
+  - The CL report gives the counts for the flagged aimbot (lens at eye height, CL-Q8's distance). If they stay high
+    (Grotto), the aimbot gets a simple lens pull-in (a ray back from the eye, stopping short of the first hit), in the
+    test harness only.
+  - ROADMAP F59 is narrowed to an aim-point difference, re-measured on the mesh world at G1.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
