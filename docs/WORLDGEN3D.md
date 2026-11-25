@@ -1060,6 +1060,90 @@ grilling and recorded under "Open items"):
   keep a band as a presentation rule only, and only where it gives no information the sight origin lacks.
 - Q15(f), camera peek, is open again: (g) closed it with the band.
 
+**CL grilling answers under Q15c (owner, 2026-11-25).**
+
+- **CL-Q2, the anatomy table and CL's scope: accepted as proposed, with conditions.** `src/rules/anatomy.ts` holds
+  per species `height`, `length`, `width`, an `eye` point (the gameplay sight origin) and named attack origins, with
+  postures (only `stand` used now), in in-game metres from the size curve (not official metres). Size class × official
+  shape gives fallback defaults (fractions of the class body). Overrides may set any dimension or point and are
+  reviewed data. The sim never reads the art; a Node lint compares the table with each sprite's measured outline.
+  CL builds the table, the lint (report-only), the framing source and the camera distance law, and the aim rule
+  under `rules.aim.viewSight`. Conditions:
+  1. Flag off, nothing changes: `CHASE_CONFIG` framing, the muzzle and every replay hash stay as recorded;
+     `tests/camframe.test.ts` and `tests/camaim.test.ts` pass unedited. Only the new law's functions and the aim rule
+     under `rules.aim.viewSight` read the eye.
+  2. In CL an override is added only where the lint shows the default eye outside the sprite, each listed with its
+     measurement. No other hand tuning and no exaggeration rules without the owner.
+  3. The table has room to grow: named attack origins (`mouth` now; tail, horns, hands later) and postures beyond
+     `stand`. In CL nothing reads the attack origins; the attack origin stays `rules.aim.muzzle`.
+  4. The lint's output (per species: drawn top ÷ sim height, eye inside the sprite) and its script are committed.
+  5. Follow-ups F86 and up: the lint becomes a gate no later than the task that builds hit bodies from the table; an
+     automatic review flag for new species whose sprite contradicts the table; attack origins from the table;
+     postures beyond `stand`; cover, concealment and detection from the table's dimensions.
+  - *Direction (for the design, not CL work):* the long-term goal is one consistent in-game scale across Pokémon and
+    world objects, so hit bodies, cover, concealment and visibility follow each species' shape and posture. Movement
+    collision and navigation stay in class tiers (one navmesh per class, routes cleared for Large), as recorded.
+  - *Second set of conditions (same day, with CL-Q3).* The mouth is stored and nothing reads it; whether the flagged
+    rule launches from the mouth or from `rules.aim.muzzle` is CL-Q(e)'s. The table stores the anatomical eye,
+    unclamped. The lint is report-only: per species the drawn-to-table ratio (top, and width where measured), the
+    outliers, and exactly what it compares; no threshold until the owner sets an expected ratio. The class × shape
+    defaults ship; every species override is listed in the report with its reason. Every deferred item (sim bodies from
+    the table, partial cover, concealment, enemy detection, materials, generator scale) gets a ROADMAP row (F86 and up).
+  - *Noted, not changed:* "routes cleared for Large" differs from Q7 as recorded (required routes ≥ 5.00 × 3.70 m
+    admit every body, giants at the cap included). Q7 stands until the owner says otherwise.
+- **CL-Q3, how the sight origin follows the body: accepted, with a vertical pull-back, and amended on the band.**
+  - The eye is the table's point in the body frame: the feet + `eye.up`, + `eye.fwd` ahead. It rides the feet 1:1
+    (a jump or high ground raises it; the render-only stair smoothing plays no part).
+  - For the shot check, "ahead" is the crosshair ray's horizontal heading, as for the muzzle, not `P.facing`.
+  - `eye.fwd` is capped at the footprint radius (Tiny 0.30 to Extra Large 0.88 m). A wall between the body's axis and
+    the eye puts the eye back on the axis, as for the muzzle.
+  - **Vertical pull-back:** the eye never sits inside or above a solid over the body. If the vertical segment from
+    the feet up to the eye is blocked (a low overhang, a deck underside), the eye is pulled down to just below the
+    blocker, so the shot check never starts inside a solid, on either engine (ties to CL-Q(h) and I1a's D6).
+  - **Amended (the band):** the shot check under `rules.aim.viewSight` uses the table's **unclamped** anatomical
+    eye. The band clamp (0.60–1.35 m) is a function for the presentation camera's view point only (I2b's rig), with
+    its own test; the band's cap appears only in that test.
+  - Measured for it (2026-11-25, `main` 25e20ed): all 48 Tiny species are 0.552–0.636 m tall, 12 of them under the
+    0.60 m floor (Tynamo, a hero, 0.552 m), so a clamped view point sits above their own top; Small and up are
+    ≥ 0.83 m. On the adapter maps (the 10 tile replay scenarios, the 6 habitat recipes × seeds 1–6) the lowest clear
+    height over walkable ground under a deck is 2.40 m, so the vertical pull-back does not fire on today's maps; its
+    tests need a built overhang.
+  - Confirmed for it: decoration (flowers, reeds, lilies, the `tall` grass prop) has no `PROP_MATERIALS` entry, so
+    neither engine gives it a collider and it never blocks the shot check (`src/world/sight.ts`, `src/world/adapter.ts`).
+    A Tiny eye under 0.50 m loses nothing in the sim. Found with it: the `tall` grass decoration can hide a small body
+    on screen while the sim sees it (a Q15c consistency gap for I4's `screen` kind).
+  - Step 3's tests: each body against each cover rung (1.45, 2.00, 3.70 m) from its own eye; a giant sees over the
+    rungs below its eye, a Small is blocked by all three. "A giant at the cap" is not a sight case.
+  - *Confirmed (owner, 2026-11-25, after a conflicting first answer to CL-Q4 was withdrawn):* CL-Q3 stands. The shot
+    check uses the unclamped anatomical eye (Q15c); the band is a presentation rule for the camera only.
+- **CL-Q4, the eye sees more than a capped camera: the lens is at eye height, with no cap.** The camera's height
+  follows the eye, so what the camera sees over is what the eye sees over. The 1.35 m cap stays only as a value in the
+  clamp function's own test. *(A first answer that clamped the sim's sight origin to the band was withdrawn by the
+  owner the same day, since it reversed Q15c and CL-Q3.)*
+  - Numbers for the generator, on the draft eye fractions of sim height by shape (humanoid 0.90; upright, squiggle
+    0.85; quadruped, wings, armor 0.80; bug-wings 0.75; legs, heads 0.70; ball, blob, arms, fish, tentacles 0.60;
+    awaiting the owner): tallest eye 3.12 m (Celesteela), tallest hero eye 2.06 m (Hariyama). The `camera-clearance`
+    ceiling at the neutral pose is the tallest eye + the 0.45 m deck clearance = 3.57 m, so the 3.70 m clear height
+    holds every lens with 0.13 m spare. The short side and the tall-dressing keep-out need the camera distance
+    (CL-Q(c)).
+  - Under the adapter maps' 2.40 m decks, five species that fit have eye + 0.45 m above the underside (Snorlax 2.00,
+    Hariyama 2.06, Melmetal 2.11, Rillaboom 2.00, Koraidon 1.99 m): the deck rule lowers their lens by up to 0.16 m.
+    Under 2.90 m decks none are affected. Pull-in is CL-Q(d)'s.
+- **CL-Q5, the camera floor for low eyes: floor = min(0.60, eye).** Lens height = eye height for every body; the
+  band's 0.60 and 1.35 m stay rules values used only in the clamp function's test.
+  - Measured for it (draft fractions): every Tiny eye (0.33–0.57 m, 48 species) and 8 of 42 Small eyes (0.52–0.59 m)
+    lie under 0.60 m. On 46 adapter maps (the 10 tile replay scenarios, 6 habitat recipes × seeds 1–6), 8,970 collider
+    tops (terrain step edges and wall-prop tops, distinct tiles per map) lie 0.33–0.60 m above adjacent walkable
+    ground: 3,757 at 0.33–0.40, 4,154 at 0.40–0.50, 1,059 at 0.50–0.60. A 0.60 m floor would have let those cameras
+    see over ledges their eye cannot.
+  - Follow-ups: the low lens against the 0.30 m near plane (ROADMAP F96, I2b) and dressing in front of low eyes
+    (F97, G1 and I2b).
+  - *"Flowers fill a Tiny's view."* This phrase was CL's, in the option text, not Q15c's, and "as Q15c intends"
+    overstated it. As built today it is **visual only**: dressing has no collider, so the sim eye sees and shoots
+    through it. Q15c asks for more than that where vegetation conceals ("concealment rules apply consistently to
+    targeting, enemy detection and gameplay information"): vegetation that hides is a `foliage` or `screen` kind
+    with a sight block (Q15.4), not dressing. F95 and F97 carry the gap.
+
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
 Checked today: a collider's `material` is one string holding two vocabularies, a `MaterialId` for props (`stone`,
