@@ -10,7 +10,9 @@ collects what has to be added to `src/world/model.ts` (task WM2, by the owner's 
 
 **The owner's review of 2026-11-24** corrected five points (two in Q3, Q8h, Q14.2, G1's dependencies) and gave four
 answers: A (Q19 amendment d), B (the cutover's scope), C (task WM2) and D (task CL). Each is recorded where it
-applies, dated; B, C and D are also under "Open items", task order and scope.
+applies, dated; B, C and D are also under "Open items", task order and scope. A second round the same day amended
+B (the time-of-day system is built for the cutover) and settled two points on the layers of Q14.10(c): the five
+routes are laid out from layer 1, and each later layer's hash change is planned.
 
 **Q23 (the low-poly profile and the render plan) is the owner's addition of 2026-11-24, after the grilling.** The
 wording it replaces in the earlier sections (Q14 to Q22, the contract table, the open items) is kept where it was
@@ -551,6 +553,9 @@ dropped: baseline edges are two-way and reach-and-return covers the way back.
 - The secondary may touch the primaries only at declared cross-links.
 - Tertiaries are overlays stacked above or below baseline space, so they add options without extra footprint. Each
   tertiary serves several capabilities.
+  - *(Owner, 2026-11-24.)* **G2's `plan` and `embed` lay out all five route roles from layer 1** of Q14.10(c). The
+    "over" and "under" tertiaries are planned and their space is kept empty, so layers 2 and 3 fill it without
+    moving the baseline routes.
 - Baseline edge kinds are `walk`, `ramp`, `stairs`, `bridge` and `tunnel` only, at 5.00 × 3.70 m (Q7). `fly`,
   `burrow`, `swim`, `dive`, `jump`, `drop`, `climb` and size-gated edges are never baseline.
 
@@ -830,6 +835,12 @@ carries per-recipe sub-schemas (`tide`, `graves`).
       the "under" tertiary (burrow, then dive) → liquid states → stateful features and the concealment volume.
       - *(Owner, 2026-11-24, answer B.)* The cutover X1a needs layer 1 only. Layers 2–5 are tasks after X1c
         ("Open items", task order and scope).
+      - *(Owner, 2026-11-24.)* **All five route roles are laid out from layer 1** (Q11). `plan` and `embed` plan
+        the "over" and "under" tertiaries and keep their space empty, so layers 2 and 3 fill it without moving
+        the baseline routes.
+      - *(Owner, 2026-11-24.)* **Each of layers 2 to 5 changes River Gorge's `gameplayHash`, and that is a planned
+        change.** The layer's task names it, re-records the River Gorge scenarios once, and its commit says why
+        (the Q19.6 rule). Any other moved hash is still a stop.
 
 **(a) A dev-only experiment overrides file** (the blueprint's expert layer). It may override any tunable or threshold
 for experimentation. A map generated with it is always unranked, never curated, and can never ship. Shipped recipes
@@ -1455,6 +1466,11 @@ here is presentation and outside `gameplayHash`, except the proxy dimensions of 
    - A partial range runs back and forth between its ends. Only a complete cycle wraps.
    - It is presentation data. The lints of Q14(f), Q18.6 and Q18.8(b) sample inside the map's range only.
    - Anything the time of day changes in gameplay stays an environment state (Q14f).
+   - *(Owner, 2026-11-24.)* **The complete time-of-day system is built for the cutover:** fixed times, partial
+     cycles and complete cycles, with working time progression, and developer controls to preview and test any
+     time of day. In production a map may use a fixed time until it passes its combat readability, visual
+     consistency, competitive fairness and performance checks. Its running cycle is then switched on, per map,
+     with no architectural change.
 3. **Tops read apart from sides.** An exposed top is distinguishable from its vertical sides by geometry, colour,
    light, a material transition or layering.
    - Caps, lips, bands, bevels and deposits are optional treatments. They depend on the material and are chosen per
@@ -1643,16 +1659,29 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 
 - **G1 depends on I3** as well as I1b and I2a: its class A gate needs the navmesh (the `Probe` of Q12.2). It also
   follows WM2.
-- **The cutover is narrow (answer B).** X1a needs layer 1 of Q14.10(c) only: baseline walking routes, with
-  liquids, timed hazards and breakables per Q9 and Q21. Layers 2–5 and their mechanics are tasks after X1c: fly,
-  climb, burrow, dive, stateful features, concealment, items, the species section, day/night and overlays.
+- **The cutover is narrow (answer B, as amended the same day).** X1a needs layer 1 of Q14.10(c) only: baseline
+  walking routes, with liquids, timed hazards and breakables per Q9 and Q21. Layers 2–5 and their mechanics are
+  tasks after X1c: fly, climb, burrow, dive, stateful features, concealment, items, the species section and
+  overlays. *(Answer B as first given also listed day/night here; the next point replaces that.)*
+- **Time of day is built for the cutover** (Q23.2). The complete system is there at X1a: fixed times, partial
+  cycles and complete cycles, with working time progression, and developer controls to preview and test any time
+  of day. A map may ship on a fixed time until it passes its combat readability, visual consistency, competitive
+  fairness and performance checks. What comes after X1c is switching a map's running cycle on once it passes,
+  with no architectural change.
+- **All five route roles from layer 1.** G2's `plan` and `embed` lay out the "over" and "under" tertiaries and
+  keep their space empty, so layers 2 and 3 fill it without moving the baseline routes (Q11, Q14.10c).
+- **The replay baseline after the cutover.** Each of layers 2 to 5 changes River Gorge's `gameplayHash` as a
+  planned change: its task names it, re-records the River Gorge scenarios once, and its commit says why (Q19.6).
+  Any other moved hash is still a stop.
 - **WM2, "WorldModel contract v2" (answer C)**, queued after G0 and run before I2a, I3 and G1: the consolidated
   contract table as types in `src/world/model.ts` (render chunks without normals or colour, per Q23),
   `MODEL_VERSION`, and the tile adapter filling defaults.
 - **CL, "Camera law" (answer D)**, queued before G2 and I2b: the view band and the camera distance law in
   `src/rules` (Q7c), and the sim rule of Q15(g) (line of sight from the clamped view point, `src/sim/aim.ts`),
   flagged off until X1a. ROADMAP F45 and F51.
-- **The blueprint** (ROADMAP F49): the owner will add it to `docs/`, or name this document the record.
+- **The blueprint** (ROADMAP F49): the owner will add it to `docs/`, or name this document the record. The owner
+  believes the source is "Map and Environment Generation Blueprint" (`claude/00-blueprint.md` in another Claude
+  project). Its text was not given in the grilling; the answers quoted it by section and term, without a title.
 
 **Numbers that wait for the camera task (CL; this heading read "I2b" before answer D).**
 

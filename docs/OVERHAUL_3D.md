@@ -109,12 +109,14 @@ Inventory, src/sim outside world.ts and spatial.ts: before WS, 342 accesses to 5
 | S2 | three.js spike, record in docs/spikes/S2-renderer.md |
 | WS | Sim world seam (hash-invariant refactor) |
 | G0 | 3D generator design, docs/WORLDGEN3D.md |
+| WM2 | WorldModel contract v2 (docs/WORLDGEN3D.md "WorldModel contract changes"); before I2a, I3 and G1 |
 | I1a | Physics world and queries |
 | I1b | Character movement |
 | I3 | Navigation |
 | I1c | Enemies, bodies and bots on physics and navigation |
 | I4 | Hazards, surface states and destructibles |
 | I2a | three.js scene |
+| CL | Camera law (docs/WORLDGEN3D.md Q15g); before G2 and I2b |
 | I2b | Actors, effects and camera |
 | G1 | Generator core and the 3D range |
 | G2 | The first 3D Hold map |
