@@ -1,5 +1,25 @@
 # Camera comparison
 
+## Direction for the 3D camera (owner, 2026-11-25)
+
+Recorded in the CL grilling (task CL, "Camera law"); the full text is docs/WORLDGEN3D.md Q15c, which amends Q15b and
+Q15(g). For the camera:
+
+- The presentation camera, the gameplay sight origin and line of sight, visual concealment, physical cover, the attack
+  origin and trajectory, and body and collision geometry are separate systems kept geometrically consistent.
+- The 0.60–1.35 m view band is **not** a gameplay visibility constraint. Gameplay sight origins come from each
+  Pokémon's anatomy, orientation and posture (a per-species measurement table, defaults by size class, overridable).
+  Larger Pokémon may naturally see over what blocks smaller ones.
+- The camera may keep presentation rules (a height band among them), but it must give no information advantage:
+  it must not show enemies through or over obstacles that conceal them from the gameplay sight origin. Camera peek
+  is to be prevented.
+- The band and the 1.45 m cover rung are provisional values, under review.
+
+What CL settles under this direction is recorded here and in WORLDGEN3D Q15c as the grilling answers it. The sections
+below describe the fixed views (the old renderer), which this direction does not change.
+
+## The fixed views
+
 These are the fixed views (Classic, Overhead, Wide), kept selectable in Settings → Camera. The default camera is the
 third-person rig: `docs/THIRD_PERSON.md`.
 

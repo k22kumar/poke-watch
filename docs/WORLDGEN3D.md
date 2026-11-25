@@ -950,7 +950,8 @@ bush therefore hides a body on screen but not from the sim's sight rays.
 *(f)* **Note for I4.** The third-person camera sits above the body's eye, so peeking over cover with the camera is
 possible. Validation uses body eye heights. I4 decides whether to limit camera peek. *(Resolved by (g).)*
 
-**(g) Camera direction (owner, 2026-11-23, added after the answer; for I4 and the camera owner).**
+**(g) Camera direction (owner, 2026-11-23, added after the answer; for I4 and the camera owner).** *Amended by Q15c
+(owner, 2026-11-25): the band is no longer a gameplay constraint; sight origins come from anatomy. See Q15c below.*
 
 - The chase camera stays low, close and behind every hero, at about the body's own eye level, for immersion.
 - **View height is clamped to a band.** A maximum cap means tall bodies gain no view advantage. A minimum floor sits
@@ -976,7 +977,8 @@ What (g) leaves standing and what it voids, as read here:
 - The camera documents (docs/CAMERA.md, docs/THIRD_PERSON.md) still describe the framing law this replaces. They
   are the camera task's to update, not this design's.
 
-**Q15b: correction to rule 5, found while applying (g) (owner, 2026-11-23: accepted as starting tunables).** The
+**Q15b: correction to rule 5, found while applying (g) (owner, 2026-11-23: accepted as starting tunables;
+provisional since Q15c, 2026-11-25).** The
 view band 0.60–1.35 m and the cover ladder 1.45 / 2.00 / 3.70 m below replace rule 5(a)'s numbers. Both are derived
 and are recomputed if the camera task changes the band. The owner accepts the consequence that tall bodies see no
 further than the cap. The camera distance stays the camera task's number; until it exists the `camera-clearance`
@@ -992,6 +994,71 @@ height + 0.10 = **0.60 m**; cap = lowest cover rung − 0.10 = **1.35 m**. No bo
 rung. A Large or Extra Large body behind 1.45 m cover still shows its top, so size is paid in hitbox. Fighting over
 cover needs high ground or a jump. A view law stepped per size class (shoot-over half cover for some classes) was
 not recommended and is not adopted: it would bring back a view advantage by size.
+
+**Q15c: physical proportions, size-dependent gameplay (owner, 2026-11-25, in the CL grilling; amends Q15b and
+Q15(g)).** Given in answer to CL's first question (how the 0.60–1.35 m band should live in `src/rules`), and replacing
+that question as framed. Recorded verbatim:
+
+> The intention is to create a world with believable physical proportions relative to Pokémon, allowing slight
+> exaggerations where they improve gameplay, readability or visual quality. Use consistent world-scale units and
+> physical rules. Environmental objects and Pokémon should have meaningful dimensions, shapes and physical properties.
+>
+> *Size-dependent gameplay*
+> - Concealment, cover, visibility, accessibility and exposure should emerge naturally from the relationship between
+>   Pokémon anatomy, size, posture, position and environmental geometry.
+> - Small Pokémon should be able to hide behind smaller objects or within vegetation when their physical dimensions
+>   permit it.
+> - Larger Pokémon should require larger objects for equivalent concealment but may naturally see over obstacles that
+>   obstruct smaller Pokémon.
+> - Support partial exposure, partial concealment and partial cover rather than unnecessarily binary states.
+> - Preserve size-dependent strengths, weaknesses and trade-offs rather than artificially equalizing physical
+>   outcomes.
+>
+> *System separation.* Keep the following systems logically separate but geometrically consistent: presentation
+> camera; gameplay sight origin and line of sight; visual concealment; physical cover; attack origin and trajectory;
+> body and collision geometry; environmental material properties. Vegetation may provide visual concealment without
+> providing physical protection. Solid objects may provide both.
+>
+> *View height.* Do not enforce the universal 0.60–1.35 m view band as a gameplay visibility constraint. Derive
+> gameplay sight origins from each Pokémon's anatomy, orientation and posture. Camera-specific constraints may remain
+> as presentation rules if necessary, but they must not provide unintended information advantages, such as seeing
+> enemies through or over obstacles that should conceal them.
+>
+> *Environmental scale.* Determine environmental dimensions from believable world-scale proportions and intentional
+> level design. Do not derive all environmental heights exclusively from Pokémon size categories. Use natural
+> variation in environmental geometry to create different tactical opportunities for different Pokémon.
+>
+> *Gameplay balance and validation*
+> - Ensure visual geometry and collision geometry correspond reasonably.
+> - Prevent camera peeking, attack-origin exploits and clipping exploits.
+> - Ensure concealment rules apply consistently to targeting, enemy detection and gameplay information.
+> - Provide meaningful environmental opportunities for Pokémon of different sizes without guaranteeing identical
+>   accessibility or cover effectiveness.
+> - Balance size-related disadvantages through complementary, meaningful gameplay advantages where appropriate.
+> - Validate representative Pokémon across the full size range, including different anatomies, postures, terrain
+>   elevations and environmental materials.
+> - Use deterministic geometric rules, a single source of truth for physical dimensions and automated tests to
+>   preserve intended relationships.
+>
+> Treat the existing 0.60–1.35 m view band and 1.45 m cover rung as provisional values, not mandatory physical
+> constraints. Review their purpose and dependencies before retaining, replacing or removing them. The governing
+> principle is to standardize physical rules, not physical outcomes. Meaningful gameplay differences should emerge
+> from consistent interactions between Pokémon and the world.
+
+With it (same answer): creatures stay flat sprites for now and 3D models may come later, so a creature's gameplay
+body and sight origin come from data, not from its picture: a table of simple measurements per species (eye height,
+body dimensions, any postures gameplay needs) with defaults by size class that a species can override, built so a
+future 3D model reads the same table, which stays the single source of truth.
+
+What Q15c changes, as read here (the full list of reopened decisions and who owns each is settled in the CL
+grilling and recorded under "Open items"):
+
+- Q15(g)'s "view height is clamped to a band" and "a capped giant cannot fire over cover it cannot see over; size is
+  balanced by hitbox, not by view" no longer hold as gameplay rules. "What you see is what you can hit" stands, with
+  the viewer's end at its sight origin from the anatomy table, not a clamped height.
+- Q15b's band 0.60–1.35 m and its ladder 1.45 / 2.00 / 3.70 m are provisional, not derived constraints. The camera may
+  keep a band as a presentation rule only, and only where it gives no information the sight origin lacks.
+- Q15(f), camera peek, is open again: (g) closed it with the band.
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
