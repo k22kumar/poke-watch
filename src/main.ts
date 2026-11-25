@@ -20,7 +20,8 @@ import { controlRoster, type ReadinessCheck } from './sim/playability';
 import { defaultRules } from './rules/defaults';
 import { runSizeRules } from './rules/sizing';
 import { startObjective } from './sim/objectives';
-import { createRun, startStage, step } from './sim/run';
+import { createRun, disposeRun, startStage, step } from './sim/run';
+import { bootRapier } from './physics/web';
 import { artMetrics } from './render/metrics';
 import { LOCATIONS } from './world/locations';
 import { HABITATS } from './world/habitat/recipes';
@@ -37,6 +38,11 @@ import { artLoader } from './assets/loader';
 import { matchArt, wholeLine } from './sim/matchart';
 
 const params = new URLSearchParams(location.search);
+/** ?physics=rapier: runs answer aim, line of sight, shots and beams on Rapier (rules.physics.engine, task I1a; default the
+ *  tile column model). Rapier is fetched and initialised once at boot, and only then; createRun stays synchronous */
+const physicsEngine = params.get('physics') === 'rapier' ? 'rapier' : 'tiles';
+/** a run being replaced or dropped frees what it owns outside the JS heap (its physics world: S1 §6) */
+const dropRun = (c: SimContext | null) => { if (c) disposeRun(c); };
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
 let evolveAt = params.has('evolve') ? Math.max(0, Number(params.get('evolve')) || 1) : -1;
 const DEFAULT_SPECIES = 'charmander';
@@ -83,7 +89,7 @@ const ui = new UI({
   start: (mode, species, seed) => { startRun(mode, species, seed); captureForPlay(); },
   resume: (via) => resumeFromMenu(via),
   restart: () => { if (current) { startRun(current.mode, current.species, (current.seed + 1) >>> 0); captureForPlay(); } },
-  quit: () => { cancelEnd(); artWait = null; ui.matchLoading(false); ctx = null; (window as any).pokewatch.ctx = null; paused = false; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
+  quit: () => { cancelEnd(); artWait = null; ui.matchLoading(false); dropRun(ctx); ctx = null; (window as any).pokewatch.ctx = null; paused = false; audio.setPaused(false); audio.titleMusic(); input.releaseLock(); ui.title(); },
   portrait: (id) => renderer?.portrait(id),
   fetchPortrait: (id) => artLoader.fetchPortrait(id),
   // ahead of Start: the picked hero's line and what the mode shows (a guess at matchArt, which reads the run; Start still
@@ -192,7 +198,7 @@ function failMap(e: unknown) {
   console.error(e);
   cancelEnd();
   artWait = null; ui.matchLoading(false);
-  ctx = null; current = null; paused = false;
+  dropRun(ctx); ctx = null; current = null; paused = false;
   (window as any).pokewatch.ctx = null;
   audio.setPaused(false); input.releaseLock();
   ui.error(mapErrorMessage(e));
@@ -231,8 +237,9 @@ function startRun(mode: Mode, species: string, seed: number) {
   const range = mode.id === 'range' || mode.id === 'range-swap';
   const named = !!loc || params.has('world');
   const wg = range && !named ? { ...worldgenOverrides(world, loc), arena: 'range' } : worldgenOverrides(world, loc);
+  dropRun(ctx); ctx = null;
   try {
-    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg, physics: { engine: physicsEngine } } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
   } catch (e) {
     // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
     failMap(e);
@@ -517,6 +524,11 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
 
 async function boot() {
   ui.loading(0);
+  if (physicsEngine === 'rapier') {
+    const { ms, url } = await bootRapier();
+    console.info(`[boot] Rapier ${url} ready in ${ms.toFixed(1)} ms`);
+    (window as any).pokewatchPhysics = { engine: physicsEngine, initMs: ms, url };
+  }
   renderer = new Renderer(canvas);
   renderer.quality = settings.quality;
   renderer.cam = cameraPreset(params.get('cam') ?? settings.camera);

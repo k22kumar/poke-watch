@@ -33,8 +33,10 @@ jobs:
           cp dist/index.html site/index.html
           cp -R dist/art site/art
           cp -R dist/music site/music
+          cp -R dist/physics site/physics
           test -f site/art/manifest.*.json
           ls site/music/*.mp3
+          ls site/physics/*.wasm
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
