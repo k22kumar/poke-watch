@@ -14,6 +14,10 @@
 //           distance on purpose (ranged, Hexer, Mender); a wide body with no wide route holds on purpose and is counted
 //           apart as `holding`
 // Read-only over the sim: it only observes. Prints every episode (seed, where, what is around) and a summary.
+//   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'); the escape probe's
+//   headings move its capsule through the controller too (the room flood stays the tile lattice's). Enemies stay on
+//   the tile World until I1c
+
 import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
 import { ROLE } from '../src/sim/pools';
@@ -27,7 +31,7 @@ import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import { crowd } from './lib/crowd';
 import { initNavNode } from '../src/nav/node';
-import { worldOf } from '../src/sim/worldquery';
+import { worldOf, type BodyMove } from '../src/sim/worldquery';
 
 export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
 
@@ -39,6 +43,8 @@ const navAt = process.argv.indexOf('--nav');
 const NAV_ENGINE = navAt > 1 ? process.argv.splice(navAt, 2)[1] : 'flow';
 if (NAV_ENGINE !== 'flow' && NAV_ENGINE !== 'navmesh') throw new Error(`--nav flow|navmesh, not ${NAV_ENGINE}`);
 if (NAV_ENGINE === 'navmesh') await initNavNode();
+/** I1b: the escape probe's move on physics (the controller writes nothing the sim reads) */
+const BM: BodyMove = { x: 0, y: 0, z: 0, dx: 0, dy: 0, dz: 0, r: 0, h: undefined, stepUp: 0, supported: true, onGround: false, ceiling: false, stepped: false };
 /** World.shore's room: a walkable pocket smaller than this (in tiles) is a trap */
 export const TRAP_ROOM = 48;
 
@@ -76,11 +82,16 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
     return false;
   };
   let free = 0;
+  // on physics (I1b) the headings move the partner's own capsule through the character controller
+  const M = W.mover;
   for (let h = 0; h < 16; h++) {
     const a = (h * Math.PI) / 8, dx = Math.sin(a) * 0.3, dz = Math.cos(a) * 0.3;
     // as before, a heading is free when a 0.3 m move goes at least 0.2 m (sliding along a face counts), walking or jumping
     for (const up of [st, climb]) {
-      W.moveBody(P.x, P.z, dx, dz, P.y, up, r, OUT, undefined, tall);
+      if (M) {
+        BM.x = P.x; BM.y = P.y; BM.z = P.z; BM.dx = dx; BM.dy = 0; BM.dz = dz; BM.r = r; BM.h = tall; BM.stepUp = up; BM.supported = true;
+        M.move(BM); OUT[0] = BM.x; OUT[1] = BM.z;
+      } else W.moveBody(P.x, P.z, dx, dz, P.y, up, r, OUT, undefined, tall);
       if (Math.hypot(OUT[0] - P.x, OUT[1] - P.z) >= 0.2 && standable(OUT[0], OUT[1], up === st ? P.y : P.y + climb) > -Infinity) { free++; break; }
     }
   }
@@ -177,8 +188,13 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
 }
 
 if (process.argv[1]?.endsWith('stuckwatch.ts')) {
-  const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 3), secs = Number(process.argv[4] ?? 120), first = Number(process.argv[5] ?? 1);
-  const extra = process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {};
+  // --physics rapier (I1b): Rapier loads once before the first run
+  const pf = process.argv.indexOf('--physics'), argv = process.argv.slice();
+  const physics = pf >= 0 && argv[pf + 1] === 'rapier';
+  if (pf >= 0) argv.splice(pf, 2);
+  if (physics) await (await import('../src/physics/node')).initPhysicsNode();
+  const which = argv[2] ?? 'all', N = Number(argv[3] ?? 3), secs = Number(argv[4] ?? 120), first = Number(argv[5] ?? 1);
+  const extra = { ...(process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {}), ...(physics ? { physics: { engine: 'rapier' } } : {}) };
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];
   let ps = 0, pp = 0, pt = 0, es = 0, hold = 0, samples = 0;
   for (const map of maps) for (let s = first; s < first + N; s++) for (const species of ['totodile', 'feraligatr']) {

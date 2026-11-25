@@ -10,6 +10,9 @@
 //   optional and size-restricted (a chamber or nook behind a one-tile neck, a narrow-only anchor)
 //                                                               the narrow body must arrive; the wide body must not
 // Every tick, every walker's footprint must stay clear of solid geometry (World.fits): navigation and collision agree.
+//   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'): only the trainer
+//   walks, one per size class, to every mandatory target; its capsule must stay clear of the physics world (the
+//   enemies stay on the tile World until I1c, so their walks are the flag-off run's)
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
@@ -29,6 +32,10 @@ import { assertRunning, endedNote, runEnded } from './lib/ended';
  *  The Large elite (×2, capped at 0.95 m) went with the elite role (pivot step 10) */
 const WALKERS: [string, string, number][] = [['narrow', 'slugma', 0], ['large', 'heracross', 0], ['xl', 'onix', 0]];
 const TRAINERS: [string, string][] = [['small', 'totodile'], ['xl', 'feraligatr']];
+/** I1b, --physics rapier: the trainer of every size class */
+const TRAINERS_PHYSICS: [string, string][] = [['tiny', 'pichu'], ['small', 'totodile'], ['medium', 'croconaw'], ['large', 'tauros'], ['xl', 'feraligatr']];
+/** the physics flag of this run (--physics rapier; set by the command line below) */
+let PHYSICS: 'tiles' | 'rapier' = 'tiles';
 
 export interface WalkResult { map: string; seed: number; target: string; walker: string; expect: 'arrive' | 'refuse'; ok: boolean; t: number; note: string }
 
@@ -82,7 +89,7 @@ export function freshRun(kind: 'location' | 'habitat', id: string, seed: number,
   const wg = kind === 'location'
     ? { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } }
     : { mode: 'generated', regionSeed: seed, locations: { meadow: id, dusk: id, badlands: id, frost: id } };
-  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm } as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species, ruleOverrides: { worldgen: wg, ...calm, ...(PHYSICS === 'rapier' ? { physics: { engine: 'rapier' } } : {}) } as never });
   const E = ctx.enemies;
   for (let e = 0; e < E.hi; e++) if (E.alive[e]) E.kill(e);
   return ctx;
@@ -96,6 +103,8 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
 
 /** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height its head clears deck slabs too */
 const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
+/** on physics the trainer's own body: its capsule (shrunk by 2 mm) clear of the physics world */
+const clearOn = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => ctx.physics ? ctx.physics.bodyClear(ctx.world, x, y, z, r, tall, 2e-3) : clearAt(ctx, x, z, y, r, tall);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
 
@@ -194,7 +203,7 @@ function driveTrainer(ctx: SimContext, path: [number, number][], budget: number)
     }
     const dx = tx - P.x, dz = tz - P.z, L = Math.hypot(dx, dz) || 1;
     step(ctx, { ...NO_INPUT, mx: dx / L, mz: dz / L });
-    if (!clearAt(ctx, P.x, P.z, P.y, foot, partnerHeight(P.species, ctx.rules))) { pen = true; note = `overlap at ${P.x.toFixed(2)},${P.z.toFixed(2)}`; }
+    if (!clearOn(ctx, P.x, P.z, P.y, foot, partnerHeight(P.species, ctx.rules))) { pen = true; note = `overlap at ${P.x.toFixed(2)},${P.z.toFixed(2)}`; }
     if (i > bestI) { bestI = i; lastProgress = ctx.time; }
     if (i >= path.length - 1 && Math.hypot(path[path.length - 1][0] - P.x, path[path.length - 1][1] - P.z) < 1.2) return { arrived: true, t: ctx.time - t0, pen, note };
     if (ctx.time - lastProgress > 6) return { arrived: false, t: ctx.time - t0, pen, note: note || `stuck at ${P.x.toFixed(2)},${P.z.toFixed(2)} (waypoint ${i}/${path.length})` };
@@ -220,7 +229,7 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
   }
   for (const [x, y] of L.anchors) targets.push({ name: `anchor${x},${y}`, k: y * m.w + x, mandatory: false, anchor: true });
   for (const T of targets) {
-    for (const w of WALKERS) {
+    for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
       const ctx = freshRun('location', id, seed);
       const diag = w[0] === 'large', narrow = w[0] === 'narrow';
       const reach = narrow ? true : nearIn(diag ? wideDiag : wideStrict, T.k % m.w, (T.k / m.w) | 0, T.anchor ? 0 : 3);
@@ -248,7 +257,7 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
     }
   }
   // the trainer to every mandatory target
-  for (const [label, species] of TRAINERS) for (const T of targets.filter((t) => t.mandatory)) {
+  for (const [label, species] of PHYSICS === 'rapier' ? TRAINERS_PHYSICS : TRAINERS) for (const T of targets.filter((t) => t.mandatory)) {
     const ctx = freshRun('location', id, seed, species), foot = partnerFootprint(ctx.player.species, ctx.rules), wide = navWide(foot, ctx.rules);
     const route = NAV_ENGINE === 'navmesh' ? navTrainerRoute(ctx, hubK, T.k, wide, foot < DIAG_R) : trainerRoute(ctx, hubK, T.k, wide, foot < DIAG_R);
     if (!route) { out.push({ map: id, seed, target: T.name, walker: 'trainer-' + label, expect: 'arrive', ok: false, t: 0, note: 'no route on its lattice' }); continue; }
@@ -273,13 +282,13 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
   const base = freshRun('habitat', id, seed), W = base.world, H = W.hab!, m = W.map;
   const ck = Math.floor(H.contest.y) * m.w + Math.floor(H.contest.x), sk = m.spawn[1] * m.w + m.spawn[0];
   const bk = Math.floor(H.stage.B[1]) * m.w + Math.floor(H.stage.B[0]);
-  for (const w of WALKERS) {
+  for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
     const ctx = freshRun('habitat', id, seed);
     const [bx, bz] = at(ctx, bk), [cx, cz] = at(ctx, ck);
     const r = pursue(ctx, w, bx, bz, cx, cz, budgetFor(60));
     out.push({ map: id, seed, target: 'contest', walker: w[0], expect: 'arrive', ok: r.arrived && !r.pen, t: +r.t.toFixed(1), note: r.note });
   }
-  for (const [label, species] of TRAINERS) {
+  for (const [label, species] of PHYSICS === 'rapier' ? TRAINERS_PHYSICS : TRAINERS) {
     const ctx = freshRun('habitat', id, seed, species), foot = partnerFootprint(ctx.player.species, ctx.rules), wide = navWide(foot, ctx.rules);
     const route = NAV_ENGINE === 'navmesh' ? navTrainerRoute(ctx, sk, ck, wide, foot < DIAG_R) : trainerRoute(ctx, sk, ck, wide, foot < DIAG_R);
     if (!route) { out.push({ map: id, seed, target: 'contest', walker: 'trainer-' + label, expect: 'arrive', ok: false, t: 0, note: 'no route on its lattice' }); continue; }
@@ -291,7 +300,11 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
 }
 
 if (process.argv[1]?.endsWith('navwalk.ts')) {
-  const which = process.argv[2] ?? 'all', N = Number(process.argv[3] ?? 5), first = Number(process.argv[4] ?? 1);
+  // --physics rapier (I1b): Rapier loads once before the first run
+  const pf = process.argv.indexOf('--physics'), argv = process.argv.slice();
+  if (pf >= 0) { PHYSICS = argv[pf + 1] === 'rapier' ? 'rapier' : 'tiles'; argv.splice(pf, 2); }
+  if (PHYSICS === 'rapier') await (await import('../src/physics/node')).initPhysicsNode();
+  const which = argv[2] ?? 'all', N = Number(argv[3] ?? 5), first = Number(argv[4] ?? 1);
   const ids: ['location' | 'habitat', string][] = [];
   if (which === 'all' || which === 'location') for (const id of Object.keys(LOCATIONS)) ids.push(['location', id]);
   if (which === 'all' || which === 'habitat') for (const id of Object.keys(HABITATS)) ids.push(['habitat', id]);
@@ -307,6 +320,6 @@ if (process.argv[1]?.endsWith('navwalk.ts')) {
     }
   }
   for (const [k, v] of Object.entries(tally).sort()) console.log(`${k.padEnd(22)} ${v.ok}/${v.n}`);
-  console.log(`\n${fails} failures`);
+  console.log(`\n${fails} failures${PHYSICS === 'rapier' ? ' (physics: the trainer on the character controller)' : ''}`);
   if (fails) process.exitCode = 1;
 }
