@@ -103,23 +103,23 @@
   },
   "range-charmander-rapier": {
    "checkpoints": [
-    "553cef7b",
-    "0b868454",
-    "c21a2f4b",
-    "70f34677",
-    "6195b1d7"
+    "65a9256b",
+    "f492235f",
+    "613de31f",
+    "973cf20f",
+    "5b694e31"
    ],
-   "end": "2bbc7700"
+   "end": "fa1b7a8b"
   },
   "gorge-hold-rapier": {
    "checkpoints": [
-    "db99ed05",
-    "ea391945",
-    "fce851b9",
-    "9daf7363",
-    "9689c632"
+    "5c8544dd",
+    "0daab722",
+    "9e9fe044",
+    "98630ce3",
+    "3b51e464"
    ],
-   "end": "15622cdc"
+   "end": "9654663d"
   },
   "gorge-hold-navmesh": {
    "checkpoints": [
