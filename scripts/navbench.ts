@@ -3,6 +3,8 @@
 // p95 <= 250 ms for everything).
 //   npx tsx scripts/navbench.ts [map|all] [seed] [--repeat N] [--tile <cells>] [--group narrow|large|xl|giant]
 //                               [--detail <sampleDist m>,<sampleMaxError m>]  (a detail mesh, ROADMAP F78: measured, not used)
+//                               [--ch <m>]  (another cell height, vertical counts from physical sizes: scripts/lib/navcells.ts)
+// It also prints the wasm heap after the builds (it never shrinks, so the high-water mark of one build per group set).
 // map: 'range', a habitat id (river-gorge, ...) or a location id; default river-gorge seed 1. Times are the median and
 // p95 of N runs after one warm-up (default 7), split into the adapter (fromArenaMap), the soup and each group's tiles.
 import { initNavNode } from '../src/nav/node';
@@ -14,6 +16,8 @@ import { LOCATIONS } from '../src/world/locations';
 import { World } from '../src/sim/world';
 import { fromArenaMap } from '../src/world/adapter';
 import { navConfig, groupsOf } from '../src/nav/world';
+import { recastMemoryBytes } from '../src/nav/recast';
+import { withNavCells } from './lib/navcells';
 
 await initNavNode();
 navClock.now = () => performance.now();
@@ -22,9 +26,10 @@ const pos = process.argv.slice(2).filter((a, i, A) => !a.startsWith('--') && !(i
 const which = pos[0] ?? 'river-gorge', seed = Number(pos[1] ?? 1), repeat = Number(arg('--repeat', '7'));
 const tile = Number(arg('--tile', String(defaultRules.nav.tileSize))), only = arg('--group', '');
 
+const chArg = process.argv.includes('--ch') ? Number(arg('--ch', '0')) : 0;
 function rulesFor(id: string): Rules {
-  if (id === 'range') return { ...defaultRules, worldgen: { ...defaultRules.worldgen, arena: 'range' } } as Rules;
-  return { ...defaultRules, worldgen: { ...defaultRules.worldgen, mode: 'generated' as const, locations: { meadow: id } } } as Rules;
+  const r = id === 'range' ? { ...defaultRules, worldgen: { ...defaultRules.worldgen, arena: 'range' } } as Rules : { ...defaultRules, worldgen: { ...defaultRules.worldgen, mode: 'generated' as const, locations: { meadow: id } } } as Rules;
+  return chArg ? withNavCells(r, chArg) : r;
 }
 const ids = which === 'all' ? ['range', ...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : [which];
 const q = (a: number[], p: number) => { const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
@@ -57,5 +62,6 @@ for (const id of ids) {
   }
   console.log(`${id} seed ${seed}: ${W.map.w} x ${W.map.h} m, tile ${tile} cells (${(tile * cfg.cs).toFixed(1)} m, ${grid}); ${info}`);
   for (const [k, v] of Object.entries(T)) console.log(`  ${k.padEnd(8)} median ${q(v, 0.5).toFixed(1)} ms  p95 ${q(v, 0.95).toFixed(1)} ms`);
+  console.log(`  wasm heap ${(recastMemoryBytes() / 1048576).toFixed(1)} MB`);
   console.log('  stages (mean per build, ms): ' + Object.entries(navClock.stages).map(([k, v]) => `${k} ${(v / repeat).toFixed(1)}`).join(', '));
 }
