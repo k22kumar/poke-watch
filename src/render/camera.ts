@@ -3,6 +3,7 @@
 // arena) fit on screen. The 'chase' preset is the third-person rig (docs/THIRD_PERSON.md): a low,
 // over-the-shoulder camera behind the Pokémon that the player orbits with the mouse or right stick.
 import { classOutline, idealArm, pivotHeight, type IdealArm, type Outline } from './framing';
+import { FRAMING } from '../rules/framing';
 
 export interface CameraPreset {
   id: string; name: string; pitch: number; fov: number; lines: number; note: string;
@@ -56,6 +57,8 @@ export const cameraPreset = (id: string | undefined) => CAMERA_PRESETS.find((p) 
 // ----------------------------------------------------------------------------------------------------------
 
 /** Every camera tuning value. Angles in degrees, distances in metres, times in seconds. */
+/** The rig's configuration. The framing-law inputs come from the single framing source (src/rules/framing.ts FRAMING,
+ *  WORLDGEN3D Q7c), unchanged; the rest is the rig's own */
 export const CHASE_CONFIG = {
   /** framing from the sprite as it is drawn (render/framing.ts; the outline is measured from the art, assets/measure.ts):
    *  back distance = `boom` × (the body's drawn height / `ref`) ^ `exp`, inside [`min`, `max`]: one law for every sprite.
@@ -67,15 +70,15 @@ export const CHASE_CONFIG = {
    *  (an evolution or any size change counts: the outline changes). `max` 14 (F3, docs/archive/size-extremes-plan.md; was 9):
    *  the law itself sets every partner's distance under it, the largest giant (Eternatus, capture-only) wanting 13.75 m,
    *  so no partner is held short of its framing */
-  frame: { ref: 1.9, boom: 4.3, exp: 1, min: 1.8, max: 14, settle: 0.45 },
+  frame: { ...FRAMING.frame },
   /** the keep-out around the crosshair (degrees, render/framing.ts): the player's own Pokémon lies left of `side` or
    *  below `below`. The outline's top-right corner is put on the keep-out's lower-left corner: `below` is how far the arm
    *  sits over the view axis, `side` sets the shoulder offset. `reach`: the most the fixed combat allowance may move that
    *  corner (attack, shoot, charge and hurt frames that reach past the body's outline; framing.ts reserveCorner) */
-  reticle: { side: 7, below: 3, reach: 4, rise: 0 },
+  reticle: { ...FRAMING.reticle },
   /** the shoulder offset is at most this share of the back distance (a body too long for it sideways is listed by
    *  scripts/camframe.ts; its side rows fall to the fade) */
-  shoulderMax: 0.6,
+  shoulderMax: FRAMING.shoulderMax,
   /** the vertical field of view (deg) before the player's offset (Settings: Field of view), and the reachable range */
   fov: 64,
   fovRange: [40, 85] as [number, number],
@@ -86,7 +89,7 @@ export const CHASE_CONFIG = {
    *  caps it. `tiltMax`: the most the subject tilt may add (chaseTilt, F3): a partner whose neutral crosshair would meet
    *  flat ground past `aim.max` is framed with just enough extra pitch to bring it back to `aim.max`; every other partner
    *  gets none */
-  aimPitch: { neutral: 11, up: 89, down: 89, tiltMax: 10 },
+  aimPitch: { neutral: FRAMING.neutralPitch, up: 89, down: 89, tiltMax: 10 },
   /** R3 (§19, audit F9): billboards seen from steeper than the stretch can square (acos(1 / 1.6) = 51.3°, the shaders'
    *  stretch cap) lean back by the excess, top away from a lens above them (toward one below), so from overhead a sprite
    *  keeps the height it has at 51.3° instead of flattening into a sliver. Below 51.3° nothing changes. False: upright */
@@ -95,7 +98,7 @@ export const CHASE_CONFIG = {
    *  `fade`: how far past the frame edge (fraction of the half-screen) the cue takes to reach full opacity */
   cue: { fade: 0.15 },
   /** the arm's elevation is kept inside this (deg) below the overhead rise: the orbit range */
-  elevation: [2, 40] as [number, number],
+  elevation: [...FRAMING.elevation] as [number, number],
   /** grounded steps: the sim moves a supported body up or down a tile edge (0.25 and 0.5 m are the common ones, up to
    *  rules.player.stepHeight) in one tick. While the body is on the ground (ChaseFrame.grounded: the sim's own flag over
    *  the span drawn; a synthetic frame without it: within `ground` m of the support under it at both ends of a rig tick),
@@ -110,7 +113,7 @@ export const CHASE_CONFIG = {
   step: { rate: 4, max: 0.6, ground: 0.05, sprite: 0.35 },
   /** P1: the lens, and every point of the arm, stays `clear` m from terrain, bare walls and deck undersides (the near
    *  plane is 0.3 m): over a floor, under a slab, and beside rock or a wall along x and z */
-  lens: { clear: 0.3 },
+  lens: { clear: FRAMING.lensClear },
   /** a deck over the back arm caps its elevation so the lens stays `clearance` m under the slab above any point of the
    *  arm's ground track (down to `minElev` degrees), and a slab over the Pokémon, beside it or over the shoulder arm
    *  lowers the pivot to `clearance` under it. Both come in over `enter` s and go over `exit` s (critically damped), so
@@ -118,7 +121,7 @@ export const CHASE_CONFIG = {
    *  out under a deck and back in after one (R3). The track is tested out to `reach` of the back distance, so the cap is
    *  coming in before the lens itself is under the slab, and a slab within `near` m of the Pokémon starts the pivot coming
    *  down. Where the Pokémon is going plays no part */
-  deck: { clearance: 0.45, minElev: -5, enter: 0.2, exit: 0.3, reach: 1.2, near: 2 },
+  deck: { clearance: FRAMING.deckClearance, minElev: -5, enter: 0.2, exit: 0.3, reach: 1.2, near: 2 },
   /** arm response: each arm comes in to what its sweep leaves free and goes back out over `out` s (critically damped)
    *  once there has been room for `hold` s. Coming in, the lens travels at no more than `in` m/s (a quarter metre a
    *  frame at 60 fps) along the straight line to where the shortened arm puts it, and hops only across the stretch of

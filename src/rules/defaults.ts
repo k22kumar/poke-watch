@@ -160,6 +160,12 @@ export const defaultRules = {
       stick: { shotDeg: 12, meleeDeg: 28, lead: true, los: true },
       touch: { shotDeg: 12, meleeDeg: 28, lead: true, los: true },
     } as Record<'mouse' | 'stick' | 'touch', { shotDeg: number; meleeDeg: number; lead: boolean; los: boolean }>,
+     /** [C] CL (docs/WORLDGEN3D.md Q15c, CL-Q10 to CL-Q13): true = a spatial shot or beam launches from the partner's
+     *  anatomical eye (src/rules/anatomy.ts, after its pull-backs) and its own sweep from there is the line-of-sight
+     *  check; the crosshair trace starts at the eye's plane. False (the default until X1a) = the muzzle, as before */
+    viewSight: false,
+    /** [C] m: CL-Q3's vertical pull-back puts the eye this far under a solid over the body (a low overhang, a deck) */
+    eyeGap: 0.05,
   },
   player: {
     radius: 0.55, // [C]
@@ -303,6 +309,23 @@ export const defaultRules = {
     xlFloor: 2.69 * 0.92, // [B] m: today's lowest XL draw (class visual × (1 − tilt)), the draw at Large's cut
     xlExponent: 0.3, // [B] growth with extent, a fixed constant (owner 2026-11-18): never fitted to the largest species, so a new
     // generation's giant cannot move every other XL draw. Reaches the cap at about 10.2 m of extent
+  },
+  // The anatomy table's defaults (src/rules/anatomy.ts; docs/WORLDGEN3D.md Q15c, CL-Q2, CL-Q6): a species' gameplay eye
+  // and attack origins as fractions of its body, by official shape (canon.shape). Provisional balance values (ROADMAP
+  // F98); species overrides are reviewed data in anatomy.ts. Read only by the camera law and by rules.aim.viewSight
+  anatomy: {
+    /** [B] eye: `up` × the sim height above the feet, `fwd` × the footprint radius ahead (capped at the footprint) */
+    eye: {
+      humanoid: { up: 0.9, fwd: 0.3 }, upright: { up: 0.85, fwd: 0.3 }, squiggle: { up: 0.85, fwd: 0.6 },
+      quadruped: { up: 0.8, fwd: 0.9 }, wings: { up: 0.8, fwd: 0.5 }, armor: { up: 0.8, fwd: 0.8 },
+      'bug-wings': { up: 0.75, fwd: 0.4 }, legs: { up: 0.7, fwd: 0.4 }, heads: { up: 0.7, fwd: 0.5 },
+      ball: { up: 0.6, fwd: 0.3 }, blob: { up: 0.6, fwd: 0.3 }, arms: { up: 0.6, fwd: 0.3 }, fish: { up: 0.6, fwd: 0.6 },
+      tentacles: { up: 0.6, fwd: 0.3 },
+    } as Record<string, { up: number; fwd: number }>,
+    /** [B] the eye of a species with no shape or an unlisted one */
+    eyeUnknown: { up: 0.75, fwd: 0.5 },
+    /** [B] the default `mouth` attack origin (stored; nothing in the sim reads it, ROADMAP F88) */
+    mouth: { up: 0.6, fwd: 0.9 },
   },
   damage: {
     playerMult: 2.0, // [B] global player damage scale (original player damage formula is unknown)
