@@ -39,7 +39,7 @@ test('the two flags are independent and compose: physics members from the physic
       assert.ok(W instanceof NavSeam, `${physics}: worldOf is the navigation seam`);
       assert.equal(W.tiles, ctx.world.tiles);
       const base = (W as unknown as { w: unknown }).w;
-      assert.ok(physics === 'rapier' ? base instanceof PhysicsSeam : base === ctx.world, `${physics}: under it the ${physics === 'rapier' ? 'physics seam' : 'tile World'}`);
+      assert.ok(physics === 'rapier' ? base === ctx.world && ctx.world.physics !== null && ctx.world.physics === ctx.physics && ctx.world.mover !== null : base === ctx.world && ctx.world.physics === null && ctx.world.mover === null, `${physics}: under it the tile World, ${physics === 'rapier' ? 'holding the physics bridge and its controller (F64)' : 'with no physics bridge'}`);
       // a ray goes to physics when physics is on
       W.raycast(0, 20, 0, 0, -1, 0, 40, 0xff, new RayHit());
       assert.equal(!!ctx.physics?.physics, physics === 'rapier');
@@ -52,7 +52,7 @@ test('the two flags are independent and compose: physics members from the physic
   }
   // physics alone: no navigation seam
   const ctx = run({ physics: 'rapier' });
-  try { assert.ok(worldOf(ctx) instanceof PhysicsSeam); } finally { disposeRun(ctx); }
+  try { assert.ok(worldOf(ctx) === ctx.world && ctx.world.physics !== null && ctx.world.physics === ctx.physics && ctx.world.mover !== null, 'physics alone: worldOf is the tile World, holding the physics bridge and its controller (F64)'); } finally { disposeRun(ctx); }
 });
 
 test('gorge-hold-navmesh steers by the navmesh (its hashes alone cannot show it)', () => {

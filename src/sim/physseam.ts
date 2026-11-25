@@ -257,7 +257,8 @@ export class PhysicsBridge {
   dispose(): void { this.reset(); }
 }
 
-/** The tile World's WorldQuery with its rays on physics: every other member is forwarded unchanged. */
+/** The tile World's WorldQuery with its rays on physics: every other member is forwarded unchanged. Since I1b (ROADMAP
+ *  F64) only tests/physics-parity.test.ts's view: nothing in src/ composes it, worldOf returns the World holding the bridge */
 export class PhysicsSeam implements WorldQuery {
   constructor(private readonly w: WorldQuery, private readonly bridge: PhysicsBridge) {}
   get bound() { return this.w.bound; }
