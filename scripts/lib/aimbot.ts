@@ -2,13 +2,15 @@
 // aim, so neither the replay scenarios' tracks nor the performance gate would reach the spatial aim on their own.
 // tests/fixtures/scenarios.ts and scripts/perf-sim.ts (`--aim`) add this ray to the input. It is a measuring device, not
 // the bot's behaviour: roadmap Stage 7A gives the bot a real aim.
-import { MASK, segmentClear } from '../../src/sim/spatial';
+import { MASK } from '../../src/sim/spatial';
+import { worldOf } from '../../src/sim/worldquery';
 import { combatFlags } from '../../src/sim/aim';
 import { dcos, dsin } from '../../src/core/detmath';
 import type { InputFrame, SimContext } from '../../src/sim/types';
 
 /** the bot's input plus a crosshair ray: a lens 4.5 m behind and 1.7 m above the partner, 1.25 m on the right shoulder,
- *  looking at the centre of the nearest live enemy within 30 m that the partner can see (segmentClear, with the attack cover
+ *  looking at the centre of the nearest live enemy within 30 m that the partner can see (the seam's segmentClear, so a run
+ *  on physics aims with physics; with the attack cover
  *  policy of sim/aim.ts combatFlags: a player does not aim into a wall, and does aim through a hedge when foliage is not
  *  cover), else level along the partner's facing. Deterministic: it reads sim state only, with detmath and
  *  sqrt (no engine-dependent Math.sin / Math.hypot), so the `aim` hashes do not depend on the machine */
@@ -27,11 +29,11 @@ export function withAim(ctx: SimContext, inp: InputFrame): InputFrame {
 export function crosshairTarget(ctx: SimContext): [number, number, number] {
   const P = ctx.player, E = ctx.enemies;
   let best = -1, bd = 900;
-  const cf = combatFlags(ctx);
+  const cf = combatFlags(ctx), W = worldOf(ctx);
   for (let i = 0; i < E.hi; i++) {
     if (!E.alive[i]) continue;
     const d = (E.x[i] - P.x) ** 2 + (E.z[i] - P.z) ** 2;
-    if (d >= bd || !segmentClear(ctx.world, P.x, P.y + 0.7, P.z, E.x[i], E.y[i] + E.tall[i] / 2, E.z[i], MASK.los, cf)) continue;
+    if (d >= bd || !W.segmentClear(P.x, P.y + 0.7, P.z, E.x[i], E.y[i] + E.tall[i] / 2, E.z[i], MASK.los, cf)) continue;
     bd = d; best = i;
   }
   const tx = best >= 0 ? E.x[best] : P.x + dsin(P.facing) * 20, tz = best >= 0 ? E.z[best] : P.z + dcos(P.facing) * 20;

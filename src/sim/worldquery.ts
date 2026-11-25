@@ -116,6 +116,8 @@ export interface TileExt {
   wallAt(x: number, z: number): boolean;
   waterAt(x: number, z: number): number;
   shore(x: number, z: number, radius: number, level?: number, reach?: number, room?: number): [number, number] | null;
+  /** I1a: bumped by every run-time geometry change (setBlock, setTide, refreshNav), so the physics bridge rebuilds */
+  readonly geoGen: number;
   // decks and chasms
   readonly over: Float32Array | null;
   isVoid(k: number): boolean;
@@ -140,8 +142,13 @@ export interface TileExt {
   hazardAt(x: number, z: number): boolean;
 }
 
-/** The one way sim systems reach the world (I1a's swap point). Hoist it once per function, at entry or before the first
- *  loop, never inside a loop body. */
-export function worldOf(ctx: { readonly world: WorldQuery }): WorldQuery {
-  return ctx.world;
+/** what worldOf asks when the run is on physics (sim/physseam.ts PhysicsBridge) */
+export interface SeamSwap { seamFor(w: WorldQuery): WorldQuery }
+
+/** The one way sim systems reach the world (I1a's swap point): the tile World, or with rules.physics.engine 'rapier'
+ *  the physics seam over it (sim/physseam.ts: rays on Rapier, everything else forwarded). Hoist it once per function, at
+ *  entry or before the first loop, never inside a loop body. */
+export function worldOf(ctx: { readonly world: WorldQuery; readonly physics?: SeamSwap | null }): WorldQuery {
+  const p = ctx.physics;
+  return p ? p.seamFor(ctx.world) : ctx.world;
 }

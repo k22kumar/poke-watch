@@ -10,7 +10,8 @@
 //
 // Aim: like the browser (src/main.ts sampleInput), every tick sends the crosshair ray (InputFrame.aim, read by the
 // direct shots) and the ground aim point (aimX / aimZ, read by every other move, the holds among them).
-import { createRun, step } from '../../src/sim/run';
+import { createRun, disposeRun, step } from '../../src/sim/run';
+import '../setup/physics';
 import { BTN, NO_INPUT, type AimRay, type InputFrame, type SimContext } from '../../src/sim/types';
 import { HOLD, RANGE, RANGE_SWAP } from '../../src/mods';
 import type { Mode } from '../../src/mods/types';
@@ -44,6 +45,8 @@ export interface Scenario {
   needs: Partial<Record<Counter, number>>;
   /** counters that must stay 0 (what the scenario shows is refused) */
   never?: Counter[];
+  /** rules.physics.engine (task I1a; default 'tiles'): a scenario on 'rapier' has an id ending -rapier */
+  physics?: 'tiles' | 'rapier';
 }
 
 /** what a run reached, counted from its events and state each tick (runScenario) */
@@ -298,6 +301,14 @@ export const SCENARIOS: Scenario[] = [
   },
 ];
 
+// I1a (docs/OVERHAUL_3D.md "Migration rules"): the same tracks with the world half of the spatial aim, line of sight, spatial shots and beams
+// on Rapier (rules.physics.engine 'rapier', built from the tile adapter's model; sim/physseam.ts). Movement stays on the
+// tile World. Recorded once by I1a; a hash that moves later is a stop like any other.
+for (const id of ['range-charmander', 'gorge-hold']) {
+  const s = SCENARIOS.find((x) => x.id === id)!;
+  SCENARIOS.push({ ...s, id: `${id}-rapier`, covers: `${s.covers}; physics on Rapier`, physics: 'rapier' });
+}
+
 /** walk to the nearest Light throwable until within `reach` m, press the kit's hold move on it and keep the button
  *  down 1.5 s, the aim swinging from the body to the Geodude dummy after 0.5 s, then release (the throw); again 1 s
  *  later. State is the tick the press began, kept per run */
@@ -392,7 +403,7 @@ function count(ctx: SimContext, inp: InputFrame, cov: Coverage, held: Float64Arr
 
 /** `observe` sees the run after createRun and after every tick (it must only read: tests/matchart.test.ts) */
 export function runScenario(s: Scenario, observe?: (ctx: SimContext) => void): ScenarioResult {
-  const ctx = createRun({ mode: s.mode, seed: 1, species: s.species, loadout: s.loadout, targets: s.targets, ruleOverrides: { worldgen: s.worldgen } as never });
+  const ctx = createRun({ mode: s.mode, seed: 1, species: s.species, loadout: s.loadout, targets: s.targets, ruleOverrides: { worldgen: s.worldgen, ...(s.physics ? { physics: { engine: s.physics } } : {}) } as never });
   observe?.(ctx);
   const checkpoints: string[] = [];
   const cov = Object.fromEntries(COUNTERS.map((c) => [c, 0])) as Coverage;
@@ -409,5 +420,7 @@ export function runScenario(s: Scenario, observe?: (ctx: SimContext) => void): S
     count(ctx, inp, cov, held);
     if ((t + 1) % (10 * S) === 0 && t + 1 < n) checkpoints.push(hex(replayHash(ctx)));
   }
-  return { checkpoints, end: hex(replayHash(ctx)), coverage: cov };
+  const end = hex(replayHash(ctx));
+  disposeRun(ctx);
+  return { checkpoints, end, coverage: cov };
 }

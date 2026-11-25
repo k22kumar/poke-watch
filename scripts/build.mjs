@@ -1,12 +1,13 @@
 // Build: bundles src/main.ts and inlines it into dist/index.html, which holds only code (and the UI font and icons).
-// The Pokémon art is written beside it as dist/art/ (scripts/lib/artfiles.mjs) and the music as dist/music/; the page
-// fetches both (docs/ROADMAP.md "Item 3: A1 plan"). The build fails when dist/index.html is over PAGE_BUDGET.
+// The Pokémon art is written beside it as dist/art/ (scripts/lib/artfiles.mjs), the music as dist/music/ and the Rapier
+// wasm as dist/physics/ (scripts/lib/rapierwasm.mjs); the page fetches them (docs/ROADMAP.md "Item 3: A1 plan"). The build fails when dist/index.html is over PAGE_BUDGET.
 // `--out <dir>` writes there instead of dist/ (a private build for captures while other sessions use dist/: CLAUDE.md
 // "Parallel sessions").
 import * as esbuild from 'esbuild';
 import fs from 'node:fs';
 import path from 'node:path';
 import { writeArt } from './lib/artfiles.mjs';
+import { rapierWasm } from './lib/rapierwasm.mjs';
 
 /** dist/index.html's size budget (bytes): the page is code; art and music are side files */
 const PAGE_BUDGET = 3_000_000;
@@ -21,6 +22,8 @@ const out = await esbuild.build({
   // the music is fetched from dist/music/ (content-hashed names)
   loader: { '.mp3': 'file' }, outdir: OUT, assetNames: 'music/[name].[hash]', publicPath: '.',
   define: { __ART__: JSON.stringify({ manifest: art.manifest, heroes: art.heroes }) },
+  // the Rapier wasm is fetched from dist/physics/ (content-hashed name; src/physics/web.ts)
+  plugins: [rapierWasm(OUT)],
 });
 const js = out.outputFiles.find((f) => f.path.endsWith('.js')).text;
 fs.rmSync(path.join(OUT, 'music'), { recursive: true, force: true });

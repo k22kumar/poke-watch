@@ -90,6 +90,9 @@ export class World implements WorldQuery {
   readonly hazards: boolean;
   /** location maps with hazards on: chasm tiles (1 = open air, no supporting floor), else null */
   readonly voids: Uint8Array | null = null;
+  /** I1a: bumped by every run-time geometry change (setBlock, setTide, refreshNav), so the physics bridge
+   *  (sim/physseam.ts) rebuilds its world from the live map */
+  geoGen = 0;
   /** R1b wall tops (docs/SIZING.md "Wall tops"): per tile, the absolute height up to which its
    *  wall column is solid (world/tiles.ts wallTopsOf: a wall prop's footing + its PROP_RULES top; Infinity for a bare
    *  wall). The one height source: the spatial queries with QF.tops, the chase lens and a body with the crossing
@@ -409,6 +412,7 @@ export class World implements WorldQuery {
 
   /** Frozen or thawed water changed what is walkable: refresh the open tiles and force a new flow field. */
   refreshNav() {
+    this.geoGen++;
     for (let k = 0; k < this.navOpen.length; k++) {
       if (this.map.terrain[k] !== T.water) continue;
       this.navOpen[k] = this.cells.iceAt(k) && !this.map.wall[k] ? 1 : 0;
@@ -426,6 +430,7 @@ export class World implements WorldQuery {
     const D = this.tide;
     if (!D || high === this.tideHigh) return;
     this.tideHigh = high;
+    this.geoGen++;
     const M = this.map, wl = M.wlevel!;
     for (let i = 0; i < D.tiles.length; i++) {
       const k = D.tiles[i];
@@ -447,6 +452,7 @@ export class World implements WorldQuery {
 
   /** W4: the only writer of the wall/platform overlay; keeps navigation in step and forces a new flow field. */
   setBlock(k: number, wall: number, platform: number) {
+    this.geoGen++;
     this.map.wall[k] = wall; this.map.platform[k] = platform;
     // R1b: a tile that is no longer a wall carries no wall top (W4 only ever clears walls: a burnt or broken prop)
     if (!wall) this.wallTop[k] = Infinity;

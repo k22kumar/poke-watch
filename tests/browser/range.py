@@ -3,13 +3,18 @@
 # Run by hand at merge time, not in `npm run check` (setup once: tools/README.md "Python checks"):
 #   python3 -m venv .venv && .venv/bin/pip install -r tests/browser/requirements.txt
 #   npx playwright install chromium         (only if the Chromium build is not downloaded yet)
-#   .venv/bin/python -I tests/browser/range.py <path/to/index.html> <outdir> [WxH]
+#   .venv/bin/python -I tests/browser/range.py <path/to/index.html> <outdir> [WxH] [--query k=v&...]
+# --query adds URL parameters to every page load (e.g. --query physics=rapier: the run on Rapier, task I1a).
 # Exits 1 when a step fails, printing what it saw. Console errors and page errors are listed at the end and fail it too.
 import sys, time, json, os
 from playwright.sync_api import sync_playwright
 
-html, out = sys.argv[1], sys.argv[2]
-W, H = (int(x) for x in (sys.argv[3] if len(sys.argv) > 3 else '1280x720').split('x'))
+argv = sys.argv[1:]
+query = ''
+if '--query' in argv:
+    i = argv.index('--query'); query = '&' + argv[i + 1]; del argv[i:i + 2]
+html, out = argv[0], argv[1]
+W, H = (int(x) for x in (argv[2] if len(argv) > 2 else '1280x720').split('x'))
 os.makedirs(out, exist_ok=True)
 BTN_BASIC, BTN_TOUCH = 16, 32  # src/sim/types.ts BTN
 fails = []
@@ -24,7 +29,7 @@ with sync_playwright() as p:
     logs = []
     pg.on('console', lambda m: logs.append(f'{m.type}: {m.text}') if m.type == 'error' and 'GPU stall' not in m.text else None)
     pg.on('pageerror', lambda e: logs.append(f'PAGEERROR: {e}'))
-    pg.goto('file://' + os.path.abspath(html) + '?capture=1')
+    pg.goto('file://' + os.path.abspath(html) + '?capture=1' + query)
     for _ in range(120):
         if pg.evaluate("() => !!(window.pokewatch && document.querySelector('.title-actions'))"): break
         time.sleep(0.5)
@@ -83,6 +88,10 @@ with sync_playwright() as p:
     pg.screenshot(path=f'{out}/5-dummy-hit.png')
     print('dummy before', json.dumps(dummy), 'after', json.dumps(d1))
     check(bool(d1) and d1['hp'] < d1['max'], 'fire: the dummy\'s health dropped')
+    if 'physics=rapier' in query:
+        ph = pg.evaluate("() => { const c = window.pokewatch.ctx, B = c && c.physics; return { engine: c && c.rules.physics.engine, boot: window.pokewatchPhysics || null, queries: B && B.physics ? B.physics.stats.queries : 0 }; }")
+        print('physics', json.dumps(ph))
+        check(ph['engine'] == 'rapier' and ph['boot'] is not None and ph['queries'] > 0, 'physics: the run asks Rapier (initialised at boot)')
 
     # quit to the title, then Caterpie: hold F (Touch) for a Breakthrough into Metapod
     pg.evaluate("() => window.pokewatch.ui.hooks.quit()")
