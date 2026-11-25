@@ -15,8 +15,29 @@ Q15(g). For the camera:
   is to be prevented.
 - The band and the 1.45 m cover rung are provisional values, under review.
 
-What CL settles under this direction is recorded here and in WORLDGEN3D Q15c as the grilling answers it. The sections
-below describe the fixed views (the old renderer), which this direction does not change.
+What CL settled (2026-11-25; answers CL-Q2 to CL-Q13 and their measurements are in docs/WORLDGEN3D.md, under Q15c):
+
+- **Sight origin.** Every body has an anatomical eye from `src/rules/anatomy.ts` (defaults by official shape, as
+  fractions of the sim height; species overrides are reviewed data). The sim never reads the art. It rides the feet,
+  sits ahead along the crosshair's heading (capped at the footprint radius) and is pulled back to the axis by a wall
+  and down under an overhang (CL-Q3, CL-Q6).
+- **Lens height.** At the neutral pitch the lens is at the eye's height, with no cap; the floor is min(0.60, eye), so
+  the lens is never above the eye. The band (0.60 / 1.35 m) stays only as rules values in its clamp function's test
+  (CL-Q4, CL-Q5).
+- **Distance.** D = 3.5 × the anatomy table's height inside 1.8–9.0 m, in the single framing source in `src/rules`
+  (CL-Q8). Giants above 2.57 m frame at 9.0 m and lean on pull-in and fade. The generator reads the same source:
+  `camera-clearance` ceiling 3.66 m, short side 10.18 m, tall-dressing keep-out 9.30 m.
+- **Camera peek.** The shoulder offset and the orbit stay as today; an information gate draws enemy bodies and the
+  signals declared "hidden by the world" only when the player's eye sees them (`eyeSees`, two thin rays, top and
+  centre). Telegraphs and attacks aimed at the player, teammates and the player's own partner are never gated
+  (CL-Q7).
+- **Pull-in and fade.** I2b's. The generator leaves no room beyond the `camera-clearance` spaces and the transit rule;
+  I2b reports the fade rate on G2's map (CL-Q9).
+- **Shots** (behind `rules.aim.viewSight`, off until X1a): spatial shots and beams launch from the eye and are checked
+  by their own sweep from it to the crosshair's point; a blocked shot fires and is shown blocked (CL-Q10, CL-Q11,
+  CL-Q13).
+
+The sections below describe the fixed views (the old renderer), which this direction does not change.
 
 ## The fixed views
 

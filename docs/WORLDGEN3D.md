@@ -1075,7 +1075,8 @@ grilling and recorded under "Open items"):
   2. In CL an override is added only where the lint shows the default eye outside the sprite, each listed with its
      measurement. No other hand tuning and no exaggeration rules without the owner.
   3. The table has room to grow: named attack origins (`mouth` now; tail, horns, hands later) and postures beyond
-     `stand`. In CL nothing reads the attack origins; the attack origin stays `rules.aim.muzzle`.
+     `stand`. In CL nothing reads the attack origins; the attack origin stays `rules.aim.muzzle`. *(Superseded under
+     the flag by CL-Q10: with `rules.aim.viewSight` on, spatial shots and beams launch from the eye.)*
   4. The lint's output (per species: drawn top ÷ sim height, eye inside the sprite) and its script are committed.
   5. Follow-ups F86 and up: the lint becomes a gate no later than the task that builds hit bodies from the table; an
      automatic review flag for new species whose sprite contradicts the table; attack origins from the table;
@@ -1117,7 +1118,8 @@ grilling and recorded under "Open items"):
   - *Confirmed (owner, 2026-11-25, after a conflicting first answer to CL-Q4 was withdrawn):* CL-Q3 stands. The shot
     check uses the unclamped anatomical eye (Q15c); the band is a presentation rule for the camera only.
 - **CL-Q4, the eye sees more than a capped camera: the lens is at eye height, with no cap.** The camera's height
-  follows the eye, so what the camera sees over is what the eye sees over. The 1.35 m cap stays only as a value in the
+  follows the eye, so at the neutral pitch what the camera sees over is what the eye sees over. Looking down, the lens
+  rises by D × (sin 40° − sin 14°) at 40°; the CL-Q7 gate keeps it from showing gated things. The 1.35 m cap stays only as a value in the
   clamp function's own test. *(A first answer that clamped the sim's sight origin to the band was withdrawn by the
   owner the same day, since it reversed Q15c and CL-Q3.)*
   - Numbers for the generator, on the draft eye fractions of sim height by shape (humanoid 0.90; upright, squiggle
@@ -1206,7 +1208,7 @@ grilling and recorded under "Open items"):
     10.7 % / 8.5 %; Tynamo (1.93 / 1.80) 8.7 % / 8.7 %, set by the floor clearance, not by D (F96). The lens at 40°
     down for the giant: 8.22 m (k 3.5, D 12.49), 6.79 m (k 2.5).
 - **CL-Q9, the room the generator leaves for pull-in and fade: nothing more.** Beyond the `camera-clearance` spaces
-  (CL-Q8) and the transit rule (Q7a: ≥ 5.00 m wide, ≥ 3.70 m clear, which covers every lens vertically), the camera
+  (CL-Q8) and the transit rule (Q7a: ≥ 5.00 m wide, ≥ 3.70 m clear, which covers every lens vertically at the neutral pitch), the camera
   pulls in and the body fades. Both are I2b's; today's thresholds (fade under about 0.95 m, 75 % by 0.45 m, the
   0.30 m near plane) are starting values. The generator's only camera inputs are the framing source's clearance and
   keep-out numbers.
@@ -1959,19 +1961,30 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - **WM2, "WorldModel contract v2" (answer C)**, queued after G0 and run before I2a, I3 and G1: the consolidated
   contract table as types in `src/world/model.ts` (render chunks without normals or colour, per Q23),
   `MODEL_VERSION`, and the tile adapter filling defaults.
-- **CL, "Camera law" (answer D)**, queued before G2 and I2b: the view band and the camera distance law in
-  `src/rules` (Q7c), and the sim rule of Q15(g) (line of sight from the clamped view point, `src/sim/aim.ts`),
-  flagged off until X1a. ROADMAP F45 and F51.
+- **CL, "Camera law" (answer D)**, queued before G2 and I2b; its scope was rewritten by Q15c and the CL grilling
+  (CL-Q2 to CL-Q13, 2026-11-25): the anatomy table and its report-only lint, the single framing source and the 3D
+  distance law in `src/rules` (Q7c), the eye point and its pull-backs, and under `rules.aim.viewSight` (off until
+  X1a) the eye check and the eye launch in `src/sim/aim.ts`, the aimbot on the law and the trace start; the CL-Q7
+  gate query. ROADMAP F45 and F51.
 - **The blueprint** (ROADMAP F49): the owner will add it to `docs/`, or name this document the record. The owner
   believes the source is "Map and Environment Generation Blueprint" (`claude/00-blueprint.md` in another Claude
   project). Its text was not given in the grilling; the answers quoted it by section and term, without a title.
 
 **Numbers that wait for the camera task (CL; this heading read "I2b" before answer D).**
 
-- The camera distance. Until it exists the `camera-clearance` dimension rule (Q7, Q15g) and the tall-dressing
-  keep-out (Q17) have no number, and the Q7 camera table and its 8.00 m short side are void.
-- The view band 0.60–1.35 m and the cover ladder 1.45 / 2.00 / 3.70 m are starting tunables derived from each other;
-  both are recomputed if the camera task changes the band (Q15b).
+- *Settled by CL (2026-11-25, CL-Q8):* the camera distance D = 3.5 × the anatomy table's height inside 1.8–9.0 m.
+  `cameraClearance(rules)` in the framing source gives the `camera-clearance` ceiling 3.66 m (the tallest eye the
+  rules allow, 3.21 m, + 0.45 m deck clearance; inside the 3.70 m clear height), the short side 10.18 m (D max +
+  footprint radius 0.88 + lens clearance 0.30) and the tall-dressing keep-out 9.30 m (D max + 0.30). They replace
+  the Q7(b) camera table and its 8.00 m short side. Provisional: F99.
+- *Provisional since Q15c:* the view band 0.60–1.35 m is a presentation rule only (the lens is at eye height, CL-Q4,
+  CL-Q5), and the cover ladder 1.45 / 2.00 / 3.70 m and the cover dead-band are under review with environmental
+  scale (F94).
+- *Reopened by Q15c, with their owners* (ROADMAP "Found in CL"): the lint gate (F86, the hit-body task), new-species
+  review (F87, content), attack origins (F88), postures (F89), cover and concealment from the table (F90, I4, G1),
+  sim bodies from the table (F91, owner), enemy detection (F92, I4, T1), materials (F93, I4), environmental scale
+  (F94, G1, G2), tall-grass decoration (F95, I4), the low lens (F96, I2b), dressing for low eyes (F97, G1, I2b), the
+  eye fractions (F98, playtest) and the distance law (F99, playtest, I2b).
 
 **Numbers that G1 measures.**
 
@@ -2018,7 +2031,8 @@ design departs from them on purpose, the departure is recorded so that nobody "f
   (`src/rules/traversal.ts`).
 - `SpeciesDef` has no region or theme field for a recipe's species filters to read (Q14e).
 - `src/core` has no 64-bit hash (Q19.4).
-- docs/CAMERA.md and docs/THIRD_PERSON.md describe the framing law that Q15(g) replaces.
+- docs/THIRD_PERSON.md describes the old renderer's framing law, which stays for the old renderer; the 3D rig's
+  law is CL's (docs/CAMERA.md).
 
 **Input to I4**, collected: the liquid rules of Q9 (depth-relative damage, breath, typed liquids); the notes under
 Q10 (underground senses, burrower UI, emergence, ground-shaking attacks, elemental reactions as temporary objects);
