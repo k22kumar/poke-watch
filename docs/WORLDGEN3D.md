@@ -1205,6 +1205,18 @@ grilling and recorded under "Open items"):
     8.92 m before the max) 26.6 % / 19.8 %; Hariyama (8.02 / 5.72) 19.3 % / 13.7 %; a Medium upright (4.20 / 3.00)
     10.7 % / 8.5 %; Tynamo (1.93 / 1.80) 8.7 % / 8.7 %, set by the floor clearance, not by D (F96). The lens at 40°
     down for the giant: 8.22 m (k 3.5, D 12.49), 6.79 m (k 2.5).
+- **CL-Q9, the room the generator leaves for pull-in and fade: nothing more.** Beyond the `camera-clearance` spaces
+  (CL-Q8) and the transit rule (Q7a: ≥ 5.00 m wide, ≥ 3.70 m clear, which covers every lens vertically), the camera
+  pulls in and the body fades. Both are I2b's; today's thresholds (fade under about 0.95 m, 75 % by 0.45 m, the
+  0.30 m near plane) are starting values. The generator's only camera inputs are the framing source's clearance and
+  keep-out numbers.
+  - Measured for it (the CL-Q8 method, k 3.5, max 9.0): the free arm is under 0.95 m in 3.7 % of samples for a giant
+    at the cap, 3.4 % for Hariyama, 3.7 % for a Medium upright, 5.5 % for Tynamo; under 0.45 m in 1.7–2.0 %. Most are
+    bodies backed against a wall or a rise. A Large with the tallest eye (1.62 m) under an optional 2.00 m ceiling has
+    its lens lowered 0.07 m by the 0.45 m deck clearance.
+  - I2b reports the fade rate on G2's map, split into moving along required routes and stationary. If fading while
+    moving on required routes exceeds the adapter maps' 5.5 %, the rule of a free arm ≥ 2.0 m both ways along the
+    route axis on required routes is reopened for G2 (ROADMAP F99).
 
 ### Q16 Material roles (owner, 2026-11-23: accepted with amendments a–d)
 
