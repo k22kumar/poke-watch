@@ -5,8 +5,9 @@
 // Movement, support, liquids for bodies and navigation stay on the tile World (I1b, I3 move them).
 //
 // The physics world is built from the tile adapter's WorldModel (world/adapter.ts fromArenaMap) of the World's live map
-// state, plus the column model's pieces the adapter's colliders leave out (query-only, tile-legacy; WM2's collider
-// `role` and `blocksSight` replace the kind table, X1b deletes the rest):
+// state, plus the column model's pieces the adapter's colliders leave out (query-only, tile-legacy, deleted at X1b; the
+// kind table stays until generated colliders say which world kind they are: WM2's `role` is a material role, and a
+// `cliff` face can be ground or wall):
 //   kinds        the SK kind of each adapter collider, read off the tile under its first cell (walls, decks, terrain)
 //   wall caps    a wall prop is solid to its measured top only with QF.tops (R1b); without it the column goes on up (to
 //                a deck's underside, else past the bounds): a query-only box above the top, in the untopped modes

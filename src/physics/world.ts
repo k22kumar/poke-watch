@@ -9,7 +9,7 @@
 //          a query's kind mask is its filter, so a mask without decks never meets a deck
 //   modes  the query modes it stops, its collision-group filter (the other half of Rapier's two-sided group test). A
 //          query's mode is one of eight: what it is stopped by (STOPS.shots or STOPS.sight; WORLDGEN3D Q15.4 keeps them
-//          apart though the adapter sets blocksSight = blocksShots today) × QF.foliage (foliage is open air) × QF.tops
+//          apart, read from each collider's blocksShots and blocksSight; the tile adapter writes them equal) × QF.foliage (foliage is open air) × QF.tops
 //          (wall props end at their measured tops; see the sim's bridge, sim/physseam.ts). A collider stops a mode when it
 //          blocks that mode's stopper (blocksShots / blocksSight), or when it is foliage and the mode does not open
 //          foliage (legacy cover: without QF.foliage every query treats foliage as solid, sim/spatial.ts header)
@@ -32,7 +32,7 @@
 
 import { rapier, type Rapier } from './rapier';
 import { SK, CF, QF, RayHit, RANK } from '../world/sight';
-import type { ColliderBase, WorldModel } from '../world/model';
+import type { WorldModel } from '../world/model';
 
 type RWorld = InstanceType<Rapier['World']>;
 type RCollider = InstanceType<Rapier['Collider']>;
@@ -62,8 +62,6 @@ export function modesOf(blocksShots: boolean, blocksSight: boolean, foliage: boo
   }
   return m;
 }
-/** a model collider's blocksSight: the field WM2 adds when present, else blocksShots (the adapter's equal flags) */
-export const blocksSightOf = (c: ColliderBase): boolean => (c as ColliderBase & { blocksSight?: boolean }).blocksSight ?? c.blocksShots;
 
 /** a query-only piece the caller adds: an axis-aligned box or a convex hull (xyz triples) */
 export interface ExtraPiece {
@@ -144,7 +142,7 @@ export class PhysicsWorld {
     };
     const box = (mn: number[], mx: number[]) => R.ColliderDesc.cuboid((mx[0] - mn[0]) / 2, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2).setTranslation((mn[0] + mx[0]) / 2, (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2);
     model.colliders.forEach((c, i) => {
-      const kind = extra.kinds ? extra.kinds[i] : SK.terrain, modes = modesOf(c.blocksShots, blocksSightOf(c), c.foliage);
+      const kind = extra.kinds ? extra.kinds[i] : SK.terrain, modes = modesOf(c.blocksShots, c.blocksSight, c.foliage);
       if (c.shape === 'box') {
         if (c.yaw !== 0) throw new Error('physics: yawed boxes are not built yet (the adapter writes yaw 0)');
         const mn = [c.centre[0] - c.half[0], c.centre[1] - c.half[1], c.centre[2] - c.half[2]], mx = [c.centre[0] + c.half[0], c.centre[1] + c.half[1], c.centre[2] + c.half[2]];
