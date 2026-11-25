@@ -26,10 +26,19 @@ import { safeIn } from '../src/sim/hazards';
 import { WATER_Y } from '../src/world/tiles';
 import type { SimContext } from '../src/sim/types';
 import { crowd } from './lib/crowd';
+import { initNavNode } from '../src/nav/node';
+import { worldOf } from '../src/sim/worldquery';
 
 export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
 
 const NAV: [number, number] = [0, 0], OUT: [number, number] = [0, 0];
+
+// I3: `--nav navmesh` (anywhere on the command line) watches runs on rules.nav.engine 'navmesh' (src/nav): enemies steer by
+// the navmesh, and "has a route" is the navmesh's answer (navDir for a wide body, navDist for a narrow one)
+const navAt = process.argv.indexOf('--nav');
+const NAV_ENGINE = navAt > 1 ? process.argv.splice(navAt, 2)[1] : 'flow';
+if (NAV_ENGINE !== 'flow' && NAV_ENGINE !== 'navmesh') throw new Error(`--nav flow|navmesh, not ${NAV_ENGINE}`);
+if (NAV_ENGINE === 'navmesh') await initNavNode();
 /** World.shore's room: a walkable pocket smaller than this (in tiles) is a trap */
 export const TRAP_ROOM = 48;
 
@@ -105,7 +114,8 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
 }
 
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
-  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra } as never });
+  const nav = NAV_ENGINE === 'navmesh' ? { nav: { ...(extra as { nav?: object }).nav, engine: 'navmesh' } } : {};
+  const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra, ...nav } as never });
   const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;
@@ -141,7 +151,9 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
         || E.sleep[e] > 0 || E.stun[e] > 0 || E.root[e] > 0 || Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 4;
       if (skip) { eAnchor.delete(key); continue; }
       const wide = E.foot[e] > 0 && navWide(E.foot[e], ctx.rules);
-      const route = wide ? W.wideDir(E.x[e], E.z[e], NAV, E.y[e], E.foot[e] < DIAG_R, E.tall[e]) : W.flowDist(E.x[e], E.z[e], E.y[e]) < Infinity ? 1 : -1;
+      const route = ctx.nav
+        ? (wide ? worldOf(ctx).navDir('player', E.x[e], E.y[e], E.z[e], NAV, true, E.foot[e] < DIAG_R, E.tall[e]) : worldOf(ctx).navDist('player', E.x[e], E.y[e], E.z[e]) < Infinity ? 1 : -1)
+        : wide ? W.wideDir(E.x[e], E.z[e], NAV, E.y[e], E.foot[e] < DIAG_R, E.tall[e]) : W.flowDist(E.x[e], E.z[e], E.y[e]) < Infinity ? 1 : -1;
       if (route < 0) {
         if (wide) {
           R.holding++;
