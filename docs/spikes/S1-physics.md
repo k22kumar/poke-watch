@@ -385,7 +385,7 @@ footprint by 0.5 mm.
   greater than cos(angle). A 45° ramp sits exactly on cos 45° in float, so 45° itself is ambiguous: use 45.5° in
   Recast and 46° in the controller.
 - One navmesh per size class by default. I3 may merge classes with equal values (owner, O9). The ch of 0.05 makes
-  0.6 m and every class height whole cells on paper; float division does not, hence the integers.
+  0.6 m and every class height whole cells on paper; float division does not, hence the integers. (I3 moved ch to 0.02 m: O9's review note.)
 
 ## Open risks
 
@@ -450,6 +450,20 @@ These were not in docs/OVERHAUL_3D.md. Each is the spike's recommendation, then 
   §8.
   - *Owner, 2026-11-23:* yes, with §8's integer cell counts. One navmesh per class by default; I3 may merge classes
     with equal values.
+  - *I3 review, 2026-11-25 (owner):* ch is 0.02 m, not 0.05, and every vertical count is re-derived from the
+    physical size it stands for: step 30 cells (0.6 m), Recast's build climb 29, agent heights 48 / 85 / 139 cells
+    (Totodile 0.953, Heracross 1.689, Onix 2.777 m), the giant report 179 (3.57 m). cs and the radii are unchanged.
+    Why: Recast rounds span tops up to whole cells, so a rise joins by where its tops fall in their cells as well as
+    by its size, and no count at 0.05 matches the sim's 0.6 m step (at 11 it cut 45 of the 80 climbable rises in
+    (0.55, 0.6] m on the adapter maps; at 12 it joined 31 rises over 0.6 m). At 0.02 / 29: no rise over 0.6 m joins
+    and every rise up to 0.58 m does, at every alignment (tests/nav.test.ts); the adapter maps' valid rises in (0.5,
+    0.6] m joined on the narrow navmesh go from 176 to 211 of 223 (the other 12: 4 have water below, 8 lie in (0.58,
+    0.6) and are routed round in about 2 m), with none of the 621 over 0.6 m (scripts/navrises.ts; S1's 227 counted 4
+    rises of 0.5 m plus float noise). Build time and
+    wasm memory are unchanged (River Gorge 282 against 285 ms median, heap 64 MB). ch 0.01 is ruled out: Recast's
+    compact span stores clearance in 8 bits (`rcCompactSpan::h`, clamped to 255 in `rcBuildCompactHeightfield`), so
+    an agent height over 255 cells never connects; Extra Large would be 278 cells and the giant 357. docs/OVERHAUL_3D.md
+    "Navigation (I3)" and docs/ROADMAP.md F79 have the rest.
 
 ## Reproduce (on `spike/s1-rapier`)
 
