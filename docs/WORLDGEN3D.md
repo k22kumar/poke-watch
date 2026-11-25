@@ -14,7 +14,8 @@ applies, dated; B, C and D are also under "Open items", task order and scope.
 
 **Q23 (the low-poly profile and the render plan) is the owner's addition of 2026-11-24, after the grilling.** The
 wording it replaces in the earlier sections (Q14 to Q22, the contract table, the open items) is kept where it was
-and marked with a Q23 note.
+and marked with a Q23 note. The owner's answers to the seven questions the record raised (one corrected, one
+settled, five confirmed) are in Q23 under "Confirmed by the owner".
 
 ## Inherited decisions (not reopened here)
 
@@ -890,8 +891,8 @@ bush therefore hides a body on screen but not from the sim's sight rays.
    - *(Q23.7)* **Chunky proportions.** Gameplay-tier proxies are chunky by a default exaggeration value in
      `src/rules`, with an override per archetype. Both are proxy dimensions, the same in every style profile.
      Changing either re-validates the affected maps and moves their `gameplayHash`, so the Q19 version discipline
-     applies. *(Read with Q23, not yet confirmed: like every proxy dimension they sit on the lattice and obey the
-     bands of Q6 and Q7 and the cover ladder of Q15b.)*
+     applies. They stay on the 0.05 m lattice, inside the Q6 and Q7 bands and on the Q15b cover ladder:
+     exaggeration moves a dimension between legal values only (confirmed by the owner, 2026-11-24).
    - *(Q23)* Faceted rocks are the case for the hull proxies that G1 measures.
 3. **Colliders come from semantics only.** `emit` builds colliders from proxies. No collider ever comes from a visual
    mesh, and no instance sets flags by hand.
@@ -1062,13 +1063,14 @@ references, never behaviour (six materials × four agents).
 6. **Per-side dressing may differ; its density may not.** The readability lint compares the sides (Q11.8).
    - *(a)* Light-emitting dressing (lamps, torches, glowing plants, fires) counts in per-side fairness. The lint
      compares the sides at night samples of the day/night cycle, including lighting levels on the approaches.
-     *(Read with Q23.2: "night samples" means the darkest sampled times inside the map's range.)*
+     *(With Q23.2: "night samples" means the darkest sampled times inside the map's range.)*
 7. **Tests.** Changing the `dress` stream or dressing code changes no `gameplayHash`. No `Dressing` instance has a
    collider or sits in a keep-out. Gameplay tier placement is identical under the half-turn.
 8. *(Q23)* **`Dressing` gains two lists.**
    - **A backdrop list:** instances beyond the map's bounds, with no proxies, no shadow casting and a budget of
      their own (Q20). The map edge stays a real boundary.
    - **Atmosphere emitters:** kinds `halo`, `mist`, `steam` and `shaft`, from the emitter-kind registry (Q14.1).
+     A dressing `steam` emitter must read apart from a stateful feature's steam cue (point 5c; owner, 2026-11-24).
    - Both are presentation, written by `dress`, and outside `gameplayHash` like the rest of `Dressing`.
 
 ### Q18 World styles and the shading model (owner, 2026-11-23: accepted with amendments a–c; (a) extended 2026-11-24; amended by Q23, 2026-11-24)
@@ -1109,8 +1111,10 @@ Today the look is spread over four tables: `BIOMES` colours (`src/rules/stages.t
    `sky`; plus S2's actor billboard and effects materials. A biome is data, never a shader.
    - *(a, extended 2026-11-24)* The list is closed for shipped builds. The dev-only experiment mode of point 4 may
      register alternative material kinds beside it.
-   - *(Q23)* The kind listed as `storybook` is the world material family of point 2, which serves both profiles. No
-     world material uses an image texture (Q23.6).
+   - *(Q23)* The kind listed as `storybook` is the world material family of point 2, which serves both profiles.
+     **No authored image textures** for world surfaces or atmospheric effects (Q23.6, as amended 2026-11-24).
+     Code-made textures, generated once and shared, are allowed where sampling is cheaper than repeated maths.
+     Pokémon sprite art is exempt.
 4. **One `RenderPipeline` with a fixed pass list:** the scene with MRT normals → ink → `renderOutput`. Styles and
    overlays set pass parameters; they never add a pass.
    - *(a)* **Dev-only experiment mode:** shading models and post-processing passes are swappable and toggleable
@@ -1143,7 +1147,8 @@ Today the look is spread over four tables: `BIOMES` colours (`src/rules/stages.t
      signal-language requirements in greyscale and under simulated colour-vision deficiencies.
 7. **The light rig is data.** Sun path, colours, ambient and the fog curve are keyframes per biome. The shadow setup
    stays S2's (one directional light, a 2048² map).
-   - *(Extended by Q23.)* **Ambient is six colours per keyframe, in two sets (open sky and enclosed)**, blended by
+   - *(Extended by Q23; clarified by the owner, 2026-11-24.)* **Ambient is two sets of six colours per keyframe**
+     (open sky and enclosed; one colour per axis direction, +x, −x, +y, −y, +z, −z; twelve in all), blended by
      a per-vertex sky visibility. **Grading** (lift, gamma, gain, saturation) is a keyframe value, applied in the
      output step. Which part of the keyframes a map plays is its own time range (Q23.2).
 8. **Sun path.** The starting choice is a path plane perpendicular to the team axis, symmetric about noon, so
@@ -1263,7 +1268,7 @@ has never been measured.
    | Render triangles, structure and gameplay tiers | ≤ 150,000 | drawn up to three times a frame (main, shadow, normals); the normals target only where a pass needs it (Q23) |
    | Dressing | ≤ 6,000 instances, ≤ 48 archetypes, ≤ 250,000 triangles | S2's stress scene ran 5,000 instanced props |
    | Backdrop (Q23) | set by profiling at I2a and F39 | its own budget, outside the dressing caps (Q17.8) |
-   | Particle cards (Q23) | set by profiling at I2a and F39 | overdraw: glow sprites and atmosphere emitters |
+   | Particle cards (Q23) | set by profiling at I2a and F39 | overdraw: glow sprites and atmosphere emitters, all code-made (Q23.6) |
    | Strokes (Q23) | set by profiling at I2a and F39 | the stroke geometry of painted accents (Q23.6) |
    | Stateful features | ≤ 4 per map | see (d) |
    | Environment states | ≤ 3 per map | with the feature cap: at most 18 validation states per attempt (Q10) |
@@ -1300,9 +1305,9 @@ has never been measured.
      checked at the night samples of the day/night cycle, on the WebGL 2 backend as the baseline. Starting numbers
      (owner confirmed, 2026-11-24): ≤ 64 emitters per map and ≤ 4 overlapping in any screen region. They are
      recalibrated with the technique choice at I2 (Q18.9).
-     - *(Q23)* The technique is now decided: a baked lamp channel (Q18.9). The count still bounds the bake. What
-       the overlap number bounds under baking is I2a's to restate. "Night samples" reads as the darkest sampled
-       times inside the map's range (Q23.2).
+     - *(Q23)* The technique is now decided: a baked lamp channel (Q18.9). The count still bounds the bake. I2a
+       restates what the overlap number bounds under baking (owner, 2026-11-24). "Night samples" reads as the
+       darkest sampled times inside the map's range (Q23.2).
    - *(Q23.5)* **Bloom's budget and default quality come from the same profiling** on low-end hardware (F39).
    - *(c)* **An event overlay shares the dressing caps.** Its instances, archetypes, triangles and emitters count
      inside the same numbers; it gets no allowance of its own.
@@ -1427,8 +1432,8 @@ Hold's five routes do not describe a range.
 8. *(b)* **Dev-only: the range loads the Q14(a) experiment overrides**, so it doubles as a tunables playground. An
    experiment run is unranked. The shipped range uses the shipped tunables and its golden hash.
 9. *(c)* **The range runs the day/night cycle**, and the readability and affordance lints (Q16.7, Q18.6) run on it,
-   so a look experiment can be checked there first. *(Read with Q23.2: the range declares a complete cycle as its
-   time of day.)*
+   so a look experiment can be checked there first. *(Q23.2, confirmed by the owner, 2026-11-24: the range declares
+   a complete cycle as its time of day.)*
 
 **Notes.** Several stations wait for a later task: the SDF cave (G2), the camera probe rooms (the camera task sets
 the band and the distance: Q15g), the temporary-object sandbox (I4), and the burrow, flight and dive stations (the
@@ -1438,9 +1443,9 @@ markers for all of them; each task switches its own station on.
 ### Q23 The low-poly profile and the render plan (owner, 2026-11-24)
 
 Added after the grilling: owner decisions and design changes, not a grilled question. Where a point replaces earlier
-wording, that wording stays where it was and carries a Q23 note ("superseded", "extended", "amended" or "read
-with"), as Q15(g) did. Everything here is presentation and outside `gameplayHash`, except the proxy dimensions of
-decision 7.
+wording, that wording stays where it was and carries a Q23 note ("superseded", "extended" or "amended"), as Q15(g)
+did. The owner's answers to the questions the record raised are under "Confirmed by the owner" below. Everything
+here is presentation and outside `gameplayHash`, except the proxy dimensions of decision 7.
 
 **Owner decisions.**
 
@@ -1467,7 +1472,8 @@ decision 7.
      - a two-tone keyline on every signal shape;
      - patterns and pulse timing that only signals use;
      - a shape and an icon per signal kind;
-     - signals composited after grading, untouched by fog and bloom.
+     - signals composited after grading, untouched by fog and bloom. *(The requirement is the result, not the
+       order: confirmed point 6 below.)*
    - **Requirements:**
      - (a) Every signal is recognisable with colour removed. Motion carries no meaning that a static shape or
        pattern does not also carry.
@@ -1481,8 +1487,10 @@ decision 7.
 5. **Glow never depends on bloom.** The baseline is emissive materials, glow sprites, baked illumination and vertex
    colour. Bloom is optional and scalable. Its budgets and default quality come from profiling on low-end hardware
    (ROADMAP F39).
-6. **No image textures.** Tonal variation comes from per-facet tone, a vertical gradient, lighter chamfer edges and
-   strata bands. Painted accents (grain, cracks, tile edges) are stroke geometry, made by the render-side builders.
+6. **No authored image textures.** Tonal variation comes from per-facet tone, a vertical gradient, lighter chamfer
+   edges and strata bands. Painted accents (grain, cracks, tile edges) are stroke geometry, made by the render-side
+   builders. *(Amended by the owner, 2026-11-24: first recorded as "No image textures". Code-made textures are
+   allowed and Pokémon sprite art is exempt: confirmed point 2 below.)*
 7. **Chunky proportions are a default with a configurable degree.**
    - For gameplay-tier archetypes they are proxy dimensions in `src/rules`: one default exaggeration value and an
      override per archetype, the same in every profile. Changing one re-validates the affected maps.
@@ -1507,9 +1515,10 @@ decision 7.
 - **Passes (Q18.4).** The pass list is per profile, from a closed registry. Ink and bloom are optional. A pass at
   zero weight is not built. The normals target exists only when a pass needs it. A shipped build runs one locked
   list.
-- **Light rig (Q18.7).** Ambient is six colours per keyframe, in two sets (open sky, enclosed), blended by a
-  per-vertex sky visibility. Grading (lift, gamma, gain, saturation) is a keyframe value applied in the output
-  step.
+- **Light rig (Q18.7).** Ambient is two sets of six colours per keyframe (open sky, enclosed; one colour per axis
+  direction; twelve in all), blended by a per-vertex sky visibility. Grading (lift, gamma, gain, saturation) is a
+  keyframe value applied in the output step. *(First recorded as "six colours per keyframe, in two sets"; the
+  owner clarified it on 2026-11-24: confirmed point 1 below.)*
 - **Local light (Q18.9).** It is baked per vertex at load into a lamp channel, scaled by a time-of-day curve and
   confined to the emitter's space and its portals. Actors take a per-instance tint. Real-time local lights are not
   the baseline.
@@ -1519,38 +1528,48 @@ decision 7.
 - **Open items.** Where the kit-piece list for the render-side skins travels (G1); bloom's default; which profile
   ships.
 
-**Reads recorded with Q23 (2026-11-24; not yet confirmed by the owner).** Each either follows from an earlier
-decision or fills a gap in the wording above. None is an owner decision until confirmed.
+**Confirmed by the owner (2026-11-24).** These points were first recorded with Q23 as reads. The owner answered
+the seven that were put as questions: one is corrected, one is settled, five are confirmed.
 
-- **Where the time range is written.** In the map's presentation data: the `look` section of a recipe (Q14.3), or
-  the style binding of an `AuthoredMap` (Q22.1). The training range declares a complete cycle (Q22.9).
+1. **Ambient is twelve colours per keyframe.** Each set holds six colours, one per axis direction (+x, −x, +y, −y,
+   +z, −z). There are two sets, open sky and enclosed. *(Corrected: the read recorded here, six in total and three
+   per set, was wrong.)*
+2. **Effect cards are code-made only.**
+   - Shader maths for simple effects. Small, reusable, procedurally generated textures where sampling is cheaper
+     than repeated maths: gradients, noise, glow masks, mist, steam, light shafts. Each is generated once and
+     shared across instances.
+   - Priorities: measured GPU cost, minimal memory, batching, instancing, distance culling and controlled
+     transparent overdraw.
+   - No authored image textures for world surfaces or atmospheric effects. Pokémon sprite art is exempt.
+   - The aim is to remove authored texture assets, not to forbid efficient GPU techniques or procedural texture
+     caching. Decision 6 and Q18.3 now say "no authored image textures".
+3. **Where the time range is written.** In a recipe's `look` section (Q14.3), or in an `AuthoredMap`'s style
+   binding (Q22.1). The training range declares a complete cycle (Q22.9).
+4. **Steam.** A dressing `steam` emitter must read apart from a stateful feature's steam cue (Q16.7b, Q17.5c).
+5. **The emitter overlap budget of Q20(c).** It was written before the technique was chosen. Under the baked lamp
+   channel the count still bounds the bake, and I2a restates what the overlap number bounds.
+6. **Signal compositing: the requirement is the result.** A signal's colour and luminance on screen do not change
+   with a map's grade, fog or bloom. The pass order and the mechanism are I2a's and I2b's.
+7. **Exaggerated proxies** stay on the 0.05 m lattice, inside the Q6 and Q7 bands and on the Q15b cover ladder.
+   Exaggeration moves a dimension between legal values only.
+
+**Also confirmed, as recorded** (the owner, 2026-11-24, on the other reads in the list).
+
 - **The clock.** Where a map ties an environment state to a time of day, the sim's state is the authority and the
   presentation follows it (the sim emits, render reacts). Which clock drives the rest is I2a's choice.
-- **"Night samples"** in Q17.6(a) and Q20(c) now means the darkest sampled times inside the map's range.
 - **The two new lints are class F** (Q12.4d): render-side, offline in CI, a gate on a look before it ships, never a
   generator gate. Their thresholds have no numbers yet.
 - **The roster camouflage check of Q18.6 stands.** Decision 4 removes the reserved colour region. It does not
   remove the check that an actor reads against the ground behind it, or its fix (rim light or outline).
-- **The scope of "no image textures"** is the world: structure, gameplay tier, dressing and backdrop. Actor
-  billboards keep their sprite art (S2). Whether effect cards (glow sprites, particle cards) are drawn in the
-  shader or from an atlas is not stated.
-- **"Six colours, in two sets"** is read as six in total, three per set. The other reading is a six-colour set for
-  each of the two.
 - **Sky visibility and the lamp channel are computed by the renderer at load**, from the model's chunks, spaces and
   portals. Neither is a model field (the chunk contract above lists what a chunk carries).
-- **Exaggeration stays inside the hard rules.** An exaggerated proxy sits on the 0.05 m lattice and obeys the bands
-  of Q6 and Q7 and the cover ladder of Q15b, like every proxy dimension. It never moves a cover top off a rung.
 - **Visual geometry stays inside the Q15.7 envelope.** Chamfers, irregularity, top treatments and strokes are built
   render-side from the profile. None moves a model vertex, so the drawn ground is still the colliding ground (Q3),
   and the phantom-cover lint (Q15.8) guards the rest.
-- **Atmosphere emitters stay under two existing rules.** Mist or steam that hides a body without a `screen` volume
-  is phantom concealment (Q15.8). A `steam` emitter placed as dressing may not read as the steam cue of a stateful
-  feature (Q16.7b, Q17.5c).
-- **The emitter overlap budget of Q20(c)** was written before the technique was chosen. Under a baked lamp channel
-  the count still bounds the bake; what the overlap number bounds is I2a's to restate.
-- **Signal compositing and the pipeline.** S2 ends the one `RenderPipeline` in `renderOutput`, and Q18.7 now grades
-  in that step, while signals are composited after grading. I2a and I2b settle the order.
 - **The signal kinds** (the list, with each kind's shape, icon and occlusion rule) are I2b's to write.
+- Two reads were not named one by one in the owner's confirmation and rest on its general wording. **"Night
+  samples"** in Q17.6(a) and Q20(c) means the darkest sampled times inside the map's range. **Mist or steam that
+  hides a body** without a `screen` volume is phantom concealment (Q15.8).
 
 **Where the work lands.** ROADMAP rows I2a, I2b and G1 carry the pointers.
 
@@ -1619,8 +1638,6 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - **A stored GameplayBundle** is deferred. The trigger is the first measured cross-engine hash mismatch, or ranked
   play being scheduled (Q19.8).
 - **Which style profile ships**, `storybook` or `lowpoly` (Q23.1).
-- **The reads recorded with Q23** wait for the owner's confirmation. Two are open questions rather than reads: how
-  many ambient colours a set holds, and whether effect cards may use an atlas.
 
 **Task order and scope (owner, 2026-11-24).**
 
