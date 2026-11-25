@@ -360,15 +360,25 @@ export class PhysicsWorld {
   }
 
   /** The top of the first solid at or below feet at y (a ray straight down, up to `drop` m): the support a body at
-   *  (x, y, z) stands or lands on; -Infinity over open air. Liquids are not support unless `kinds` asks for them. */
+   *  (x, y, z) stands or lands on; -Infinity over open air. Liquids are not support unless `kinds` asks for them. The
+   *  height is the world model's (ROADMAP F70): a box the ray enters from above stands at its f64 top, exactly (a liquid's
+   *  at its surface); a mesh (the stair ramps) at the f32 ray's contact (G1: sloped generated terrain takes it from the
+   *  model's triangles in 64-bit) */
   supportBelow(x: number, y: number, z: number, drop = 1e3, kinds: number = SK.wall | SK.deck | SK.terrain, stops: number = STOPS.shots): number {
-    return this.cast(x, y, z, 0, -1, 0, drop, kinds, 0, stops, SUP_HIT) ? y - SUP_HIT.t : -Infinity;
+    return this.cast(x, y, z, 0, -1, 0, drop, kinds, 0, stops, SUP_HIT) ? this.supportHeight(y) : -Infinity;
   }
 
   /** I1b: supportBelow for the character controller: what stops a body (liquids at their surface, the stair wedges),
    *  unclocked (moveCharacter's clock already covers it) */
   private readonly bodySupport = (x: number, y: number, z: number, drop: number): number =>
-    this.castOnce(x, y, z, 0, -1, 0, drop, MOVE_KINDS, 0, STOPS.bodies, SUP_HIT, 0, 0) ? y - SUP_HIT.t : -Infinity;
+    this.castOnce(x, y, z, 0, -1, 0, drop, MOVE_KINDS, 0, STOPS.bodies, SUP_HIT, 0, 0) ? this.supportHeight(y) : -Infinity;
+
+  /** the height of SUP_HIT, a ray cast straight down from height y: a box it entered from above (t > 0, its top not
+   *  above y) is its f64 model top; else the ray's f32 contact */
+  private supportHeight(y: number): number {
+    const top = this.meta.hi[SUP_HIT.id * 3 + 1];
+    return SUP_HIT.t > 0 && top <= y ? top : y - SUP_HIT.t;
+  }
 
   /** The liquid at (x, y, z): 0 none, 1 water, 2 lava (sim/worldquery.ts liquidContact's ids); its surface in
    *  this.level. A point exactly at a surface is in it (closed). */
@@ -386,17 +396,28 @@ export class PhysicsWorld {
     return best;
   }
 
+  /** I1b: the world model's f64 bounds of the box collider with Rapier handle h into out (lo, hi); false for a mesh or
+   *  hull (the controller's exact fit and contact heights) */
+  private readonly colliderBox = (h: number, out: Float64Array): boolean => {
+    const id = this.byHandle.get(h), M = this.meta;
+    if (id === undefined) return false;
+    const o = id * 3;
+    if (M.lo[o] !== M.lo[o]) return false;
+    out[0] = M.lo[o]; out[1] = M.lo[o + 1]; out[2] = M.lo[o + 2]; out[3] = M.hi[o]; out[4] = M.hi[o + 1]; out[5] = M.hi[o + 2];
+    return true;
+  };
+
   /** I1b: resolve one tick's move of a partner's body through the character controller (physics/controller.ts). `rules`
    *  are read when the controller is made (one set per world: rules.physics.controller of the run). */
   moveCharacter(io: CharacterMove, rules: ControllerRules): void {
     const clock = PhysicsWorld.clock, t0 = clock ? clock() : 0;
-    (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.kitHandles)).move(io);
+    (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.colliderBox, this.kitHandles)).move(io);
     if (clock) this.stats.ms += clock() - t0;
   }
 
   /** I1b: is a body's capsule (footprint r, height h, feet at (x, y, z)), shrunk by `shrink`, clear of what stops bodies? */
   characterClear(x: number, y: number, z: number, r: number, h: number, shrink: number, rules: ControllerRules): boolean {
-    return (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.kitHandles)).clearAt(x, y, z, r, h, shrink);
+    return (this.kit ??= new CharacterKit(this.R, this.world(), rules, ((MOVES << 16) | MOVE_KINDS) >>> 0, this.bodySupport, this.colliderBox, this.kitHandles)).clearAt(x, y, z, r, h, shrink);
   }
 
   /** the controller's counters (null before its first move) */

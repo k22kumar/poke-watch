@@ -12,10 +12,11 @@
 // resolver, never the integrator:
 //   tiles      the planar move with the step rule and the footprint (World.moveBody), headroom, the support (landing,
 //              slope stick, leaving the support), as before I1b
-//   controller rules.physics.engine 'rapier' (I1b): the world's `mover`, Rapier's character controller with our own step
-//              rule (physics/controller.ts): it slides, keeps a body supported by the tile model's own rule at the axis
-//              (a drop under STICK + g·dt² is walked down, a deeper one falls, every class; ROADMAP F66), lands it where
-//              the tile body lands, stops a rising head, and says whether the body stands on something
+//   controller rules.physics.engine 'rapier' (I1b): the world's `mover`, Rapier's character controller with our own roll
+//              (physics/controller.ts): it slides, rolls up rises at the body's own speed (F69), keeps a body supported by
+//              the tile model's own rule at the axis (a drop under STICK + g·dt² is walked down, a deeper one falls,
+//              every class; F66), lands it where and when the tile body lands (F70), stops a rising head, and says
+//              whether the body stands on something; a move it met nothing on is the desired one, exactly (F70)
 // The integrator a tick runs follows from the body's state (`selectIntegrator`); the transitions it can make in one tick
 // are supported → ballistic (jump pressed, support ends) and ballistic → supported (contact).
 //
@@ -304,7 +305,7 @@ function recoverFromRock(W: WorldQuery, b: LocoBody, t: LocoTick) {
 /** The controller resolver (I1b, rules.physics.engine 'rapier'): the vertical drive, then the whole translation (planar
  *  velocity and knockback, the vertical speed) through the world's character controller in one move. It slides along
  *  what it meets, keeps a supported body supported by the tile model's stick at its axis (F66), climbs rises up to
- *  `stepUp` by the step rule (only from a support, not on a take-off), stops a rising head (the jump's speed is spent),
+ *  `stepUp` by the roll (only from a support, not on a take-off), stops a rising head (the jump's speed is spent),
  *  and says whether the body stands on something: grounded is that, unless the body is still rising. Liquids are floors at their surface (the tile
  *  model's swim kind: contact at the surface; WORLDGEN3D Q9's depth modes are I4's). Not used: `over` (no driver sets it
  *  before R6d; a wall prop's column is solid to any height here), the landing clear (a capsule never stands in a lip) */
@@ -353,7 +354,7 @@ export function pushFootprint(W: WorldQuery, b: LocoBody, dx: number, dz: number
   b.x = MOVE[0]; b.z = MOVE[1];
 }
 
-/** Resolve the summed shoves through the controller (physics; no vertical intent, the step rule from a support) and clear
+/** Resolve the summed shoves through the controller (physics; no vertical intent, the roll from a support) and clear
  *  them. Nothing to do on tiles, where each shove already moved the body */
 export function flushShoves(W: WorldQuery, b: LocoBody, acc: Shoves) {
   if (acc.n === 0) return;

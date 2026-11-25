@@ -13,7 +13,7 @@ import { BIOMES } from '../src/rules/stages';
 import { World } from '../src/sim/world';
 import { createRun, disposeRun, step } from '../src/sim/run';
 import { NO_INPUT } from '../src/sim/types';
-import { capsuleOf } from '../src/physics/controller';
+import { capsuleOf, CharacterKit, type CharacterMove } from '../src/physics/controller';
 import { STOPS } from '../src/physics/world';
 import { QF, RayHit, SK_WORLD } from '../src/world/sight';
 import { LOCO, MEDIUM, mediumAt, selectIntegrator, stepBallistic, stepSupported, type LocoBody, type LocoTick } from '../src/sim/locomotion';
@@ -287,4 +287,134 @@ test('collision groups: aim, sight, shot and beam queries pass through the contr
   assert.ok(Math.abs(P.supportBelow(0, 1.2, 0)) < 1e-6, 'the support below a point inside it is the floor');
   assert.equal(P.liquidAt(0, 1.2, 0), 0, 'no liquid inside it');
   W.physics!.dispose();
+});
+
+// The roll (ROADMAP F69, owner 2026-11-25): a rise is climbed at the body's own speed. Every controller move of every
+// approach of the step matrices (the climbs and the refusals, every class, 0.5–9 m/s, head-on and at 45°) is checked: no
+// tick moves the body further than the tick's own travel, along the wish or at all (the rounding of a position's
+// difference aside: 1e-12 m). On a climb, from the first tick the roll lifts the body to the tick its feet stand on the
+// top, every tick is grounded (a Jump press there is a ground jump), the feet never sink (no fall back) and the body
+// goes its whole travel along the wish (never perched on the edge)
+
+/** every controller move while `fn` runs: the desired planar translation, the planar move made, and whether it rolled */
+function recordMoves<T>(fn: () => T): { moves: { dx: number; dz: number; mx: number; mz: number; up: boolean }[]; out: T } {
+  const proto = CharacterKit.prototype as unknown as { move(io: CharacterMove): void }, move = proto.move;
+  const moves: { dx: number; dz: number; mx: number; mz: number; up: boolean }[] = [];
+  proto.move = function (this: CharacterKit, io: CharacterMove) {
+    const x = io.x, z = io.z;
+    move.call(this, io);
+    moves.push({ dx: io.dx, dz: io.dz, mx: io.x - x, mz: io.z - z, up: io.stepped });
+  };
+  try { return { moves, out: fn() }; } finally { proto.move = move; }
+}
+
+test('the roll (F69): no tick moves a body further than its own travel; a roll is grounded every tick, never perched, never falling back', () => {
+  const SLACK = 1e-12;
+  let moves = 0, rolls = 0, climbs = 0;
+  for (const rise of [...CLIMB, ...REFUSE]) {
+    const W = stepWorld(rise), top = Math.fround(rise);
+    for (const c of rules.size.classes) for (const sp of SPEEDS) for (const deg of ANGLES) {
+      const a = (deg * Math.PI) / 180, ux = Math.cos(a), uz = Math.sin(a), what = `${c.id} at ${sp} m/s, ${deg}° onto ${rise} m`;
+      const b = body(-c.body - 1), t = tickFor(c.body, sp), out = { jumped: false };
+      const ticks = Math.round((2.2 + c.body) / (sp * ux) / DT) + 60;
+      const rec = recordMoves(() => {
+        const per: { g: boolean; y: number }[] = [];
+        for (let s = 0; s < ticks; s++) {
+          if (selectIntegrator(false, b.grounded) === LOCO.supported) stepSupported(W, b, { mx: ux, mz: uz, jump: false }, t, R, DT, out);
+          else stepBallistic(W, b, { mx: ux, mz: uz, jump: false }, t, R, DT, out);
+          per.push({ g: b.grounded, y: b.y });
+        }
+        return per;
+      });
+      for (const m of rec.moves) {
+        const want = Math.hypot(m.dx, m.dz), along = want > 0 ? (m.mx * m.dx + m.mz * m.dz) / want : 0;
+        moves++;
+        assert.ok(along <= want + SLACK && Math.hypot(m.mx, m.mz) <= want + SLACK, `${what}: a tick moved ${Math.hypot(m.mx, m.mz)} m (${along} along the wish) for a travel of ${want} m`);
+      }
+      if (rise > R.stepHeight) continue;
+      // the roll's window: the first rolling move to the first tick standing on the top
+      const first = rec.moves.findIndex((m) => m.up), last = rec.out.findIndex((p) => p.y === top);
+      assert.ok(first >= 0 && last >= first, `${what}: rolled (first roll ${first}, on the top ${last})`);
+      climbs++;
+      for (let s = first; s <= last; s++) {
+        const p = rec.out[s], m = rec.moves[s], want = Math.hypot(m.dx, m.dz);
+        if (m.up) rolls++;
+        assert.ok(p.g, `${what}: tick ${s - first} of the roll is grounded`);
+        if (s > first) assert.ok(p.y >= rec.out[s - 1].y, `${what}: tick ${s - first} of the roll sinks ${rec.out[s - 1].y - p.y} m (a fall back)`);
+        assert.ok((m.mx * m.dx + m.mz * m.dz) / want >= want - SLACK, `${what}: tick ${s - first} of the roll goes ${(m.mx * m.dx + m.mz * m.dz) / want} m of its ${want} m (perched)`);
+      }
+    }
+    W.physics!.dispose();
+  }
+  console.log(`${moves} controller moves within their own travel; ${climbs} climbs rolled, ${rolls} rolling ticks, every one grounded at its whole travel`);
+});
+
+// The roll's measure (ROADMAP F69): a flight of four steps (0.3 or 0.5 m, 1 m treads) is crossed in exactly the ticks of
+// the same distance on flat ground, by every class at 0.5 to 9 m/s, on both resolvers (S1's carry crossed it 20–57 %
+// faster on the controller; the tile body rises onto each step as its axis crosses the edge)
+test('the roll (F69): a flight of steps takes the time of flat ground, every class, on both resolvers', () => {
+  const tiles = deepMerge(defaultRules, { physics: { engine: 'tiles' } } as never) as Rules;
+  const flight = (rise: number, w: Rules) => stepWorld(0, (W, map) => {
+    for (let k = 0; k < W.w * W.h; k++) { const x = (k % W.w) - W.half; (map as unknown as { elev: Float32Array }).elev[k] = x >= 0 ? rise * Math.min(4, x + 1) : 0; }
+  }, w);
+  const lines: string[] = [];
+  for (const rise of [0.3, 0.5]) for (const w of [tiles, rules]) {
+    const flat = flight(0, w), st = flight(rise, w), row: string[] = [];
+    for (const c of rules.size.classes) for (const sp of [0.5, 2, 6, 9]) {
+      const cross = (W: World) => {
+        const b = body(-1 - c.body), t = tickFor(c.body, sp), out = { jumped: false };
+        b.vx = sp;
+        let n = 0;
+        while (b.x < 4.5 && n < 6000) { if (b.grounded) stepSupported(W, b, { mx: 1, mz: 0, jump: false }, t, R, DT, out); else stepBallistic(W, b, { mx: 1, mz: 0, jump: false }, t, R, DT, out); n++; }
+        return { n, y: b.y };
+      };
+      const f = cross(flat), s = cross(st);
+      assert.ok(s.y === Math.fround(4 * rise), `${c.id} at ${sp} m/s on ${w.physics.engine}: on the top of the ${rise} m flight (${s.y})`);
+      assert.equal(s.n, f.n, `${c.id} at ${sp} m/s on ${w.physics.engine}: the ${rise} m flight in ${s.n} ticks, flat ground in ${f.n}`);
+      if (sp === 0.5 || sp === 9) row.push(`${c.id[0]}${sp}:${s.n}`);
+    }
+    lines.push(`${rise} m on ${w.physics.engine}: ${row.join(' ')}`);
+    flat.physics?.dispose(); st.physics?.dispose();
+  }
+  console.log(`ticks to cross a four-step flight, the same as flat ground (class initial and m/s):\n${lines.join('\n')}`);
+});
+
+// Exact unless cut (ROADMAP F70): a move the controller met nothing on returns the desired translation itself in 64-bit,
+// not Rapier's f32 sum; a flat-floor jump flies the tile arc bit for bit and lands at y === 0 on the tick it lands with the
+// flag off (the floor's height is the world model's box top, not the f32 ray's)
+test('exact unless cut (F70): a free move is the desired 64-bit translation; a flat-floor jump lands at y === 0 on the tile tick', () => {
+  const W = stepWorld(0), P = W.physics!.worldFor(W), ctl = rules.physics.controller;
+  const move = (x: number, y: number, z: number, dx: number, dy: number, dz: number, supported: boolean) => {
+    const io: CharacterMove = { x, y, z, dx, dy, dz, r: 0.46, h: 1.2, stepUp: R.stepHeight, supported, onGround: false, ceiling: false, stepped: false };
+    P.moveCharacter(io, ctl);
+    return io;
+  };
+  for (const [dx, dz] of [[0.1, 0], [1 / 3, 1 / 7], [-0.0123456789, 0.0987654321], [1e-7, -3e-9]]) {
+    const w = move(-3.3, 0, 1.1, dx, -R.gravity * DT * DT, dz, true);
+    assert.ok(w.x === -3.3 + dx && w.z === 1.1 + dz && w.y === 0 && w.onGround, `a walk on the floor by (${dx}, ${dz}): (${w.x}, ${w.y}, ${w.z})`);
+    const f = move(-3.3, 2.5, 1.1, dx, -0.1, dz, false);
+    assert.ok(f.x === -3.3 + dx && f.y === 2.5 - 0.1 && f.z === 1.1 + dz && !f.onGround, `a fall in open air by (${dx}, -0.1, ${dz}): (${f.x}, ${f.y}, ${f.z})`);
+    const j = move(-3.3, 0, 1.1, dx, R.jumpVelocity * DT, dz, false);
+    assert.ok(j.x === -3.3 + dx && j.y === R.jumpVelocity * DT && j.z === 1.1 + dz && !j.ceiling, `a take-off by (${dx}, ${R.jumpVelocity * DT}, ${dz}): (${j.x}, ${j.y}, ${j.z})`);
+  }
+  W.physics!.dispose();
+  const tiles = deepMerge(defaultRules, { physics: { engine: 'tiles' } } as never) as Rules;
+  for (const sp of [0, 1, 4, 9]) {
+    const arcs = [tiles, rules].map((w) => {
+      const Wd = stepWorld(0, undefined, w), b = body(-4), t = tickFor(0.46, sp), out = { jumped: false }, ys: number[] = [];
+      let land = -1;
+      for (let s = 0; s < 90 && land < 0; s++) {
+        const it = { mx: sp > 0 ? 1 : 0, mz: 0, jump: s === 0, jumpPressed: s === 0 };
+        if (b.grounded) stepSupported(Wd, b, it, t, R, DT, out); else stepBallistic(Wd, b, it, t, R, DT, out);
+        ys.push(b.y);
+        if (s > 0 && b.grounded) land = s;
+      }
+      Wd.physics?.dispose();
+      return { ys, land, y: b.y, x: b.x };
+    });
+    assert.ok(arcs[0].land > 0 && arcs[1].land === arcs[0].land, `at ${sp} m/s: lands on tick ${arcs[1].land}, on tiles ${arcs[0].land}`);
+    assert.ok(arcs[1].y === 0 && arcs[0].y === 0, `at ${sp} m/s: lands at y ${arcs[1].y} (tiles ${arcs[0].y})`);
+    assert.deepEqual(arcs[1].ys, arcs[0].ys, `at ${sp} m/s: the arc is the tile arc bit for bit`);
+    assert.equal(arcs[1].x, arcs[0].x, `at ${sp} m/s: and so is the distance`);
+  }
 });

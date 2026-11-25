@@ -69,18 +69,15 @@ export const defaultRules = {
       /** [B] a set-down to a pose the capsule does not fit backs off by `offset` up to this many times (a cast grazing an
        *  edge can stop past contact, ROADMAP F58) */
       backoff: 3,
-      // the step rule (sim/locomotion.ts on the controller; physics/controller.ts tryStep): a supported move that came up
-      // short against a face lifts the capsule by the step height, carries its centre `margin` past the face, and sets it
-      // down on a walkable top no more than the step height (+ `tolerance`) and at least `minRise` above its feet
+      // the roll (physics/controller.ts roll; ROADMAP F69): a supported move the controller cut, toward a rise, goes the
+      // tick's own travel lifted as little as fits, when what it then rests on is no more than the step height
+      // (+ `tolerance`) above what it rested on; its round bottom rolls up the edge at the body's own speed
       step: {
-        /** [B] m: how far past the face the centre lands (on the top, not perched on its edge) */
+        /** [B] m: a falling capsule cut by a ledge's edge is carried off it by at most its footprint plus this (the
+         *  roll-off, F66) */
         margin: 0.04,
         /** [B] m: float slack over the step height (a 0.6 m rise is a step, 0.62 m is not: S1 O4) */
         tolerance: 0.002,
-        /** [B] m: a lower rise is the controller's own (it rides small lips as slopes) */
-        minRise: 0.01,
-        /** [B] the plain move counts as short when it covered less than this share of the wish */
-        short: 0.98,
       },
     },
   },
