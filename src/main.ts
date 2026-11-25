@@ -22,6 +22,7 @@ import { runSizeRules } from './rules/sizing';
 import { startObjective } from './sim/objectives';
 import { createRun, disposeRun, startStage, step } from './sim/run';
 import { bootRapier } from './physics/web';
+import { bootRecast } from './nav/web';
 import { artMetrics } from './render/metrics';
 import { LOCATIONS } from './world/locations';
 import { HABITATS } from './world/habitat/recipes';
@@ -41,6 +42,9 @@ const params = new URLSearchParams(location.search);
 /** ?physics=rapier: runs answer the spatial aim, line of sight, spatial shots and beams on Rapier (rules.physics.engine, task I1a; enemy and planar shots stay on tiles; default the
  *  tile column model). Rapier is fetched and initialised once at boot, and only then; createRun stays synchronous */
 const physicsEngine = params.get('physics') === 'rapier' ? 'rapier' : 'tiles';
+/** ?nav=navmesh: enemies steer by recast-navigation navmeshes (rules.nav.engine, task I3; default the tile flow fields).
+ *  Independent of ?physics. recast-navigation is fetched and initialised once at boot, and only then */
+const navEngine = params.get('nav') === 'navmesh' ? 'navmesh' : 'flow';
 /** a run being replaced or dropped frees what it owns outside the JS heap (its physics world: S1 §6) */
 const dropRun = (c: SimContext | null) => { if (c) disposeRun(c); };
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
@@ -239,7 +243,7 @@ function startRun(mode: Mode, species: string, seed: number) {
   const wg = range && !named ? { ...worldgenOverrides(world, loc), arena: 'range' } : worldgenOverrides(world, loc);
   dropRun(ctx); ctx = null;
   try {
-    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg, physics: { engine: physicsEngine } } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
+    ctx = createRun({ seed, species, mode, ruleOverrides: { combat: { mode: (params.get('combat') as typeof settings.combat) ?? settings.combat }, worldgen: wg, physics: { engine: physicsEngine }, nav: { engine: navEngine } } as never, targets: range ? (named ? HABITAT_TARGETS : RANGE_TARGETS) : undefined });
   } catch (e) {
     // a habitat seed whose every attempt and every known fallback failed: say so before any match starts
     failMap(e);
@@ -528,6 +532,11 @@ async function boot() {
     const { ms, url } = await bootRapier();
     console.info(`[boot] Rapier ${url} ready in ${ms.toFixed(1)} ms`);
     (window as any).pokewatchPhysics = { engine: physicsEngine, initMs: ms, url };
+  }
+  if (navEngine === 'navmesh') {
+    const { ms, url } = await bootRecast();
+    console.info(`[boot] recast-navigation ${url} ready in ${ms.toFixed(1)} ms`);
+    (window as any).pokewatchNav = { engine: navEngine, initMs: ms, url };
   }
   renderer = new Renderer(canvas);
   renderer.quality = settings.quality;

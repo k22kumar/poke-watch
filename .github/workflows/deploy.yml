@@ -34,9 +34,11 @@ jobs:
           cp -R dist/art site/art
           cp -R dist/music site/music
           cp -R dist/physics site/physics
+          cp -R dist/nav site/nav
           test -f site/art/manifest.*.json
           ls site/music/*.mp3
           ls site/physics/*.wasm
+          ls site/nav/*.wasm
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
