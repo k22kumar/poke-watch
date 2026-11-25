@@ -178,16 +178,18 @@ export class PhysicsBridge {
   /** physics worlds built (map entries and live geometry changes) */
   rebuilds = 0;
 
-  /** the physics world for tile world w, built or rebuilt when w or its geometry changed */
+  /** the physics world for tile world w (or a seam over it), built or rebuilt when its tile state or geometry changed */
   worldFor(w: WorldQuery): PhysicsWorld {
+    // keyed by the tile state, not the receiver: the World and the navigation seam over it (worldOf with
+    // rules.nav.engine 'navmesh') share it, and a build at map entry through either serves both
     const t = w.tiles;
-    if (w !== this.W || t !== this.T || t.geoGen !== this.gen || !this.physics) {
+    if (t !== this.T || t.geoGen !== this.gen || !this.physics) {
       this.physics?.dispose();
       this.physics = buildTilePhysics(t);
       this.rebuilds++;
-      if (w !== this.W) this.seam = null;
-      this.W = w; this.T = t; this.gen = t.geoGen;
+      this.T = t; this.gen = t.geoGen;
     }
+    if (w !== this.W) { this.seam = null; this.W = w; }
     return this.physics;
   }
 

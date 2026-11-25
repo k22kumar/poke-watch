@@ -114,11 +114,11 @@ export function createRun(opts: RunOptions): SimContext {
 function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
   ctx.world = new World(ctx.rules, biome, seed, ctx.physics);
   // the previous map's physics world and navmeshes are freed here; the new physics world is built now (the World holds
-  // the bridge: ROADMAP F64), worldOf builds the navmeshes
+  // the bridge: ROADMAP F64; built from the tile state worldOf's receiver shares), worldOf builds the navmeshes
   ctx.physics?.reset();
   ctx.nav?.reset();
   const W = worldOf(ctx);
-  ctx.physics?.worldFor(ctx.world);
+  ctx.physics?.worldFor(W);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
   const P = ctx.player;
