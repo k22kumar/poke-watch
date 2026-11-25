@@ -17,6 +17,11 @@
 //   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'); the escape probe's
 //   headings move its capsule through the controller too (the room flood stays the tile lattice's). Enemies stay on
 //   the tile World until I1c
+//   --save <file> writes this run's TRAPPED episodes (JSON); --compare <file> matches them against a saved run by
+//   identity and fails (exit 1) on any TRAPPED the saved run does not have. I1b's gate (owner, 2026-11-25): no flag-on
+//   TRAPPED the flag-off run with the same nav setting does not also have. An episode's identity: map, seed, partner
+//   species, the tick of its 5 s window (episodes are taken on window boundaries) and the tile it is trapped on; its
+//   exact position is printed beside it. A compare refuses files from another nav setting
 
 import { createRun, step } from '../src/sim/run';
 import { botInput } from '../src/sim/bot';
@@ -33,7 +38,9 @@ import { crowd } from './lib/crowd';
 import { initNavNode } from '../src/nav/node';
 import { worldOf, type BodyMove } from '../src/sim/worldquery';
 
-export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string }
+/** a TRAPPED player episode, by identity (map, seed, species, window tick, tile) and where exactly */
+export interface TrapRec { map: string; seed: number; species: string; tick: number; tile: [number, number]; x: number; z: number; y: number }
+export interface StuckReport { map: string; seed: number; species: string; playerStuck: number; playerPinned: number; playerTrapped: number; enemyStuck: number; holding: number; samples: number; notes: string[]; hash: string; trapped: TrapRec[] }
 
 const NAV: [number, number] = [0, 0], OUT: [number, number] = [0, 0];
 
@@ -127,7 +134,7 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
 export function watch(map: string, seed: number, seconds: number, species = 'totodile', extra: object = {}): StuckReport {
   const nav = NAV_ENGINE === 'navmesh' ? { nav: { ...(extra as { nav?: object }).nav, engine: 'navmesh' } } : {};
   const ctx: SimContext = createRun({ seed, species, mods: [crowd(120)], ruleOverrides: { worldgen: { mode: 'generated', regionSeed: seed, locations: { meadow: map, dusk: map, badlands: map, frost: map } }, ...extra, ...nav } as never });
-  const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '' };
+  const W = ctx.world, P = ctx.player, E = ctx.enemies, R: StuckReport = { map, seed, species, playerStuck: 0, playerPinned: 0, playerTrapped: 0, enemyStuck: 0, holding: 0, samples: 0, notes: [], hash: '', trapped: [] };
   const WIN = 300; // ticks (5 s)
   let pAnchor: [number, number, number] | null = null, pTrying = 0, pPath = 0, pLx = P.x, pLz = P.z;
   const eAnchor = new Map<string, [number, number, number]>();
@@ -141,7 +148,7 @@ export function watch(map: string, seed: number, seconds: number, species = 'tot
     if (ctx.tick % WIN === 0) {
       if (pAnchor && pTrying > WIN * 0.8 && Math.hypot(P.x - pAnchor[0], P.z - pAnchor[1]) < 0.5) { R.playerStuck++;
         let crowd = 0; for (let e = 0; e < E.hi; e++) if (E.alive[e] && Math.hypot(E.x[e] - P.x, E.z[e] - P.z) < 2.5) crowd++;
-        const pinned = pPath < 2, out = escapeOf(ctx); if (pinned) R.playerPinned++; if (out.trapped) R.playerTrapped++;
+        const pinned = pPath < 2, out = escapeOf(ctx); if (pinned) R.playerPinned++; if (out.trapped) { R.playerTrapped++; R.trapped.push({ map, seed, species, tick: ctx.tick, tile: [Math.floor(P.x), Math.floor(P.z)], x: P.x, z: P.z, y: P.y }); }
         R.notes.push(`player ${out.trapped ? 'TRAPPED ' : ''}${pinned ? 'pinned' : 'oscillating'} (${out.free}/16 headings free, ${out.room >= TRAP_ROOM ? TRAP_ROOM + '+' : out.room} tiles reachable) at ${P.x.toFixed(1)},${P.z.toFixed(1)} y ${P.y.toFixed(1)} t ${ctx.time.toFixed(0)}, walked ${pPath.toFixed(1)} m, ${crowd} enemies within 2.5 m, ${P.holding ? 'holding' : ''}`); }
       // STUCK_PROBE_ALL=1 runs the escape probe every window: a run with it must hash the same as one without
       else if (process.env.STUCK_PROBE_ALL) escapeOf(ctx);
@@ -193,15 +200,39 @@ if (process.argv[1]?.endsWith('stuckwatch.ts')) {
   const physics = pf >= 0 && argv[pf + 1] === 'rapier';
   if (pf >= 0) argv.splice(pf, 2);
   if (physics) await (await import('../src/physics/node')).initPhysicsNode();
+  // --save / --compare (the identity gate)
+  const opt = (name: string) => { const i = argv.indexOf(name); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v; };
+  const savePath = opt('--save'), comparePath = opt('--compare');
   const which = argv[2] ?? 'all', N = Number(argv[3] ?? 3), secs = Number(argv[4] ?? 120), first = Number(argv[5] ?? 1);
   const extra = { ...(process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {}), ...(physics ? { physics: { engine: 'rapier' } } : {}) };
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];
   let ps = 0, pp = 0, pt = 0, es = 0, hold = 0, samples = 0;
+  const traps: TrapRec[] = [];
   for (const map of maps) for (let s = first; s < first + N; s++) for (const species of ['totodile', 'feraligatr']) {
     const r = watch(map, s, secs, species, extra);
     ps += r.playerStuck; pp += r.playerPinned; pt += r.playerTrapped; es += r.enemyStuck; hold += r.holding; samples += r.samples;
     console.log(`${map} seed ${s} ${species.padEnd(10)} player stuck ${r.playerStuck} (pinned ${r.playerPinned}, trapped ${r.playerTrapped}), enemy stuck ${r.enemyStuck} (of ${r.samples} enemy-seconds with a route), wide holding ${r.holding}${process.env.STUCK_PROBE_ALL || process.env.STUCK_HASH ? ', end state ' + r.hash : ''}`);
     for (const n of r.notes) console.log('   ', n);
+    traps.push(...r.trapped);
   }
   console.log(`\nplayer stuck episodes ${ps} (pinned ${pp}: walked under 2 m in the 5 s; the rest walked back and forth; TRAPPED ${pt}: no way out, a movement failure); enemy stuck episodes ${es} over ${samples} enemy-seconds with a route; wide holding samples ${hold}`);
+  const setting = { physics: physics ? 'rapier' : 'tiles', nav: NAV_ENGINE, maps: which, seeds: N, seconds: secs, first };
+  if (savePath) { (await import('node:fs')).writeFileSync(savePath, JSON.stringify({ setting, trapped: traps }, null, 1) + '\n'); console.log(`saved ${traps.length} TRAPPED episodes to ${savePath}`); }
+  if (comparePath) {
+    const base = JSON.parse((await import('node:fs')).readFileSync(comparePath, 'utf8')) as { setting: typeof setting; trapped: TrapRec[] };
+    const S = base.setting;
+    if (S.nav !== setting.nav || S.maps !== setting.maps || S.seeds !== setting.seeds || S.seconds !== setting.seconds || S.first !== setting.first) throw new Error(`--compare: ${comparePath} is from ${JSON.stringify(S)}, this run is ${JSON.stringify(setting)} (same nav setting and runs needed)`);
+    const id = (t: TrapRec) => `${t.map} seed ${t.seed} ${t.species} tick ${t.tick} tile ${t.tile[0]},${t.tile[1]}`;
+    const have = new Map(base.trapped.map((t) => [id(t), t])), here = new Set(traps.map(id));
+    let fresh = 0;
+    console.log(`\nTRAPPED by identity, this run (physics ${setting.physics}, nav ${setting.nav}) against ${comparePath} (physics ${S.physics}, nav ${S.nav}):`);
+    for (const t of traps) {
+      const b = have.get(id(t));
+      if (b) console.log(`  MATCH ${id(t)}: here ${t.x.toFixed(3)},${t.z.toFixed(3)} y ${t.y.toFixed(2)}, there ${b.x.toFixed(3)},${b.z.toFixed(3)} y ${b.y.toFixed(2)}`);
+      else { fresh++; console.log(`  NEW   ${id(t)}: ${t.x.toFixed(3)},${t.z.toFixed(3)} y ${t.y.toFixed(2)}`); }
+    }
+    for (const t of base.trapped) if (!here.has(id(t))) console.log(`  GONE  ${id(t)}: there ${t.x.toFixed(3)},${t.z.toFixed(3)} y ${t.y.toFixed(2)}`);
+    console.log(`identity gate: ${traps.length - fresh} matched, ${fresh} new, ${base.trapped.filter((t) => !here.has(id(t))).length} gone: ${fresh === 0 ? 'PASS' : 'FAIL'}`);
+    if (fresh) process.exitCode = 1;
+  }
 }
