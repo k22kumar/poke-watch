@@ -82,7 +82,7 @@ test('snapshot round trip: a restored world gives the next 600 ticks the same ha
   assert.ok(lastQueries > restoredQueries, `the restored world was asked: ${restoredQueries} → ${lastQueries} queries`);
 });
 
-// The -rapier scenarios hash equal to their tile twins and physics state is not hashed (ROADMAP F57), so the replay gate
+// The -rapier scenarios hash equal to their tile twins and physics state is not hashed (ROADMAP F62), so the replay gate
 // cannot see the flag stop reaching Rapier: this does. Each run must ask its physics world, built once (the 60 s tracks
 // asked 24,580 and 4,086 queries at I1a).
 for (const id of ['range-charmander-rapier', 'gorge-hold-rapier']) {
