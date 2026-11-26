@@ -19,6 +19,46 @@ wording it replaces in the earlier sections (Q14 to Q22, the contract table, the
 and marked with a Q23 note. The owner's answers to the seven questions the record raised (one corrected, one
 settled, five confirmed) are in Q23 under "Confirmed by the owner".
 
+**The owner's re-plan of 2026-11-25 (docs/ROADMAP.md "Owner decisions", D8 to D14)** supersedes or amends these
+points. Each keeps its old text and carries a dated note where it stands: G0 answer B, the cutover's scope (D9: the
+cutover is the training range); Q23.1, which profile ships (D11: `lowpoly` at the cutover); Q23.2 and Q22(c), the
+time-of-day system and the range's cycle (D12: one fixed time per map at the cutover, the cycle after X1c); Q7's
+1.10 m narrow rung (D14: at least 1.20 m on generated maps); G1's dependencies (D13). D13 splits G1 into G1a (world
+side) and G1b (render side), and G2 into G2a (headless) and G2b. Where the text below says G1 or G2, the Q-index
+names the half. D14 also identifies the blueprint and closes ROADMAP F49 ("Deliberate changes from the blueprint").
+The tile generators this design replaces are frozen until X1b deletes them (D8).
+
+## Q-index
+
+One line per decision, and the task that owns it (docs/ROADMAP.md, the overhaul table; task names as of D13,
+2026-11-25). "Done" marks a merged task; "after X1c" a task not yet named.
+
+| Q | Decides | Owner |
+|---|---|---|
+| Q1 | The pipeline (`plan`, `check`, `embed`, `build`, `emit`, `validate`, freeze, `dress`), the zone graph and the space IR | G1a (the IR types, `build`, `emit`); G2a (`plan`, `check`, `embed`) |
+| Q2 | Spaces and portals: a slim projection of the IR in the WorldModel | WM2 (the types, done); G1a fills them |
+| Q3 | Colliders per class: boxes for structures, trimesh for sweeps and open ground, no Rapier heightfield | G1a, with its measurements |
+| Q4 | Caves are bounded local SDF volumes behind a portal-frame contract | G2; neither half is named (ROADMAP F102) |
+| Q5 | No storey index: spaces are prisms joined by portals; floor kinds and vertical links | G1a (the kit, `build`); G2a (`embed`) |
+| Q6 | The height lattice, the step band, the slope band, no gap within 0.10 m of a size threshold, the `band` gate | G1a |
+| Q7 | Three width groups, the clear-width and clear-height ladder, the required-route guarantee, camera clearance | G1a (the ladder; the narrow rung by D14); CL (the camera numbers, done) |
+| Q8 | Flight: a resource-limited capability, the flight cap, refill perches; the team spawn barrier (h) | after X1c (layer 2; the mechanic is the owner's); G2a keeps the "over" space empty; G2b (the spawn barrier) |
+| Q9 | Liquids: depth-relative damage, wade, swim and dive, banks, typed liquids | I4 (the sim rules); G2b (layer 1's liquids); dive after X1c |
+| Q10 | Burrowing in soft soil, concealment volumes, stateful features, item candidates | after X1c (layers 3 and 5); its notes are input to I4 |
+| Q11 | The Hold template: five route roles per side, half-turn symmetry | G2a |
+| Q12 | Validation: three checkpoints, the `Probe`, gate classes A to F | G1a (A, C); G2a (B, D, E); the class F lints: G1b, I2b |
+| Q13 | Count-based attempts, the failure ladder, IR-patch repairs, the curated-seed fallback | G2a |
+| Q14 | Recipes as data over closed registries, `validateRecipe`, River Gorge first and in layers, no visual variants, the species section | G2a (the first recipe); G2b (layer 1's liquids, timed hazards and breakables); layers 2 to 5 after X1c |
+| Q15 | Archetypes: a gameplay proxy and a visual envelope, the sight and shot kinds, the phantom checks. Q15(g), Q15b, Q15c and CL-Q2 to CL-Q13: the camera law and the anatomy table | G1a (archetypes and proxies); G1b (their visuals); CL (the law, done); I2b (the rig) |
+| Q16 | Material roles: a closed union; the generator emits roles, never materials | WM2 (the union, done); G1a (emits them); I2a (materials from roles) |
+| Q17 | Placement tiers: structure, gameplay, and dressing after the freeze | G1a (the tiers, the dressing interface); G1b (the render side) |
+| Q18 | World styles: profile, biome binding, look and overlay through one resolver; one shading model; the light rig | I2a (`lowpoly` only, D11); SB (`storybook`, after X1c) |
+| Q19 | Determinism, `WORLD_VERSION`, the 64-bit `gameplayHash`, `requirementsHash`, replay links, the stop rule for maps | G1a (the hash and the versions); G2a (curated seeds); X1a and G2b (the replay baselines) |
+| Q20 | Budgets: counts as hard gates at `emit`, time and memory as CI measurements | G1a (collision and counts); I2a (the render rows); I3 (navigation, done) |
+| Q21 | Hazards, surface states and destructibles on the mesh world | I4; G2b (layer 1 on River Gorge); G1a builds the range's stations, inert until I4 (D9) |
+| Q22 | The training range as authored space IR, one station per rule | G1a (the IR, the stations, classes A and C); G1b (the lints, `range.py`); X1a (the re-scripted scenarios); TD ((c), the cycle) |
+| Q23 | The `lowpoly` profile and the render plan: time of day per map, tops against sides, the signal language, glow, no authored textures, chunky proportions | I2a, I2b, G1b; decision 1 answered by D11, decision 2 amended by D12 |
+
 ## Inherited decisions (not reopened here)
 
 | Source | Decision |
@@ -32,7 +72,7 @@ settled, five confirmed) are in Q23 under "Confirmed by the owner".
 | S1 O4 | I1b's own step rule climbs every rise ≤ 0.6 m for every class and refuses ≥ 0.62 m. G0 keeps generated rises out of a dead band below the lowest blocking ledge and sets the band |
 | S1 O5 | A 1 mm head margin in the capsule; every generated exact-fit gap keeps the same tolerance |
 | S1 O9 | Navmesh: cs 0.1 m, ch 0.05 m, walkableSlopeAngle 45.5°, walkableClimb 12 cells (0.6 m), one navmesh per size class by default, every Recast value an integer cell count written in rules |
-| S2 decisions 1, 2 | WebGPURenderer with TSL (conditional on F39). One `RenderPipeline` from the start, ending in `renderOutput`; no sRGB in materials |
+| S2 decisions 1, 2 | WebGPURenderer with TSL (conditional on F39; *the condition was waived on 2026-11-25, D14*). One `RenderPipeline` from the start, ending in `renderOutput`; no sRGB in materials |
 | S2 decision 4 | Creature shadows are blob decals |
 | Owner, 2026-11-23 (G0 brief) | Recipes and world styles are typed TS data in `src/rules/`, checked by a small validator function with tests. No schema library (no Zod): the game keeps zero runtime dependencies beyond three, Rapier and recast |
 | Owner, 2026-11-23 (G0 brief) | Maps are generated from seed at run start, so replays keep working from seed and version. At most a curated list of validated seeds per recipe; no shipped map files |
@@ -297,11 +337,17 @@ Every number here is computed from `rules.size` with Q6's 0.10 m keep-away. None
 
 | Clear width | Admits | Clear height | Admits |
 |---|---|---|---|
-| 1.10 m | narrow only | 2.00 m | Large and below, no Extra Large |
+| 1.10 m *(amended by D14, below the table)* | narrow only | 2.00 m | Large and below, no Extra Large |
 | 1.50 m | Large and below | 3.70 m | everything, giants at the cap included |
 | 2.00 m | any body, single file | | |
 | 5.00 m | any body, passing and fighting (today's approach width) | | |
 
+- ***Amended by D14 (owner, 2026-11-25; ROADMAP F77, answered "widen"):*** on generated maps the narrow rung
+  becomes at least 1.20 m, and the 5-cell narrow navmesh agent stays. G1a measures the smallest width that agent
+  keeps open at every grid alignment (cs 0.10 m; 1.18 m was measured at one alignment), takes that plus a margin
+  rounded up to 5 cm, checks that the rung still refuses Large (agent radius 0.7 m; the 1.50 m rung) and stays clear
+  of the 0.10 m dead bands (Q6.4), and recomputes and lists every number derived from the rung. The 1.10 m row is
+  kept as the record of what was accepted before.
 - **The guarantee.** Required routes, objective spaces, and spawn and staging exits are ≥ 5.00 m wide and ≥ 3.70 m
   clear, with doorways on them ≥ 3.00 × 3.70 m. Every body any rule set can produce fits, so a new hero never moves a
   layout (the fault class of ROADMAP F3). Link landings are the route width × 2.00 m on required routes and
@@ -835,6 +881,8 @@ carries per-recipe sub-schemas (`tide`, `graves`).
       the "under" tertiary (burrow, then dive) → liquid states → stateful features and the concealment volume.
       - *(Owner, 2026-11-24, answer B.)* The cutover X1a needs layer 1 only. Layers 2–5 are tasks after X1c
         ("Open items", task order and scope).
+        - *(Superseded by D9, owner, 2026-11-25.)* The cutover X1a is the training range and needs no Hold map.
+          Layer 1 stays G2's scope: G2a before the cutover, G2b after X1b and I4. Layers 2–5 stay after X1c.
       - *(Owner, 2026-11-24.)* **All five route roles are laid out from layer 1** (Q11). `plan` and `embed` plan
         the "over" and "under" tertiaries and keep their space empty, so layers 2 and 3 fill it without moving
         the baseline routes.
@@ -1403,6 +1451,8 @@ Today the look is spread over four tables: `BIOMES` colours (`src/rules/stages.t
    - *(a)* **Profiles are data.** Several dev-only profiles may exist for experimentation (like the Q14(a) experiment
      layer); one ships.
      - *(Q23.1)* The second dev-only profile is `lowpoly`, beside `storybook`. Which of the two ships is open.
+     - *(D11, owner, 2026-11-25.)* `lowpoly` ships at the cutover. `storybook` is its own task after X1c; I2a builds
+       the material family and the profile registry with `lowpoly` only, so that adding it later is additive.
    - *(Q23)* **A profile gains two blocks.** `shape`: crease angle, chamfer width, irregularity, minimum thickness
      (the default for dressing and backdrop archetypes, with an override per archetype class: Q23.7) and stroke
      density. `paint`: facet tone, vertical gradient, edge light and strata. A profile also holds its pass list
@@ -1739,6 +1789,13 @@ Hold's five routes do not describe a range.
 6. **The G1 / G2 split this gives.**
    - G1: the IR types, the kit, `build`, `emit`, classes A and C, the hash, the dressing interface, and the range.
    - G2: `plan`, `embed`, the Hold template, classes B, D and E, the repairs, and the first recipe.
+   - *(Split by D13, owner, 2026-11-25.)* **G1a**, world side: the G1 list above, with `scripts/worldcheck.ts` and
+     the G1 measurements that need no renderer; it needs WM2, I1b, I3 and CL, and no I2a piece. **G1b**, render side:
+     the render-side mesh builders, the kit-piece skin list, hull-proxy visuals, the range's readability lints and
+     `range.py` with every flag on; it needs G1a and I2a. **G2a**, headless: `plan`, `embed`, the Hold template with
+     all five route roles, classes B, D and E, the repairs and the curated-seed fallback; it needs G1a. **G2b**:
+     layer 1's liquids, timed hazards and breakables, the spawn barrier, `holdplay`, the G2 calibrations and the
+     Hold scenarios; it needs G2a, I4 and X1b.
 7. **Replay.** The tile range stays the baseline until X1a. There the range scenarios are re-scripted against the
    markers and re-recorded, as a planned baseline change.
 8. *(b)* **Dev-only: the range loads the Q14(a) experiment overrides**, so it doubles as a tunables playground. An
@@ -1746,11 +1803,14 @@ Hold's five routes do not describe a range.
 9. *(c)* **The range runs the day/night cycle**, and the readability and affordance lints (Q16.7, Q18.6) run on it,
    so a look experiment can be checked there first. *(Q23.2, confirmed by the owner, 2026-11-24: the range declares
    a complete cycle as its time of day.)*
+   *(Amended by D12, owner, 2026-11-25: at the cutover the range ships one fixed time, like every map. Its day/night
+   cycle waits for the time-of-day cycle task, after X1c.)*
 
 **Notes.** Several stations wait for a later task: the SDF cave (G2), the camera probe rooms (the camera task sets
 the band and the distance: Q15g), the temporary-object sandbox (I4), and the burrow, flight and dive stations (the
 `climb` and `burrow` traversal kinds and the flight mechanic do not exist yet). G1 builds the geometry and the
-markers for all of them; each task switches its own station on.
+markers for all of them; each task switches its own station on. *(D9, owner, 2026-11-25: G1a also builds the liquid,
+breakable and timed-hazard stations as geometry, and the range gate lists them as inert until I4.)*
 
 ### Q23 The low-poly profile and the render plan (owner, 2026-11-24)
 
@@ -1763,6 +1823,9 @@ here is presentation and outside `gameplayHash`, except the proxy dimensions of 
 
 1. **A second dev-only style profile, `lowpoly`, beside `storybook`** (Q18.1a). One of the two ships. Which one is
    not decided.
+   - *(Answered for the cutover by D11, owner, 2026-11-25.)* **Low-poly first.** `lowpoly` is the look that ships
+     at the cutover; `storybook` moves to its own task after X1c. I2a builds the material family and the profile
+     registry with `lowpoly` only, so adding `storybook` later is additive. I2b, G1b and the lints target `lowpoly`.
 2. **Time of day is per map.** A map declares a fixed time, a partial range or a complete cycle, with a period.
    - A partial range runs back and forth between its ends. Only a complete cycle wraps.
    - It is presentation data. The lints of Q14(f), Q18.6 and Q18.8(b) sample inside the map's range only.
@@ -1772,6 +1835,12 @@ here is presentation and outside `gameplayHash`, except the proxy dimensions of 
      time of day. In production a map may use a fixed time until it passes its combat readability, visual
      consistency, competitive fairness and performance checks. Its running cycle is then switched on, per map,
      with no architectural change.
+   - *(Amended by D12, owner, 2026-11-25.)* **Fixed time of day at the cutover.** Every map ships one fixed time.
+     I2a reads all lighting (the sun, the two sets of six ambient colours, fog, grading, the lamp channel's
+     strength) from one time-of-day value through keyframed per-map data, with a dev URL parameter to set it. A
+     test pins that changing the value changes the lighting through that one path, so a cycle can be added later
+     without architectural change. The running cycle (progression, partial and complete cycles, per-map cycle
+     settings) and the developer preview controls are a task after X1c; the range's cycle (Q22.9) waits for it.
 3. **Tops read apart from sides.** An exposed top is distinguishable from its vertical sides by geometry, colour,
    light, a material transition or layering.
    - Caps, lips, bands, bevels and deposits are optional treatments. They depend on the material and are chosen per
@@ -1861,7 +1930,8 @@ the seven that were put as questions: one is corrected, one is settled, five are
    - The aim is to remove authored texture assets, not to forbid efficient GPU techniques or procedural texture
      caching. Decision 6 and Q18.3 now say "no authored image textures".
 3. **Where the time range is written.** In a recipe's `look` section (Q14.3), or in an `AuthoredMap`'s style
-   binding (Q22.1). The training range declares a complete cycle (Q22.9).
+   binding (Q22.1). The training range declares a complete cycle (Q22.9). *(D12, 2026-11-25: once the
+   time-of-day cycle task lands, after X1c; one fixed time until then.)*
 4. **Steam.** A dressing `steam` emitter must read apart from a stateful feature's steam cue (Q16.7b, Q17.5c).
 5. **The emitter overlap budget of Q20(c).** It was written before the technique was chosen. Under the baked lamp
    channel the count still bounds the bake, and I2a restates what the overlap number bounds.
@@ -1888,7 +1958,7 @@ the seven that were put as questions: one is corrected, one is settled, five are
   samples"** in Q17.6(a) and Q20(c) means the darkest sampled times inside the map's range. **Mist or steam that
   hides a body** without a `screen` volume is phantom concealment (Q15.8).
 
-**Where the work lands.** ROADMAP rows I2a, I2b and G1 carry the pointers.
+**Where the work lands.** ROADMAP rows I2a, I2b and G1 carry the pointers. *(Since D13, 2026-11-25: I2a, I2b, G1a and G1b; `storybook` and the running cycle have rows of their own, SB and TD.)*
 
 ## WorldModel contract changes (consolidated)
 
@@ -1939,8 +2009,17 @@ design departs from them on purpose, the departure is recorded so that nobody "f
   is also the collider for sweeps, not only for SDF caves.
 - **Q14(d):** `validateRecipe` is hand-written TypeScript, not Zod.
 - **Q18(a):** one shading model (storybook) instead of three style families and shading models. *(Q23: still one
-  model. It is now one world material family whose parameters span two looks, `storybook` and `lowpoly`.)*
+  model. It is now one world material family whose parameters span two looks, `storybook` and `lowpoly`.)* *(D11,
+  2026-11-25: `lowpoly` is built first and ships at the cutover; `storybook` follows after X1c.)*
 - **Q20:** 80,000 collision trimesh triangles, not the research report's 150,000.
+
+*(D14, owner, 2026-11-25; ROADMAP F49 closed.)* **The blueprint is identified and its quotes are verified.** It is
+"Map and Environment Generation Blueprint" (the owner's claude.ai project "map generation", exported 2026-11-24). On
+2026-11-25 the claude.ai reviewer checked every quote and departure this document attributes to it, and all match:
+§7's heightfield per terrain chunk; rule 4 (trimesh only for SDF features); milestone 12 (SDF caves); the zone-graph
+node set; the phantom-concealment lint; ranked maps as validated bundles; the expert layer; Zod; three style families
+and shading models; report 1's 150,000 trimesh triangles. This document is the record. The blueprint is kept in the
+owner's claude.ai project, not in the repo.
 
 ## Open items
 
@@ -1958,26 +2037,34 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - **The porting order of the other five habitat recipes** after River Gorge (Q14.10).
 - **A stored GameplayBundle** is deferred. The trigger is the first measured cross-engine hash mismatch, or ranked
   play being scheduled (Q19.8).
-- **Which style profile ships**, `storybook` or `lowpoly` (Q23.1).
+- **Which style profile ships**, `storybook` or `lowpoly` (Q23.1). *(Answered for the cutover by D11,
+  2026-11-25: `lowpoly`; `storybook` is its own task after X1c.)*
 
 **Task order and scope (owner, 2026-11-24).**
 
 - **G1 depends on I3** as well as I1b and I2a: its class A gate needs the navmesh (the `Probe` of Q12.2). It also
-  follows WM2.
+  follows WM2. *(Amended by D13, 2026-11-25: G1a needs WM2, I1b, I3 and CL, and stops and reports if it needs any
+  I2a piece; G1b needs G1a and I2a.)*
 - **The cutover is narrow (answer B, as amended the same day).** X1a needs layer 1 of Q14.10(c) only: baseline
   walking routes, with liquids, timed hazards and breakables per Q9 and Q21. Layers 2–5 and their mechanics are
   tasks after X1c: fly, climb, burrow, dive, stateful features, concealment, items, the species section and
   overlays. *(Answer B as first given also listed day/night here; the next point replaces that.)*
+  *(Superseded by D9, owner, 2026-11-25: the cutover is the training range. X1a needs I1c, I2a, I2b, G1a and G1b,
+  not I4 and no Hold map. X1b follows it directly; I4 and G2b then build on the 3D stack only, and X1c runs after
+  G2b. River Gorge layer 1 stays G2's scope; layers 2 to 5 stay after X1c.)*
 - **Time of day is built for the cutover** (Q23.2). The complete system is there at X1a: fixed times, partial
   cycles and complete cycles, with working time progression, and developer controls to preview and test any time
   of day. A map may ship on a fixed time until it passes its combat readability, visual consistency, competitive
   fairness and performance checks. What comes after X1c is switching a map's running cycle on once it passes,
-  with no architectural change.
+  with no architectural change. *(Amended by D12, owner, 2026-11-25: every map ships one fixed time at the cutover.
+  I2a builds the one time-of-day path that all lighting reads, with a dev URL parameter; the running cycle and the
+  developer preview controls are a task after X1c.)*
 - **All five route roles from layer 1.** G2's `plan` and `embed` lay out the "over" and "under" tertiaries and
   keep their space empty, so layers 2 and 3 fill it without moving the baseline routes (Q11, Q14.10c).
 - **The replay baseline after the cutover.** Each of layers 2 to 5 changes River Gorge's `gameplayHash` as a
   planned change: its task names it, re-records the River Gorge scenarios once, and its commit says why (Q19.6).
-  Any other moved hash is still a stop.
+  Any other moved hash is still a stop. *(D9, 2026-11-25: the baseline is re-recorded at X1a on the range and once
+  more at G2b for the Hold, where River Gorge's first scenarios are recorded.)*
 - **WM2, "WorldModel contract v2" (answer C)**, queued after G0 and run before I2a, I3 and G1: the consolidated
   contract table as types in `src/world/model.ts` (render chunks without normals or colour, per Q23),
   `MODEL_VERSION`, and the tile adapter filling defaults.
@@ -1989,6 +2076,12 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - **The blueprint** (ROADMAP F49): the owner will add it to `docs/`, or name this document the record. The owner
   believes the source is "Map and Environment Generation Blueprint" (`claude/00-blueprint.md` in another Claude
   project). Its text was not given in the grilling; the answers quoted it by section and term, without a title.
+  *(Closed by D14, owner, 2026-11-25: the blueprint is identified and every quote and departure attributed to it
+  here was checked against it and matches. This document is the record; the blueprint stays in the owner's claude.ai
+  project "map generation", not in the repo. "Deliberate changes from the blueprint" has the list.)*
+- **The re-plan (owner, 2026-11-25; docs/ROADMAP.md D8 to D14).** Order: lane A, the gate runner → G1a → G1b → G2a;
+  lane B, I2a → I1c → I2b; then X1a → X1b → I4 → G2b → X1c; after X1c, `storybook`, the time-of-day cycle, then P1,
+  T1 and T2. New behaviour is judged on its own gates, not by matching the tile game (D8).
 
 **Numbers that wait for the camera task (CL; this heading read "I2b" before answer D).**
 
@@ -2018,6 +2111,8 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - The camera probe per size class in a 3.70 m space (Q7b, hosted on the range: Q22a).
 - The generation-time baseline per recipe; the Q20 targets are targets until then.
 - Where the kit-piece list for the render-side skins travels (Q23): G1 settles it with the first mesh builders.
+- *(D13 and D14, 2026-11-25.)* G1a takes the measurements above that need no renderer, and also measures the narrow
+  clear-width rung (Q7). The kit-piece list is G1b's.
 
 **Numbers that G2 measures or calibrates.**
 
@@ -2027,6 +2122,7 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 - The class D starting numbers, the class E Pareto margins and the betweenness cap (Q12).
 - The exclusive-access caps; the owner expects to raise the per-tertiary cap if burrowing feels limited (Q12).
 - The fallback-rate threshold of 5 % (Q13.10).
+- *(D13, 2026-11-25.)* These calibrations are G2b's.
 
 **Numbers that wait for navigation (I3).**
 
@@ -2036,7 +2132,8 @@ design departs from them on purpose, the departure is recorded so that nobody "f
 
 **Numbers that wait for the renderer (F39, I2a, I2).**
 
-- The lower-end machine (ROADMAP F39), then the render rows of the Q20 table, once, at I2a.
+- The lower-end machine (ROADMAP F39), then the render rows of the Q20 table, once, at I2a. *(D14, 2026-11-25:
+  F39 is waived. S2 decision 1 stands without a lower-end measurement; one is measured if it turns up.)*
 - The technique for local lights, and with it the emitter budgets (Q18.9, Q20c). *(Q23: the technique is decided,
   a baked lamp channel. The emitter budgets are still recalibrated at I2a.)*
 - The hero band limits, calibrated by the readability lint (Q18.5). *(Superseded by Q23.4: the band is measured and
