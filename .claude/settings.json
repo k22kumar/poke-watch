@@ -7,5 +7,15 @@
       "Read(/**/.env.local)",
       "Read(/**/.env.*.local)"
     ]
+  },
+    "extraKnownMarketplaces": {
+    "trailofbits": { "source": { "source": "github", "repo": "trailofbits/skills" } }
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "claude-md-management@claude-plugins-official": true,
+    "spec-to-code-compliance@trailofbits": true,
+    "supply-chain-risk-auditor@trailofbits": true
   }
 }
