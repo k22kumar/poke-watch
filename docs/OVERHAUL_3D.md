@@ -1,18 +1,58 @@
 # The 3D overhaul
 
-The plan for replacing the tile world with a fully 3D one. Owner decisions 2026-11-22. Task order and status: docs/ROADMAP.md.
+The plan for replacing the tile world with a fully 3D one. Owner decisions 2026-11-22, re-planned 2026-11-25 (D8 to D14). Task order and status: docs/ROADMAP.md.
 
 ## Why
 Every map today is an ArenaMap (src/world/tiles.ts): a 1 m tile grid with one height per tile, one optional deck, wall columns and stair ramps. Generators produce it, the sim collides and navigates on it (sim/world.ts, sim/spatial.ts, world/navblocks.ts), and the renderer meshes it (render/tilestage.ts). It cannot express several floors, caves, tunnels, overhangs, enclosed interiors, real slopes or flight. The overhaul replaces that contract, not the game.
 
 ## Owner decisions (2026-11-22)
-- D1 Direction. A three.js renderer, a mesh world (WorldModel) and Rapier physics replace the hand-written WebGL2 tile stage and the tile column collision. This reverses the earlier advice to keep both. The replay baseline is re-recorded once, at the cutover (X1a), named in that commit. Until X1a no shipped behaviour changes.
+- D1 Direction. A three.js renderer, a mesh world (WorldModel) and Rapier physics replace the hand-written WebGL2 tile stage and the tile column collision. This reverses the earlier advice to keep both. The replay baseline is re-recorded once, at the cutover (X1a), named in that commit. Until X1a no shipped behaviour changes. *(Owner, 2026-11-25, D9: the baseline is re-recorded at X1a on the range and once more at G2b for the Hold. D8: the frozen tile game may drift or break in tile-only corners before X1a.)*
 - D2 Determinism stays a hard rule: fixed 1/60 s ticks, one seeded RNG stream per system, physics inside the sim using Rapier's cross-platform deterministic build. Physics state is part of the replay hash.
 - D3 Creatures stay PMD 8-direction pixel billboards in the 3D world. How they read from above or below during flight is accepted for now.
 - D4 The fixed north-up camera views retire at X1a. Third person is the only view.
 - D5 The Pokémon-location generator (world/locations, world/locgen) stays until X1b and is deleted with the tile stack.
 - D6 T1 co-op waves, T2 3v3 hero bots and multiplayer come after the overhaul. Netcode stays out of scope (pivot Q1) until the owner reopens it; the foundation keeps per-player input and physics that can be snapshotted.
 - D7 Roadmap: item 6 dropped, item 4 narrowed, F12 folded into I1a and P6 into I3, F1 to F3 closed at X1b, P1 after X1c.
+
+The re-plan (owner, 2026-11-25, evening): D8 to D14. Where one supersedes or amends an earlier record, that record carries a dated note. F-numbers are docs/ROADMAP.md's.
+- D8 The old game is frozen. With every flag off, the tile game is no longer a product requirement; it may drift or break in tile-only corners. Merges still deploy it until the cutover (no workflow change). It stays as test ground until X1b.
+  - Flag-off `scripts/checksum.ts all` keeps running. A flag-off hash moved by a change the task names is re-recorded once with the reason in the commit; an unexplained move is still a stop.
+  - The other flag-off gates (navwalk, stuckwatch, habplay, habstate, habaudit, hazplay, perf-sim, `range.py` on the old renderer) are no longer required. Tasks don't change tile-only code except to delete it.
+  - New behaviour is judged on its own gates, not by matching the tile game. Rules that tie flag-on behaviour to the tile game's (e.g. F66's "walks down exactly the drops the tile game walks down") no longer bind later tasks. A test whose only subject is "flag-on equals tile" may be retired by the task that improves on it, named in the report, with the reason in the commit. Every other test is still never edited to pass.
+  - The habitat and location generators are frozen: no `HAB_VERSION` or `LOC_VERSION` change and no work on them. The "layout would move" stop goes with them; the stop on an unexpected `gameplayHash` move of a generated map stays (WORLDGEN3D Q19).
+  - With both flags on, the stuckwatch gate is "no TRAPPED". The identity comparison against the flag-off run stays as a diagnostic tool.
+  - I1b's answers, given before D8, stand as recorded.
+- D9 The cutover is the training range (supersedes G0 answer B of 2026-11-24).
+  - X1a makes the 3D stack the game once the 3D range plays. It needs I1c, I2a, I2b, G1a and G1b, not I4. The range's liquid, breakable and timed-hazard stations are built as geometry by G1a, and the range gate lists them as inert until I4.
+  - X1a retires the fixed views (D4), takes Hold out of `MODES` until G2b (`TITLE_MODES` is already `[RANGE]`), records the new range replay baseline, and sets the mesh-world perf and stuck baselines.
+  - X1b follows X1a directly. Tests whose subject is the Hold or habitat hazards and whose fixtures X1b deletes become named skips on G2b's or I4's gate list, each with an F-row, never silently deleted.
+  - I4 and G2b then build on the 3D stack only, with no flags and no tile parity. X1c runs after G2b. River Gorge layer 1 stays G2's scope; layers 2 to 5 stay after X1c.
+- D10 Engineering choices (amends CLAUDE.md "Working with the owner", the stop list).
+  - Claude Code makes an engineering choice itself when all three hold:
+    - it can be undone without moving a recorded decision, a contract other systems read, or a shipped baseline;
+    - a test or gate covers it;
+    - it has a measurable acceptance criterion.
+  - It records each such choice where the task's records go (alternatives, numbers, why), and the report lists them under a new heading "Decided without asking", placed after "deviations from the brief".
+  - It still stops for:
+    - design, feel, look or scope, or anything a player experiences as a rule;
+    - anything costly to undo: a contract, a version bump that regenerates baselines, the renderer or shading language, removing something no task names;
+    - an unexplained replay or `gameplayHash` move;
+    - a test that looks wrong.
+- D11 Low-poly first (answers WORLDGEN3D Q23.1 for the cutover). `lowpoly` is the look that ships at the cutover; `storybook` moves to its own task after X1c (SB). I2a builds the material family and the profile registry with `lowpoly` only, so adding `storybook` later is additive. I2b, G1b and the lints target `lowpoly`.
+- D12 Fixed time of day at the cutover (amends WORLDGEN3D Q23.2).
+  - Every map ships one fixed time.
+  - I2a reads all lighting (the sun, the two sets of six ambient colours, fog, grading, the lamp channel's strength) from one time-of-day value through keyframed per-map data, with a dev URL parameter to set it. A test pins that changing the value changes the lighting through that one path, so a cycle can be added later without architectural change.
+  - The running cycle (progression, partial and complete cycles, per-map cycle settings) and the developer preview controls are a task after X1c (TD). The range's day/night cycle (WORLDGEN3D Q22(c)) waits for it.
+- D13 Task splits and order (from the owner's efficiency audit).
+  - G1a (world side): the IR types, the kit, `build`, `emit`, gate classes A and C, the 64-bit hash, the dressing interface, the range as authored space IR with its stations, `scripts/worldcheck.ts`, and the "Numbers that G1 measures" that need no renderer. Needs WM2, I1b, I3, CL. Stop and report if it needs any I2a piece.
+  - G1b (render side): the render-side mesh builders, the kit-piece skin list, hull-proxy visuals, the range's readability lints, `range.py` with every flag on and `?render=three`. Needs G1a, I2a.
+  - G2a (headless): `plan`, `embed`, the Hold template with all five route roles, gate classes B, D and E, the repairs, the curated-seed fallback. Needs G1a.
+  - G2b: layer 1's liquids, timed hazards and breakables, the spawn barrier, `holdplay`, the calibrations of "Numbers that G2 measures", the Hold scenarios. Needs G2a, I4, X1b.
+  - Order: lane A, a gate-runner task (GR; its own prompt) → G1a → G1b → G2a; lane B, I2a → I1c → I2b; then X1a → X1b → I4 → G2b → X1c. After X1c: storybook (SB), the time-of-day cycle (TD), then P1, T1, T2 as before.
+- D14 Follow-ups F39, F77 and F49.
+  - F39 waived: S2 decision 1 (WebGPURenderer + TSL, WebGL 2 fallback by its backend) stands without the lower-end-machine condition; measure one if it turns up.
+  - F77 answered, widen: on generated maps the narrow clear-width rung (WORLDGEN3D Q7's table, 1.10 m) becomes at least 1.20 m, and the 5-cell narrow agent stays. G1a measures the smallest width the agent keeps open at every grid alignment (cs 0.10 m; 1.18 m was measured at one alignment), takes that plus a margin rounded up to 5 cm, checks that the rung still refuses Large (r 0.7 m; the 1.50 m rung) and stays clear of the 0.10 m dead bands, and recomputes and lists every number derived from it.
+  - F49 closed. The blueprint is "Map and Environment Generation Blueprint" (the owner's claude.ai project "map generation", exported 2026-11-24). The claude.ai reviewer checked every quote and departure WORLDGEN3D attributes to it on 2026-11-25, and all match: §7's heightfield per terrain chunk; rule 4 (trimesh only for SDF features); milestone 12 (SDF caves); the zone-graph node set; the phantom-concealment lint; ranked maps as validated bundles; the expert layer; Zod; three style families and shading models; report 1's 150,000 trimesh triangles. WORLDGEN3D is the record. The blueprint is kept in the owner's claude.ai project, not in the repo.
 
 ## Target layout
 - src/core: RNG streams, detmath, small vec3 maths, utils. No dependencies.
@@ -139,7 +179,7 @@ Rules (`rules.nav`, every Recast number an integer cell count written in rules, 
 
   A test checks overhead clearance at 10 alignments: each group passes under a deck 5 cm higher than its tallest gated body and not under one 5 cm lower.
 
-  **The adapter maps' narrow radius is the owner's F77 decision (2026-11-25)**: 4 cells (`rules.nav.adapterRadius.narrow`; `isAdapterModel` in `src/world/adapter.ts` reads the model's `meta.source`), so the tile maps' 1.0 m one-tile necks stay open as the tile sim has them; at 5 they erode shut. Medium (0.46 m) then overlaps a neck's walls, and a drop's edge, by 6 cm, which I1c re-checks (ROADMAP F77). A generated map keeps 5 (`groups.narrow`); a neck stays open to it at every cell offset from 1.18 m (fixture sweep), more than WORLDGEN3D's 1.10 m narrow rung, so G1 sizes necks for it (F77). An agent is in a group by `navDir`'s arguments: `wide ? (diag ? large : xl) : narrow`; `tall` is not read.
+  **The adapter maps' narrow radius is the owner's F77 decision (2026-11-25)**: 4 cells (`rules.nav.adapterRadius.narrow`; `isAdapterModel` in `src/world/adapter.ts` reads the model's `meta.source`), so the tile maps' 1.0 m one-tile necks stay open as the tile sim has them; at 5 they erode shut. Medium (0.46 m) then overlaps a neck's walls, and a drop's edge, by 6 cm, which I1c re-checks (ROADMAP F77). A generated map keeps 5 (`groups.narrow`); a neck stays open to it at every cell offset from 1.18 m (fixture sweep), more than WORLDGEN3D's 1.10 m narrow rung, so G1 sizes necks for it (F77). *(D14, 2026-11-25: the rung becomes at least 1.20 m and the 5-cell agent stays; G1a measures the width at every grid alignment.)* An agent is in a group by `navDir`'s arguments: `wide ? (diag ? large : xl) : narrow`; `tall` is not read.
 - **Tiles**: 128 cells (12.8 m; F56). A tile builds every group in about 2.6 ms; River Gorge seed 1's three navmeshes take about 282 ms median with the adapter (p95 306; the 2 cm cell height costs nothing measurable, wasm heap 64 MB either way; ROADMAP F76). The rasterisation (63 ms on River Gorge) is shared and each group's own stages (filter, compact, erode, regions, contours, Detour) take about 68 ms, so one group alone is about 135 ms and three about 285. The build runs synchronously on the main thread inside the first `setNavGoal` after a map entry.
 
 The build (`NavTiles.buildTile`, once per tile for every group):
@@ -175,13 +215,17 @@ Cost: perf-sim 500 on the flag, min of 3, p95 0.725 / p99 0.862 ms against 0.673
 - Navigation: navmesh paths for ground enemies and bots; flyers steer in the volume with queries.
 
 ## Migration rules
-- Flags, all default off until X1a: rules.physics.engine ('tiles' | 'rapier'), rules.nav.engine ('flow' | 'navmesh'), rules.world.source ('tiles' | 'mesh'), and the renderer by ?render=three and a Settings entry.
-- With every flag off, every existing replay scenario prints "as recorded". With a flag on, new scenarios are recorded under names that say which flags they use.
+- Flags, all default off until X1a: rules.physics.engine ('tiles' | 'rapier'), rules.nav.engine ('flow' | 'navmesh'), rules.world.source ('tiles' | 'mesh'), and the renderer by ?render=three and a Settings entry. X1a, the range cutover (D9), turns them on; X1b deletes them and their off paths.
+- Tile parity is not required (D8, 2026-11-25). With every flag off the tile game is frozen test ground until X1b, not a product requirement. Flag-off `scripts/checksum.ts all` keeps running: a flag-off hash moved by a change the task names is re-recorded once, with the reason in the commit, and an unexplained move is still a stop. The other flag-off gates (navwalk, stuckwatch, habplay, habstate, habaudit, hazplay, perf-sim, range.py on the old renderer) are no longer required, and tasks change tile-only code only to delete it. Before D8 this rule read: with every flag off, every existing replay scenario prints "as recorded".
+- New behaviour is judged on its own gates, not by matching the tile game (D8). A rule that ties flag-on behaviour to the tile game's no longer binds later tasks, and a test whose only subject is "flag-on equals tile" may be retired by the task that improves on it, named in the report, with the reason in the commit. With both flags on the stuckwatch gate is "no TRAPPED"; the identity comparison against the flag-off run stays as a diagnostic.
+- With a flag on, new scenarios are recorded under names that say which flags they use.
 - The tile adapter (world/adapter.ts, fromArenaMap) expresses tile maps as a WorldModel so physics, renderer and navigation can be built and compared on maps that already pass the playability gates. It is temporary and is deleted at X1b.
-- Deleted at X1b: world/tiles.ts, arenas.ts, builder.ts, navblocks.ts, adapter.ts, habitat/, locgen/, locations/; sim/world.ts, spatial.ts, cells.ts, props.ts and the tile parts of hazards.ts; the tile stage in render/ and the painters in overworld/; the tile gates in scripts/ and tests/ whose behaviour has a mesh-world equivalent by then; the flags and their off paths.
+- Deleted at X1b: world/tiles.ts, arenas.ts, builder.ts, navblocks.ts, adapter.ts, habitat/, locgen/, locations/; sim/world.ts, spatial.ts, cells.ts, props.ts and the tile parts of hazards.ts; the tile stage in render/ and the painters in overworld/; the tile gates in scripts/ and tests/ whose behaviour has a mesh-world equivalent by then; the flags and their off paths. X1b follows X1a directly (D9), before I4 and G2b: tests whose subject is the Hold or habitat hazards and whose fixtures X1b deletes become named skips on G2b's or I4's gate list, each with an F-row, never silently deleted.
 - Async WASM (Rapier, recast) is initialised once at boot and once in a shared test setup; createRun stays synchronous.
 
 ## Tasks
+Order since the re-plan (D13): the done tasks; then lane A, GR → G1a → G1b → G2a, beside lane B, I2a → I1c → I2b (G1b also needs I2a); then X1a → X1b → I4 → G2b → X1c; after X1c, SB and TD, then P1, T1 and T2. Where a section above says G1 or G2, it reads G1a or G1b, G2a or G2b, by the scopes in D13. Status and notes: docs/ROADMAP.md.
+
 | ID | Task |
 |---|---|
 | C0 | Record this plan |
@@ -196,13 +240,19 @@ Cost: perf-sim 500 on the flag, min of 3, p95 0.725 / p99 0.862 ms against 0.673
 | I1a | Physics world and queries |
 | I1b | Character movement |
 | I3 | Navigation |
-| I1c | Enemies, bodies and bots on physics and navigation |
-| I4 | Hazards, surface states and destructibles |
-| I2a | three.js scene |
 | CL | Camera law (docs/WORLDGEN3D.md Q15g); before G2 and I2b |
+| RP | Record the owner's re-plan of 2026-11-25 (D8 to D14) |
+| GR | The gate runner (its own prompt); before G1a |
+| G1a | Generator core and the 3D range: world side (needs WM2, I1b, I3, CL) |
+| G1b | The 3D range: render side (needs G1a, I2a) |
+| G2a | The first 3D Hold map: headless (needs G1a) |
+| I2a | three.js scene (`lowpoly` only, one fixed time of day per map) |
+| I1c | Enemies, bodies and bots on physics and navigation |
 | I2b | Actors, effects and camera |
-| G1 | Generator core and the 3D range |
-| G2 | The first 3D Hold map |
-| X1a | Cutover: flags on, fixed views retired, new replay baseline |
-| X1b | Delete the tile stack |
-| X1c | Docs and instructions |
+| X1a | Cutover: flags on, fixed views retired, new replay baseline; the cutover is the 3D range (needs I1c, I2a, I2b, G1a, G1b) |
+| X1b | Delete the tile stack; directly after X1a |
+| I4 | Hazards, surface states and destructibles; on the 3D stack only |
+| G2b | The first 3D Hold map: hazards and the Hold (needs G2a, I4, X1b) |
+| X1c | Docs and instructions; after G2b |
+| SB | The `storybook` profile; after X1c |
+| TD | The time-of-day cycle; after X1c |

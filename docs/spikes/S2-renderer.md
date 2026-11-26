@@ -361,6 +361,8 @@ Answered by the owner on 2026-11-23 (the review of S2).
 1. **Renderer class and shading language:** WebGPURenderer + TSL (recommended above), or WebGLRenderer + GLSL.
    **Owner, 2026-11-23:** WebGPURenderer + TSL, conditional on F39, which runs before I2a starts. If the `forceWebGL`
    backend misses the budget on the lower-end machine where WebGLRenderer meets it, the choice reopens.
+   **Owner, 2026-11-25 (ROADMAP D14):** F39 is waived. WebGPURenderer + TSL, with the WebGL 2 fallback by its
+   backend, stands without the lower-end-machine condition; measure one if it turns up.
 2. **Output path:** a `RenderPipeline` from the start (owning the output transform and the ink pass), or linear
    output with sRGB in every material. **Owner, 2026-11-23:** a `RenderPipeline` from the start, ending in
    `renderOutput` (F40). No sRGB in every material.
