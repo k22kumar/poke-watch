@@ -19,14 +19,15 @@ wording it replaces in the earlier sections (Q14 to Q22, the contract table, the
 and marked with a Q23 note. The owner's answers to the seven questions the record raised (one corrected, one
 settled, five confirmed) are in Q23 under "Confirmed by the owner".
 
-**The owner's re-plan of 2026-11-25 (docs/ROADMAP.md "Owner decisions", D8 to D14)** supersedes or amends these
+**The owner's re-plan of 2026-11-25 (docs/ROADMAP.md "Owner decisions", D8 to D15)** supersedes or amends these
 points. Each keeps its old text and carries a dated note where it stands: G0 answer B, the cutover's scope (D9: the
 cutover is the training range); Q23.1, which profile ships (D11: `lowpoly` at the cutover); Q23.2 and Q22(c), the
 time-of-day system and the range's cycle (D12: one fixed time per map at the cutover, the cycle after X1c); Q7's
-1.10 m narrow rung (D14: at least 1.20 m on generated maps); G1's dependencies (D13). D13 splits G1 into G1a (world
+1.10 m narrow rung (D14: 1.20 m on generated maps); G1's dependencies (D13). D13 splits G1 into G1a (world
 side) and G1b (render side), and G2 into G2a (headless) and G2b. Where the text below says G1 or G2, the Q-index
 names the half. D14 also identifies the blueprint and closes ROADMAP F49 ("Deliberate changes from the blueprint").
-The tile generators this design replaces are frozen until X1b deletes them (D8).
+The tile generators this design replaces are frozen until X1b deletes them (D8). At the cutover the range's pond
+keeps today's swimming, on the tile model's liquid rule, and Q9's liquid rules stay I4's (D15).
 
 ## Q-index
 
@@ -38,12 +39,12 @@ One line per decision, and the task that owns it (docs/ROADMAP.md, the overhaul 
 | Q1 | The pipeline (`plan`, `check`, `embed`, `build`, `emit`, `validate`, freeze, `dress`), the zone graph and the space IR | G1a (the IR types, `build`, `emit`); G2a (`plan`, `check`, `embed`) |
 | Q2 | Spaces and portals: a slim projection of the IR in the WorldModel | WM2 (the types, done); G1a fills them |
 | Q3 | Colliders per class: boxes for structures, trimesh for sweeps and open ground, no Rapier heightfield | G1a, with its measurements |
-| Q4 | Caves are bounded local SDF volumes behind a portal-frame contract | G2; neither half is named (ROADMAP F102) |
+| Q4 | Caves are bounded local SDF volumes behind a portal-frame contract | after X1c: with the first River Gorge layer that needs a cave (layers 3 to 5); the range's cave station waits for it (ROADMAP F102) |
 | Q5 | No storey index: spaces are prisms joined by portals; floor kinds and vertical links | G1a (the kit, `build`); G2a (`embed`) |
 | Q6 | The height lattice, the step band, the slope band, no gap within 0.10 m of a size threshold, the `band` gate | G1a |
 | Q7 | Three width groups, the clear-width and clear-height ladder, the required-route guarantee, camera clearance | G1a (the ladder; the narrow rung by D14); CL (the camera numbers, done) |
 | Q8 | Flight: a resource-limited capability, the flight cap, refill perches; the team spawn barrier (h) | after X1c (layer 2; the mechanic is the owner's); G2a keeps the "over" space empty; G2b (the spawn barrier) |
-| Q9 | Liquids: depth-relative damage, wade, swim and dive, banks, typed liquids | I4 (the sim rules); G2b (layer 1's liquids); dive after X1c |
+| Q9 | Liquids: depth-relative damage, wade, swim and dive, banks, typed liquids | I4 (the sim rules; until then the tile model's liquid rule, D15); G2b (layer 1's liquids); dive after X1c |
 | Q10 | Burrowing in soft soil, concealment volumes, stateful features, item candidates | after X1c (layers 3 and 5); its notes are input to I4 |
 | Q11 | The Hold template: five route roles per side, half-turn symmetry | G2a |
 | Q12 | Validation: three checkpoints, the `Probe`, gate classes A to F | G1a (A, C); G2a (B, D, E); the class F lints: G1b, I2b |
@@ -55,7 +56,7 @@ One line per decision, and the task that owns it (docs/ROADMAP.md, the overhaul 
 | Q18 | World styles: profile, biome binding, look and overlay through one resolver; one shading model; the light rig | I2a (`lowpoly` only, D11); SB (`storybook`, after X1c) |
 | Q19 | Determinism, `WORLD_VERSION`, the 64-bit `gameplayHash`, `requirementsHash`, replay links, the stop rule for maps | G1a (the hash and the versions); G2a (curated seeds); X1a and G2b (the replay baselines) |
 | Q20 | Budgets: counts as hard gates at `emit`, time and memory as CI measurements | G1a (collision and counts); I2a (the render rows); I3 (navigation, done) |
-| Q21 | Hazards, surface states and destructibles on the mesh world | I4; G2b (layer 1 on River Gorge); G1a builds the range's stations, inert until I4 (D9) |
+| Q21 | Hazards, surface states and destructibles on the mesh world | I4; G2b (layer 1 on River Gorge); G1a builds the range's stations; the tall grass's burning, the breakable and the timed hazard are inert until I4 (D9, D15) |
 | Q22 | The training range as authored space IR, one station per rule | G1a (the IR, the stations, classes A and C); G1b (the lints, `range.py`); X1a (the re-scripted scenarios); TD ((c), the cycle) |
 | Q23 | The `lowpoly` profile and the render plan: time of day per map, tops against sides, the signal language, glow, no authored textures, chunky proportions | I2a, I2b, G1b; decision 1 answered by D11, decision 2 amended by D12 |
 
@@ -239,6 +240,10 @@ owner was swept tunnels and kit chambers at G2 with SDF later; the owner chose S
   swappable. If the SDF builder is not ready, G2 may temporarily use swept tunnels and kit chambers, then switch with
   no IR change.
 - **(e)** The burrow minimum-depth rule applies to SDF chambers too.
+- *(Owner, 2026-11-25; ROADMAP F102. It follows D9 and Q14.10(c).)* Layer 1 of River Gorge needs no cave. The SDF
+  cave builder lands with the first River Gorge layer that needs one (the waterfall cave, layers 3 to 5, after
+  X1c), and the range's SDF cave station (Q22.4a) waits for it. "At G2" above is kept as the record of what was
+  accepted before.
 
 ### Q5 Floors and vertical connections (owner, 2026-11-23: accepted with amendments a–e)
 
@@ -343,11 +348,11 @@ Every number here is computed from `rules.size` with Q6's 0.10 m keep-away. None
 | 5.00 m | any body, passing and fighting (today's approach width) | | |
 
 - ***Amended by D14 (owner, 2026-11-25; ROADMAP F77, answered "widen"):*** on generated maps the narrow rung
-  becomes at least 1.20 m, and the 5-cell narrow navmesh agent stays. G1a measures the smallest width that agent
-  keeps open at every grid alignment (cs 0.10 m; 1.18 m was measured at one alignment), takes that plus a margin
-  rounded up to 5 cm, checks that the rung still refuses Large (agent radius 0.7 m; the 1.50 m rung) and stays clear
-  of the 0.10 m dead bands (Q6.4), and recomputes and lists every number derived from the rung. The 1.10 m row is
-  kept as the record of what was accepted before.
+  becomes 1.20 m; G1a pins it with a test that a 1.20 m neck is open to the 5-cell narrow agent at every plan offset
+  and refused to Large. The 5-cell narrow navmesh agent stays, and G1a recomputes and lists every number derived
+  from the rung. Why 1.20 m: I3's fixture has a neck open at every plan offset to the cells from 1.18 m (one of
+  1.17 m shuts at some), and Q6.4's 0.10 m keep-away from Large's 1.32 m footprint diameter allows at most 1.22 m.
+  The 1.10 m row is kept as the record of what was accepted before.
 - **The guarantee.** Required routes, objective spaces, and spawn and staging exits are ≥ 5.00 m wide and ≥ 3.70 m
   clear, with doorways on them ≥ 3.00 × 3.70 m. Every body any rule set can produce fits, so a new hero never moves a
   layout (the fault class of ROADMAP F3). Link landings are the route width × 2.00 m on required routes and
@@ -1280,6 +1285,9 @@ grilling and recorded under "Open items"):
   - I2b reports the fade rate on G2's map, split into moving along required routes and stationary. If fading while
     moving on required routes exceeds the adapter maps' 5.5 %, the rule of a free arm ≥ 2.0 m both ways along the
     route axis on required routes is reopened for G2 (ROADMAP F99).
+  - *(Owner, 2026-11-25; ROADMAP F100.)* I2b reports the rate on the 3D range (G1b's), split the same way. G2b
+    repeats it on River Gorge before Hold returns. If fading while moving exceeds the line there, the 2.0 m free arm
+    applies to River Gorge's required routes inside G2b; River Gorge has no shipped baseline yet. G2a does not wait.
 - **CL-Q10, where the flagged shot launches (question e, to which CL-Q2 condition 3 deferred): from the eye, under
   `rules.aim.viewSight` only.** Flag off, the muzzle launch is as today and every hash is unchanged.
   - The launch point is the same eye point as the check, after CL-Q3's horizontal and vertical pull-backs, so a shot
@@ -1809,8 +1817,10 @@ Hold's five routes do not describe a range.
 **Notes.** Several stations wait for a later task: the SDF cave (G2), the camera probe rooms (the camera task sets
 the band and the distance: Q15g), the temporary-object sandbox (I4), and the burrow, flight and dive stations (the
 `climb` and `burrow` traversal kinds and the flight mechanic do not exist yet). G1 builds the geometry and the
-markers for all of them; each task switches its own station on. *(D9, owner, 2026-11-25: G1a also builds the liquid,
-breakable and timed-hazard stations as geometry, and the range gate lists them as inert until I4.)*
+markers for all of them; each task switches its own station on. *(D9 and D15, owner, 2026-11-25: G1a also
+builds the liquid, breakable and timed-hazard stations as geometry. At X1a the tall grass's burning and the
+breakable and timed-hazard stations are inert until I4; the pond's swimming keeps working on the tile model's liquid
+rule, and Q9's new liquid rules stay I4's.)*
 
 ### Q23 The low-poly profile and the render plan (owner, 2026-11-24)
 
@@ -2079,7 +2089,7 @@ owner's claude.ai project, not in the repo.
   *(Closed by D14, owner, 2026-11-25: the blueprint is identified and every quote and departure attributed to it
   here was checked against it and matches. This document is the record; the blueprint stays in the owner's claude.ai
   project "map generation", not in the repo. "Deliberate changes from the blueprint" has the list.)*
-- **The re-plan (owner, 2026-11-25; docs/ROADMAP.md D8 to D14).** Order: lane A, the gate runner → G1a → G1b → G2a;
+- **The re-plan (owner, 2026-11-25; docs/ROADMAP.md D8 to D15).** Order: lane A, the gate runner → G1a → G1b → G2a;
   lane B, I2a → I1c → I2b; then X1a → X1b → I4 → G2b → X1c; after X1c, `storybook`, the time-of-day cycle, then P1,
   T1 and T2. New behaviour is judged on its own gates, not by matching the tile game (D8).
 
@@ -2111,8 +2121,8 @@ owner's claude.ai project, not in the repo.
 - The camera probe per size class in a 3.70 m space (Q7b, hosted on the range: Q22a).
 - The generation-time baseline per recipe; the Q20 targets are targets until then.
 - Where the kit-piece list for the render-side skins travels (Q23): G1 settles it with the first mesh builders.
-- *(D13 and D14, 2026-11-25.)* G1a takes the measurements above that need no renderer, and also measures the narrow
-  clear-width rung (Q7). The kit-piece list is G1b's.
+- *(D13 and D14, 2026-11-25.)* G1a takes the measurements above that need no renderer, and pins the 1.20 m narrow
+  clear-width rung with a test (Q7). The kit-piece list is G1b's.
 
 **Numbers that G2 measures or calibrates.**
 

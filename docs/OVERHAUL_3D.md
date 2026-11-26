@@ -1,6 +1,6 @@
 # The 3D overhaul
 
-The plan for replacing the tile world with a fully 3D one. Owner decisions 2026-11-22, re-planned 2026-11-25 (D8 to D14). Task order and status: docs/ROADMAP.md.
+The plan for replacing the tile world with a fully 3D one. Owner decisions 2026-11-22, re-planned 2026-11-25 (D8 to D15). Task order and status: docs/ROADMAP.md.
 
 ## Why
 Every map today is an ArenaMap (src/world/tiles.ts): a 1 m tile grid with one height per tile, one optional deck, wall columns and stair ramps. Generators produce it, the sim collides and navigates on it (sim/world.ts, sim/spatial.ts, world/navblocks.ts), and the renderer meshes it (render/tilestage.ts). It cannot express several floors, caves, tunnels, overhangs, enclosed interiors, real slopes or flight. The overhaul replaces that contract, not the game.
@@ -23,7 +23,7 @@ The re-plan (owner, 2026-11-25, evening): D8 to D14. Where one supersedes or ame
   - With both flags on, the stuckwatch gate is "no TRAPPED". The identity comparison against the flag-off run stays as a diagnostic tool.
   - I1b's answers, given before D8, stand as recorded.
 - D9 The cutover is the training range (supersedes G0 answer B of 2026-11-24).
-  - X1a makes the 3D stack the game once the 3D range plays. It needs I1c, I2a, I2b, G1a and G1b, not I4. The range's liquid, breakable and timed-hazard stations are built as geometry by G1a, and the range gate lists them as inert until I4.
+  - X1a makes the 3D stack the game once the 3D range plays. It needs I1c, I2a, I2b, G1a and G1b, not I4. The range's liquid, breakable and timed-hazard stations are built as geometry by G1a, and the range gate lists them as inert until I4. *(Amended by D15: the pond's swimming keeps working at X1a; Q9's new liquid rules stay I4's.)*
   - X1a retires the fixed views (D4), takes Hold out of `MODES` until G2b (`TITLE_MODES` is already `[RANGE]`), records the new range replay baseline, and sets the mesh-world perf and stuck baselines.
   - X1b follows X1a directly. Tests whose subject is the Hold or habitat hazards and whose fixtures X1b deletes become named skips on G2b's or I4's gate list, each with an F-row, never silently deleted.
   - I4 and G2b then build on the 3D stack only, with no flags and no tile parity. X1c runs after G2b. River Gorge layer 1 stays G2's scope; layers 2 to 5 stay after X1c.
@@ -51,8 +51,12 @@ The re-plan (owner, 2026-11-25, evening): D8 to D14. Where one supersedes or ame
   - Order: lane A, a gate-runner task (GR; its own prompt) → G1a → G1b → G2a; lane B, I2a → I1c → I2b; then X1a → X1b → I4 → G2b → X1c. After X1c: storybook (SB), the time-of-day cycle (TD), then P1, T1, T2 as before.
 - D14 Follow-ups F39, F77 and F49.
   - F39 waived: S2 decision 1 (WebGPURenderer + TSL, WebGL 2 fallback by its backend) stands without the lower-end-machine condition; measure one if it turns up.
-  - F77 answered, widen: on generated maps the narrow clear-width rung (WORLDGEN3D Q7's table, 1.10 m) becomes at least 1.20 m, and the 5-cell narrow agent stays. G1a measures the smallest width the agent keeps open at every grid alignment (cs 0.10 m; 1.18 m was measured at one alignment), takes that plus a margin rounded up to 5 cm, checks that the rung still refuses Large (r 0.7 m; the 1.50 m rung) and stays clear of the 0.10 m dead bands, and recomputes and lists every number derived from it.
+  - F77 answered, widen: on generated maps the narrow clear-width rung (WORLDGEN3D Q7's table, 1.10 m) becomes 1.20 m; G1a pins it with a test that a 1.20 m neck is open to the 5-cell narrow agent at every plan offset and refused to Large. The 5-cell narrow agent stays, and G1a recomputes and lists every number derived from the rung. *(Wording from the owner's review of RP, 2026-11-25: it replaces "at least 1.20 m" and a measure-plus-margin step.)*
   - F49 closed. The blueprint is "Map and Environment Generation Blueprint" (the owner's claude.ai project "map generation", exported 2026-11-24). The claude.ai reviewer checked every quote and departure WORLDGEN3D attributes to it on 2026-11-25, and all match: §7's heightfield per terrain chunk; rule 4 (trimesh only for SDF features); milestone 12 (SDF caves); the zone-graph node set; the phantom-concealment lint; ranked maps as validated bundles; the expert layer; Zod; three style families and shading models; report 1's 150,000 trimesh triangles. WORLDGEN3D is the record. The blueprint is kept in the owner's claude.ai project, not in the repo.
+- D15 The 3D range at the cutover (owner, 2026-11-25, in the review of RP; amends D9).
+  - X1a ships the 3D range with its tall grass (Fire burning it) and the breakable and timed-hazard stations inert until I4. Accepted as a short gap.
+  - The pond's swimming keeps working at X1a. G1a's mesh-world seam answers liquid contact from the model's liquid volumes with the tile model's rule (no bed, F25), so swimming behaves as it does today; on the physics flag, `physseam.liquidContact` forwards to the tile world now.
+  - Q9's new liquid rules (wade, float, dive, depth-relative damage) stay I4's.
 
 ## Target layout
 - src/core: RNG streams, detmath, small vec3 maths, utils. No dependencies.
@@ -179,7 +183,7 @@ Rules (`rules.nav`, every Recast number an integer cell count written in rules, 
 
   A test checks overhead clearance at 10 alignments: each group passes under a deck 5 cm higher than its tallest gated body and not under one 5 cm lower.
 
-  **The adapter maps' narrow radius is the owner's F77 decision (2026-11-25)**: 4 cells (`rules.nav.adapterRadius.narrow`; `isAdapterModel` in `src/world/adapter.ts` reads the model's `meta.source`), so the tile maps' 1.0 m one-tile necks stay open as the tile sim has them; at 5 they erode shut. Medium (0.46 m) then overlaps a neck's walls, and a drop's edge, by 6 cm, which I1c re-checks (ROADMAP F77). A generated map keeps 5 (`groups.narrow`); a neck stays open to it at every cell offset from 1.18 m (fixture sweep), more than WORLDGEN3D's 1.10 m narrow rung, so G1 sizes necks for it (F77). *(D14, 2026-11-25: the rung becomes at least 1.20 m and the 5-cell agent stays; G1a measures the width at every grid alignment.)* An agent is in a group by `navDir`'s arguments: `wide ? (diag ? large : xl) : narrow`; `tall` is not read.
+  **The adapter maps' narrow radius is the owner's F77 decision (2026-11-25)**: 4 cells (`rules.nav.adapterRadius.narrow`; `isAdapterModel` in `src/world/adapter.ts` reads the model's `meta.source`), so the tile maps' 1.0 m one-tile necks stay open as the tile sim has them; at 5 they erode shut. Medium (0.46 m) then overlaps a neck's walls, and a drop's edge, by 6 cm, which I1c re-checks (ROADMAP F77). A generated map keeps 5 (`groups.narrow`); a neck stays open to it at every cell offset from 1.18 m (fixture sweep), more than WORLDGEN3D's 1.10 m narrow rung, so G1 sizes necks for it (F77). *(D14, 2026-11-25: the rung becomes 1.20 m and the 5-cell agent stays; G1a pins it with a test at every plan offset.)* An agent is in a group by `navDir`'s arguments: `wide ? (diag ? large : xl) : narrow`; `tall` is not read.
 - **Tiles**: 128 cells (12.8 m; F56). A tile builds every group in about 2.6 ms; River Gorge seed 1's three navmeshes take about 282 ms median with the adapter (p95 306; the 2 cm cell height costs nothing measurable, wasm heap 64 MB either way; ROADMAP F76). The rasterisation (63 ms on River Gorge) is shared and each group's own stages (filter, compact, erode, regions, contours, Detour) take about 68 ms, so one group alone is about 135 ms and three about 285. The build runs synchronously on the main thread inside the first `setNavGoal` after a map entry.
 
 The build (`NavTiles.buildTile`, once per tile for every group):
@@ -241,7 +245,7 @@ Order since the re-plan (D13): the done tasks; then lane A, GR → G1a → G1b �
 | I1b | Character movement |
 | I3 | Navigation |
 | CL | Camera law (docs/WORLDGEN3D.md Q15g); before G2 and I2b |
-| RP | Record the owner's re-plan of 2026-11-25 (D8 to D14) |
+| RP | Record the owner's re-plan of 2026-11-25 (D8 to D15) |
 | GR | The gate runner (its own prompt); before G1a |
 | G1a | Generator core and the 3D range: world side (needs WM2, I1b, I3, CL) |
 | G1b | The 3D range: render side (needs G1a, I2a) |
