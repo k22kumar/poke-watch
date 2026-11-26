@@ -3,9 +3,10 @@
 // navigation (I3) will provide. Today the tile World (sim/world.ts) implements it with wrappers that call its own
 // methods with the same arguments in the same order, so no replay hash depends on this file.
 //
-// Systems read the world only through worldOf(ctx), the one swap point for I1a (tests/worldseam.test.ts enforces it, and
-// that no sim file outside the allow-list names the World type). The actor queries' world half (sim/spatial.ts geoOf +
-// castWorld) is the second swap point.
+// Systems read the world only through worldOf(ctx), the one swap point (tests/worldseam.test.ts enforces it, and that no
+// sim file outside the allow-list names the World type). The actor queries' world half (sim/spatial.ts geoOf +
+// castWorld) is the second swap point. With rules.physics.engine 'rapier' the tile World holds the physics bridge
+// (I1b, ROADMAP F64): its ray members answer on Rapier and `mover` is the partner's character controller.
 //
 // Tile-only state stays outside the seam as named tile extensions (TileExt, reached as W.tiles): the grid frame, the
 // column reads with no 3D meaning, decks and chasms, surface states (CellField), the W4 prop overlay (PropField), the
@@ -64,6 +65,10 @@ export interface WorldQuery {
   topBelow(x: number, y: number, z: number, r: number): number;
   /** R1b: is a body with its feet at y inside rock? (`over`: at or above a crossable top is open air) */
   insideRock(x: number, y: number, z: number, over?: boolean): boolean;
+  /** I1b: the character controller a partner's body moves through with rules.physics.engine 'rapier' (sim/physseam.ts
+   *  PhysicsMover; docs/LOCOMOTION.md "Resolvers"), null on the tile World's own movement. Enemies and bodies never ask
+   *  it (I1c) */
+  readonly mover: BodyMover | null;
 
   // ---- rays (sim/spatial.ts semantics; the actor sweeps and overlaps stay in spatial.ts) ---------------------------
   /** first world contact along o + d·t, 0 ≤ t ≤ maxT (sim/spatial.ts raycastWorld) */
@@ -142,16 +147,32 @@ export interface TileExt {
   hazardAt(x: number, z: number): boolean;
 }
 
-/** what worldOf asks when the run is on physics (sim/physseam.ts PhysicsBridge) or the navmesh (sim/navseam.ts NavBridge) */
+/** what worldOf asks when the run is on the navmesh (sim/navseam.ts NavBridge) */
 export interface SeamSwap { seamFor(w: WorldQuery): WorldQuery }
 
-/** The one way sim systems reach the world (I1a's and I3's swap point): the tile World; with rules.physics.engine
- *  'rapier' the physics seam over it (sim/physseam.ts: rays on Rapier, everything else forwarded); with rules.nav.engine
- *  'navmesh' the navigation seam over that (sim/navseam.ts: navDir, navReached, navDist on the navmesh). The two swaps
- *  compose, so either flag works with the other on or off. Hoist it once per function, at entry or before the first loop,
- *  never inside a loop body. */
-export function worldOf(ctx: { readonly world: WorldQuery; readonly physics?: SeamSwap | null; readonly nav?: SeamSwap | null }): WorldQuery {
-  const p = ctx.physics, n = ctx.nav;
-  const w = p ? p.seamFor(ctx.world) : ctx.world;
-  return n ? n.seamFor(w) : w;
+/** I1b: one tick's move of a body through the character controller (physics/controller.ts CharacterMove): feet and the
+ *  desired translation in, where it ends and what it met out. Caller-owned scratch */
+export interface BodyMove {
+  x: number; y: number; z: number;
+  dx: number; dy: number; dz: number;
+  /** footprint radius; the body's height on every map (ROADMAP F72: required, no size-class fallback) */
+  r: number; h: number;
+  /** m: the rise the step rule may climb (0: none) */
+  stepUp: number;
+  /** supported at the start of the tick and not taking off */
+  supported: boolean;
+  onGround: boolean; ceiling: boolean; stepped: boolean;
+}
+
+/** I1b: the character controller's resolver (sim/physseam.ts PhysicsMover) */
+export interface BodyMover { move(io: BodyMove): void }
+
+/** The one way sim systems reach the world: the tile World, which holds the physics bridge with rules.physics.engine
+ *  'rapier' (ROADMAP F64: its four ray members answer on Rapier, `mover` is the character controller); with
+ *  rules.nav.engine 'navmesh' the navigation seam over it (sim/navseam.ts: navDir, navReached, navDist on the navmesh).
+ *  Either flag works with the other on or off. Hoist it once per function, at entry or before the first loop, never
+ *  inside a loop body. */
+export function worldOf(ctx: { readonly world: WorldQuery; readonly nav?: SeamSwap | null }): WorldQuery {
+  const n = ctx.nav;
+  return n ? n.seamFor(ctx.world) : ctx.world;
 }

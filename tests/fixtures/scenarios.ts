@@ -310,8 +310,9 @@ export const SCENARIOS: Scenario[] = [
 ];
 
 // I1a (docs/OVERHAUL_3D.md "Migration rules"): the same tracks with the world half of the spatial aim, line of sight, spatial shots and beams
-// on Rapier (rules.physics.engine 'rapier', built from the tile adapter's model; sim/physseam.ts). Movement stays on the
-// tile World. Recorded once by I1a; a hash that moves later is a stop like any other.
+// on Rapier (rules.physics.engine 'rapier', built from the tile adapter's model; sim/physseam.ts). Recorded by I1a, and
+// re-recorded once by I1b, when the partner's movement moved onto the character controller (enemies stay on the tile
+// World until I1c); a hash that moves later is a stop like any other.
 for (const id of ['range-charmander', 'gorge-hold']) {
   const s = SCENARIOS.find((x) => x.id === id)!;
   SCENARIOS.push({ ...s, id: `${id}-rapier`, covers: `${s.covers}; physics on Rapier`, physics: 'rapier' });

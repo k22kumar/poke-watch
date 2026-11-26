@@ -14,7 +14,7 @@ import { worldOf } from './worldquery';
 
 // per-tick scratch for the shared locomotion step (no allocation)
 const INTENT: LocoIntent = { mx: 0, mz: 0, jump: false, jumpPressed: undefined, my: undefined };
-const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0, foot: 0, tall: undefined, wide: false };
+const TICK: LocoTick = { speed: 0, stance: 1, footSpeed: 1, grip: 1, canJump: true, lift: false, airPress: 'none', stepUp: 0, foot: 0, tall: undefined, height: 0, wide: false };
 const STEP: LocoResult = { jumped: false };
 
 /** release Guard; a tap that caught nothing costs a short lockout */
@@ -94,7 +94,8 @@ export const playerSystem = {
     t.stepUp = liquid ? Math.max(R.stepHeight, ctx.rules.hazards.climbOut) : R.stepHeight;
     // headroom (docs/SIZING.md "Headroom"): the body's height meets deck slabs, so a partner taller than the gap under a
     // deck does not walk (or jump) in under it. Undefined on a map with no decks
-    t.tall = W.tiles.over ? partnerHeight(P.species, ctx.rules) : undefined;
+    t.height = partnerHeight(P.species, ctx.rules); // the controller's capsule on every map (I1b, ROADMAP F72)
+    t.tall = W.tiles.over ? t.height : undefined;
     t.foot = partnerFootprint(P.species, ctx.rules);
     t.wide = navWide(t.foot, ctx.rules);
     t.canJump = canJump;

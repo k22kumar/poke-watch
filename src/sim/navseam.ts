@@ -151,6 +151,8 @@ export class NavSeam implements WorldQuery {
   get spawn() { return this.w.spawn; }
   get anchors() { return this.w.anchors; }
   get tiles(): TileExt { return this.w.tiles; }
+  /** I1b: the partner's character controller (the World's, on physics; ROADMAP F64) */
+  get mover() { return this.w.mover; }
   surfaceAt(x: number, y: RefY, z: number): number { return this.w.surfaceAt(x, y, z); }
   supportAt(x: number, y: RefY, z: number): number { return this.w.supportAt(x, y, z); }
   liquidContact(x: number, y: number, z: number, contact: number): number { return this.w.liquidContact(x, y, z, contact); }

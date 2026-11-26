@@ -10,7 +10,7 @@ import { ELEMENTS, type Element } from '../rules/elements';
 import { SPECIES_BY_ID, weightClass, type SpeciesDef } from '../rules/species';
 import { enemyHeight, enemyRadius, footprintOf, navWide, partnerFootprint, partnerHeight, partnerRadius } from '../rules/sizing';
 import { DIAG_R } from '../world/navblocks';
-import { clearLanding } from './locomotion';
+import { clearLanding, flushShoves, newShoves, pushFootprint } from './locomotion';
 import { damageEnemy, damagePlayer, enemyAttackMult, killEnemy, playerAbility } from './combat';
 const AB_CHLOROPHYLL = ABILITY_IDS.indexOf('chlorophyll') + 1;
 const AB_STATIC = ABILITY_IDS.indexOf('static') + 1, AB_SPORE = ABILITY_IDS.indexOf('effect_spore') + 1;
@@ -129,6 +129,8 @@ export function shootHostile(ctx: SimContext, x: number, z: number, dx: number, 
 
 const NAV: [number, number] = [0, 0];
 const MOVE: [number, number] = [0, 0];
+/** the crowd's shoves of the partner this tick (sim/locomotion.ts: summed on physics) */
+const SHOVES = newShoves();
 
 export const enemySystem = {
   name: 'enemies',
@@ -399,7 +401,7 @@ export const enemySystem = {
         const qx = P.x - ux * push * ctx.rules.player.crowdPush * dt;
         const qz = P.z - uz * push * ctx.rules.player.crowdPush * dt;
         const ph = partnerHeight(P.species, ctx.rules); // headroom: the partner's height meets deck slabs
-        if (pf > 0) { W.moveFootprint(P.x, P.y, P.z, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, MOVE, undefined, ph); P.x = MOVE[0]; P.z = MOVE[1]; }
+        if (pf > 0) pushFootprint(W, P, qx - P.x, qz - P.z, ctx.rules.player.stepHeight, pf, ph, SHOVES); // summed on physics (I1b)
         else if (!W.solidFor(qx, P.y, qz, ctx.rules.player.stepHeight, ph)) { P.x = qx; P.z = qz; }
         if (E.contactCd[i] <= 0 && !frozen && E.dmg[i] > 0) {
           E.contactCd[i] = R.contactCooldown;
@@ -423,6 +425,7 @@ export const enemySystem = {
         }
       }
     }
+    flushShoves(W, P, SHOVES); // the crowd's shoves of the partner, in one controller move on physics (I1b)
   },
 };
 

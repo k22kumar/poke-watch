@@ -90,7 +90,7 @@ export function createRun(opts: RunOptions): SimContext {
     aim: freshAimState(),
     speciesIndex: SPECIES,
     caplog: new CapLog(rules.caps.logSize),
-    physics: rules.physics.engine === 'rapier' ? new PhysicsBridge() : null,
+    physics: rules.physics.engine === 'rapier' ? new PhysicsBridge(rules) : null,
     nav: rules.nav.engine === 'navmesh' ? new NavBridge(rules) : null,
     recap: null,
     targets: null,
@@ -112,11 +112,13 @@ export function createRun(opts: RunOptions): SimContext {
  *  the spawn with its hazard state reset, the flow field, and the map's loose bodies (seedBodies). `species` is the
  *  World's navigation species list. */
 function enterMap(ctx: SimContext, biome: BiomeDef, seed: number) {
-  ctx.world = new World(ctx.rules, biome, seed);
-  // the previous map's physics world and navmeshes are freed here; worldOf builds the new ones
+  ctx.world = new World(ctx.rules, biome, seed, ctx.physics);
+  // the previous map's physics world and navmeshes are freed here; the new physics world is built now (the World holds
+  // the bridge: ROADMAP F64; built from the tile state worldOf's receiver shares), worldOf builds the navmeshes
   ctx.physics?.reset();
   ctx.nav?.reset();
   const W = worldOf(ctx);
+  ctx.physics?.worldFor(W);
   ctx.enemies.clear(); ctx.projectiles.clear(); ctx.zones.clear(); ctx.bodies.clear();
   ctx.player.carrying = false;
   const P = ctx.player;

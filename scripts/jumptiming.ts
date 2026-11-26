@@ -8,19 +8,23 @@
 // plus a 5 s hold (edge input: 1 jump; the same frames with the edge field stripped, which is the pre-R6c sim rule: one
 // jump per landing), gamepad taps (polled once per frame: a tap shorter than a frame can fall between two polls), and
 // the buffer and coyote windows on the real step.
-// Usage: npx tsx scripts/jumptiming.ts
-import { createRun, step } from '../src/sim/run';
+// Usage: npx tsx scripts/jumptiming.ts [--physics rapier]
+// --physics rapier (I1b): the same on the character controller (rules.physics.engine 'rapier')
+import { createRun, disposeRun, step } from '../src/sim/run';
 import { runFrame } from '../src/render/hostframe';
 import { NO_INPUT, type InputFrame, type SimContext } from '../src/sim/types';
 import { defaultRules } from '../src/rules/defaults';
 
 import { RANGE } from '../src/mods';
+const PHYSICS = process.argv.includes('--physics') && process.argv[process.argv.indexOf('--physics') + 1] === 'rapier';
+if (PHYSICS) await (await import('../src/physics/node')).initPhysicsNode();
 class Target {
   l: Record<string, ((e: unknown) => void)[]> = {};
   addEventListener(t: string, f: (e: unknown) => void) { (this.l[t] ??= []).push(f); }
   fire(t: string, e: Record<string, unknown> = {}) { for (const f of this.l[t] ?? []) f({ preventDefault() {}, target: null, ...e }); }
 }
-const win = new Target(), doc = Object.assign(new Target(), { pointerLockElement: null, exitPointerLock() {} });
+// the stub window carries the real clock: Rapier's wasm reads window.performance once a window exists (--physics)
+const win = Object.assign(new Target(), { performance: globalThis.performance }), doc = Object.assign(new Target(), { pointerLockElement: null, exitPointerLock() {} });
 const el = Object.assign(new Target(), { requestPointerLock() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }) });
 let padA = false;
 Object.assign(globalThis, { window: win, document: doc });
@@ -29,7 +33,7 @@ const { Input } = await import('../src/input/input');
 
 const DT = 1 / 60;
 function calm(): SimContext {
-  const ctx = createRun({ mode: RANGE, seed: 1, species: 'cyndaquil', ruleOverrides: {} as never });
+  const ctx = createRun({ mode: RANGE, seed: 1, species: 'cyndaquil', ruleOverrides: (PHYSICS ? { physics: { engine: 'rapier' } } : {}) as never });
   for (let i = 0; i < 30; i++) step(ctx, NO_INPUT);
   return ctx;
 }
@@ -71,11 +75,12 @@ function drive(fps: number, seconds: number, evs: Ev[], strip = false) {
     }, acc, DT, 8);
     acc = r.acc;
   }
+  disposeRun(ctx); // a run on physics holds a Rapier world (wasm memory never shrinks)
   return { jumps, sampledAfter, downs };
 }
 
 const pad = (s: string | number, n: number) => String(s).padStart(n);
-console.log(`jump timing (T33, R6c): rules.player.jumpBuffer ${defaultRules.player.jumpBuffer} s, coyote ${defaultRules.player.coyote} s; ticks of 1/60 s`);
+console.log(`jump timing (T33, R6c)${PHYSICS ? ' on the character controller (physics)' : ''}: rules.player.jumpBuffer ${defaultRules.player.jumpBuffer} s, coyote ${defaultRules.player.coyote} s; ticks of 1/60 s`);
 console.log('fps  device tap(ms) phase | lag(ticks) ms   n | verdict');
 let bad = 0;
 for (const fps of [30, 60, 144]) {

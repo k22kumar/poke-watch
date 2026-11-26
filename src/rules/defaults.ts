@@ -34,10 +34,52 @@ export const defaultRules = {
   },
   // The 3D overhaul's physics flag (docs/OVERHAUL_3D.md "Migration rules", task I1a): 'rapier' answers the world half of
   // the spatial aim, line of sight, the spatial player shots (traj 1) and beams with src/physics (Rapier, built from the
-  // tile adapter's WorldModel; sim/physseam.ts); 'tiles' keeps the tile column model. Enemy shots, the planar player shots
-  // (ROADMAP F65) and movement stay on the tile World either way until I1c and I1b. Default off until X1a.
+  // tile adapter's WorldModel; sim/physseam.ts); 'tiles' keeps the tile column model. Enemy shots and the planar player
+  // shots (ROADMAP F65) stay on the tile World either way until I1c. Default off until X1a.
   physics: {
     engine: 'tiles' as 'tiles' | 'rapier',
+    // I1b: the partner's body on the flag moves through Rapier's character controller (src/physics/controller.ts; docs/
+    // LOCOMOTION.md "Resolvers"). Its capsule is the body's footprint (rules.size `body`) and height, shrunk by `offset`,
+    // with `headMargin` off its top (S1 O5; sim/world.ts HEAD_EPS). Rapier's autostep is off: rises up to
+    // rules.player.stepHeight are our own step rule's (S1 O4, ROADMAP F34). Enemies and bodies stay on the tile World (I1c)
+    controller: {
+      /** [B] m: the controller's skin (S1 §7: 0.001 stalled slow moves) */
+      offset: 0.01,
+      /** [B] m: the capsule's head stops this far below the body's height (S1 O5: an Extra Large body of exactly 2.4 m fits a
+       *  2.4 m gap). A Tiny body (0.30 m footprint, 0.6 m) is a ball of 0.29 m and keeps no margin (S1 §8) */
+      headMargin: 0.001,
+      /** [B] degrees: the steepest floor it climbs (the stair ramps are 45°; S1 §8: 46° against float noise) */
+      maxSlopeDeg: 46,
+      /** [B] degrees: floors steeper than this slide it down */
+      minSlideDeg: 46,
+      /** [B] m: a supported body stays supported while the support under its axis is less than this below where its feet
+       *  started the tick, after the tick's gravity (the tile model's STICK, sim/locomotion.ts: drops up to 0.3583 m are
+       *  walked down, deeper ones are falls, for every size class; ROADMAP F66) */
+      snap: 0.35,
+      /** [B] m: the support ray under a body's axis starts this far above its feet: inside every capsule (Tiny's ball is
+       *  0.6 m tall), so the support does not depend on the body's height */
+      probe: 0.25,
+      /** [B] m: a grounded body whose feet end within this of the support under its axis stands exactly on it (the height
+       *  supportBelow returns: the tile model's feet on its support; it also lifts the dip Rapier lets a capsule sink where
+       *  two boxes meet, S1 §7 "Seams") */
+      rest: 0.015,
+      /** [B] m: a contact whose tangent plane passes more than this above the support under the axis is a ledge's edge, not
+       *  the floor: a falling body does not land on it, it is carried clear and falls on (F66) */
+      edge: 0.02,
+      /** [B] a set-down to a pose the capsule does not fit backs off by `offset` up to this many times (a cast grazing an
+       *  edge can stop past contact, ROADMAP F58) */
+      backoff: 3,
+      // the roll (physics/controller.ts roll; ROADMAP F69): a supported move the controller cut, toward a rise, goes the
+      // tick's own travel lifted as little as fits, when what it then rests on is no more than the step height
+      // (+ `tolerance`) above what it rested on; its round bottom rolls up the edge at the body's own speed
+      step: {
+        /** [B] m: a falling capsule cut by a ledge's edge is carried off it by at most its footprint plus this (the
+         *  roll-off, F66) */
+        margin: 0.04,
+        /** [B] m: float slack over the step height (a 0.6 m rise is a step, 0.62 m is not: S1 O4) */
+        tolerance: 0.002,
+      },
+    },
   },
   // The 3D overhaul's navigation flag (docs/OVERHAUL_3D.md "Navigation (I3)"): 'navmesh' answers navDir, navReached and
   // navDist from src/nav (Recast/Detour, one tiled navmesh per width group, built from the tile adapter's WorldModel;

@@ -7,7 +7,9 @@
 //
 // `--physics rapier` runs the sim with rules.physics.engine 'rapier' (task I1a: the world half of aim, line of sight, shots and
 // beams on src/physics) and reports physics' share: the time spent inside Rapier queries per tick (a profiling clock in
-// PhysicsWorld), at the tick-time p95 and as its own percentiles. Map builds at entry happen before sampling.
+// PhysicsWorld), at the tick-time p95 and as its own percentiles. Map builds at entry happen before sampling. I1b: it
+// also times the whole resolver per call (the controller move from sim/physseam.ts PhysicsMover, JS and Rapier together):
+// the partner's own move each tick, and the summed crowd and body shoves (locomotion.ts flushShoves: a move with dy 0).
 //
 // `--nav navmesh` runs the sim with rules.nav.engine 'navmesh' (task I3: enemies steer by src/nav's navmeshes; independent
 // of --physics) and reports navigation's share the same way (a profiling clock on sim/navseam.ts NavBridge: steering,
@@ -29,6 +31,7 @@ import { initPhysicsNode } from '../src/physics/node';
 import { PhysicsWorld } from '../src/physics/world';
 import { initNavNode } from '../src/nav/node';
 import { NavBridge } from '../src/sim/navseam';
+import { PhysicsMover } from '../src/sim/physseam';
 const engine = process.argv.includes('--physics') ? process.argv[process.argv.indexOf('--physics') + 1] : 'tiles';
 if (engine !== 'tiles' && engine !== 'rapier') throw new Error(`--physics tiles|rapier, not ${engine}`);
 if (engine === 'rapier') { await initPhysicsNode(); PhysicsWorld.clock = () => performance.now(); }
@@ -38,6 +41,19 @@ if (navEngine !== 'flow' && navEngine !== 'navmesh') throw new Error(`--nav flow
 if (navEngine === 'navmesh') { await initNavNode(); NavBridge.clock = () => performance.now(); }
 /** per sampled tick (first pass): the ms spent in navigation; each map's navmesh build (ms) */
 const navRaw: number[] = [], navBuilds: string[] = [];
+/** I1b: the resolver's time per call (first pass, sampled ticks only), ms: the partner's move and the summed shoves */
+const moveMs: number[] = [], shoveMs: number[] = [], resolverRaw: number[] = [];
+let sampling = false, tickResolver = 0;
+if (engine === 'rapier') {
+  const move = PhysicsMover.prototype.move;
+  PhysicsMover.prototype.move = function (this: PhysicsMover, b) {
+    const t0 = performance.now();
+    move.call(this, b);
+    const ms = performance.now() - t0;
+    tickResolver += ms;
+    if (sampling) (b.dy === 0 ? shoveMs : moveMs).push(ms); // a shove sends no vertical; the partner's move always has gravity's
+  };
+}
 /** per sampled tick (first pass): the ms spent in physics queries */
 const physRaw: number[] = [];
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
@@ -59,6 +75,8 @@ for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 
       ctx.player.hp = ctx.player.maxHp;
       const inp = aimed ? withAim(ctx, botInput(ctx)) : botInput(ctx);
       const pw = ctx.physics?.physics, pm0 = pw ? pw.stats.ms : 0, nm0 = ctx.nav ? ctx.nav.ms : 0;
+      tickResolver = 0;
+      sampling = r === 0 && ctx.enemies.count > target * 0.9 && ctx.enemies.count < target * 1.1;
       const t0 = performance.now();
       step(ctx, inp);
       const dt = performance.now() - t0;
@@ -67,7 +85,7 @@ for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 
       const ok = n > target * 0.9 && n < target * 1.1;
       times.push(dt); inBand.push(ok ? 1 : 0);
       if (r === 0 && ok) {
-        raw.push(dt); physRaw.push(pms); navRaw.push(ctx.nav ? ctx.nav.ms - nm0 : 0);
+        raw.push(dt); physRaw.push(pms); navRaw.push(ctx.nav ? ctx.nav.ms - nm0 : 0); resolverRaw.push(tickResolver);
         if (ctx.tick % 60 === 0) { let c = 0; for (let i = 0; i < ctx.enemies.hi; i++) if (ctx.enemies.alive[i] && ctx.enemies.coat[i]) c++; coated += c; coatSamples++; }
       }
     }
@@ -88,6 +106,12 @@ if (engine === 'rapier') {
   const tickSum = top.reduce((s, i) => s + raw[i], 0), physSum = top.reduce((s, i) => s + physRaw[i], 0);
   const pq = pct(physRaw), mean = physRaw.reduce((a, b) => a + b, 0) / Math.max(1, physRaw.length), tmean = raw.reduce((a, b) => a + b, 0) / Math.max(1, raw.length);
   console.log(`physics (Rapier queries) per tick: mean ${mean.toFixed(3)} ms (${((100 * mean) / tmean).toFixed(1)} % of the mean tick)  p50 ${pq(0.5).toFixed(3)}  p95 ${pq(0.95).toFixed(3)}  p99 ${pq(0.99).toFixed(3)} ms; on the ticks at or above the tick p95: ${((100 * physSum) / tickSum).toFixed(1)} % of their time`);
+  // I1b: the resolver per call (JS and Rapier), and per tick against the tick
+  const us = (a: number[]) => { const q2 = pct(a), m = a.reduce((x, y) => x + y, 0) / Math.max(1, a.length); return `${a.length} calls, mean ${(m * 1e3).toFixed(1)} µs  p50 ${(q2(0.5) * 1e3).toFixed(1)}  p95 ${(q2(0.95) * 1e3).toFixed(1)}  p99 ${(q2(0.99) * 1e3).toFixed(1)} µs`; };
+  const rq = pct(resolverRaw), rmean = resolverRaw.reduce((a, b) => a + b, 0) / Math.max(1, resolverRaw.length), rSum = top.reduce((s, i) => s + resolverRaw[i], 0);
+  console.log(`resolver (controller move, JS and Rapier) per partner move: ${us(moveMs)}`);
+  console.log(`resolver per summed-shove move: ${us(shoveMs)}`);
+  console.log(`resolver per tick: mean ${rmean.toFixed(3)} ms (${((100 * rmean) / tmean).toFixed(1)} % of the mean tick)  p95 ${rq(0.95).toFixed(3)} ms; on the ticks at or above the tick p95: ${((100 * rSum) / tickSum).toFixed(1)} % of their time; the tick less physics: mean ${(tmean - mean).toFixed(3)} ms, p95 ${pct(raw.map((t, i) => t - physRaw[i]))(0.95).toFixed(3)} ms`);
 }
 if (navEngine === 'navmesh') {
   // navigation's share, as physics' above
