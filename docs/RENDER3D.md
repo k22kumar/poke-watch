@@ -217,7 +217,8 @@ These numbers bind the shipped profile; dev-only experiment layers are exempt (Q
 With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 backend), `profile=lowpoly`, `tod=<hour>`,
 `shadow=0`, `perf=1` (the overlay and GPU timestamps), `lamps=0` (no lamp channel). The dev experiment layer (Q18.4a):
 `ink=<w>`, `inkshare=<every role's share>`, `edge=<l>`, `bloom=<s>`, `bloomres=<fraction>`, `facet=<t>`, `vgrad=<v>`,
-`strata=<s>`, `bands=<n>`, `soft=<band edge softness, default 0.15>`,
+`strata=<s>`, `bands=<n>`, `soft=<band edge softness, default 0.15>`, `key=<key share at the fixed hour>`,
+`facetjitter=<random side tone>`,
 `grade=<lift>,<gamma>,<gain>,<saturation>`. Checks and benches: `signalcheck=1`, `bench3=backdrop:<n>,cards:<n>,strokes:<n>`.
 `window.pokewatchThree` has `report()`, `collect(seconds)`, `lighting()`, `setHour(h)` and `probe()`.
 
@@ -264,6 +265,17 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
   0.12, strata 0.08 on steep faces) and thin dark ink (weight 1, every role's share 0.35, colour sRGB 0.08, 0.07,
   0.10). The ramp (continuous), the normal mode (flat) and the shadow tint (white) stay provisional; bands return later
   as a feel question.
+
+**Owner decisions (2026-11-27, after the hold-outs):**
+
+- **Night maps move to 23:00** (from 22:00), so the moon stands where the sun does at 11:00 (75° up). On the dusk
+  lagoon mark 1 goes from 5.1 to 7.8 (trunk).
+- **Caves and night are fixed by a sweep** the owner picks from (docs/looksheet "The cave and night sweep"): key share
+  0.50 / 0.55 / 0.65, then facet tone ±0.10 against ±0.06 at the best uncrushed share, and on Chargestone a random
+  side tone (`paint.facetJitter`, 0.03) on top of the locked facet tone. Mark 1 keeps its line (ΔL\* ≥ 12); confirmed on
+  Chargestone Cave and the dusk lagoon only. No variant is applied until the owner picks. The cave (0.4) and night
+  (0.45) splits stay as they are until then.
+- **F113 parked:** the dithers and the vignette stay.
 
 **Chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the paint terms and ink were
 picked on 2026-11-27 (below). Still open: the ramp (bands return later as a feel question), the normal mode per role

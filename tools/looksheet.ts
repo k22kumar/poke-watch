@@ -7,19 +7,24 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
-import { HOLD_OUT_MAPS, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from '../scripts/lib/looksheet';
+import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from '../scripts/lib/looksheet';
 
 const [file, out] = process.argv.slice(2);
 const framesOnly = process.argv.includes('--frames-only');
 // --holdouts: the shipped profile (no variant parameters) on the hold-out maps, after the owner's pick
-const holdouts = process.argv.includes('--holdouts');
+// --holdout-sweep: the cave and night sweep on the hold-out maps (HOLD_OUT_SWEEP: frames, mark 1, GPU; no signal run)
+const sweep = process.argv.includes('--holdout-sweep');
+const holdouts = sweep || process.argv.includes('--holdouts');
 const LOOK_MAPS = holdouts ? HOLD_OUT_MAPS : TUNING_MAPS;
 const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
+const variantsOf = (m: { id: string }) => (sweep ? HOLD_OUT_SWEEP[m.id] : LOOK_VARIANTS);
 fs.mkdirSync(out, { recursive: true });
 
 // 1. frames: one pose per map (capture mode, the spawn, 1 s of ticks), the 3D canvas alone
 const b = await chromium.launch({ headless: false, args: ['--allow-file-access-from-files', '--enable-unsafe-webgpu', '--ignore-gpu-blocklist'] });
-for (const m of LOOK_MAPS) for (const pose of m.poses) for (const v of LOOK_VARIANTS) {
+const browser = b.version();
+console.log(`browser: Chromium ${browser} (Playwright), headed, real GPU`);
+for (const m of LOOK_MAPS) for (const pose of m.poses) for (const v of variantsOf(m)) {
   const p = await b.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   await p.goto(`file://${path.resolve(file)}?capture=1&render=three&${m.query}${v.query ? '&' + v.query : ''}`);
   await p.waitForFunction(() => (window as any).pokewatch?.ready && !(window as any).pokewatch.loading, null, { timeout: 90000 });
@@ -34,6 +39,27 @@ for (const m of LOOK_MAPS) for (const pose of m.poses) for (const v of LOOK_VARI
 }
 await b.close();
 if (framesOnly) process.exit(0);
+
+if (sweep) {
+  // per map and variant: mark 1 from the lint, GPU p50 / p95 on both backends (1920 × 1080, S2's scene on the map)
+  const lint = JSON.parse(execFileSync('npx', ['tsx', 'scripts/toplint.ts', '--holdout-sweep', '--json'], { encoding: 'utf8' }));
+  const res: Record<string, unknown[]> = {};
+  for (const m of LOOK_MAPS) {
+    res[m.id] = [];
+    for (const v of variantsOf(m)) {
+      const perf: Record<string, unknown> = {};
+      for (const be of ['webgl', 'webgpu']) {
+        const q = `backend=${be}&res=1920x1080&${m.query.replace(/(^|&)(go|mode|species)=[^&]*/g, '').replace(/^&/, '')}${v.query ? '&' + v.query : ''}`;
+        perf[be] = JSON.parse(execFileSync('node', ['tools/s2perf.mjs', file, q, '8', '3'], { encoding: 'utf8', timeout: 180000 }).trim()).gpuMs;
+      }
+      const L = lint[m.id].find((x: any) => x.id === v.id);
+      res[m.id].push({ ...L, perf });
+      console.log(`${m.id} ${v.id}: mark 1 ${L.min} (${L.pass ? 'pass' : 'fail'}), shadowed top ${L.shadowMin}, GPU p95 WebGL 2 ${(perf.webgl as any).p95} / WebGPU ${(perf.webgpu as any).p95} ms`);
+    }
+  }
+  fs.writeFileSync(path.join(out, 'results.json'), JSON.stringify({ browser, machine: 'Apple M3 Max', results: res }, null, 1));
+  process.exit(0);
+}
 
 // 2. marks
 const lint = JSON.parse(execFileSync('npx', ['tsx', 'scripts/toplint.ts', '--json', ...(holdouts ? ['--holdouts'] : [])], { encoding: 'utf8' }));

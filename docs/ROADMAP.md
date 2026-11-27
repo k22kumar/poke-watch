@@ -482,6 +482,11 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   Chargestone Cave 6.5 (cliff; the cave split is 0.4) and the dusk lagoon 5.1 (trunk; the moon stands 60° up at
   22:00); no crushing, marks 2 and 3 pass. Reported, not tuned: docs/looksheet "The pick and the hold-outs". Open: the
   cave and night light splits and the night hour [owner]; F113.
+  **Cave and night sweep (owner, 2026-11-27):** night moves to 23:00 (the lagoon: 5.1 → 7.8). Key share 0.50 /
+  0.55 / 0.65, facet ±0.10 at the best uncrushed share (Chargestone 0.50, the lagoon 0.55), and on Chargestone a side
+  jitter of 0.03. Mark 1 per role and shadowed-top L* in docs/looksheet; no variant passes without crushing (closest:
+  the lagoon 0.55 + facet 0.10, only trunk under, 10.6; Chargestone 0.50 + facet 0.10, 9.0). Frames on the hold-out
+  poses with GPU p95 on both backends. Waiting on the owner's pick. F113 parked.
 - **F112. The ink pass ignored the fog and read the wrong camera** [found by the owner in the look sheet, fixed on
   this branch, 2026-11-27]: ink and edge-light lines showed through the fog on far blocks (River Gorge, round 1). The
   pass runs after the scene's fog, and inside the pipeline's quad pass the TSL `camera*` nodes are the quad's camera,
@@ -489,7 +494,7 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   scene camera explicitly; the ink colour is fogged with the scene's curve and colour and edge light fades by it.
   Ink is at weight 0 in `lowpoly`, so nothing shipped showed it. Any later post pass that reads depth takes the scene
   camera the same way.
-- **F113. The transcribed dithers at native resolution** [owner]: the sky's six bands and the vignette's four levels
+- **F113. The transcribed dithers at native resolution** [owner; parked 2026-11-27]: the sky's six bands and the vignette's four levels
   are dithered on a 4 × 4 Bayer grid, as today's `SKY_FS` and `VIG_FS` draw them (I2a transcribed both). Today they
   sit on the low internal resolution and are upscaled in pixel steps, so the dither reads as pixel art; the 3D scene
   draws at native resolution (owner, 2026-11-27), where it reads as a 1 px stipple across the sky and a stippled

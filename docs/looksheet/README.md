@@ -392,3 +392,58 @@ dusklagoon
 - Chargestone at 0.50 with facet 0.10: five roles under 12 (cliff 9.0, ground 9.2, rock 10.9, soil 11.5, trunk 11.5).
 
 The side jitter lowers Chargestone's worst case (7.9 → 7.5 at 0.50), since it brightens some sides.
+
+## The cave and night sweep: frames and timings
+
+Machine: Apple M3 Max (Metal 3). Browser: Chromium 158.0.8127.18 (Playwright's Chrome for Testing), headed, real GPU,
+1920 × 1080 at pixel ratio 1, S2's scene (240 actors frozen, the camera orbiting) on each map; GPU p95 from the
+backends' timestamp queries. Frames 1280 × 720 on WebGPU, the 3D canvas alone, on the hold-out poses; the rest of the
+profile as shipped (p1i1). Build `feat/i2a-look-sheet` at 1b329db; `docs/looksheet/2026-11-27-cavenight/results.json`.
+No variant is applied. Bold: a role under 12, or a crushed ambient.
+
+### Chargestone Cave (cave, 11:00; base key 0.40)
+
+| Variant | ground | path | soil | rock | cliff | floor | cover | foliage | trunk | Min (≥ 12) | Shadowed top L* min (≥ 20) | GPU p95 WebGL 2 / WebGPU |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| base (provisional split) | **6.6** | **8.9** | **8.3** | **7.9** | **6.5** | 14.5 | **8.8** | 14.9 | **8.4** | 6.5 fail | 23.3 | 1.39 / 1.77 ms |
+| k50 (key 0.50) | **8** | **10.7** | **10.1** | **9.5** | **7.9** | 17.6 | **10.6** | 18 | **10.2** | 7.9 fail | 21 | 1.41 / 1.85 ms |
+| k55 (key 0.55) | **8.8** | **11.7** | **11** | **10.4** | **8.6** | 19.2 | **11.6** | 19.7 | **11.1** | 8.6 fail | 19.7 **crushed** | 1.48 / 1.81 ms |
+| k65 (key 0.65) | **10.4** | 13.8 | 13 | 12.3 | **10.2** | 22.7 | 13.7 | 23.2 | 13.1 | 10.2 fail | 16.8 **crushed** | 1.4 / 1.8 ms |
+| k50-f10 (key 0.50, facet ±0.10) | **9.2** | 12.2 | **11.5** | **10.9** | **9** | 20 | 12.1 | 20.5 | **11.5** | 9 fail | 21.4 | 1.48 / 1.82 ms |
+| k50-jit03 (key 0.50, side jitter 0.03) | **7.6** | **10.2** | **9.6** | **9** | **7.5** | 16.7 | **10.1** | 17.1 | **9.7** | 7.5 fail | 21 | 1.43 / 1.81 ms |
+
+Shadowed-top L* per role: base: ground 23.8, path 37, soil 33.7, rock 31.2, cliff 23.3, floor 66.6, cover 36.8, foliage 72.5, trunk 30.6; k50: ground 21.5, path 33.9, soil 30.8, rock 28.4, cliff 21, floor 61.7, cover 33.6, foliage 67.3, trunk 27.9; k55: ground 20.2, path 32.1, soil 29.2, rock 26.8, cliff 19.7, floor 59.1, cover 31.9, foliage 64.4, trunk 26.3; k65: ground 17.3, path 28.3, soil 25.5, rock 23.4, cliff 16.8, floor 53, cover 28.1, foliage 58, trunk 22.9; k50-f10: ground 21.9, path 34.5, soil 31.4, rock 28.9, cliff 21.4, floor 62.7, cover 34.3, foliage 68.3, trunk 28.4; k50-jit03: ground 21.5, path 33.9, soil 30.8, rock 28.4, cliff 21, floor 61.7, cover 33.6, foliage 67.3, trunk 27.9.
+
+### Cascade Lagoon, dusk (night, 23:00; base key 0.45)
+
+| Variant | ground | path | soil | rock | cliff | floor | cover | foliage | trunk | Min (≥ 12) | Shadowed top L* min (≥ 20) | GPU p95 WebGL 2 / WebGPU |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| base (provisional split) | **10.4** | 12 | **10.8** | 12.2 | **9.7** | 15.8 | **10.6** | **10.5** | **7.8** | 7.8 fail | 23.9 | 1.74 / 2.65 ms |
+| k50 (key 0.50) | **11.5** | 13.2 | **11.9** | 13.4 | **10.6** | 17.4 | **11.6** | **11.5** | **8.6** | 8.6 fail | 22.6 | 1.72 / 2.71 ms |
+| k55 (key 0.55) | 12.6 | 14.4 | 13 | 14.6 | **11.6** | 19 | 12.7 | 12.6 | **9.4** | 9.4 fail | 21.3 | 1.69 / 2.65 ms |
+| k65 (key 0.65) | 14.9 | 17 | 15.4 | 17.2 | 13.7 | 22.5 | 15 | 14.9 | **11.1** | 11.1 fail | 18.3 **crushed** | 1.67 / 2.67 ms |
+| k55-f10 (key 0.55, facet ±0.10) | 14.2 | 16.2 | 14.7 | 16.4 | 13.1 | 21.4 | 14.3 | 14.2 | **10.6** | 10.6 fail | 21.7 | 1.75 / 2.48 ms |
+
+Shadowed-top L* per role: base: ground 38.2, path 45.4, soil 39.5, rock 46.8, cliff 34, floor 64.9, cover 38.7, foliage 38.6, trunk 23.9; k50: ground 36.5, path 43.5, soil 37.7, rock 44.8, cliff 32.4, floor 62.3, cover 37, foliage 36.9, trunk 22.6; k55: ground 34.7, path 41.4, soil 35.9, rock 42.7, cliff 30.8, floor 59.6, cover 35.2, foliage 35.1, trunk 21.3; k65: ground 30.6, path 36.8, soil 31.7, rock 38, cliff 27, floor 53.6, cover 31.1, foliage 31, trunk 18.3; k55-f10: ground 35.3, path 42.1, soil 36.5, rock 43.5, cliff 31.4, floor 60.6, cover 35.8, foliage 35.7, trunk 21.7.
+
+Every variant fails mark 1 and nothing is tuned further; the pick is the owner's. All stay far inside the 4.0 ms budget
+(at most 1.48 ms p95 on WebGL 2, 2.71 on WebGPU).
+
+### Frames
+
+| Variant | Chargestone, spawn | Chargestone, ledge |
+|---|---|---|
+| base | ![](2026-11-27-cavenight/chargestone-spawn-base.png) | ![](2026-11-27-cavenight/chargestone-ledge-base.png) |
+| k50 | ![](2026-11-27-cavenight/chargestone-spawn-k50.png) | ![](2026-11-27-cavenight/chargestone-ledge-k50.png) |
+| k55 | ![](2026-11-27-cavenight/chargestone-spawn-k55.png) | ![](2026-11-27-cavenight/chargestone-ledge-k55.png) |
+| k65 | ![](2026-11-27-cavenight/chargestone-spawn-k65.png) | ![](2026-11-27-cavenight/chargestone-ledge-k65.png) |
+| k50-f10 | ![](2026-11-27-cavenight/chargestone-spawn-k50-f10.png) | ![](2026-11-27-cavenight/chargestone-ledge-k50-f10.png) |
+| k50-jit03 | ![](2026-11-27-cavenight/chargestone-spawn-k50-jit03.png) | ![](2026-11-27-cavenight/chargestone-ledge-k50-jit03.png) |
+
+| Variant | Dusk lagoon, spawn | Dusk lagoon, ledge |
+|---|---|---|
+| base | ![](2026-11-27-cavenight/dusklagoon-spawn-base.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-base.png) |
+| k50 | ![](2026-11-27-cavenight/dusklagoon-spawn-k50.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k50.png) |
+| k55 | ![](2026-11-27-cavenight/dusklagoon-spawn-k55.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k55.png) |
+| k65 | ![](2026-11-27-cavenight/dusklagoon-spawn-k65.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k65.png) |
+| k55-f10 | ![](2026-11-27-cavenight/dusklagoon-spawn-k55-f10.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k55-f10.png) |
