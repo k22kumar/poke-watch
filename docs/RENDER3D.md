@@ -60,7 +60,7 @@ tint; the vignette from ART_DIRECTION. Roles the adapter never writes (F54) take
 
 **Neutral where nothing was recorded.** The low-poly profile is flat normals, a continuous ramp, white shadow tint, no
 pattern, no paint terms and both optional passes at weight 0 (so neither is built). These are placeholders, not a look:
-see "Open look values".
+see "Look values".
 
 ## The material family
 
@@ -225,21 +225,28 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
 - `node tools/three-signal.mjs <build>/index.html`: the signal check.
 - Build privately for any of them: `node scripts/build.mjs --out <dir>`.
 
-## Open look values
+## Look values
 
-Recorded nowhere, so not chosen here (the brief's stop): the owner sets them.
+**Owner decisions (2026-11-27)**, in the review of I2a:
 
-1. The low-poly ramp (continuous or banded, bands and softness), and the normal mode per role (flat everywhere today).
-2. The paint terms: facet tone, vertical gradient, edge light, strata (all 0 today).
-3. Ink: on or off for `lowpoly`, its weight, colour and thresholds, and the per-role shares.
-4. Bloom: on or off for `lowpoly`, its strength, radius and threshold (its quality is set by measurement, above).
-5. Each map's fixed hour (10:00 day, 22:00 night, 10:00 caves today), and the key light's share against the ambient
-   fill at that hour (0.65 day, 0.45 night, 0.4 caves) and the enclosed set's share of the open set (0.45).
-6. The derived keyframes (night, dawn, dusk) — only for `?tod=` until TD.
-7. Shadow tint per role, liquid opacity (0.78, S2's) and flow.
-8. The lamp emitters' intensity and reach on the tile maps (1.2, 1.5 × the pool radius).
-9. Presentation resolution: the scene draws at the window's size with a pixel ratio of 1 (S2's basis); today's page
-   renders at a low internal resolution and upscales it in pixel steps.
+- **Bloom:** off at the cutover (Q23.5: glow never depends on it; over budget, F108). It stays a dev profile option
+  at quarter resolution (`?bloom=`, `bloom.resolution` 0.25).
+- **Fixed hours:** accepted: 10:00 for day maps, 22:00 for Duskwood Hollow, 10:00 for caves. 10:00 also stays clear of
+  the low-sun stripes (F110). The key-to-ambient splits (0.65 day, 0.45 night, 0.4 caves) and the enclosed set's share
+  of the open set (0.45) stay provisional.
+- **Derived keyframes** (night, dawn, dusk): accepted as provisional until TD.
+- **Liquids:** opacity 0.78 and flow 0 until G1b.
+- **Lamps on the tile maps:** intensity 1.2 and reach 1.5 × the pool radius, accepted; they go at X1b, so no tuning.
+- **Resolution:** the scene draws at the window's size with a pixel ratio of 1, the basis the budget was measured on.
+  The pixel-step upscale belongs to the sprite and tile look. Measured at native 2560 × 1440 (2026-11-27, same
+  scene and method as "Budgets"): the range 1.22 / 1.34 ms (WebGL 2) and 1.39 / 1.64 (WebGPU), River Gorge 1.26 / 1.42
+  and 1.35 / 1.65, all inside 4.0. The live crowd on the player is 1.92 / 2.59 on WebGL 2, the budget's baseline, but
+  2.17 / **4.90** p95 on WebGPU: the one figure over 4.0 ms (240 actors' sprite overdraw filling the lower screen).
+- **Merged as provisional:** the neutral values below ship flag-off with I2a.
+
+**Still open, chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the ramp and the
+normal mode per role (smooth, flat facets today), the paint terms (all 0 today), ink (off today), and the shadow tint
+per role (white today).
 
 ## Decided without asking (D10)
 
@@ -265,5 +272,5 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
    Gate: the captures, `tools/three-signal.mjs`.
 9. **Transcriptions I chose the source for**: role colours from ART_DIRECTION first, then BIOME_ART, then the default
    palettes; prop roles from the tile-art ramps' second shade; today's dithered sky bands and vignette kept. Gate:
-   `tests/styles.test.ts`. (Every new look value is in "Open look values", not here.)
+   `tests/styles.test.ts`. (Every new look value is in "Look values", not here.)
 10. **`scripts/dev.mjs` gained `navWasm`** (F109) beside the side file, since the dev server could not bundle without it.

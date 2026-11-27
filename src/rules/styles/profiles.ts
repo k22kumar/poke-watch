@@ -4,7 +4,7 @@
 //
 // Presentation only: nothing in the sim, the world or a hash reads this file. Every look number below is provisional
 // (marked "provisional"): I2a built the machinery and left the look values neutral or transcribed from today's tables
-// until the owner sets them (docs/RENDER3D.md "Open look values").
+// until the owner sets them (docs/RENDER3D.md "Look values").
 import type { MaterialRole } from '../materialroles';
 import type { PostPassId } from './passes';
 
