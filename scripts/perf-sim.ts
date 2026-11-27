@@ -1,4 +1,5 @@
-// Headless sim cost per tick at a given crowd size: `npx tsx scripts/perf-sim.ts [target=500] [--repeat N] [--gate] [--aim]`.
+// Headless sim cost per tick at a given crowd size: `npx tsx scripts/perf-sim.ts [target=500] [--repeat N] [--gate] [--aim]`
+// (PERF_RULES='<json>': rule overrides for every run, I1c).
 // `--aim` adds a chase-camera crosshair ray to the bot's input (scripts/lib/aimbot.ts), so the direct shots fly the
 // spatial path (sim/aim.ts, 3D swept shots): the integrated cost of Phase 2B under a full crowd.
 // The crowd is scripts/lib/crowd.ts (chase walkers kept at the target on the spawn ring; Q21 as amended 2026-11-20:
@@ -31,6 +32,9 @@ import { initPhysicsNode } from '../src/physics/node';
 import { PhysicsWorld } from '../src/physics/world';
 import { initNavNode } from '../src/nav/node';
 import { NavBridge } from '../src/sim/navseam';
+import { NavGraph } from '../src/nav/graph';
+import { actorStats } from '../src/sim/enemy3d';
+import type { SimContext } from '../src/sim/types';
 import { PhysicsMover } from '../src/sim/physseam';
 const engine = process.argv.includes('--physics') ? process.argv[process.argv.indexOf('--physics') + 1] : 'tiles';
 if (engine !== 'tiles' && engine !== 'rapier') throw new Error(`--physics tiles|rapier, not ${engine}`);
@@ -38,7 +42,7 @@ if (engine === 'rapier') { await initPhysicsNode(); PhysicsWorld.clock = () => p
 // I3: --nav flow|navmesh
 const navEngine = process.argv.includes('--nav') ? process.argv[process.argv.indexOf('--nav') + 1] : 'flow';
 if (navEngine !== 'flow' && navEngine !== 'navmesh') throw new Error(`--nav flow|navmesh, not ${navEngine}`);
-if (navEngine === 'navmesh') { await initNavNode(); NavBridge.clock = () => performance.now(); }
+if (navEngine === 'navmesh') { await initNavNode(); NavBridge.clock = () => performance.now(); NavGraph.clock = () => performance.now(); }
 /** per sampled tick (first pass): the ms spent in navigation; each map's navmesh build (ms) */
 const navRaw: number[] = [], navBuilds: string[] = [];
 /** I1b: the resolver's time per call (first pass, sampled ticks only), ms: the partner's move and the summed shoves */
@@ -56,25 +60,36 @@ if (engine === 'rapier') {
 }
 /** per sampled tick (first pass): the ms spent in physics queries */
 const physRaw: number[] = [];
+/** I1c: the 3D stack's enemy-move ms per sampled tick, and the runs to report drop links of */
+const actorRaw: number[] = [], actorRuns: SimContext[] = [];
 const target = Number(process.argv.find((a, i) => i >= 2 && /^\d+$/.test(a) && process.argv[i - 1] !== '--repeat') ?? 500);
 const repeat = Math.max(1, Number(process.argv[process.argv.indexOf('--repeat') + 1]) || 1);
 const aimed = process.argv.includes('--aim');
 // `--viewsight` turns rules.aim.viewSight on (CL: spatial shots launch from and are checked from the anatomical eye)
 const viewSight = process.argv.includes('--viewsight');
+// PERF_RULES='<json>' (I1c): rule overrides merged into every run, for measuring a variant (e.g. no drop links:
+// '{"nav":{"drops":{"max":0}}}')
+const PERF_RULES = process.env.PERF_RULES ? JSON.parse(process.env.PERF_RULES) as Record<string, unknown> : {};
+function deepMerge(a: Record<string, unknown>, b: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...a };
+  for (const [k, v] of Object.entries(b)) out[k] = v && typeof v === 'object' && !Array.isArray(v) && out[k] && typeof out[k] === 'object' ? deepMerge(out[k] as Record<string, unknown>, v as Record<string, unknown>) : v;
+  return out;
+}
 const raw: number[] = [], best: number[] = [];
 let coated = 0, coatSamples = 0;
 for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 3]] as [string, number][]) {
   let mins: Float64Array | null = null, mask: Uint8Array | null = null;
   for (let r = 0; r < (process.argv.includes('--repeat') ? repeat : 1); r++) {
-    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: { physics: { engine }, nav: { engine: navEngine }, ...(viewSight ? { aim: { viewSight: true } } : {}) } as never });
+    const ctx = createRun({ seed, species, mods: [crowd(target)], ruleOverrides: deepMerge({ physics: { engine }, nav: { engine: navEngine }, ...(viewSight ? { aim: { viewSight: true } } : {}) }, PERF_RULES) as never });
     if (r === 0 && ctx.nav) navBuilds.push(`${species} seed ${seed} ${ctx.nav.buildMs.map((v) => v.toFixed(0)).join('+')} ms`);
+    if (r === 0 && ctx.nav?.full) actorRuns.push(ctx);
     const times: number[] = [], inBand: number[] = [];
     // keep the bot alive so the crowd can build
     while (ctx.time < 240) {
       assertRunning(ctx, 'perf-sim');
       ctx.player.hp = ctx.player.maxHp;
       const inp = aimed ? withAim(ctx, botInput(ctx)) : botInput(ctx);
-      const pw = ctx.physics?.physics, pm0 = pw ? pw.stats.ms : 0, nm0 = ctx.nav ? ctx.nav.ms : 0;
+      const pw = ctx.physics?.physics, pm0 = pw ? pw.stats.ms : 0, nm0 = ctx.nav ? ctx.nav.ms : 0, am0 = ctx.nav ? ctx.nav.actorMs : 0;
       tickResolver = 0;
       sampling = r === 0 && ctx.enemies.count > target * 0.9 && ctx.enemies.count < target * 1.1;
       const t0 = performance.now();
@@ -85,7 +100,7 @@ for (const [species, seed] of [['totodile', 1], ['cyndaquil', 2], ['bulbasaur', 
       const ok = n > target * 0.9 && n < target * 1.1;
       times.push(dt); inBand.push(ok ? 1 : 0);
       if (r === 0 && ok) {
-        raw.push(dt); physRaw.push(pms); navRaw.push(ctx.nav ? ctx.nav.ms - nm0 : 0); resolverRaw.push(tickResolver);
+        raw.push(dt); physRaw.push(pms); navRaw.push(ctx.nav ? ctx.nav.ms - nm0 : 0); resolverRaw.push(tickResolver); actorRaw.push(ctx.nav ? ctx.nav.actorMs - am0 : 0);
         if (ctx.tick % 60 === 0) { let c = 0; for (let i = 0; i < ctx.enemies.hi; i++) if (ctx.enemies.alive[i] && ctx.enemies.coat[i]) c++; coated += c; coatSamples++; }
       }
     }
@@ -120,6 +135,13 @@ if (navEngine === 'navmesh') {
   const nq = pct(navRaw), mean = navRaw.reduce((a, b) => a + b, 0) / Math.max(1, navRaw.length), tmean = raw.reduce((a, b) => a + b, 0) / Math.max(1, raw.length);
   console.log(`navigation (navmesh) per tick: mean ${mean.toFixed(3)} ms (${((100 * mean) / tmean).toFixed(1)} % of the mean tick)  p50 ${nq(0.5).toFixed(3)}  p95 ${nq(0.95).toFixed(3)}  p99 ${nq(0.99).toFixed(3)}  max ${nq(1).toFixed(3)} ms; on the ticks at or above the tick p95: ${((100 * navSum) / tickSum).toFixed(1)} % of their time`);
   console.log(`navmesh builds at map entry: ${navBuilds.join(', ')}`);
+}
+if (actorRuns.length) {
+  // I1c, the 3D stack: the enemy moves (sim/enemy3d.ts: mesh tests, drop links, ground rays, off-mesh sweeps) per tick,
+  // and the drop links each map built
+  const aq = pct(actorRaw), mean = actorRaw.reduce((a, b) => a + b, 0) / Math.max(1, actorRaw.length), tmean = raw.reduce((a, b) => a + b, 0) / Math.max(1, raw.length);
+  console.log(`enemy moves on the 3D stack per tick: mean ${mean.toFixed(3)} ms (${((100 * mean) / tmean).toFixed(1)} % of the mean tick)  p50 ${aq(0.5).toFixed(3)}  p95 ${aq(0.95).toFixed(3)}  p99 ${aq(0.99).toFixed(3)} ms`);
+  for (const c of actorRuns) { const S = actorStats(c.nav!); console.log(`  ${c.player.species.id}: drops ${c.nav!.nav ? c.nav!.nav.graphs.map((G) => G.drops.length).join('/') : '-'} links (gen ${c.nav!.nav ? c.nav!.nav.graphs.map((G) => G.dropMs.toFixed(1)).join('+') : '-'} ms; checks ${c.nav!.dropChecks}, refused ${c.nav!.dropRefused}); taken ${S.drops}, landed ${S.landed}, off the mesh ${S.offMesh}, rejoined ${S.rejoined}, put back ${S.putBacks}, link timeouts ${S.timeouts}; rays ${S.rays}, sweeps ${S.sweeps}`); }
 }
 console.log(`coated enemies on average: ${(coated / Math.max(1, coatSamples)).toFixed(0)}`);
 // gates (blueprint section 12): p95 <= 2 ms, p99 <= 3 ms at about 500 enemies. `--gate` makes a miss fail the run.

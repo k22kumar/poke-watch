@@ -16,7 +16,11 @@
 //   now arrives is FIXED. The list is for one flag setting and refuses another
 //   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'): only the trainer
 //   walks, one per size class, to every mandatory target; its capsule must stay clear of the physics world (the
-//   enemies stay on the tile World until I1c, so their walks are the flag-off run's)
+//   enemies stay on the tile World with the physics flag alone, so their walks are the flag-off run's). With both flags
+//   (--physics rapier --nav navmesh, I1c, ROADMAP F74) the enemy walkers walk too, on their navmesh and Rapier
+//   (sim/enemy3d.ts), each grounded tick's footprint clear of the physics world (World.fits' rule).
+//   NAVWALK_DEPTH=1 prints the deepest overlap and a histogram of overlapping ticks by depth; NAVWALK_DEBUG3D=1 a walker's
+//   state at its first overlap
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
@@ -107,10 +111,17 @@ function place(ctx: SimContext, x: number, z: number, deck = false) {
 
 /** the footprint clears solid geometry (a tiny tolerance for float32 positions); with a body height its head clears deck slabs too */
 const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, tall?: number) => r <= 0 || ctx.world.fits(x, z, y, Math.max(0, r - 2e-3), 0.6 + 1e-3, tall === undefined ? undefined : tall - 2e-3);
+/** I1c, both flags: an enemy walker's footprint (shrunk by 2 mm) clear of what stops a body from a step (+1 cm) above its
+ *  feet to its head on Rapier: World.fits' rule (faces higher than the step, walls, slabs a head would hit) */
+const clear3d = (ctx: SimContext, x: number, z: number, y: number, r: number, tall: number) => ctx.nav!.physFor(worldOf(ctx)).bodyOverlap(x, y + ctx.rules.player.stepHeight + 0.01, y + Math.max(tall, ctx.rules.player.stepHeight + 0.06), z, r - 2e-3) === 0;
 /** on physics the trainer's own body: its capsule (shrunk by 2 mm) clear of the physics world */
 const clearOn = (ctx: SimContext, x: number, z: number, y: number, r: number, tall: number) => ctx.physics ? ctx.physics.bodyClear(ctx.world, x, y, z, r, tall, 2e-3) : clearAt(ctx, x, z, y, r, tall);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
+/** NAVWALK_DEPTH=1 (I1c): the deepest 3D walker overlap seen, printed at the end */
+let maxDepth = 0;
+const depthHist: Record<string, number> = {}, deepEx: string[] = [];
+process.on('exit', () => { if (process.env.NAVWALK_DEPTH) console.log(`deepest 3D walker overlap ${maxDepth.toFixed(3)} m; overlapping grounded ticks by depth ${JSON.stringify(depthHist)}\n${deepEx.join('\n')}`); });
 
 /** one enemy pursues the player standing at (px, pz) from (sx, sz) */
 function pursue(ctx: SimContext, walker: [string, string, number], sx: number, sz: number, px: number, pz: number, budget: number, deck = false): { arrived: boolean; t: number; pen: boolean; note: string } {
@@ -131,8 +142,14 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
     if (!E.alive[e]) return { arrived: false, t: ctx.time - t0, pen, note: 'died' };
     // grounded walkers only: a body falling past a cliff (knocked off, or dropping further than it planned) is pushed off
     // the face as it falls, and must be clear again by the time it stands
-    if (E.fallV[e] === 0 && !clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e])) {
+    // I1c (F74), both flags: the walker moves on its navmesh and Rapier (sim/enemy3d.ts); grounded is off a drop link
+    // with no fall under way, and clear is World.fits' rule on Rapier: its footprint (2 mm under) clear of what stops a
+    // body from a step above its feet to its head (an enemy is a footprint at its axis' height, not a capsule: S1 O2)
+    const on3d = !!ctx.nav?.full, grounded = on3d ? E.mesh[e] !== 1 && E.vy[e] === 0 : E.fallV[e] === 0;
+    if (grounded && !(on3d ? clear3d(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e]) : clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e]))) {
       if (!pen && DEBUG) console.log([...ring, `overlap ${species} at ${E.x[e]},${E.z[e]} y ${E.y[e]} h ${ctx.world.height(E.x[e], E.z[e], E.y[e])} foot ${E.foot[e]} collides ${ctx.world.collides(E.x[e], E.z[e], E.y[e], 0.6)} from ${E.px[e]},${E.pz[e]} hz ${E.hzKind[e]}`].join('\n'));
+      if (on3d && process.env.NAVWALK_DEPTH) { const Pw = ctx.nav!.physFor(worldOf(ctx)); let d = 0; while (d < 0.5 && Pw.bodyOverlap(E.x[e], E.y[e] + 0.61, E.y[e] + Math.max(E.tall[e], 0.66), E.z[e], E.foot[e] - d) > 0) d += 0.005; maxDepth = Math.max(maxDepth, d); const bk = d <= 0.02 ? '<=0.02' : d <= 0.06 ? '<=0.06' : d <= 0.15 ? '<=0.15' : '>0.15'; depthHist[bk] = (depthHist[bk] ?? 0) + 1; if (d > 0.15 && deepEx.length < 12) deepEx.push(`${species} mesh ${E.mesh[e]} ${E.x[e].toFixed(2)},${E.y[e].toFixed(2)},${E.z[e].toFixed(2)} d ${d.toFixed(3)} tileH ${ctx.world.height(E.x[e], E.z[e]).toFixed(2)} vy ${E.vy[e]}`); }
+      if (!pen && on3d && process.env.NAVWALK_DEBUG3D) console.log(`overlap3d ${species} mesh ${E.mesh[e]} meshT ${E.meshT[e].toFixed(2)} vy ${E.vy[e]} at ${E.x[e].toFixed(3)},${E.y[e].toFixed(3)},${E.z[e].toFixed(3)} py ${E.py[e].toFixed(3)} foot ${E.foot[e]} tall ${E.tall[e].toFixed(2)} k ${E.kx[e].toFixed(2)},${E.kz[e].toFixed(2)} tileH ${ctx.world.height(E.x[e], E.z[e]).toFixed(2)}`);
       pen = true; note = `overlap at ${E.x[e].toFixed(2)},${E.z[e].toFixed(2)}`;
     }
     if (Math.hypot(E.x[e] - px, E.z[e] - pz) < 2.5) { E.kill(e); return { arrived: true, t: ctx.time - t0, pen, note }; }
@@ -233,7 +250,7 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
   }
   for (const [x, y] of L.anchors) targets.push({ name: `anchor${x},${y}`, k: y * m.w + x, mandatory: false, anchor: true });
   for (const T of targets) {
-    for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
+    for (const w of PHYSICS === 'rapier' && NAV_ENGINE !== 'navmesh' ? [] : WALKERS) {
       const ctx = freshRun('location', id, seed);
       const diag = w[0] === 'large', narrow = w[0] === 'narrow';
       const reach = narrow ? true : nearIn(diag ? wideDiag : wideStrict, T.k % m.w, (T.k / m.w) | 0, T.anchor ? 0 : 3);
@@ -286,7 +303,7 @@ export function walkHabitat(id: string, seed: number): WalkResult[] {
   const base = freshRun('habitat', id, seed), W = base.world, H = W.hab!, m = W.map;
   const ck = Math.floor(H.contest.y) * m.w + Math.floor(H.contest.x), sk = m.spawn[1] * m.w + m.spawn[0];
   const bk = Math.floor(H.stage.B[1]) * m.w + Math.floor(H.stage.B[0]);
-  for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
+  for (const w of PHYSICS === 'rapier' && NAV_ENGINE !== 'navmesh' ? [] : WALKERS) {
     const ctx = freshRun('habitat', id, seed);
     const [bx, bz] = at(ctx, bk), [cx, cz] = at(ctx, ck);
     const r = pursue(ctx, w, bx, bz, cx, cz, budgetFor(60));

@@ -70,6 +70,15 @@ export class EnemyPool {
   /** liquid exposure (sim/hazards.ts): liquid kind (0 none, 1 water, 2 lava), s exposed, damage carried below a whole
    *  point, damage since the last cue and the cue timer, the shore it heads for; fall speed over open air */
   hzKind: Uint8Array; hzT: Float32Array; hzAcc: Float32Array; hzCue: Float32Array; hzCueT: Float32Array; hzX: Float32Array; hzZ: Float32Array; fallV: Float32Array;
+  /** vertical velocity (m/s, up positive): I1c's 3D stack falls by it (the tile path keeps fallV); a later task's free
+   *  vertical flight reads it too (owner's Q2, 2026-11-27; ROADMAP F46) */
+  vy: Float32Array;
+  /** I1c, the 3D stack: 0 walking on its group's navmesh, 1 on a drop link, 2 off the mesh (knocked, swimming, landed off
+   *  it); the drop's plan direction and the distance left to go out (state 1); seconds in states 1 and 2 */
+  mesh: Uint8Array; ldx: Float32Array; ldz: Float32Array; lrem: Float32Array; meshT: Float32Array;
+  /** I1c, the owner's ground-ray budget answer (2026-11-27): the flat polygon its last ground ray was cast on (-1 none),
+   *  the navmesh version then, and that ray's support; a walker staying on that flat polygon reuses it */
+  rayPoly: Int32Array; rayVer: Int32Array; rayY: Float64Array; rayBox: Int32Array;
 
   constructor(cap: number) {
     this.cap = cap;
@@ -92,7 +101,7 @@ export class EnemyPool {
     this.coat = new Uint8Array(cap); this.coatDeep = new Uint8Array(cap); this.coatT = F(); this.coatIcd = F();
     this.frozen = F(); this.blind = F(); this.ccAcc = F(); this.ccImmune = F();
     this.heldT = F(); this.heldP = new Uint8Array(cap); this.heldBtn = new Uint8Array(cap);
-    this.hzKind = new Uint8Array(cap); this.hzT = F(); this.hzAcc = F(); this.hzCue = F(); this.hzCueT = F(); this.hzX = F(); this.hzZ = F(); this.fallV = F();
+    this.hzKind = new Uint8Array(cap); this.hzT = F(); this.hzAcc = F(); this.hzCue = F(); this.hzCueT = F(); this.hzX = F(); this.hzZ = F(); this.fallV = F(); this.vy = F(); this.rayPoly = new Int32Array(cap).fill(-1); this.rayVer = new Int32Array(cap); this.rayY = new Float64Array(cap); this.rayBox = new Int32Array(cap); this.mesh = new Uint8Array(cap); this.ldx = F(); this.ldz = F(); this.lrem = F(); this.meshT = F();
   }
 
   spawn(): number {
@@ -110,7 +119,7 @@ export class EnemyPool {
     this.coat[i] = 0; this.coatDeep[i] = 0; this.coatT[i] = 0; this.coatIcd[i] = 0;
     this.frozen[i] = 0; this.blind[i] = 0; this.ccAcc[i] = 0; this.ccImmune[i] = 0;
     this.heldT[i] = 0; this.heldP[i] = 0; this.heldBtn[i] = 0;
-    this.hzKind[i] = 0; this.hzT[i] = 0; this.hzAcc[i] = 0; this.hzCue[i] = 0; this.hzCueT[i] = 0; this.fallV[i] = 0;
+    this.hzKind[i] = 0; this.hzT[i] = 0; this.hzAcc[i] = 0; this.hzCue[i] = 0; this.hzCueT[i] = 0; this.fallV[i] = 0; this.vy[i] = 0; this.rayPoly[i] = -1; this.mesh[i] = 0; this.ldx[i] = 0; this.ldz[i] = 0; this.lrem[i] = 0; this.meshT[i] = 0;
     return i;
   }
 

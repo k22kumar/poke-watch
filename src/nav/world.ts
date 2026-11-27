@@ -14,7 +14,7 @@ import type { Rules } from '../rules/defaults';
 import type { Aabb, WorldModel } from '../world/model';
 import { isAdapterModel } from '../world/adapter';
 import { NavSoup, NavTiles, type AgentCells, type NavConfig, type Obstacle } from './build';
-import { NavGraph, NONE, type Field, type FieldFilter } from './graph';
+import { NavGraph, NONE, type DropConfig, type Field, type FieldFilter } from './graph';
 import { VolumeRoutes } from './routes';
 
 /** the shared Recast settings of rules.nav */
@@ -40,6 +40,13 @@ export function groupsOf(rules: Rules, extra: { name: string; agent: AgentCells 
   return out.sort((a, b) => a.agent.height - b.agent.height);
 }
 
+/** I1c: drop links for a build (rules.nav.drops, on the 3D stack only): `check(g, …)` is the sim's validation of a
+ *  candidate for group g (DropConfig.check) */
+export interface DropOptions {
+  rules: { sample: number; min: number; max: number; probes: readonly number[] };
+  check?: (g: number, x0: number, y0: number, z0: number, nx: number, nz: number, d: number, y1: number) => boolean;
+}
+
 /** the default field filter (one object, so a goal's cache sees the same filter) */
 const NO_FILTER: FieldFilter = {};
 
@@ -59,19 +66,24 @@ export class NavWorld {
   private readonly pt = new Float64Array(3);
   private readonly corner = new Float64Array(2);
 
-  private constructor(model: WorldModel, readonly cfg: NavConfig, groups: { name: string; agent: AgentCells }[], bounds: Aabb, layer: number) {
+  private constructor(model: WorldModel, readonly cfg: NavConfig, groups: { name: string; agent: AgentCells }[], bounds: Aabb, layer: number, drops: DropOptions | null) {
     this.tiles = new NavTiles(new NavSoup(model, cfg.inset), cfg, groups);
     this.tiles.buildAll();
     this.names = this.tiles.groups.map((g) => g.name);
     const org: [number, number] = [bounds.min[0], bounds.min[2]], size: [number, number] = [bounds.max[0] - bounds.min[0], bounds.max[2] - bounds.min[2]];
-    this.graphs = this.tiles.groups.map((g) => new NavGraph(g.navMesh, model.navInput.links, org, size, layer));
+    const dropCfg = (gi: number, agent: AgentCells): DropConfig | null => {
+      if (!drops) return null;
+      const D = drops.rules, ck = drops.check;
+      return { sample: D.sample, min: D.min, max: D.max, probes: D.probes, radius: agent.radius * cfg.cs, check: ck ? (x0, y0, z0, nx, nz, d, y1) => ck(gi, x0, y0, z0, nx, nz, d, y1) : undefined };
+    };
+    this.graphs = this.tiles.groups.map((g, gi) => new NavGraph(g.navMesh, model.navInput.links, org, size, layer, dropCfg(gi, g.agent)));
     this.routes = new VolumeRoutes(model.navInput.routes);
   }
 
   /** build every width group's navmesh for `model` (rules.nav; an adapter map's radii from rules.nav.adapterRadius;
    *  `extra` groups for reports) */
-  static build(model: WorldModel, rules: Rules, extra: { name: string; agent: AgentCells }[] = []): NavWorld {
-    return new NavWorld(model, navConfig(rules), groupsOf(rules, extra, isAdapterModel(model)), model.bounds, rules.nav.layer);
+  static build(model: WorldModel, rules: Rules, extra: { name: string; agent: AgentCells }[] = [], drops: DropOptions | null = null): NavWorld {
+    return new NavWorld(model, navConfig(rules), groupsOf(rules, extra, isAdapterModel(model)), model.bounds, rules.nav.layer, drops);
   }
 
   /** a group's index by name (-1 when absent) */
@@ -174,6 +186,33 @@ export class NavWorld {
     if (!F) return false;
     return this.graphs[g].nearest(x, y, z, reach, (p) => F.cost[p] < Infinity, out) !== NONE;
   }
+
+  /**
+   * I1c: the drop link of polygon p in group g that a move from (ox, oz) to (x, z) crosses, and that brings the walker
+   * nearer F's goal (its landing polygon's cost below p's); NONE when there is none. Crossing: the move goes from the
+   * polygon's side of the drop's edge to its outer side, through the drop's stretch of the edge.
+   */
+  dropCrossed(g: number, F: Field | null, p: number, ox: number, oz: number, x: number, z: number): number {
+    if (!F || p === NONE) return NONE;
+    const G = this.graphs[g];
+    if (!(F.cost[p] < Infinity)) return NONE;
+    for (let q = G.aOff[p]; q < G.aOff[p + 1]; q++) {
+      const d = G.dropOf[q];
+      if (d === NONE) continue;
+      const D = G.drops[d];
+      if (!(F.cost[D.to] < F.cost[p])) continue;
+      const s0 = (ox - D.ax) * D.nx + (oz - D.az) * D.nz, s1 = (x - D.ax) * D.nx + (z - D.az) * D.nz;
+      if (!(s1 > 0) || s0 > 0) continue;
+      const f = s0 === s1 ? 0 : s0 / (s0 - s1), cx = ox + (x - ox) * f, cz = oz + (z - oz) * f;
+      const ex = D.bx - D.ax, ez = D.bz - D.az, L2 = ex * ex + ez * ez;
+      const t = L2 > 0 ? ((cx - D.ax) * ex + (cz - D.az) * ez) / L2 : 0;
+      if (t >= 0 && t <= 1) return d;
+    }
+    return NONE;
+  }
+
+  /** the drop links of group g (I1c) */
+  drops(g: number) { return this.graphs[g].drops; }
 
   dispose(): void { this.tiles.dispose(); this.goals.clear(); }
 }

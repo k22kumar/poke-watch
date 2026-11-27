@@ -281,11 +281,11 @@ export class PhysicsWorld {
     return true;
   }
 
-  private sweepCast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, groups: number, r: number, h: number, pred: ((c: RCollider) => boolean) | undefined, hit: RayHit): boolean {
+  private sweepCast(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, groups: number, r: number, h: number, pred: ((c: RCollider) => boolean) | undefined, hit: RayHit, stop = true): boolean {
     const W = this.world();
     this.vo.x = ox; this.vo.y = oy; this.vo.z = oz; this.vd.x = dx; this.vd.y = dy; this.vd.z = dz;
     this.stats.casts++;
-    const res = W.castShape(this.vo, UNIT_ROT, this.vd, this.cylinder(r, h), 0, maxT, true, undefined, groups, undefined, undefined, pred);
+    const res = W.castShape(this.vo, UNIT_ROT, this.vd, this.cylinder(r, h), 0, maxT, stop, undefined, groups, undefined, undefined, pred);
     if (!res) return false;
     const t = res.time_of_impact;
     let id = this.idOf(res.collider);
@@ -368,6 +368,45 @@ export class PhysicsWorld {
     return this.cast(x, y, z, 0, -1, 0, drop, kinds, 0, stops, SUP_HIT) ? this.supportHeight(y) : -Infinity;
   }
 
+  /** I1c: the box whose f64 top the last support query returned (-1: a mesh, a hull or a contact height) */
+  supBox = -1;
+  /** I1c: does box collider id's plan contain (x, z) strictly (1e-9 inside its f64 bounds)? false for a mesh or hull */
+  boxPlanHas(id: number, x: number, z: number): boolean {
+    const M = this.meta, o = id * 3;
+    if (id < 0 || !(M.lo[o] === M.lo[o])) return false;
+    return x > M.lo[o] + 1e-9 && x < M.hi[o] - 1e-9 && z > M.lo[o + 2] + 1e-9 && z < M.hi[o + 2] - 1e-9;
+  }
+
+  /** I1c: supportBelow for what stops a body (MODE_MOVE: liquids at their surface, the stair wedges, a wall's column),
+   *  clocked: an enemy's ground ray, the seam's heights on the 3D stack */
+  bodySupportBelow(x: number, y: number, z: number, drop = 1e3): number {
+    const clock = PhysicsWorld.clock;
+    if (!clock) return this.bodySupport(x, y, z, drop);
+    const t0 = clock(), s = this.bodySupport(x, y, z, drop);
+    this.stats.ms += clock() - t0;
+    return s;
+  }
+
+  /** I1c: an upright cylinder (radius r, half-height h, centre o) swept along unit d against what stops a body
+   *  (MODE_MOVE, every kind but the liquids); false when the way is clear for maxT */
+  bodySweep(ox: number, oy: number, oz: number, dx: number, dy: number, dz: number, maxT: number, r: number, h: number, hit: RayHit, escape = false): boolean {
+    if (!escape) return this.cast(ox, oy, oz, dx, dy, dz, maxT, MOVE_KINDS & ~SK.liquid, 0, STOPS.bodies, hit, r, h);
+    // `escape`: Rapier's stop_at_penetration off, so a body that starts overlapping something may move out of it (a
+    // trajectory that goes deeper still stops at once)
+    const clock = PhysicsWorld.clock, t0 = clock ? clock() : 0;
+    this.stats.queries++;
+    hit.t = Infinity; hit.kind = 0; hit.id = -1; hit.flags = 0;
+    const met = this.sweepCast(ox, oy, oz, dx, dy, dz, maxT, PhysicsWorld.groups(MOVE_KINDS & ~SK.liquid, MODE_MOVE), r, h, undefined, hit, false);
+    if (clock) this.stats.ms += clock() - t0;
+    return met;
+  }
+
+  /** I1c: how many colliders that stop a body (every kind but the liquids) meet the upright cylinder at (x, z), radius r,
+   *  from y0 to y1 */
+  bodyOverlap(x: number, y0: number, y1: number, z: number, r: number): number {
+    return this.overlapCylinder(x, y0, y1, z, r, MOVE_KINDS & ~SK.liquid, 0, STOPS.bodies);
+  }
+
   /** I1b: supportBelow for the character controller: what stops a body (liquids at their surface, the stair wedges),
    *  unclocked (moveCharacter's clock already covers it) */
   private readonly bodySupport = (x: number, y: number, z: number, drop: number): number =>
@@ -377,7 +416,9 @@ export class PhysicsWorld {
    *  above y) is its f64 model top; else the ray's f32 contact */
   private supportHeight(y: number): number {
     const top = this.meta.hi[SUP_HIT.id * 3 + 1];
-    return SUP_HIT.t > 0 && top <= y ? top : y - SUP_HIT.t;
+    const exact = SUP_HIT.t > 0 && top <= y;
+    this.supBox = exact ? SUP_HIT.id : -1;
+    return exact ? top : y - SUP_HIT.t;
   }
 
   /** The liquid at (x, y, z): 0 none, 1 water, 2 lava (sim/worldquery.ts liquidContact's ids); its surface in

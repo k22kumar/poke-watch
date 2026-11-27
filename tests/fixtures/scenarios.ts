@@ -335,6 +335,14 @@ for (const id of ['range-mewtwo']) {
   SCENARIOS.push({ ...s, id: `${id}-viewsight`, covers: `${s.covers}; shots launched and checked from the eye`, rules: { aim: { viewSight: true } }, needs: { ...s.needs, eyeCasts: 1 } });
 }
 
+// I1c (docs/OVERHAUL_3D.md "Actors (I1c)"): the range and Hold tracks on the 3D stack, both flags on (rules/defaults.ts
+// is3D): enemies walk their navmesh with drop links and Rapier heights, shots and bodies stop on Rapier, placement is on
+// the navmesh. Recorded once by I1c (ids ending -3d); the single-flag twins above must stay as recorded.
+for (const id of ['range-charmander', 'gorge-hold']) {
+  const s = SCENARIOS.find((x) => x.id === id)!;
+  SCENARIOS.push({ ...s, id: `${id}-3d`, covers: `${s.covers}; on the 3D stack (physics and navmesh)`, physics: 'rapier', nav: 'navmesh' });
+}
+
 /** walk to the nearest Light throwable until within `reach` m, press the kit's hold move on it and keep the button
  *  down 1.5 s, the aim swinging from the body to the Geodude dummy after 0.5 s, then release (the throw); again 1 s
  *  later. State is the tick the press began, kept per run */

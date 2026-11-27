@@ -68,7 +68,7 @@ One line per decision, and the task that owns it (docs/ROADMAP.md, the overhaul 
 | OVERHAUL_3D "Target layout" | Recipes and world styles live in `src/rules/`. `src/world/` produces a WorldModel as plain data and never imports three, Rapier, recast or `src/sim/` |
 | OVERHAUL_3D "The WorldModel contract" | One plain record per map: meta, bounds, colliders, volumes, navInput, surfaces, markers. Visible geometry and collision come from the same generator output |
 | OVERHAUL_3D WS Q7 | `hab` (contest and stagings) stays a tile extension until G2 defines 3D Hold markers against the WorldModel's markers |
-| S1 O2 | Enemies have no character controller and are not Rapier bodies. They follow navmesh corridors; ground height from the navmesh polygon. Controllers are for heroes and bots |
+| S1 O2 | Enemies have no character controller and are not Rapier bodies. They follow navmesh corridors; ground height from the navmesh polygon. Controllers are for heroes and bots. *Owner's amendment, 2026-11-27 (I1c): the ground height is one Rapier ground ray per moving enemy per tick, not the polygon; no detail mesh (S1 O2's note; OVERHAUL_3D "Actors (I1c)").* |
 | S1 O3 | Adapter maps use boxes. G1 builds trimesh chunks from the collision output with FIX_INTERNAL_EDGES and re-measures controller cost. G0 decides open terrain |
 | S1 O4 | I1b's own step rule climbs every rise ≤ 0.6 m for every class and refuses ≥ 0.62 m. G0 keeps generated rises out of a dead band below the lowest blocking ledge and sets the band |
 | S1 O5 | A 1 mm head margin in the capsule; every generated exact-fit gap keeps the same tolerance |

@@ -28,7 +28,8 @@
 
 import { PhysicsWorld, STOPS, MODES_ALL, MODES_UNTOPPED, MODES_FOLIAGE_OPEN, MOVES, modesOf, EDGE_PAD, type ExtraPiece } from '../physics/world';
 import type { ControllerRules } from '../physics/controller';
-import { defaultRules, type Rules } from '../rules/defaults';
+import { defaultRules, is3D, type Rules } from '../rules/defaults';
+import { PS } from './props';
 import { fromArenaMap } from '../world/adapter';
 import { rapier, rapierReady } from '../physics/rapier';
 import { DECK_SLAB, ICE_LIFT, T, WATER_Y, stairEdges, wallTopsOf, type ArenaMap } from '../world/tiles';
@@ -40,14 +41,24 @@ import type { BodyMove, BodyMover, NavGoal, RefY, TileExt, WorldQuery } from './
 const FAR = 1e4;
 
 /** The live tile state as an ArenaMap the adapter reads: ice as ground at the ice, the World's voids as the chasm list
- *  (the adapter makes every listed chasm a void, the tile World only with hazards on). Copies only what it changes. */
-export function liveMap(T0: TileExt): ArenaMap {
+ *  (the adapter makes every listed chasm a void, the tile World only with hazards on). Copies only what it changes.
+ *  `noResidue` (I1c, the 3D stack; WORLDGEN3D Q21.9): a breakable that broke or burnt leaves no collider, so the stump
+ *  a wood prop leaves on the tile World (its 0.65 m platform) is open ground in the physics world and the navmesh */
+export function liveMap(T0: TileExt, noResidue = false): ArenaMap {
   const m = T0.map, n = m.w * m.h;
   let terrain = m.terrain, elev = m.elev, platform = m.platform;
+  const copy = () => { if (terrain === m.terrain) { terrain = m.terrain.slice(); elev = m.elev.slice(); platform = m.platform.slice(); } };
   for (let k = 0; k < n; k++) {
     if (m.terrain[k] !== T.water || !T0.cells.iceAt(k)) continue;
-    if (terrain === m.terrain) { terrain = m.terrain.slice(); elev = m.elev.slice(); platform = m.platform.slice(); }
+    copy();
     terrain[k] = T.stone; elev[k] = (m.wlevel ? m.wlevel[k] : WATER_Y) + ICE_LIFT; platform[k] = 0;
+  }
+  const F = noResidue ? T0.propField : null;
+  if (F) for (let k = 0; k < n; k++) {
+    const i = F.at[k];
+    if (i < 0 || !(platform[k] > 0) || (F.state[i] !== PS.burnt && F.state[i] !== PS.broken)) continue;
+    copy();
+    platform[k] = 0;
   }
   const chasm: number[] = [];
   for (let k = 0; k < n; k++) if (T0.isVoid(k)) chasm.push(k);
@@ -155,8 +166,8 @@ function mergeInto(grid: Int32Array, W: number, H: number, payload: { y0: number
 }
 
 /** Build the physics world of a tile World's current state (the adapter's model and the tile extras). */
-export function buildTilePhysics(T0: TileExt): PhysicsWorld {
-  const m = liveMap(T0), model = fromArenaMap(m);
+export function buildTilePhysics(T0: TileExt, noResidue = false): PhysicsWorld {
+  const m = liveMap(T0, noResidue), model = fromArenaMap(m);
   return PhysicsWorld.build(model, tileExtras(m, model));
 }
 
@@ -167,7 +178,10 @@ export class PhysicsBridge {
   constructor(rules: Rules = defaultRules) {
     if (!rapierReady()) rapier(); // throws the init message: Rapier loads once, asynchronously, before createRun
     this.ctl = rules.physics.controller;
+    this.noResidue = is3D(rules);
   }
+  /** I1c: the 3D stack builds without breakables' residue (liveMap) */
+  private readonly noResidue: boolean;
   private mover: PhysicsMover | null = null;
   private W: WorldQuery | null = null;
   private T: TileExt | null = null;
@@ -185,7 +199,7 @@ export class PhysicsBridge {
     const t = w.tiles;
     if (t !== this.T || t.geoGen !== this.gen || !this.physics) {
       this.physics?.dispose();
-      this.physics = buildTilePhysics(t);
+      this.physics = buildTilePhysics(t, this.noResidue);
       this.rebuilds++;
       this.T = t; this.gen = t.geoGen;
     }

@@ -90,11 +90,14 @@ export function createRun(opts: RunOptions): SimContext {
     aim: freshAimState(),
     speciesIndex: SPECIES,
     caplog: new CapLog(rules.caps.logSize),
-    physics: rules.physics.engine === 'rapier' ? new PhysicsBridge(rules) : null,
-    nav: rules.nav.engine === 'navmesh' ? new NavBridge(rules) : null,
+    physics: null,
+    nav: null,
     recap: null,
     targets: null,
   };
+  // I1c: the navigation bridge holds the physics bridge, so with both flags on it is the 3D stack's (NavBridge.full)
+  ctx.physics = rules.physics.engine === 'rapier' ? new PhysicsBridge(rules) : null;
+  ctx.nav = rules.nav.engine === 'navmesh' ? new NavBridge(rules, ctx.physics) : null;
   ctx.players.push(ctx.player);
   recompute(ctx);
   ctx.player.hp = ctx.player.maxHp;
