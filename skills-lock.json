@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "skills": {
+    "threejs-skills": {
+      "source": "aiskillstore/marketplace",
+      "commit": "687c52e9af4ebd16f43b711963390721ee6f4a56",
+      "sourceType": "github",
+      "skillPath": "skills/sickn33/threejs-skills/SKILL.md",
+      "computedHash": "a6aa6c8841ac033f9780fc2bfcc2c95993b49feb5b19aa87a1e6bb9df5e313d9"
+    }
+  }
+}
