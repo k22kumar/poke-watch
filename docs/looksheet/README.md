@@ -303,3 +303,49 @@ Then the picks are applied and shown on the hold-outs (Chargestone Cave, the dus
 | p0i1 | ![range-spawn p0i1](2026-11-27-r3/range-spawn-p0i1.png) | ![range-ledge p0i1](2026-11-27-r3/range-ledge-p0i1.png) | ![gorge-spawn p0i1](2026-11-27-r3/gorge-spawn-p0i1.png) | ![gorge-ledge p0i1](2026-11-27-r3/gorge-ledge-p0i1.png) |
 | p1i0 | ![range-spawn p1i0](2026-11-27-r3/range-spawn-p1i0.png) | ![range-ledge p1i0](2026-11-27-r3/range-ledge-p1i0.png) | ![gorge-spawn p1i0](2026-11-27-r3/gorge-spawn-p1i0.png) | ![gorge-ledge p1i0](2026-11-27-r3/gorge-ledge-p1i0.png) |
 | p1i1 | ![range-spawn p1i1](2026-11-27-r3/range-spawn-p1i1.png) | ![range-ledge p1i1](2026-11-27-r3/range-ledge-p1i1.png) | ![gorge-spawn p1i1](2026-11-27-r3/gorge-spawn-p1i1.png) | ![gorge-ledge p1i1](2026-11-27-r3/gorge-ledge-p1i1.png) |
+
+## The pick and the hold-outs (owner, 2026-11-27)
+
+**Pick: p1i1** — the moderate paint set on the locked facet tone, and thin ink at a 0.35 share. Caves at 11:00
+confirmed. Applied to the `lowpoly` profile (`src/rules/styles/profiles.ts`): it ships flag-off with the rest of I2a's
+look.
+
+Before the hold-outs, the owner asked whether the sky stipple and the rings on the range grass are real. They are, and
+both are transcriptions: the sky's six bands and the vignette's four levels are dithered on today's 4 × 4 Bayer grid.
+At native resolution that reads as stipple. Switching each off on the range: the sky stipple is the sky's dither; the
+rings and the sparse dark dots at the top of the sky are the vignette; the fog shows no banding (ROADMAP F113).
+
+**The hold-outs**, opened after the pick: Chargestone Cave (the cave binding, 11:00) and Cascade Lagoon at dusk (the
+night binding, 22:00), seed 1, the shipped profile, two poses each (the spawn, and a ledge chosen the same way as on
+the tuning maps). Frames in `docs/looksheet/2026-11-27-holdouts/`, numbers in its `results.json`.
+
+| Map | 1. Top/side min ΔL\* (≥ 12) | Shadowed top L\* (≥ 20) | 2. Signals | 3. GPU p95, WebGL 2 / WebGPU |
+|---|---|---|---|---|
+| Chargestone Cave | **fail** 6.5 (cliff) | 23.3 | pass (10/10, on the range) | 1.43 / 1.83 ms |
+| Cascade Lagoon, dusk | **fail** 5.1 (trunk) | 23.9 | pass (the same run) | 1.70 / 2.63 ms |
+
+```
+pick     FAIL  min ΔL* 5.1 (dusklagoon trunk)   info: min mean-side ΔL* 8.9
+         chargestone ground 6.6  path 8.9  soil 8.3  rock 7.9  cliff 6.5  floor 14.5  cover 8.8  foliage 14.9  trunk 8.4
+         dusklagoon ground 6.8  path 7.8  soil 7.1  rock 8.0  cliff 6.4  floor 10.3  cover 7.0  foliage 6.9  trunk 5.1
+```
+
+**Both fail mark 1, as measured; not tuned.** The owner expected dusk to fail; Chargestone fails too. What the numbers
+show:
+
+- **Chargestone** is a cave: its key light takes 0.4 of an open top's light at the fixed hour (the provisional cave
+  split), against 0.65 on day maps, so the sun-facing side keeps more of the top's light. Its palette is dark and
+  blue (tops L\* 30–89), where the same light ratio is fewer ΔL\*. Two roles pass: floor 14.5, foliage 14.9.
+- **Dusk** is the night binding at 22:00: its key light is the moon, 0.45 of the top's light, at the antipode of
+  10:00 on the path. So the moon stands 60° up, as the sun did at 10:00 before the move to 11:00. No role passes;
+  floor is the closest at 10.3.
+- Neither crushes the ambient (shadowed tops L\* 23.3 and 23.9).
+- Marks 2 and 3 pass.
+
+Seen in the frames, not a mark: on Chargestone's ledge pose the lower half of the player draws as the cyan x-ray
+silhouette, because a stair step hides it from that camera (ROADMAP F41's family, I2b's).
+
+| Map | Spawn | Ledge |
+|---|---|---|
+| Chargestone Cave | ![chargestone spawn](2026-11-27-holdouts/chargestone-spawn-pick.png) | ![chargestone ledge](2026-11-27-holdouts/chargestone-ledge-pick.png) |
+| Cascade Lagoon, dusk | ![dusk lagoon spawn](2026-11-27-holdouts/dusklagoon-spawn-pick.png) | ![dusk lagoon ledge](2026-11-27-holdouts/dusklagoon-ledge-pick.png) |

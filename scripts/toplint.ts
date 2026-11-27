@@ -4,12 +4,18 @@
 // camouflage line).
 // npx tsx scripts/toplint.ts [--json]          the look sheet's variants
 // npx tsx scripts/toplint.ts --sweep [--json]  round 2's sweep: key share × fixed hour × facet mode (docs/looksheet)
+// npx tsx scripts/toplint.ts --holdouts [--json]  the shipped profile on the hold-out maps
 import type { MaterialRole } from '../src/rules/materialroles';
 import { resolve } from '../src/rules/styles/resolve';
 import { devLayer } from '../src/render/world3d/devlayer';
 import { lightAt } from '../src/render/world3d/lighting';
 import { topSideGap } from '../src/render/world3d/tones';
-import { LOOK_MAPS, LOOK_VARIANTS } from './lib/looksheet';
+import { HOLD_OUT_MAPS, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
+
+// --holdouts: the shipped profile on the hold-out maps' bindings (after the owner's pick)
+const holdouts = process.argv.includes('--holdouts');
+const LOOK_MAPS = holdouts ? HOLD_OUT_MAPS : TUNING_MAPS;
+const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
 
 /** the roles the tile adapter writes (src/world/adapter.ts header) */
 const WRITTEN: MaterialRole[] = ['ground', 'path', 'soil', 'rock', 'cliff', 'floor', 'cover', 'foliage', 'trunk'];

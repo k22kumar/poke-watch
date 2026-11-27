@@ -119,8 +119,9 @@ export interface StyleProfile {
 }
 
 const WHITE: [number, number, number] = [1, 1, 1];
-/** one role's defaults; the low-poly look is flat-shaded continuous Lambert with no pattern and no ink (provisional) */
-const flat = (o: Partial<RoleShading> = {}): RoleShading => ({ ramp: { bands: 0, soft: 0 }, normal: 'flat', shadowTint: WHITE, pattern: 'none', patternStrength: 0, ink: 1, ...o });
+/** one role's defaults: flat-shaded continuous Lambert, no pattern, an ink share of 0.35 (the owner's look-sheet pick,
+ *  2026-11-27, docs/looksheet p1i1); the ramp, normal mode and shadow tint stay provisional */
+const flat = (o: Partial<RoleShading> = {}): RoleShading => ({ ramp: { bands: 0, soft: 0 }, normal: 'flat', shadowTint: WHITE, pattern: 'none', patternStrength: 0, ink: 0.35, ...o });
 
 export const STYLE_PROFILES: Record<ProfileId, StyleProfile> = {
   lowpoly: {
@@ -134,12 +135,13 @@ export const STYLE_PROFILES: Record<ProfileId, StyleProfile> = {
     liquid: { ramp: { bands: 0, soft: 0 }, opacity: 0.78, flow: 0 },
     // provisional: S2's crease-free tile boxes need none of the G1b numbers yet
     shape: { creaseAngle: 30, chamfer: 0, irregularity: 0, minThickness: 0.1, strokeDensity: 0 },
-    // the facet tone locked to orientation, +0.06 tops, −0.06 sides (owner, 2026-11-27: the look sheet's sweep, Q23.3);
-    // the other paint terms are still the look sheet's (F111)
-    paint: { facetTone: 0.06, facetMode: 'oriented', verticalGradient: 0, edgeLight: 0, strata: 0, strataSpacing: 0.5 },
+    // the owner's look-sheet pick (2026-11-27, docs/looksheet p1i1): the facet tone locked to orientation (+0.06 tops,
+    // −0.06 sides, Q23.3) and the moderate set: vertical gradient 0.25, edge light 0.12, strata 0.08 on steep faces
+    paint: { facetTone: 0.06, facetMode: 'oriented', verticalGradient: 0.25, edgeLight: 0.12, strata: 0.08, strataSpacing: 0.5 },
     // both optional passes are listed and built only at a weight above zero; provisional weights are zero
     passes: ['ink', 'bloom'],
-    ink: { weight: 0, colour: [0.08, 0.07, 0.1], depthEdge: 0.02, normalEdge: 0.6 },
+    // thin (1 px) dark ink at weight 1 × each role's share (0.35): the owner's pick, p1i1
+    ink: { weight: 1, colour: [0.08, 0.07, 0.1], depthEdge: 0.02, normalEdge: 0.6 },
     // bloom's default (I2a's profiling, docs/RENDER3D.md "Budgets"): off; when a profile turns it on, its quality is
     // a quarter-resolution first target, the cheapest measured (it is over the post budget even there: ROADMAP F108)
     bloom: { strength: 0, radius: 0.2, threshold: 0.85, resolution: 0.25 },

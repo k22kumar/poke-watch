@@ -55,7 +55,10 @@ test('styles: a binding per art key, transcribed from today\'s tables', () => {
 test('styles: resolve is pure, drops passes at zero weight, applies the layers in order and logs its clamps', () => {
   const a = resolve('lowpoly', 'meadow'), b = resolve('lowpoly', 'meadow');
   assert.deepEqual(a, b);
-  assert.deepEqual(a.passes, [], 'lowpoly lists ink and bloom at weight 0: neither is built');
+  // lowpoly builds ink since the owner's pick (2026-11-27, p1i1); bloom stays at weight 0. A pass at zero weight is
+  // not built: with ink and edge light at 0, neither is
+  assert.deepEqual(a.passes, ['ink'], 'lowpoly builds ink, not bloom');
+  assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { ink: { weight: 0 }, paint: { edgeLight: 0 } } }).passes, [], 'nothing at zero weight');
   assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { ink: { weight: 0.5 } } }).passes, ['ink']);
   // the ink pass draws the paint block's edge light too: built for edge light alone, with no ink
   assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { paint: { edgeLight: 0.1 } } }).passes, ['ink']);

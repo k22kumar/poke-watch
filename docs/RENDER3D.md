@@ -58,9 +58,10 @@ water and its `waterGlow`; sky and fog from `render/sky.ts`; world and actor lig
 tint; the vignette from ART_DIRECTION. Roles the adapter never writes (F54) take the nearest written role's colour.
 `tests/styles.test.ts` checks the transcription against the old tables. The old tables go at X1b.
 
-**Neutral where nothing was recorded.** The low-poly profile is flat normals, a continuous ramp, white shadow tint, no
-pattern, no paint terms and both optional passes at weight 0 (so neither is built). These are placeholders, not a look:
-see "Look values".
+**Picked from frames, or neutral.** The low-poly profile's paint terms and ink are the owner's look-sheet pick
+(2026-11-27, "Look values"): the facet tone locked to orientation, the moderate paint set, thin ink at a 0.35 share;
+bloom stays at weight 0 (not built). Flat normals, the continuous ramp and the white shadow tint are still neutral
+placeholders.
 
 ## The material family
 
@@ -258,10 +259,15 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
 - **Facet tone locked to orientation:** +0.06 on tops (a normal within 60° of up), −0.06 on every other face
   (`paint.facetMode: 'oriented'`, built in the shader and the lint). The per-plane hash stays as `facetMode: 'plane'`.
 - **`scripts/toplint.ts` is the gate** for mark 1 (`tests/looksheet.test.ts`, on the tuning maps' bindings).
+- **Caves at 11:00 confirmed.**
+- **The pick (look sheet p1i1):** the moderate paint set on the locked facet tone (vertical gradient 0.25, edge light
+  0.12, strata 0.08 on steep faces) and thin dark ink (weight 1, every role's share 0.35, colour sRGB 0.08, 0.07,
+  0.10). The ramp (continuous), the normal mode (flat) and the shadow tint (white) stay provisional; bands return later
+  as a feel question.
 
-**Still open, chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the ramp and the
-normal mode per role (smooth, flat facets today), the paint terms (all 0 today), ink (off today), and the shadow tint
-per role (white today).
+**Chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the paint terms and ink were
+picked on 2026-11-27 (below). Still open: the ramp (bands return later as a feel question), the normal mode per role
+(flat today) and the shadow tint per role (white today).
 
 ## Decided without asking (D10)
 
@@ -294,3 +300,11 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
     the look sheet's frames.
 12. **The ink pass is built for edge light alone** (look sheet, F111): edge light is drawn by the ink pass, so the pass's
     weight is max(ink weight, edge light). Gate: `tests/styles.test.ts`.
+13. **A face is a top when its normal is within 60° of up** (`normalWorld.y > 0.5`; the facet tone's orientation lock,
+    `worldmat.ts`, `tones.ts`). The alternative considered: **50°**, the upper edge of Q6's slope dead band (generated
+    slopes are ≤ 40° or ≥ 50°; the controller climbs to 46°, the navmesh to 45.5°), which would make "a top" mean "a
+    face a body can stand on" and give every unwalkable steep face the side tone. Kept at 60° because on today's maps
+    the two agree face for face (measured 2026-11-27: the range has 25,080 level faces, 4,446 vertical and 8 stair
+    faces at 45–50°; River Gorge 33,432 level and 12,074 vertical; none between 50° and 60°), and a cutoff at 45°
+    would sit on the range's 45° stair ramps. Revisit at G1a, whose terrain can hold 50–60° faces: there 50° is the
+    better line. Gate: `tests/looksheet.test.ts`.

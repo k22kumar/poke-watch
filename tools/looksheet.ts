@@ -7,10 +7,14 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
-import { LOOK_MAPS, LOOK_VARIANTS } from '../scripts/lib/looksheet';
+import { HOLD_OUT_MAPS, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from '../scripts/lib/looksheet';
 
 const [file, out] = process.argv.slice(2);
 const framesOnly = process.argv.includes('--frames-only');
+// --holdouts: the shipped profile (no variant parameters) on the hold-out maps, after the owner's pick
+const holdouts = process.argv.includes('--holdouts');
+const LOOK_MAPS = holdouts ? HOLD_OUT_MAPS : TUNING_MAPS;
+const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
 fs.mkdirSync(out, { recursive: true });
 
 // 1. frames: one pose per map (capture mode, the spawn, 1 s of ticks), the 3D canvas alone
@@ -32,7 +36,7 @@ await b.close();
 if (framesOnly) process.exit(0);
 
 // 2. marks
-const lint = JSON.parse(execFileSync('npx', ['tsx', 'scripts/toplint.ts', '--json'], { encoding: 'utf8' }));
+const lint = JSON.parse(execFileSync('npx', ['tsx', 'scripts/toplint.ts', '--json', ...(holdouts ? ['--holdouts'] : [])], { encoding: 'utf8' }));
 const results = [];
 for (const v of LOOK_VARIANTS) {
   let signal = true, signalOut = '';

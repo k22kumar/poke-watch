@@ -25,3 +25,12 @@ export const LOOK_MAPS: { id: string; binding: string; query: string; poses: Loo
   // the cliff: on River Gorge's 6 m bluff, 4 m back from its edge (z 21.5), looking down over the river
   { id: 'gorge', binding: 'forest', query: 'go=1&mode=range&species=charmander&map=river-gorge&mapseed=1', poses: [{ id: 'spawn' }, { id: 'ledge', at: [-15.5, 25.5], yaw: Math.PI + 0.5, pitch: 0.35 }] },
 ];
+
+/** the hold-outs, opened only after the owner's pick (2026-11-27, p1i1): the shipped profile shown on maps the sheet was
+ *  not tuned on. Chargestone Cave (a cave, 11:00) and Cascade Lagoon's dusk variant (the night binding, 22:00) */
+export const HOLD_OUT_MAPS: { id: string; binding: string; query: string; poses: LookPose[] }[] = [
+  // the ledge: 3 m above the cave floor, 3 m back from its edge (x 22.5), turned across it
+  { id: 'chargestone', binding: 'chargestone', query: 'go=1&mode=range&species=charmander&map=chargestone-cave&mapseed=1', poses: [{ id: 'spawn' }, { id: 'ledge', at: [19.5, 19.5], yaw: Math.PI / 2 + 0.5, pitch: 0.35 }] },
+  // the bank: 2.1 m above the shore, 4 m back from its edge (x −32.5), turned across it
+  { id: 'dusklagoon', binding: 'dusk', query: 'go=1&mode=range&species=charmander&map=cascade-lagoon/dusk&mapseed=1', poses: [{ id: 'spawn' }, { id: 'ledge', at: [-28.5, 17.5], yaw: -Math.PI / 2 + 0.5, pitch: 0.35 }] },
+];

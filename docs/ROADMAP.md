@@ -477,7 +477,11 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   **Round 3 (owner, 2026-11-27):** the fixed hour is 11:00 for day maps and caves, facet tone locked to orientation
   (+0.06 tops, −0.06 sides) in the shader and the profile, `tests/looksheet.test.ts` gates mark 1; the ink fix is on
   `feat/i2a-three-scene` as F112. Re-shot at 11:00: all four variants pass all three marks (mark 1 min 12.8 on
-  trunk; signals 40/40; at most 1.34 ms p95). Waiting on the owner's pick of paint and ink; then the hold-outs.
+  trunk; signals 40/40; at most 1.34 ms p95).
+  **Picked and shown (owner, 2026-11-27):** p1i1, in the `lowpoly` profile. On the hold-outs mark 1 **fails on both**:
+  Chargestone Cave 6.5 (cliff; the cave split is 0.4) and the dusk lagoon 5.1 (trunk; the moon stands 60° up at
+  22:00); no crushing, marks 2 and 3 pass. Reported, not tuned: docs/looksheet "The pick and the hold-outs". Open: the
+  cave and night light splits and the night hour [owner]; F113.
 - **F112. The ink pass ignored the fog and read the wrong camera** [found by the owner in the look sheet, fixed on
   this branch, 2026-11-27]: ink and edge-light lines showed through the fog on far blocks (River Gorge, round 1). The
   pass runs after the scene's fog, and inside the pipeline's quad pass the TSL `camera*` nodes are the quad's camera,
@@ -485,6 +489,13 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   scene camera explicitly; the ink colour is fogged with the scene's curve and colour and edge light fades by it.
   Ink is at weight 0 in `lowpoly`, so nothing shipped showed it. Any later post pass that reads depth takes the scene
   camera the same way.
+- **F113. The transcribed dithers at native resolution** [owner]: the sky's six bands and the vignette's four levels
+  are dithered on a 4 × 4 Bayer grid, as today's `SKY_FS` and `VIG_FS` draw them (I2a transcribed both). Today they
+  sit on the low internal resolution and are upscaled in pixel steps, so the dither reads as pixel art; the 3D scene
+  draws at native resolution (owner, 2026-11-27), where it reads as a 1 px stipple across the sky and a stippled
+  ellipse on the ground ("rings on the range grass"). Checked on the range by switching each off: the sky stipple is
+  the sky's dither, the rings and the sparse dark dots at the top of the sky are the vignette, and the fog shows no
+  banding. Options: keep them; drop the dither (smooth gradients); or dither at a coarser grid.
 - **F109. `scripts/dev.mjs` had no recast plugin** [found and fixed by I2a]: since I3 the dev server's bundle imports
   `src/nav/web.ts`'s `.wasm`, which esbuild cannot load without `navWasm`; I2a added it beside the three side file.
 
