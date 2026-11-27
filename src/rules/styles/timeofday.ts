@@ -52,8 +52,9 @@ export interface MapTime {
 export const FIXED_HOUR: Record<BiomeBinding['light'], number> = { day: 11, night: 23, cave: 11 };
 
 /** at the fixed hour, an open-sky top facing up takes `sun` of its light from the key light and the rest from the
- *  ambient fill, so it shows the binding's base colour (× the world light). Provisional look values */
-const KEY_SHARE: Record<BiomeBinding['light'], number> = { day: 0.65, night: 0.45, cave: 0.4 };
+ *  ambient fill, so it shows the binding's base colour (× the world light). Night 0.55 (owner, 2026-11-27, after the
+ *  cave and night sweep; provisional until the owner confirms it from the frames); day and cave provisional */
+const KEY_SHARE: Record<BiomeBinding['light'], number> = { day: 0.65, night: 0.55, cave: 0.4 };
 /** enclosed ambient as a share of open ambient (provisional) */
 const ENCLOSED = 0.45;
 
@@ -71,15 +72,17 @@ export const sunSine = (hour: number) => dsin(((hour - 6) / 12) * Math.PI);
  *  three are derived from it by one rule so the dev parameter can show other times. Provisional until TD tunes them:
  *  only the fixed hour ships (D12). */
 /** `o.hour` and `o.share` anchor the keyframes at another fixed hour or key share (a map's `look`, the look sheet's
- *  sweep); the anchor is calibrated at that hour either way */
-export function keysFor(b: BiomeBinding, o: { hour?: number; share?: number } = {}): LightKey[] {
+ *  sweep); the anchor is calibrated at that hour either way. `o.ambient` sets the ambient fill's share apart from the
+ *  key's (else 1 − share), so an open top takes share + ambient */
+export function keysFor(b: BiomeBinding, o: { hour?: number; share?: number; ambient?: number } = {}): LightKey[] {
   const hor = hexRgb(b.sky.hor), zen = hexRgb(b.sky.zen), ground = hexRgb(b.roles.ground);
   const fixed = o.hour ?? FIXED_HOUR[b.light], share = o.share ?? KEY_SHARE[b.light];
   // the key light's elevation at the fixed hour (the moon's at night: the antipode on the same path)
   const s = Math.max(0.2, Math.abs(sunSine(fixed)));
-  // ambient colours from the sky, each normalised to luminance 1, then scaled so up + key = 1 on an open top
+  // ambient colours from the sky, each normalised to luminance 1, then scaled so up + key = 1 on an open top (or
+  // up = o.ambient when it is given)
   const up = norm(mixc(zen, hor, 0.5)), side = norm(hor), down = norm(mulc(ground, 0.5));
-  const amb = 1 - share;
+  const amb = o.ambient ?? 1 - share;
   const open: Six = six((i) => mulc(i === 2 ? up : i === 3 ? down : side, amb * (i === 3 ? 0.5 : 1)));
   const anchor: LightKey = {
     hour: fixed,
@@ -166,7 +169,7 @@ export function lightingAt(t: MapTime, hour: number): Lighting {
 
 /** a map's time: its binding's keyframes and fixed hour, and the team axis from its staging markers (A → B; the z axis
  *  when it has none, as on the range) */
-export function mapTime(b: BiomeBinding, stagings: [number, number][] = [], o: { hour?: number; share?: number } = {}): MapTime {
+export function mapTime(b: BiomeBinding, stagings: [number, number][] = [], o: { hour?: number; share?: number; ambient?: number } = {}): MapTime {
   let axis: [number, number] = [0, 1];
   if (stagings.length >= 2) {
     const dx = stagings[1][0] - stagings[0][0], dz = stagings[1][1] - stagings[0][1], l = dhypot(dx, dz);

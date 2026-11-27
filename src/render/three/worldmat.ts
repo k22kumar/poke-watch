@@ -79,10 +79,7 @@ function painted(base: [number, number, number], P: PaintBlock): N {
     // by plane: the baked hash; locked to orientation: + on tops (normal within 60° of up), − on every other face
     const top: N = normalWorld.y.greaterThan(0.5);
     const f: N = P.facetMode === 'oriented' ? select(top, float(1), float(-1)) : attribute('aFacet', 'float');
-    let k: N = float(1).add(f.mul(P.facetTone));
-    // locked to orientation, sides may also take the plane's random tone on top of their −facetTone
-    if (P.facetMode === 'oriented' && P.facetJitter > 0) k = k.add(select(top, float(0), attribute('aFacet', 'float').mul(P.facetJitter)));
-    c = c.mul(k);
+    c = c.mul(float(1).add(f.mul(P.facetTone)));
   }
   if (P.verticalGradient > 0) c = c.mul(float(1).sub(min(float(1), attribute('aDepth', 'float').div(4)).mul(P.verticalGradient)));
   if (P.strata > 0) {

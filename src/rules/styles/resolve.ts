@@ -25,6 +25,9 @@ export interface LookLayer {
   hour?: number;
   /** the key light's share of an open top's light at the fixed hour (timeofday.ts KEY_SHARE) */
   keyShare?: number;
+  /** the ambient fill's share of an open top's light at the fixed hour; absent: 1 − the key share (timeofday.ts keysFor).
+   *  With it the key light and the ambient are set apart, so an open top may take more than 1 */
+  ambientShare?: number;
   /** grading on every keyframe */
   grade?: Partial<LightKey['grade']>;
 }
@@ -68,14 +71,15 @@ export function resolve(profileId: ProfileId, artKey: string, opts: { look?: Loo
     m.ink = guard(`roles.${role}.ink`, m.ink, 0, C.maxInk);
     roles[role] = m;
   }
-  let paint = { ...P.paint }, ink = { ...P.ink }, bloom = { ...P.bloom };
+  let paint = { ...P.paint, ...P.paintByLight[B.light] }, ink = { ...P.ink }, bloom = { ...P.bloom };
   for (const L of layers) { paint = { ...paint, ...L.paint }; ink = { ...ink, ...L.ink }; bloom = { ...bloom, ...L.bloom }; }
   ink.weight = guard('ink.weight', ink.weight, 0, C.maxInk);
   bloom.resolution = guard('bloom.resolution', bloom.resolution, 0.125, 1);
 
   // the keyframes are anchored (calibrated) at the layers' fixed hour and key share
   const hour = layers.reduce<number | undefined>((h, L) => L.hour ?? h, undefined), share = layers.reduce<number | undefined>((k, L) => L.keyShare ?? k, undefined);
-  const time = mapTime(B, opts.stagings, { hour, share });
+  const ambient = layers.reduce<number | undefined>((a, L) => L.ambientShare ?? a, undefined);
+  const time = mapTime(B, opts.stagings, { hour, share, ambient });
   const g = layers.reduce<Partial<LightKey['grade']>>((a, L) => ({ ...a, ...L.grade }), {});
   time.keys = time.keys.map((k) => {
     const gr = { ...k.grade, ...g };

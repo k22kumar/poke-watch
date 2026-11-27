@@ -4,6 +4,8 @@
 // under 0.3 ΔL* and does not show in frames; it returns later as a feel question).
 // Round 3 (owner, 2026-11-27): the facet tone is the profile's, locked to orientation (+0.06 tops, −0.06 sides), so
 // both paint variants carry it and the moderate set adds the vertical gradient, edge light and strata.
+import type { MaterialRole } from '../../src/rules/materialroles';
+
 export const LOOK_AXES = {
   p: ['', 'vgrad=0.25&edge=0.12&strata=0.08'],
   i: ['', 'ink=1&inkshare=0.35'],
@@ -36,14 +38,21 @@ export const HOLD_OUT_MAPS: { id: string; binding: string; query: string; poses:
 ];
 
 /** the owner's cave and night sweep (2026-11-27, after the hold-outs): per hold-out map, the key share at the fixed hour
- *  (night now 23:00), then at the best share the facet tone 0.10 against 0.06, and on Chargestone a random side tone on
- *  top of the locked facet tone. `base` is the provisional split (cave 0.4, night 0.45). The query strings are the dev
- *  experiment layer's (`key`, `facet`, `facetjitter`). */
+ *  (night now 23:00), then at the best share the facet tone 0.10 against 0.06. `base` is the provisional split (cave
+ *  0.4, night 0.45) as it was then. The query strings are the dev experiment layer's (`key`, `facet`). Its side-jitter
+ *  variant (k50-jit03) was dropped with `paint.facetJitter` (owner, 2026-11-27). Since the owner's decisions after it,
+ *  caves and night take facet ±0.10 and night the key share 0.55 from the profile, so these queries no longer
+ *  reproduce the sweep's numbers; they stay as its record (docs/looksheet "The cave and night sweep") */
 export const HOLD_OUT_SWEEP: Record<string, { id: string; query: string }[]> = {
-  // the best share is the highest mark-1 minimum that does not crush (shadowed top L* ≥ 20): Chargestone 0.50 (0.55
-  // crushes, 19.7), the lagoon 0.55 (0.65 crushes, 18.3). Measured with scripts/toplint.ts --holdout-sweep before any frame
   chargestone: [{ id: 'base', query: '' }, { id: 'k50', query: 'key=0.5' }, { id: 'k55', query: 'key=0.55' }, { id: 'k65', query: 'key=0.65' },
-    { id: 'k50-f10', query: 'key=0.5&facet=0.1' }, { id: 'k50-jit03', query: 'key=0.5&facetjitter=0.03' }],
+    { id: 'k50-f10', query: 'key=0.5&facet=0.1' }],
   dusklagoon: [{ id: 'base', query: '' }, { id: 'k50', query: 'key=0.5' }, { id: 'k55', query: 'key=0.55' }, { id: 'k65', query: 'key=0.65' },
     { id: 'k55-f10', query: 'key=0.55&facet=0.1' }],
 };
+
+/** the owner's Chargestone key sweep (2026-11-27, after the cave and night sweep): the ambient held at the lowest share
+ *  that keeps shadowed tops at L* ≥ 20, the key light raised from 1 − ambient by `step` until every role reaches 12 or
+ *  a top of a role on the map clips (`onMap`: the roles the adapter gives Chargestone Cave's surfaces). Facet tone is the
+ *  profile's for caves (±0.10). scripts/toplint.ts --key-sweep computes the steps; tools/looksheet.ts --key-sweep
+ *  renders them on the hold-out poses */
+export const KEY_SWEEP = { map: 'chargestone', step: 0.1, maxSteps: 12, onMap: ['ground', 'soil', 'cliff', 'cover', 'floor'] as MaterialRole[] };

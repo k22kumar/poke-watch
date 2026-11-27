@@ -12,7 +12,6 @@ export function devLayer(q: URLSearchParams): LookLayer | undefined {
   const paint: LookLayer['paint'] = {};
   if (q.has('edge')) paint.edgeLight = num('edge');
   if (q.has('facet')) paint.facetTone = num('facet');
-  if (q.has('facetjitter')) paint.facetJitter = num('facetjitter');
   if (q.has('vgrad')) paint.verticalGradient = num('vgrad');
   if (q.has('strata')) paint.strata = num('strata');
   if (Object.keys(paint).length) L.paint = paint;
@@ -26,5 +25,6 @@ export function devLayer(q: URLSearchParams): LookLayer | undefined {
     L.grade = { lift: [lift, lift, lift], gamma: [gamma, gamma, gamma], gain: [gain, gain, gain], saturation: sat };
   }
   if (q.has('key')) L.keyShare = num('key');
+  if (q.has('amb')) L.ambientShare = num('amb');
   return Object.keys(L).length ? L : undefined;
 }

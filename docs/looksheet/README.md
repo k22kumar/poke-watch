@@ -447,3 +447,84 @@ Every variant fails mark 1 and nothing is tuned further; the pick is the owner's
 | k55 | ![](2026-11-27-cavenight/dusklagoon-spawn-k55.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k55.png) |
 | k65 | ![](2026-11-27-cavenight/dusklagoon-spawn-k65.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k65.png) |
 | k55-f10 | ![](2026-11-27-cavenight/dusklagoon-spawn-k55-f10.png) | ![](2026-11-27-cavenight/dusklagoon-ledge-k55-f10.png) |
+
+## After the cave and night sweep (owner, 2026-11-27): plan, mark 1 and the trunk count
+
+The owner's decisions, recorded in docs/RENDER3D.md "Look values" and ROADMAP F111:
+
+1. **Night:** key share 0.55 and facet tone ±0.10, applied (`KEY_SHARE.night`, `paintByLight.night`). Provisional
+   until the owner confirms it by eye from the frames below.
+2. **Facet tone ±0.10 for dim scenes only** (caves and night: `paintByLight`); day maps keep ±0.06. The range and
+   River Gorge do not move: `npx tsx scripts/toplint.ts --json` gives byte-identical output before and after (every
+   variant: range trunk 12.8 min, gorge cliff 15.6; table "Round 3: results").
+3. **Trunk:** count first which trunk tops a body can stand on (below); trunk's colour is not changed.
+4. **Chargestone:** a stronger key light with the ambient held, never taken from it; steps and frames below.
+5. **The side jitter is dropped** (`paint.facetJitter`, its dev parameter `facetjitter` and the k50-jit03 variant are
+   gone from the code). Cave colours are not changed.
+6. **No cave variant is applied.** The cave key share stays 0.40 (with ambient 0.60), now at facet ±0.10.
+
+**Mark 1 on the hold-outs as applied** (`npx tsx scripts/toplint.ts --holdouts`): the dusk lagoon 10.6 (trunk; every
+other role 13.1 or more; shadowed tops 21.7 min), the same as the sweep's k55-f10. Chargestone 7.7 (cliff), up from
+6.5 by the facet tone alone.
+
+### The Chargestone key sweep: plan and mark 1
+
+Written and committed before any frame. `npx tsx scripts/toplint.ts --key-sweep` (`KEY_SWEEP`, scripts/lib/looksheet.ts):
+
+- **Ambient held at 0.45**: the lowest ambient share, to 0.01, at which every role's shadowed top keeps L\* ≥ 20 at
+  facet ±0.10 (cliff 20.1; at 0.44 it is 19.9). It is the ambient of the old k55 split. The other reading of "the
+  level that keeps shadowed tops at 20" was ambient 0.50 (the old k50 split, shadowed tops 21.4), which needs more
+  key light for the same mark 1.
+- **The key light** starts at 1 − ambient (0.55, an open top at 1.0, the calibrated split) and rises by 0.10 a step
+  (`key=<k>&amb=0.45`, the dev parameters `key` and `amb`; `amb` sets the ambient apart from the key, so an open top
+  takes key + ambient). The sweep stops at the first step where every role reaches 12, or where a top of a role on
+  the map (ground, soil, cliff, cover, floor) clips: a channel of its brightest open top at or over 1.0 before fog and
+  grading (the output step has no tone mapping).
+- Facet tone ±0.10 (the cave profile). Frames: the two hold-out poses (spawn, ledge) for every step.
+
+```
+chargestone: ambient held at 0.45 (lowest with shadowed tops ≥ 20), facet ±0.1; roles on the map ground, soil, cliff, cover, floor
+  variant     ground    path    soil    rock   cliff   floor   cover foliage   trunk    min  shadowTop  peak top (roles on map)
+  a45-k55        9.9    13.2    12.4    11.7     9.8    21.6    13.1    22.2    12.5    9.8       20.1  0.681
+  a45-k65       10.9    14.5    13.6    12.9    10.7    23.7    14.4    24.3    13.7   10.7       20.1  0.765
+  a45-k75       11.8    15.7    14.7    13.9    11.6    25.6    15.6    26.3    14.8   11.6       20.1  0.848
+  a45-k85       12.6    16.8    15.8    14.9    12.4    27.4    16.6    28.2    15.8   12.4       20.1  0.931  pass
+```
+
+Key 0.85 over ambient 0.45 (an open top at 1.30) is the first step where every role reaches 12 (cliff 12.4, ground
+12.6); no top clips there (the brightest is floor at 0.931). The shadowed tops do not move (20.1): the ambient is held.
+
+### Trunk: tops a body can stand on
+
+`npx tsx scripts/trunktops.ts 3`: every trunk-role box the tile adapter builds, on the training range, the four
+authored arenas, the three Pokémon locations and the six habitat recipes (seeds 1–3; surface variants are
+footing-identical, docs/HABITAT_AUDIT.md), split by what stands under it.
+
+- **Low props** (stump, log; PROP_RULES `platform` 0.65 m): the tile model's ground is the prop's top (World.height),
+  so a body that jumps up (apex 1.84 m) stands on it, and on the physics flag it is a box collider with a top; the
+  adapter writes it as a walkable face. Recast's narrow group keeps a polygon on few of them (a 1 × 1 or 2 × 1 m top
+  eroded by the agent radius): a player can stand there, the bots rarely path there.
+- **Wall props** (trees, the elder, fences, signs, cabins): not standable today. The tile model lets a body over a
+  wall top only with R1b's crossing permission, which no driver grants (sim/locomotion.ts `over`), and the physics
+  seam stands the wall column to the sky for movement (sim/physseam.ts pass 1).
+- **The 3D range** is G1a's and is not built, so it has no trunk to count.
+
+| Map | Standable trunk tops (low props), seeds 1 / 2 / 3 | of them on the narrow navmesh | Not standable (wall props), seeds 1 / 2 / 3 |
+|---|---|---|---|
+| Training range (arena) | 0 | 0 | 701 (trees) |
+| Sunpetal Meadow (arena) | 13 stumps | 0 | 788 |
+| Cinder Badlands (arena) | 11 stumps | 0 | 533 |
+| Rimefrost Heights (arena) | 14 stumps | 0 | 752 |
+| Duskwood Hollow (arena) | 15 stumps | 0 | 791 |
+| Viridian Forest | 13 / 13 / 13 (4–5 logs, 8–9 stumps) | 0 / 1 / 1 | 2551 / 2682 / 2689 |
+| Mt. Moon | 0 | 0 | 0 / 1 / 1 (a sign) |
+| Chargestone Cave | 0 | 0 | 0 |
+| Shrine Gorge (river-gorge) | 22 / 13 / 26 | 0 / 1 / 2 | 875 / 876 / 987 |
+| Cinder Crater (volcanic-ridge) | 0 | 0 | 3 / 19 / 9 |
+| Shoal Grotto (tidal-cave) | 0 | 0 | 0 |
+| Memorial Ridge (forest-cemetery) | 5 / 4 / 4 | 0 / 0 / 1 | 941 / 903 / 815 |
+| Cascade Lagoon (tropical-lagoon) | 3 / 8 / 4 (logs) | 0 / 1 / 1 | 2337 / 2193 / 2270 |
+| Spear Sanctuary | 0 | 0 | 0 / 12 / 0 |
+
+**Some trunk tops are standable** (stumps and logs, on 8 of the 14 maps; none on the training range), so trunk is not
+proposed for exclusion from mark 1. Stopped here for the owner, as asked; trunk's colour is unchanged.

@@ -61,9 +61,6 @@ export interface PaintBlock {
   /** how a face takes its facet tone: `plane`, a hash per plane (±); `oriented`, locked to orientation, tops + and
    *  sides − (a face is a top when its normal is within 60° of up) */
   facetMode: 'plane' | 'oriented';
-  /** locked to orientation only: a random tone (the plane's hash, ±) added on side faces, on top of their −facetTone
-   *  (0 = none) */
-  facetJitter: number;
   /** darkening per metre below the local top, up to 1 at 4 m (0 = none) */
   verticalGradient: number;
   /** lightening along crease edges, drawn by the ink pass (0 = none) */
@@ -114,6 +111,8 @@ export interface StyleProfile {
   liquid: { ramp: Ramp; opacity: number; flow: number };
   shape: ShapeBlock;
   paint: PaintBlock;
+  /** paint overrides per light class of the binding (BiomeBinding.light), over `paint` and under a map's look */
+  paintByLight: Partial<Record<'day' | 'night' | 'cave', Partial<PaintBlock>>>;
   /** the pass list, in order, from the closed registry (Q18.4 as superseded by Q23) */
   passes: PostPassId[];
   ink: InkParams;
@@ -140,7 +139,10 @@ export const STYLE_PROFILES: Record<ProfileId, StyleProfile> = {
     shape: { creaseAngle: 30, chamfer: 0, irregularity: 0, minThickness: 0.1, strokeDensity: 0 },
     // the owner's look-sheet pick (2026-11-27, docs/looksheet p1i1): the facet tone locked to orientation (+0.06 tops,
     // −0.06 sides, Q23.3) and the moderate set: vertical gradient 0.25, edge light 0.12, strata 0.08 on steep faces
-    paint: { facetTone: 0.06, facetMode: 'oriented', facetJitter: 0, verticalGradient: 0.25, edgeLight: 0.12, strata: 0.08, strataSpacing: 0.5 },
+    paint: { facetTone: 0.06, facetMode: 'oriented', verticalGradient: 0.25, edgeLight: 0.12, strata: 0.08, strataSpacing: 0.5 },
+    // dim scenes (owner, 2026-11-27, after the cave and night sweep): caves and night take facet tone ±0.10; day maps
+    // keep ±0.06
+    paintByLight: { cave: { facetTone: 0.1 }, night: { facetTone: 0.1 } },
     // both optional passes are listed and built only at a weight above zero; provisional weights are zero
     passes: ['ink', 'bloom'],
     // thin (1 px) dark ink at weight 1 × each role's share (0.35): the owner's pick, p1i1

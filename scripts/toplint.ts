@@ -6,12 +6,13 @@
 // npx tsx scripts/toplint.ts --sweep [--json]  round 2's sweep: key share × fixed hour × facet mode (docs/looksheet)
 // npx tsx scripts/toplint.ts --holdouts [--json]  the shipped profile on the hold-out maps
 // npx tsx scripts/toplint.ts --holdout-sweep [--json]  the cave and night sweep, one table per hold-out map
+// npx tsx scripts/toplint.ts --key-sweep [--json]  Chargestone's key sweep: ambient held, the key light raised in steps
 import type { MaterialRole } from '../src/rules/materialroles';
 import { resolve } from '../src/rules/styles/resolve';
 import { devLayer } from '../src/render/world3d/devlayer';
 import { lightAt } from '../src/render/world3d/lighting';
-import { topSideGap } from '../src/render/world3d/tones';
-import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
+import { faceTone, topSideGap } from '../src/render/world3d/tones';
+import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, KEY_SWEEP, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
 
 // --holdouts: the shipped profile on the hold-out maps' bindings (after the owner's pick)
 const holdouts = process.argv.includes('--holdouts');
@@ -21,6 +22,37 @@ const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
 /** the roles the tile adapter writes (src/world/adapter.ts header) */
 const WRITTEN: MaterialRole[] = ['ground', 'path', 'soil', 'rock', 'cliff', 'floor', 'cover', 'foliage', 'trunk'];
 export const TOP_SIDE_MIN = 12;
+
+if (process.argv.includes('--key-sweep')) {
+  // the owner's Chargestone sweep (2026-11-27): the ambient held at the lowest share (to 0.01) that keeps every shadowed
+  // top at L* ≥ 20, then the key light raised from 1 − ambient in steps of KEY_SWEEP.step until every role reaches 12 or
+  // a top on the map clips (a channel of the brightest open top, before fog and grading, at or over 1: the output step
+  // has no tone mapping). Facet tone is the profile's for caves (±0.10)
+  const K = KEY_SWEEP, m = HOLD_OUT_MAPS.find((x) => x.id === K.map)!;
+  const at = (q: string) => {
+    const S = resolve('lowpoly', m.binding, { overlay: devLayer(new URLSearchParams(q)) });
+    const L = lightAt(S.time, S.time.hour);
+    const gaps = WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) }));
+    const peak = Object.fromEntries(WRITTEN.map((role) => [role, Math.max(...faceTone(S, L, role, [0, 1, 0]))]));
+    return { S, gaps, peak, shadowMin: Math.min(...gaps.map((g) => g.shadowTop)), min: Math.min(...gaps.map((g) => g.gap)) };
+  };
+  let amb = 1;
+  for (let a = 100; a >= 1; a--) { const r = at(`key=${1 - a / 100}&amb=${a / 100}`); if (r.shadowMin < 20) break; amb = a / 100; }
+  const rows = [];
+  for (let i = 0; i < K.maxSteps; i++) {
+    const key = +(1 - amb + i * K.step).toFixed(2), query = `key=${key}&amb=${amb}`, r = at(query);
+    const clipped = K.onMap.filter((role) => r.peak[role] >= 1);
+    rows.push({ id: `a${Math.round(amb * 100)}-k${Math.round(key * 100)}`, query, key, ambient: amb, facet: r.S.paint.facetTone, roles: Object.fromEntries(r.gaps.map((g) => [g.role, +g.gap.toFixed(1)])), shadow: Object.fromEntries(r.gaps.map((g) => [g.role, +g.shadowTop.toFixed(1)])), peak: Object.fromEntries(WRITTEN.map((x) => [x, +r.peak[x].toFixed(3)])), min: +r.min.toFixed(1), shadowMin: +r.shadowMin.toFixed(1), clipped, pass: r.min >= 12 && r.shadowMin >= 20 && !clipped.length });
+    if (r.min >= 12 || clipped.length) break;
+  }
+  if (process.argv.includes('--json')) console.log(JSON.stringify(rows));
+  else {
+    console.log(`${K.map}: ambient held at ${amb} (lowest with shadowed tops ≥ 20), facet ±${rows[0].facet}; roles on the map ${K.onMap.join(', ')}`);
+    console.log(`  ${'variant'.padEnd(10)} ${WRITTEN.map((r) => r.padStart(7)).join(' ')}    min  shadowTop  peak top (roles on map)`);
+    for (const r of rows) console.log(`  ${r.id.padEnd(10)} ${WRITTEN.map((x) => String(r.roles[x]).padStart(7)).join(' ')}  ${String(r.min).padStart(5)}  ${String(r.shadowMin).padStart(9)}  ${Math.max(...K.onMap.map((x) => r.peak[x])).toFixed(3)}${r.clipped.length ? ' clips: ' + r.clipped.join(', ') : ''}${r.pass ? '  pass' : ''}`);
+  }
+  process.exit(0);
+}
 
 if (process.argv.includes('--holdout-sweep')) {
   // one table per hold-out map: mark 1 per role and the shadowed-top L* for every variant of HOLD_OUT_SWEEP
