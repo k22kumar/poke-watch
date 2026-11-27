@@ -4,14 +4,15 @@
 // `smooth`), and bakes the per-vertex channels the world material reads: sky visibility, the lamp channel, a facet
 // tone and the depth below the local top. Pure arrays, no three: src/render/three wraps them in geometry.
 import type { MaterialRole } from '../../rules/materialroles';
+import type { StyleRole } from '../../rules/styles/bindings';
 import type { NormalMode } from '../../rules/styles/profiles';
-import type { WorldModel } from '../../world/model';
+import type { SurfaceChunk, WorldModel } from '../../world/model';
 import { LAMP_EPS, lampFalloff, skyVisibility, type LampEmitter } from './bake';
 import { TopField } from './topfield';
 
 export interface BuiltChunk {
   kind: 'terrain' | 'liquid';
-  role?: MaterialRole;
+  role?: StyleRole;
   liquid?: string;
   cx: number; cz: number;
   positions: Float32Array;
@@ -41,6 +42,7 @@ export interface WorldBuild {
 }
 
 export interface BuildOptions {
+  /** by model role: a render-side role takes the normals of the model role it was split from (endgrain: trunk) */
   normalMode: (role: MaterialRole) => NormalMode;
   /** degrees */
   creaseAngle: number;
@@ -60,6 +62,41 @@ function planeTone(nx: number, ny: number, nz: number, d: number): number {
   return ((h >>> 0) / 4294967295) * 2 - 1;
 }
 
+/** a terrain chunk with the role the renderer draws it as (a model role, or a render-side role) */
+type StyledChunk = Omit<SurfaceChunk, 'role'> & { role?: StyleRole; from?: MaterialRole };
+
+/**
+ * The render-side endgrain role (owner, 2026-11-27; docs/RENDER3D.md "Look values"): the up-facing faces of a `trunk`
+ * chunk that lie on the top of a raised trunk box (a stump or a log: a box collider of role `trunk` standing above the
+ * model's floor, where a tree's box stands on it) are drawn as `endgrain`; every other trunk face stays `trunk`. The
+ * model and the adapter are not touched: a trunk chunk is split into two chunks over the same positions. G1a's meshes
+ * carry the role themselves.
+ */
+export function withEndgrain(model: WorldModel): StyledChunk[] {
+  const floor = model.bounds.min[1], tops: [number, number, number, number, number][] = [];
+  for (const c of model.colliders) {
+    if (c.shape !== 'box' || c.role !== 'trunk' || !(c.centre[1] - c.half[1] > floor + 1e-6)) continue;
+    tops.push([c.centre[0] - c.half[0], c.centre[0] + c.half[0], c.centre[2] - c.half[2], c.centre[2] + c.half[2], c.centre[1] + c.half[1]]);
+  }
+  const out: StyledChunk[] = [];
+  for (const c of model.surfaces) {
+    if (c.material === 'liquid' || c.role !== 'trunk' || !tops.length) { out.push(c); continue; }
+    const P = c.positions, I = c.indices, keep: number[] = [], grain: number[] = [];
+    for (let t = 0; t < I.length; t += 3) {
+      const a = I[t] * 3, b = I[t + 1] * 3, d = I[t + 2] * 3;
+      const ux = P[b] - P[a], uy = P[b + 1] - P[a + 1], uz = P[b + 2] - P[a + 2], vx = P[d] - P[a], vy = P[d + 1] - P[a + 1], vz = P[d + 2] - P[a + 2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz);
+      const x = (P[a] + P[b] + P[d]) / 3, y = (P[a + 1] + P[b + 1] + P[d + 1]) / 3, z = (P[a + 2] + P[b + 2] + P[d + 2]) / 3;
+      // facing up (either winding: the adapter's faces are not consistently wound, F104) and on a raised trunk top
+      const up = l > 0 && Math.abs(ny) / l > 0.5 && tops.some((q) => x > q[0] && x < q[1] && z > q[2] && z < q[3] && Math.abs(y - q[4]) < 1e-3);
+      (up ? grain : keep).push(I[t], I[t + 1], I[t + 2]);
+    }
+    if (!grain.length) { out.push(c); continue; }
+    out.push({ ...c, indices: Uint32Array.from(keep) }, { ...c, role: 'endgrain', from: 'trunk', indices: Uint32Array.from(grain) });
+  }
+  return out;
+}
+
 export function buildWorld(model: WorldModel, o: BuildOptions): WorldBuild {
   const t0 = now();
   const field = TopField.of(model);
@@ -70,7 +107,7 @@ export function buildWorld(model: WorldModel, o: BuildOptions): WorldBuild {
   // face normals (unnormalised: their length is twice the area) of every terrain triangle, and the corners at each
   // distinct position across every terrain chunk with their angle: a vertex normal is the corner-angle-weighted mean
   // of the faces it keeps, so it does not depend on how a surface was split into triangles or chunks
-  const terrain = model.surfaces.filter((c) => c.material !== 'liquid');
+  const terrain = withEndgrain(model).filter((c) => c.material !== 'liquid');
   const faceN: Float32Array[] = [];
   const corners = new Map<string, number[]>(); // position → [chunk, face, corner angle, …] triples
   terrain.forEach((c, ci) => {
@@ -98,7 +135,7 @@ export function buildWorld(model: WorldModel, o: BuildOptions): WorldBuild {
   const t2 = now();
   let bakeMs = 0;
   terrain.forEach((c, ci) => {
-    const role = c.role ?? 'ground', mode = o.normalMode(role);
+    const role = c.role ?? 'ground', mode = o.normalMode(c.from ?? (role as MaterialRole));
     const P = c.positions, I = c.indices, F = faceN[ci];
     inputVertices += P.length / 3;
     const pos: number[] = [], nrm: number[] = [], idx: number[] = [];

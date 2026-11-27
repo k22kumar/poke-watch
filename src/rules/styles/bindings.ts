@@ -12,6 +12,16 @@ import type { MaterialRole } from '../materialroles';
 /** an sRGB colour as '#rrggbb' (data); the renderer converts to linear */
 export type Hex = string;
 
+/** Render-side roles: not MaterialRoles (the model's union, Q16; the tile adapter never writes them) but faces the
+ *  renderer picks out itself (src/render/world3d/mesh.ts). `endgrain`: the cut-wood top of a stump or log (owner,
+ *  2026-11-27, docs/looksheet "Endgrain"); its sides stay `trunk`. G1a's 3D stumps and logs carry it as a model role */
+export const RENDER_ROLES = ['endgrain'] as const;
+export type RenderRole = (typeof RENDER_ROLES)[number];
+/** every role the world style shades */
+export type StyleRole = MaterialRole | RenderRole;
+/** the endgrain colour on every binding: pale cut wood (proposed by Claude, 2026-11-27; the owner checks it by eye) */
+export const ENDGRAIN: Hex = '#d8c09a';
+
 export interface LiquidLook {
   colour: Hex;
   /** 0..1: self-lit share (lava, glowing water: today's `waterGlow`) */
@@ -22,6 +32,8 @@ export interface BiomeBinding {
   id: string;
   /** role → base colour (a lit, open-sky top shows this colour at the map's fixed time) */
   roles: Record<MaterialRole, Hex>;
+  /** render-side role → base colour */
+  renderRoles: Record<RenderRole, Hex>;
   /** liquids-registry id → look; an id with no entry draws as `water` */
   liquids: Record<string, LiquidLook>;
   /** today's third-person sky gradient and fog (render/sky.ts) */
@@ -52,6 +64,7 @@ const bind = (id: string, s: Src): BiomeBinding => ({
     cover: s.cover, foliage: s.foliage, trunk: s.trunk,
     objective: s.path, hazard: s.soil,
   },
+  renderRoles: { endgrain: ENDGRAIN },
   liquids: { water: { colour: s.water, emissive: s.glow ? 0.6 : 0 }, lava: LAVA },
   sky: { hor: s.hor, zen: s.zen, fogNear: s.fogNear, fogFar: s.fogFar, fog: s.fogK },
   world: s.world, actor: s.actor, vignette: { amount: s.vignette, colour: s.vignetteCol }, light: s.light,

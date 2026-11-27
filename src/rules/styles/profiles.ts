@@ -6,6 +6,7 @@
 // (marked "provisional"): I2a built the machinery and left the look values neutral or transcribed from today's tables
 // until the owner sets them (docs/RENDER3D.md "Look values").
 import type { MaterialRole } from '../materialroles';
+import type { RenderRole } from './bindings';
 import type { PostPassId } from './passes';
 
 /** the closed profile registry (Q18.1a): one ships; dev builds may pick another with ?profile= */
@@ -107,6 +108,8 @@ export interface StyleProfile {
   id: ProfileId;
   /** per-role defaults */
   roles: Record<MaterialRole, RoleShading>;
+  /** per render-side role (bindings.ts RENDER_ROLES) */
+  renderRoles: Record<RenderRole, RoleShading>;
   /** liquids: the same bands plus transparency and flow (Q18.3) */
   liquid: { ramp: Ramp; opacity: number; flow: number };
   shape: ShapeBlock;
@@ -134,6 +137,7 @@ export const STYLE_PROFILES: Record<ProfileId, StyleProfile> = {
       cover: flat(), foliage: flat(), trunk: flat(),
       objective: flat(), hazard: flat(),
     },
+    renderRoles: { endgrain: flat() },
     liquid: { ramp: { bands: 0, soft: 0 }, opacity: 0.78, flow: 0 },
     // provisional: S2's crease-free tile boxes need none of the G1b numbers yet
     shape: { creaseAngle: 30, chamfer: 0, irregularity: 0, minThickness: 0.1, strokeDensity: 0 },

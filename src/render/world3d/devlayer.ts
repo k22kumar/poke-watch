@@ -2,6 +2,7 @@
 // style, dev only. The 3D scene and scripts/toplint.ts read variants through this one parser. No three.
 import { MATERIAL_ROLES } from '../../rules/materialroles';
 import type { LookLayer } from '../../rules/styles/resolve';
+import { RENDER_ROLES } from '../../rules/styles/bindings';
 
 /** the overlay a page URL asks for, or undefined when it asks for none */
 export function devLayer(q: URLSearchParams): LookLayer | undefined {
@@ -18,7 +19,7 @@ export function devLayer(q: URLSearchParams): LookLayer | undefined {
   if (q.has('bands') || q.has('inkshare')) {
     const ramp = q.has('bands') ? { ramp: { bands: num('bands')!, soft: num('soft') ?? 0.15 } } : {};
     const ink = q.has('inkshare') ? { ink: num('inkshare')! } : {};
-    L.roles = Object.fromEntries(MATERIAL_ROLES.map((r) => [r, { ...ramp, ...ink }]));
+    L.roles = Object.fromEntries([...MATERIAL_ROLES, ...RENDER_ROLES].map((r) => [r, { ...ramp, ...ink }]));
   }
   if (q.has('grade')) {
     const [lift, gamma, gain, sat] = q.get('grade')!.split(',').map(Number);

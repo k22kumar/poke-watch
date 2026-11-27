@@ -5,6 +5,14 @@
 // Round 3 (owner, 2026-11-27): the facet tone is the profile's, locked to orientation (+0.06 tops, −0.06 sides), so
 // both paint variants carry it and the moderate set adds the vertical gradient, edge light and strata.
 import type { MaterialRole } from '../../src/rules/materialroles';
+import type { StyleRole } from '../../src/rules/styles/bindings';
+
+/** the roles mark 1 reads (owner, 2026-11-27): the roles the tile adapter writes, with trunk replaced by endgrain (the
+ *  cut top of a stump or log, the only trunk-coloured top a body can stand on; docs/looksheet "Trunk"). Trunk's own
+ *  tops (trees, fences, signs, cabins) are out of mark 1 */
+export const MARK1_ROLES: StyleRole[] = ['ground', 'path', 'soil', 'rock', 'cliff', 'floor', 'cover', 'foliage', 'endgrain'];
+/** a role whose top sits on another role's sides: mark 1 compares its top with those sides */
+export const SIDE_OF: Partial<Record<StyleRole, StyleRole>> = { endgrain: 'trunk' };
 
 export const LOOK_AXES = {
   p: ['', 'vgrad=0.25&edge=0.12&strata=0.08'],

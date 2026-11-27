@@ -7,20 +7,22 @@
 // npx tsx scripts/toplint.ts --holdouts [--json]  the shipped profile on the hold-out maps
 // npx tsx scripts/toplint.ts --holdout-sweep [--json]  the cave and night sweep, one table per hold-out map
 // npx tsx scripts/toplint.ts --key-sweep [--json]  Chargestone's key sweep: ambient held, the key light raised in steps
-import type { MaterialRole } from '../src/rules/materialroles';
+import type { StyleRole } from '../src/rules/styles/bindings';
 import { resolve } from '../src/rules/styles/resolve';
 import { devLayer } from '../src/render/world3d/devlayer';
 import { lightAt } from '../src/render/world3d/lighting';
 import { faceTone, topSideGap } from '../src/render/world3d/tones';
-import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, KEY_SWEEP, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
+import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, KEY_SWEEP, MARK1_ROLES, SIDE_OF, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
 
 // --holdouts: the shipped profile on the hold-out maps' bindings (after the owner's pick)
 const holdouts = process.argv.includes('--holdouts');
 const LOOK_MAPS = holdouts ? HOLD_OUT_MAPS : TUNING_MAPS;
 const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
 
-/** the roles the tile adapter writes (src/world/adapter.ts header) */
-const WRITTEN: MaterialRole[] = ['ground', 'path', 'soil', 'rock', 'cliff', 'floor', 'cover', 'foliage', 'trunk'];
+/** mark 1's roles (scripts/lib/looksheet.ts MARK1_ROLES: trunk replaced by endgrain on 2026-11-27, so tables printed
+ *  before that date list trunk) */
+const WRITTEN: StyleRole[] = MARK1_ROLES;
+const gapOf = (S: Parameters<typeof topSideGap>[0], L: Parameters<typeof topSideGap>[1], role: StyleRole) => topSideGap(S, L, role, SIDE_OF[role]);
 export const TOP_SIDE_MIN = 12;
 
 if (process.argv.includes('--key-sweep')) {
@@ -32,7 +34,7 @@ if (process.argv.includes('--key-sweep')) {
   const at = (q: string) => {
     const S = resolve('lowpoly', m.binding, { overlay: devLayer(new URLSearchParams(q)) });
     const L = lightAt(S.time, S.time.hour);
-    const gaps = WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) }));
+    const gaps = WRITTEN.map((role) => ({ role, ...gapOf(S, L, role) }));
     const peak = Object.fromEntries(WRITTEN.map((role) => [role, Math.max(...faceTone(S, L, role, [0, 1, 0]))]));
     return { S, gaps, peak, shadowMin: Math.min(...gaps.map((g) => g.shadowTop)), min: Math.min(...gaps.map((g) => g.gap)) };
   };
@@ -61,7 +63,7 @@ if (process.argv.includes('--holdout-sweep')) {
     out[m.id] = HOLD_OUT_SWEEP[m.id].map((v) => {
       const S = resolve('lowpoly', m.binding, { overlay: devLayer(new URLSearchParams(v.query)) });
       const L = lightAt(S.time, S.time.hour);
-      const gaps = WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) }));
+      const gaps = WRITTEN.map((role) => ({ role, ...gapOf(S, L, role) }));
       const min = Math.min(...gaps.map((g) => g.gap)), shadowMin = Math.min(...gaps.map((g) => g.shadowTop));
       return { id: v.id, query: v.query, hour: S.time.hour, roles: Object.fromEntries(gaps.map((g) => [g.role, +g.gap.toFixed(1)])), shadow: Object.fromEntries(gaps.map((g) => [g.role, +g.shadowTop.toFixed(1)])), min: +min.toFixed(1), shadowMin: +shadowMin.toFixed(1), pass: min >= 12 && shadowMin >= 20, crushed: shadowMin < 20 };
     });
@@ -80,9 +82,9 @@ if (process.argv.includes('--sweep')) {
     const per = LOOK_MAPS.map((m) => {
       const S = resolve('lowpoly', m.binding, { overlay: { keyShare: share, hour, paint: { facetTone: facet, facetMode: mode } } });
       const L = lightAt(S.time, S.time.hour);
-      return { map: m.id, gaps: WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) })) };
+      return { map: m.id, gaps: WRITTEN.map((role) => ({ role, ...gapOf(S, L, role) })) };
     });
-    const minBy = (role: MaterialRole) => Math.min(...per.map((p) => p.gaps.find((g) => g.role === role)!.gap));
+    const minBy = (role: StyleRole) => Math.min(...per.map((p) => p.gaps.find((g) => g.role === role)!.gap));
     const all = per.flatMap((p) => p.gaps);
     const shadowMin = Math.min(...all.map((g) => g.shadowTop));
     const row = { share, hour, facet: facetName, roles: Object.fromEntries(WRITTEN.map((r) => [r, +minBy(r).toFixed(1)])), min: +Math.min(...all.map((g) => g.gap)).toFixed(1), shadowMin: +shadowMin.toFixed(1), crushed: shadowMin < 20 };
@@ -100,7 +102,7 @@ const rows = LOOK_VARIANTS.map((v) => {
   const per = LOOK_MAPS.map((m) => {
     const S = resolve('lowpoly', m.binding, { overlay: devLayer(new URLSearchParams(v.query)) });
     const L = lightAt(S.time, S.time.hour);
-    const gaps = WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) }));
+    const gaps = WRITTEN.map((role) => ({ role, ...gapOf(S, L, role) }));
     const worst = gaps.reduce((a, b) => (b.gap < a.gap ? b : a));
     return { map: m.id, worst, gaps };
   });

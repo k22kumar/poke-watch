@@ -55,6 +55,10 @@ export const FIXED_HOUR: Record<BiomeBinding['light'], number> = { day: 11, nigh
  *  ambient fill, so it shows the binding's base colour (× the world light). Night 0.55 (owner, 2026-11-27, after the
  *  cave and night sweep; provisional until the owner confirms it from the frames); day and cave provisional */
 const KEY_SHARE: Record<BiomeBinding['light'], number> = { day: 0.65, night: 0.55, cave: 0.4 };
+/** the ambient fill's share where a light class sets it apart from the key (an open top then takes key + ambient);
+ *  elsewhere 1 − the key share. Empty: the owner's cave split (key 0.85 over ambient 0.45, 2026-11-27) waits on a
+ *  ruling, since tests/timeofday.test.ts holds every open top at its base colour (luminance 1) */
+const AMBIENT_SHARE: Partial<Record<BiomeBinding['light'], number>> = {};
 /** enclosed ambient as a share of open ambient (provisional) */
 const ENCLOSED = 0.45;
 
@@ -82,7 +86,8 @@ export function keysFor(b: BiomeBinding, o: { hour?: number; share?: number; amb
   // ambient colours from the sky, each normalised to luminance 1, then scaled so up + key = 1 on an open top (or
   // up = o.ambient when it is given)
   const up = norm(mixc(zen, hor, 0.5)), side = norm(hor), down = norm(mulc(ground, 0.5));
-  const amb = o.ambient ?? 1 - share;
+  // a key share asked for alone (a look layer, the dev parameter) keeps the calibrated split, 1 − share
+  const amb = o.ambient ?? (o.share !== undefined ? 1 - share : AMBIENT_SHARE[b.light] ?? 1 - share);
   const open: Six = six((i) => mulc(i === 2 ? up : i === 3 ? down : side, amb * (i === 3 ? 0.5 : 1)));
   const anchor: LightKey = {
     hour: fixed,

@@ -563,3 +563,49 @@ sweep's k55-f10 (trunk 10.6 the one role under 12), for the owner to confirm by 
 | Night as applied | Dusk lagoon, spawn | Dusk lagoon, ledge |
 |---|---|---|
 | key 0.55, facet ±0.10 | ![](2026-11-27-keysweep/dusklagoon-spawn-applied.png) | ![](2026-11-27-keysweep/dusklagoon-ledge-applied.png) |
+
+## Endgrain (owner, 2026-11-27): plan and mark 1
+
+The owner's decisions after the key sweep: the night is confirmed as applied (key 0.55, facet ±0.10; no Duskwood
+Hollow frame); Chargestone's split (key 0.85 over ambient 0.45) goes to caves; stump and log tops take their own role,
+a pale cut-wood colour, assigned on the render side; trunk leaves mark 1 and the new role joins it; Chargestone Cave
+and the dusk lagoon are gated in `tests/looksheet.test.ts`; F113 stays parked. Written and committed before any frame.
+
+**The role: `endgrain`, render side only.** `withEndgrain` (src/render/world3d/mesh.ts) draws as `endgrain` every
+up-facing face of a `trunk` chunk that lies on the top of a raised trunk box (a box collider of role `trunk` whose
+bottom is above the model's floor: the adapter's stumps and logs, PROP_RULES `platform`); their sides, the trees,
+fences, signs, cabins and the elder stay `trunk`. Neither the model, the adapter nor the generators change. It is a
+render-side role (`RENDER_ROLES`, src/rules/styles/bindings.ts), not a `MaterialRole`: the model's union is contract
+(adding one bumps `MODEL_VERSION`, Q16.9), so G1a adds it there when its 3D stumps and logs carry it. Its shading is
+trunk's (flat), its normals follow the trunk chunk it was split from. A bench (wood, `platform` 0.5 m) would take it
+too; no current map has one. Gate: `tests/endgrain.test.ts`.
+
+**The colour (proposed, for the owner's eye): `#d8c09a`**, one pale cut-wood tan on every binding, between the
+bindings' wooden `floor` (`#e8c890`, warmer and more yellow) and their pale rock (`#d8d4c8`, grey).
+
+**Mark 1 reads endgrain in place of trunk** (`MARK1_ROLES`, `SIDE_OF`, scripts/lib/looksheet.ts): an endgrain top sits
+on trunk sides, so its mark is its darkest top against the brightest trunk side. Its own-colour sides are listed for
+information.
+
+| Setting (binding, fixed hour) | Endgrain top vs trunk side, ΔL\* (≥ 12) | Top L\* / trunk side L\* | Against its own sides | Shadowed top L\* |
+|---|---|---|---|---|
+| Day: meadow (the range), 11:00 | 52.2 | 80.5 / 28.3 | 21.7 | 51.8 |
+| Day: forest (Shrine Gorge), 11:00 | 52.3 | 80.5 / 28.2 | 21.7 | 51.9 |
+| Day: tropic (Cascade Lagoon), 11:00 | 52.2 | 80.5 / 28.3 | 21.7 | 51.7 |
+| Night: dusk (the dusk lagoon, Duskwood Hollow), 23:00 | 58.3 | 81.3 / 23.0 | 20.7 | 58.3 |
+| Cave: chargestone, the cave split as shipped (0.40 / 0.60) | 49.9 | 80.9 / 30.9 | 16.3 | 65.3 |
+| Cave: chargestone, the owner's split (0.85 / 0.45) | 59.5 | 90.1 / 30.5 | 26.5 | 57.8 |
+
+No cave map has a stump or log today ("Trunk"). Under the owner's cave split the endgrain top peaks at 0.79 on
+chargestone and 1.02 on moon (it would clip on Mt. Moon and Shoal Grotto if they had one).
+
+With trunk out, mark 1 on the tuning maps' worst case is the gorge's cliff, 15.6 (was trunk 12.8); the dusk lagoon
+passes, 13.1 (cliff; was trunk 10.6).
+
+**The cave split is not applied: stopped.** `tests/timeofday.test.ts` "at the fixed hour an open-sky top facing up is
+lit to its base colour" holds every binding's open top at luminance 1 ± 0.03; key 0.85 over ambient 0.45 lights an
+open cave top to 1.30 by design. Tests are the spec, so the split waits on the owner's ruling. The mechanism is in
+(`AMBIENT_SHARE` in src/rules/styles/timeofday.ts, empty), and so is the gate for the dusk lagoon; Chargestone joins
+the gate with the split. Also found: under the split the `moon` binding's floor top peaks at 1.19, so wooden floor
+tops clip on Mt. Moon (228 floor triangles) and Shoal Grotto (288; its surface variant `glimmer` uses chargestone,
+where floor peaks at 0.93).

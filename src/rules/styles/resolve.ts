@@ -3,21 +3,21 @@
 // The `look` and overlay layers have no producer yet (a recipe's look section is G1a's, overlays are Q14g's); their
 // shape here is what they may override, so they plug in without a change to the renderer.
 import { MATERIAL_ROLES, type MaterialRole } from '../materialroles';
-import { bindingFor, hexRgb, type BiomeBinding, type LiquidLook } from './bindings';
+import { RENDER_ROLES, bindingFor, hexRgb, type BiomeBinding, type LiquidLook, type StyleRole } from './bindings';
 import { POST_PASS_IDS, type PostPassId } from './passes';
 import { STYLE_PROFILES, type BloomParams, type InkParams, type PaintBlock, type ProfileId, type RoleShading, type StyleProfile } from './profiles';
 import { mapTime, type LightKey, type MapTime } from './timeofday';
 
 /** a role's resolved material: the profile's shading plus the binding's colour */
 export interface RoleMaterial extends RoleShading {
-  role: MaterialRole;
+  role: StyleRole;
   /** 0..1 sRGB */
   base: [number, number, number];
 }
 
 /** visual overrides a map's `look` section (Q14.3) or an event overlay (Q14g) may carry; never physical data */
 export interface LookLayer {
-  roles?: Partial<Record<MaterialRole, { base?: string } & Partial<RoleShading>>>;
+  roles?: Partial<Record<StyleRole, { base?: string } & Partial<RoleShading>>>;
   paint?: Partial<PaintBlock>;
   ink?: Partial<InkParams>;
   bloom?: Partial<BloomParams>;
@@ -35,7 +35,7 @@ export interface LookLayer {
 export interface ResolvedStyle {
   profile: ProfileId;
   binding: string;
-  roles: Record<MaterialRole, RoleMaterial>;
+  roles: Record<StyleRole, RoleMaterial>;
   liquids: Record<string, LiquidLook>;
   liquid: StyleProfile['liquid'];
   paint: PaintBlock;
@@ -63,9 +63,11 @@ export function resolve(profileId: ProfileId, artKey: string, opts: { look?: Loo
   const C = P.constraints;
   const guard = (field: string, v: number, lo: number, hi: number) => { const c = clamp(v, lo, hi); if (c !== v) log.push(`${field}: ${v} → ${c}`); return c; };
 
-  const roles = {} as Record<MaterialRole, RoleMaterial>;
-  for (const role of MATERIAL_ROLES) {
-    let m: RoleMaterial = { ...P.roles[role], role, base: hexRgb(B.roles[role]) };
+  const roles = {} as Record<StyleRole, RoleMaterial>;
+  const shading = (r: StyleRole) => ((MATERIAL_ROLES as readonly string[]).includes(r) ? P.roles[r as MaterialRole] : P.renderRoles[r as (typeof RENDER_ROLES)[number]]);
+  const colour = (r: StyleRole) => ((MATERIAL_ROLES as readonly string[]).includes(r) ? B.roles[r as MaterialRole] : B.renderRoles[r as (typeof RENDER_ROLES)[number]]);
+  for (const role of [...MATERIAL_ROLES, ...RENDER_ROLES] as StyleRole[]) {
+    let m: RoleMaterial = { ...shading(role), role, base: hexRgb(colour(role)) };
     for (const L of layers) { const o = L.roles?.[role]; if (o) m = { ...m, ...o, base: o.base ? hexRgb(o.base) : m.base, role }; }
     m.ramp = { bands: guard(`roles.${role}.ramp.bands`, Math.round(m.ramp.bands), 0, C.maxBands), soft: guard(`roles.${role}.ramp.soft`, m.ramp.soft, 0, 1) };
     m.ink = guard(`roles.${role}.ink`, m.ink, 0, C.maxInk);
