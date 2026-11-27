@@ -75,7 +75,11 @@ const lin = (c: [number, number, number]): [number, number, number] => [srgbToLi
  *  faces. Terms at zero build no nodes */
 function painted(base: [number, number, number], P: PaintBlock): N {
   let c: N = vec3(...lin(base));
-  if (P.facetTone > 0) c = c.mul(float(1).add(attribute('aFacet', 'float').mul(P.facetTone)));
+  if (P.facetTone > 0) {
+    // by plane: the baked hash; locked to orientation: + on tops (normal within 60° of up), − on every other face
+    const f: N = P.facetMode === 'oriented' ? select(normalWorld.y.greaterThan(0.5), float(1), float(-1)) : attribute('aFacet', 'float');
+    c = c.mul(float(1).add(f.mul(P.facetTone)));
+  }
   if (P.verticalGradient > 0) c = c.mul(float(1).sub(min(float(1), attribute('aDepth', 'float').div(4)).mul(P.verticalGradient)));
   if (P.strata > 0) {
     const steep = float(1).sub(smoothstep(0.35, 0.6, normalWorld.y.abs()));

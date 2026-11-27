@@ -129,8 +129,9 @@ test('world meshes: the range builds whole and the same twice', () => {
 });
 
 test('tones: the CPU face tone is the shader\'s maths (the top/side lint of docs/looksheet)', () => {
-  // an open top facing up at the fixed hour shows its base colour (the calibration tests/timeofday.test.ts pins)
-  const S = resolve('lowpoly', 'meadow'), L = lightAt(S.time, S.time.hour);
+  // an open top facing up at the fixed hour shows its base colour (the calibration tests/timeofday.test.ts pins); the
+  // profile's facet tone (+0.06 on tops since 2026-11-27) is set to 0 so the light alone is compared
+  const S = resolve('lowpoly', 'meadow', { overlay: { paint: { facetTone: 0 } } }), L = lightAt(S.time, S.time.hour);
   const top = faceTone(S, L, 'ground', [0, 1, 0]);
   const base = S.roles.ground.base.map(srgbToLinear);
   assert.ok(Math.abs(lstar(top) - lstar(base as [number, number, number])) < 1.5, `${lstar(top)} against ${lstar(base as [number, number, number])}`);

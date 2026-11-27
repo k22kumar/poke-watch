@@ -29,7 +29,9 @@ function cube(n: V3, six: Float32Array): V3 {
 /** a face's lit colour (linear RGB) for a role; `facet` is the face's tone seed in −1..1, `depth` its m below the top */
 export function faceTone(S: ResolvedStyle, L: LightUniforms, role: MaterialRole, n: V3, facet = 0, depth = 0): V3 {
   const m = S.roles[role], P = S.paint;
-  const k = (1 + facet * P.facetTone) * (1 - Math.min(1, depth / 4) * P.verticalGradient);
+  // locked to orientation, the face's own normal sets the sign (worldmat.ts), whatever `facet` asks
+  const fs = P.facetMode === 'oriented' ? (n[1] > 0.5 ? 1 : -1) : facet;
+  const k = (1 + fs * P.facetTone) * (1 - Math.min(1, depth / 4) * P.verticalGradient);
   const ndl = Math.max(0, n[0] * L.sunDir[0] + n[1] * L.sunDir[1] + n[2] * L.sunDir[2]);
   const r = rampOf(ndl, m.ramp.bands, m.ramp.soft), amb = cube(n, L.ambOpen);
   return [0, 1, 2].map((c) => srgbToLinear(m.base[c]) * k * (r * L.sun[c] + amb[c] * m.shadowTint[c])) as V3;
@@ -44,13 +46,12 @@ export function lstar(c: V3): number {
 
 /** the worst-case top/side gap of docs/looksheet mark 1: the darkest top (facet −1) against the brightest of the four
  *  vertical sides (facet +1), both at the local top, open sky */
-export function topSideGap(S: ResolvedStyle, L: LightUniforms, role: MaterialRole, facet: 'plane' | 'oriented' = 'plane'): { top: number; side: number; gap: number; meanGap: number; shadowTop: number } {
+export function topSideGap(S: ResolvedStyle, L: LightUniforms, role: MaterialRole): { top: number; side: number; gap: number; meanGap: number; shadowTop: number } {
   const SIDES = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]] as V3[];
-  // 'plane' (the shader today): the facet tone is a hash per plane, so the worst case is the darkest top against the
-  // brightest side; 'oriented' (the look sheet's sweep): tops +, sides −
-  const [ft, fs] = facet === 'plane' ? [-1, 1] : [1, -1];
-  const top = lstar(faceTone(S, L, role, [0, 1, 0], ft));
-  const side = Math.max(...SIDES.map((n) => lstar(faceTone(S, L, role, n, fs))));
+  // by plane the facet tone is a hash, so the worst case is the darkest top (−) against the brightest side (+); locked
+  // to orientation faceTone sets the signs itself (tops +, sides −)
+  const top = lstar(faceTone(S, L, role, [0, 1, 0], -1));
+  const side = Math.max(...SIDES.map((n) => lstar(faceTone(S, L, role, n, 1))));
   // for information: the plain top against the mean of the four sides, facet 0, 1 m below the top
   const mean = SIDES.reduce((a, n) => a + lstar(faceTone(S, L, role, n, 0, 1)), 0) / 4;
   // the open top in full shadow (ambient only): the round-2 crushing line

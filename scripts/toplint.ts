@@ -19,9 +19,9 @@ if (process.argv.includes('--sweep')) {
   const out = [];
   for (const share of [0.65, 0.75, 0.85]) for (const hour of [10, 11]) for (const [facetName, facet, mode] of [['0', 0, 'plane'], ['±0.06 by plane', 0.06, 'plane'], ['oriented 0.06', 0.06, 'oriented']] as const) {
     const per = LOOK_MAPS.map((m) => {
-      const S = resolve('lowpoly', m.binding, { overlay: { keyShare: share, hour, paint: { facetTone: facet } } });
+      const S = resolve('lowpoly', m.binding, { overlay: { keyShare: share, hour, paint: { facetTone: facet, facetMode: mode } } });
       const L = lightAt(S.time, S.time.hour);
-      return { map: m.id, gaps: WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role, mode) })) };
+      return { map: m.id, gaps: WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) })) };
     });
     const minBy = (role: MaterialRole) => Math.min(...per.map((p) => p.gaps.find((g) => g.role === role)!.gap));
     const all = per.flatMap((p) => p.gaps);

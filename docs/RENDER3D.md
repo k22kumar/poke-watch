@@ -250,6 +250,15 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
   2.17 / **4.90** p95 on WebGPU: the one figure over 4.0 ms (240 actors' sprite overdraw filling the lower screen).
 - **Merged as provisional:** the neutral values below ship flag-off with I2a.
 
+**Owner decisions (2026-11-27, after the look sheet's round-2 sweep):**
+
+- **The fixed hour moves to 11:00** (the sun 75° up), for day maps and caves; Duskwood Hollow keeps 22:00. With the
+  key share 0.65 it lets tops read apart from sides (Q23.3) for every written role, the dark ones included, without
+  crushing the ambient (docs/looksheet "Round 2"). It supersedes 10:00 above.
+- **Facet tone locked to orientation:** +0.06 on tops (a normal within 60° of up), −0.06 on every other face
+  (`paint.facetMode: 'oriented'`, built in the shader and the lint). The per-plane hash stays as `facetMode: 'plane'`.
+- **`scripts/toplint.ts` is the gate** for mark 1 (`tests/looksheet.test.ts`, on the tuning maps' bindings).
+
 **Still open, chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the ramp and the
 normal mode per role (smooth, flat facets today), the paint terms (all 0 today), ink (off today), and the shadow tint
 per role (white today).

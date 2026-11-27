@@ -56,8 +56,11 @@ export interface ShapeBlock {
 
 /** the paint block (Q23): tonal variation without image textures (Q23.6) */
 export interface PaintBlock {
-  /** ± tone per facet (0 = none) */
+  /** the facet tone's amplitude (0 = none) */
   facetTone: number;
+  /** how a face takes its facet tone: `plane`, a hash per plane (±); `oriented`, locked to orientation, tops + and
+   *  sides − (a face is a top when its normal is within 60° of up) */
+  facetMode: 'plane' | 'oriented';
   /** darkening per metre below the local top, up to 1 at 4 m (0 = none) */
   verticalGradient: number;
   /** lightening along crease edges, drawn by the ink pass (0 = none) */
@@ -131,7 +134,9 @@ export const STYLE_PROFILES: Record<ProfileId, StyleProfile> = {
     liquid: { ramp: { bands: 0, soft: 0 }, opacity: 0.78, flow: 0 },
     // provisional: S2's crease-free tile boxes need none of the G1b numbers yet
     shape: { creaseAngle: 30, chamfer: 0, irregularity: 0, minThickness: 0.1, strokeDensity: 0 },
-    paint: { facetTone: 0, verticalGradient: 0, edgeLight: 0, strata: 0, strataSpacing: 0.5 },
+    // the facet tone locked to orientation, +0.06 tops, −0.06 sides (owner, 2026-11-27: the look sheet's sweep, Q23.3);
+    // the other paint terms are still the look sheet's (F111)
+    paint: { facetTone: 0.06, facetMode: 'oriented', verticalGradient: 0, edgeLight: 0, strata: 0, strataSpacing: 0.5 },
     // both optional passes are listed and built only at a weight above zero; provisional weights are zero
     passes: ['ink', 'bloom'],
     ink: { weight: 0, colour: [0.08, 0.07, 0.1], depthEdge: 0.02, normalEdge: 0.6 },

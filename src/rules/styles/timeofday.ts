@@ -45,9 +45,10 @@ export interface MapTime {
 
 // ---- keyframes from a binding -------------------------------------------------------------------------------------
 
-/** the fixed hour each light class ships with (D12; accepted by the owner, 2026-11-27, docs/RENDER3D.md "Look values"):
- *  day maps at 10:00, the night biome at 22:00 (Duskwood Hollow is today's night look), caves at 10:00 */
-export const FIXED_HOUR: Record<BiomeBinding['light'], number> = { day: 10, night: 22, cave: 10 };
+/** the fixed hour each light class ships with (D12; the owner, 2026-11-27, docs/RENDER3D.md "Look values"): day maps
+ *  and caves at 11:00 (moved from 10:00 by the look sheet's sweep: the sun 75° up lets tops read apart from sides,
+ *  Q23.3), the night biome at 22:00 (Duskwood Hollow is today's night look) */
+export const FIXED_HOUR: Record<BiomeBinding['light'], number> = { day: 11, night: 22, cave: 11 };
 
 /** at the fixed hour, an open-sky top facing up takes `sun` of its light from the key light and the rest from the
  *  ambient fill, so it shows the binding's base colour (× the world light). Provisional look values */

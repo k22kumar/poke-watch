@@ -246,3 +246,16 @@ Hold-outs (Chargestone Cave, the dusk lagoon): not loaded or captured.
 | p0i1 | ![range-spawn p0i1](2026-11-27-r2/range-spawn-p0i1.png) | ![range-ledge p0i1](2026-11-27-r2/range-ledge-p0i1.png) | ![gorge-spawn p0i1](2026-11-27-r2/gorge-spawn-p0i1.png) | ![gorge-ledge p0i1](2026-11-27-r2/gorge-ledge-p0i1.png) |
 | p1i0 | ![range-spawn p1i0](2026-11-27-r2/range-spawn-p1i0.png) | ![range-ledge p1i0](2026-11-27-r2/range-ledge-p1i0.png) | ![gorge-spawn p1i0](2026-11-27-r2/gorge-spawn-p1i0.png) | ![gorge-ledge p1i0](2026-11-27-r2/gorge-ledge-p1i0.png) |
 | p1i1 | ![range-spawn p1i1](2026-11-27-r2/range-spawn-p1i1.png) | ![range-ledge p1i1](2026-11-27-r2/range-ledge-p1i1.png) | ![gorge-spawn p1i1](2026-11-27-r2/gorge-spawn-p1i1.png) | ![gorge-ledge p1i1](2026-11-27-r2/gorge-ledge-p1i1.png) |
+
+## Round 3 (owner, 2026-11-27): the plan
+
+The owner's decisions after round 2: the fixed hour moves to 11:00 (day maps and caves; Duskwood Hollow keeps 22:00);
+the facet tone is locked to orientation (+0.06 tops, −0.06 sides), built in the shader and the profile; toplint stays
+the gate (`tests/looksheet.test.ts`); no ink or paint pick until the 11:00 frames exist; hold-outs stay closed.
+Written and committed before the re-shoot.
+
+- The grid: paint (0 | the moderate set's vertical gradient 0.25, edge light 0.12, strata 0.08) × ink (off | thin,
+  share 0.35), all four carrying the profile's locked facet tone; 11:00; the same two poses per map as round 2.
+- Mark 1 before the frames (`npx tsx scripts/toplint.ts`): all four pass, the smallest gap 12.8 (trunk on the range),
+  every shadowed top L\* ≥ 23.
+- Marks 2 and 3 by `tools/looksheet.ts`, as before.

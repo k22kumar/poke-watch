@@ -2,8 +2,10 @@
 // measurements. The query strings are the page's dev experiment layer (src/render/world3d/devlayer.ts).
 // Round 1 (2026-11-27) had a ramp axis r (smooth | `bands=3&soft=0.3`); round 2 dropped it (owner: it moves mark 1 by
 // under 0.3 ΔL* and does not show in frames; it returns later as a feel question).
+// Round 3 (owner, 2026-11-27): the facet tone is the profile's, locked to orientation (+0.06 tops, −0.06 sides), so
+// both paint variants carry it and the moderate set adds the vertical gradient, edge light and strata.
 export const LOOK_AXES = {
-  p: ['', 'facet=0.06&vgrad=0.25&edge=0.12&strata=0.08'],
+  p: ['', 'vgrad=0.25&edge=0.12&strata=0.08'],
   i: ['', 'ink=1&inkshare=0.35'],
 } as const;
 
