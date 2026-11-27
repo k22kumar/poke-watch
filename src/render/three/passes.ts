@@ -12,7 +12,7 @@
 // point 6). tools/three-signal.mjs checks the pixels. Which signal kinds exist and how each meets the world's depth
 // (its occlusion rule, Q23.4c) is I2b's.
 import { NoToneMapping, RenderPipeline, SRGBColorSpace, Vector3, type Camera, type Scene, type WebGPURenderer } from 'three/webgpu';
-import { Fn, abs, convertToTexture, floor, mod, screenCoordinate, cameraFar, cameraNear, clamp, dot, float, length, max, mix, mrt, normalView, output, packNormalToRGB, pass, perspectiveDepthToViewZ, pow, renderOutput, screenUV, smoothstep, textureSize, uniform, vec2, vec3, vec4 } from 'three/tsl';
+import { Fn, abs, convertToTexture, getViewPosition, floor, mod, reference, screenCoordinate, clamp, dot, float, length, max, mix, mrt, normalView, output, packNormalToRGB, pass, perspectiveDepthToViewZ, pow, renderOutput, screenUV, smoothstep, textureSize, uniform, vec2, vec3, vec4 } from 'three/tsl';
 import { bloom } from 'three/addons/tsl/display/BloomNode.js';
 import { PASS_NEEDS, type PostPassId } from '../../rules/styles/passes';
 import type { ResolvedStyle } from '../../rules/styles/resolve';
@@ -29,16 +29,22 @@ export class Grade {
   apply(L: LightUniforms) { this.lift.set(...L.lift); this.gamma.set(...L.gamma); this.gain.set(...L.gain); this.uSat.value = L.saturation; }
 }
 
-interface PassInput { col: N; scene: N; S: ResolvedStyle }
+/** the scene's fog: its amount (0..1) at a view distance (m), the one curve the world's fog node uses, and its colour
+ *  (view.ts) */
+export interface FogCurve { at: (dist: N) => N; colour: N }
+
+interface PassInput { col: N; scene: N; S: ResolvedStyle; fog: FogCurve; camera: Camera }
 type PassImpl = (p: PassInput) => N;
 
 /** the ink pass (S2's edge pass over depth and normals): darkens depth and normal edges by the ink weight × the role's
  *  ink share (the normal target's alpha), and lightens normal creases by the paint block's edge light */
-const ink: PassImpl = ({ col: input, scene, S }) => {
+const ink: PassImpl = ({ col: input, scene, S, fog, camera }) => {
   // a pass before this one hands over a node, not a texture: sample it through one
   const col: N = input.isTextureNode ? input : (convertToTexture as N)(input);
   const nrm: N = scene.getTextureNode('normal'), dtex: N = scene.getTextureNode('depth');
-  const lin = (uv: N): N => (perspectiveDepthToViewZ as N)(dtex.sample(uv).r, cameraNear, cameraFar).negate();
+  // the scene camera's own projection: inside the pipeline's quad pass the camera* nodes are the quad's camera
+  const near: N = reference('near', 'float', camera), far: N = reference('far', 'float', camera), projInv: N = uniform((camera as N).projectionMatrixInverse);
+  const lin = (uv: N): N => (perspectiveDepthToViewZ as N)(dtex.sample(uv).r, near, far).negate();
   const I = S.ink, edgeLight = S.paint.edgeLight;
   return Fn(() => {
     const texel = v2(1).div(v2(tsize(col, 0)));
@@ -54,10 +60,14 @@ const ink: PassImpl = ({ col: input, scene, S }) => {
     const de = abs(sum.sub(d.mul(4)));
     const depthEdge = de.greaterThan(d.mul(I.depthEdge)).select(1, 0);
     const normalEdge = ne.greaterThan(I.normalEdge).select(1, 0);
+    // the pass runs after the scene's fog, so the lines take the fog of the surface they outline: the ink colour is
+    // fogged by the scene's own curve at the pixel's view distance, and edge light fades by the same amount; a line
+    // then loses contrast exactly as its surface does
+    const f = fog.at(length((getViewPosition as N)(screenUV, dtex.sample(screenUV).r, projInv)));
     const e = clamp(depthEdge.add(normalEdge), 0, 1).mul(n0.a).mul(I.weight);
     const c: N = col.sample(screenUV);
-    const lit = edgeLight > 0 ? c.rgb.add(vec3(normalEdge.mul(edgeLight).mul(n0.a))) : c.rgb;
-    return vec4(mix(lit, vec3(...I.colour.map(srgbToLinear)), e), c.a);
+    const lit = edgeLight > 0 ? c.rgb.add(vec3(normalEdge.mul(edgeLight).mul(n0.a).mul(float(1).sub(f)))) : c.rgb;
+    return vec4(mix(lit, mix(vec3(...I.colour.map(srgbToLinear)), fog.colour, f), e), c.a);
   })();
 };
 
@@ -98,7 +108,7 @@ export interface Pipeline {
 }
 
 /** assemble the frame. `signals`: the signal scene, or null when nothing draws there (no pass is built for it) */
-export function buildPipeline(renderer: WebGPURenderer, scene: Scene, signals: Scene | null, camera: Camera, S: ResolvedStyle, G: Grade): Pipeline {
+export function buildPipeline(renderer: WebGPURenderer, scene: Scene, signals: Scene | null, camera: Camera, S: ResolvedStyle, G: Grade, fog: FogCurve): Pipeline {
   const built = S.passes;
   const normals = built.some((id) => PASS_NEEDS[id].normals);
   const sp: N = pass(scene, camera);
@@ -106,7 +116,7 @@ export function buildPipeline(renderer: WebGPURenderer, scene: Scene, signals: S
   // material sets its own (worldmat.ts normalTarget)
   if (normals) sp.setMRT(mrt({ output, normal: v4(packNormalToRGB(normalView), 0) }));
   let col: N = sp.getTextureNode('output');
-  for (const id of built) col = PASS_IMPLS[id]({ col, scene: sp, S });
+  for (const id of built) col = PASS_IMPLS[id]({ col, scene: sp, S, fog, camera });
   // the output step: tone mapping and the colour transform, then grading and the vignette in display space
   let disp: N = grade((renderOutput as N)(col, NoToneMapping, SRGBColorSpace).rgb, G);
   const V = S.vignette;

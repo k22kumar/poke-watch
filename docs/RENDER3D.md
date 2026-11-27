@@ -127,7 +127,9 @@ One `RenderPipeline` (S2 decision 2; `passes.ts`):
 1. the scene pass (world, actors, sky); an MRT normal target only when a built pass needs it (its alpha is the
    material's ink share, written by world materials through their own `mrtNode`);
 2. the profile's registry passes in its order: `ink` (S2's edge pass: depth and normal edges darkened by weight ×
-   role share, normal creases lightened by the paint block's edge light), `bloom` (three's BloomNode, added over the
+   role share, normal creases lightened by the paint block's edge light; both take the fog of the surface they outline, since
+   the pass runs after the scene's fog: the ink colour is fogged with the scene's curve and colour at the pixel's view
+   distance, and edge light fades by the same amount), `bloom` (three's BloomNode, added over the
    scene). A pass at weight 0 is not built;
 3. `renderOutput` (no tone mapping; the sRGB transform);
 4. grading (lift, gain, gamma per channel, saturation) and the vignette, in display space;
@@ -274,3 +276,6 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
    palettes; prop roles from the tile-art ramps' second shade; today's dithered sky bands and vignette kept. Gate:
    `tests/styles.test.ts`. (Every new look value is in "Look values", not here.)
 10. **`scripts/dev.mjs` gained `navWasm`** (F109) beside the side file, since the dev server could not bundle without it.
+11. **Ink and edge light take the fog, from the scene camera** (F112): the ink colour is fogged with the scene's curve
+    and colour; the pass reads the scene camera's projection and near/far explicitly. Gate: `tools/three-signal.mjs`,
+    the look sheet's frames.
