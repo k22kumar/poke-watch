@@ -12,6 +12,19 @@ Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:tes
 - Stop and ask for: a design, feel, look or scope question that isn't recorded (in `docs/` or `docs/ROADMAP.md`), or anything a player experiences as a rule; anything costly to undo (a contract, a version bump that regenerates baselines, the renderer or shading language, removing something no task names); an unexplained replay or `gameplayHash` move (a flag-off hash moved by a change the task names is re-recorded once, with the reason in the commit: D8); a test that looks wrong. Tests are the spec: never edit one to make it pass. One exception (D8): a test whose only subject is "flag-on equals tile" may be retired by the task that improves on it, named in the report, with the reason in the commit.
 - At the end of each task, update `docs/ROADMAP.md` (status, and any follow-up found).
 - Report as: commits, gates (each command and its result), deviations from the brief, "Decided without asking" (the D10 choices), found-not-fixed, then the stop or the next step.
+- When the owner must do something (merge, push, view a page or capture, run a browser check, answer a question), put the steps under a heading `## For you to do`. Write them in the instructional style below. Give exact commands in code blocks, one command per block, with no inline `#` comments (zsh).
+
+## Instructional writing style
+
+Apply this style only when you write or edit instructional text: tutorials, procedures, prompts, requirements and specifications for humans or AI systems. Write all other responses normally.
+
+Use a plain technical style inspired by ASD-STE100 Simplified Technical English:
+- Write short, direct sentences. Give one instruction per sentence.
+- Use active voice and concrete, unambiguous words.
+- Use the same term for the same concept throughout.
+- Write naturally. Use formal language only when the task requires it.
+
+State all necessary requirements clearly and precisely. Do not add constraints that are not necessary. Include context, reasons or examples only when they help the reader do the task correctly. Remove unnecessary words, but keep all technical detail, exact constraints and important nuance.
 
 ## Commands (repo root)
 - One suite: `npx tsx --test tests/<name>.test.ts` (add `--test-name-pattern "<regex>"` to pick a single test)
