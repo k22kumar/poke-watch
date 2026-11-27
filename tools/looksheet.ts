@@ -39,18 +39,20 @@ for (const m of LOOK_MAPS) for (const pose of m.poses) for (const v of variantsO
   await p.waitForTimeout(100);
   const shot = await p.screenshot({ path: path.join(out, `${m.id}-${pose.id}-${v.id}.png`) });
   // the frame's mean CIE L* over every pixel (sRGB decoded, D65 luminance)
-  lightness[`${m.id}-${pose.id}-${v.id}`] = await p.evaluate(async (b64) => {
-    const img = await createImageBitmap(await (await fetch(`data:image/png;base64,${b64}`)).blob());
-    const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d')!;
+  // (a string, not a function: tsx's __name helper does not exist in the page)
+  lightness[`${m.id}-${pose.id}-${v.id}`] = await p.evaluate(`(async () => {
+    const img = await createImageBitmap(await (await fetch('data:image/png;base64,${shot.toString('base64')}')).blob());
+    const c = new OffscreenCanvas(img.width, img.height), g = c.getContext('2d');
     g.drawImage(img, 0, 0);
-    const d = g.getImageData(0, 0, img.width, img.height).data, lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    const d = g.getImageData(0, 0, img.width, img.height).data;
+    const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
     let sum = 0;
     for (let i = 0; i < d.length; i += 4) {
       const Y = 0.2126 * lin(d[i]) + 0.7152 * lin(d[i + 1]) + 0.0722 * lin(d[i + 2]);
       sum += Y > 216 / 24389 ? 116 * Math.cbrt(Y) - 16 : (24389 / 27) * Y;
     }
     return +(sum / (d.length / 4)).toFixed(1);
-  }, shot.toString('base64'));
+  })()`) as number;
   const r = await p.evaluate(() => (window as any).pokewatchThree.report());
   console.log(`frame ${m.id}-${pose.id}-${v.id}: ${r.backend}, passes ${r.passes.join('+') || 'none'}`);
   await p.close();

@@ -528,3 +528,38 @@ footing-identical, docs/HABITAT_AUDIT.md), split by what stands under it.
 
 **Some trunk tops are standable** (stumps and logs, on 8 of the 14 maps; none on the training range), so trunk is not
 proposed for exclusion from mark 1. Stopped here for the owner, as asked; trunk's colour is unchanged.
+
+## After the cave and night sweep: frames and timings
+
+Same machine, browser and method as "The cave and night sweep: frames and timings" (Apple M3 Max, Chromium 158,
+headed, GPU p95 at 1920 × 1080 on S2's scene; frames 1280 × 720 on WebGPU, the 3D canvas alone). Build
+`feat/i2a-look-sheet` at 90478a5; `npx tsx tools/looksheet.ts <build>/index.html docs/looksheet/2026-11-27-keysweep
+--key-sweep`, `docs/looksheet/2026-11-27-keysweep/results.json`. Scene lightness: each frame's mean CIE L\* over every
+pixel. Bold: a role under 12. No cave variant is applied.
+
+| Map, variant | ground | path | soil | rock | cliff | floor | cover | foliage | trunk | Min (≥ 12) | Shadowed top L\* min (≥ 20) | Scene L\* spawn / ledge | GPU p95 WebGL 2 / WebGPU |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Chargestone a45-k55 (key 0.55, ambient 0.45) | **9.9** | 13.2 | 12.4 | **11.7** | **9.8** | 21.6 | 13.1 | 22.2 | 12.5 | 9.8 fail | 20.1 | 24.8 / 20.9 | 1.42 / 1.66 ms |
+| Chargestone a45-k65 (key 0.65, ambient 0.45) | **10.9** | 14.5 | 13.6 | 12.9 | **10.7** | 23.7 | 14.4 | 24.3 | 13.7 | 10.7 fail | 20.1 | 25.4 / 21.8 | 1.65 / 1.59 ms |
+| Chargestone a45-k75 (key 0.75, ambient 0.45) | **11.8** | 15.7 | 14.7 | 13.9 | **11.6** | 25.6 | 15.6 | 26.3 | 14.8 | 11.6 fail | 20.1 | 26 / 22.6 | 1.68 / 1.58 ms |
+| Chargestone a45-k85 (key 0.85, ambient 0.45) | 12.6 | 16.8 | 15.8 | 14.9 | 12.4 | 27.4 | 16.6 | 28.2 | 15.8 | 12.4 pass | 20.1 | 26.6 / 23.4 | 1.66 / 1.6 ms |
+| Dusk lagoon, night as applied (key 0.55, facet ±0.10) | 14.2 | 16.2 | 14.7 | 16.4 | 13.1 | 21.4 | 14.3 | 14.2 | **10.6** | 10.6 fail | 21.7 | 37.6 / 28.5 | 1.78 / 2.55 ms |
+
+Chargestone at key 0.85 over ambient 0.45 is the first step that passes mark 1 for every role (cliff 12.4); no top
+clips (brightest floor 0.931). Each step of 0.10 adds about 0.6–0.9 to the frame's mean L\*: 24.8 → 26.6 at the spawn,
+20.9 → 23.4 on the ledge, against the shadowed tops held at 20.1. GPU p95 stays far inside 4.0 ms on both backends
+(1.42–1.68 WebGL 2, 1.58–1.66 WebGPU; the step-to-step spread is run noise). The night as applied matches the
+sweep's k55-f10 (trunk 10.6 the one role under 12), for the owner to confirm by eye.
+
+### Frames
+
+| Key | Chargestone, spawn | Chargestone, ledge |
+|---|---|---|
+| 0.55 | ![](2026-11-27-keysweep/chargestone-spawn-a45-k55.png) | ![](2026-11-27-keysweep/chargestone-ledge-a45-k55.png) |
+| 0.65 | ![](2026-11-27-keysweep/chargestone-spawn-a45-k65.png) | ![](2026-11-27-keysweep/chargestone-ledge-a45-k65.png) |
+| 0.75 | ![](2026-11-27-keysweep/chargestone-spawn-a45-k75.png) | ![](2026-11-27-keysweep/chargestone-ledge-a45-k75.png) |
+| 0.85 | ![](2026-11-27-keysweep/chargestone-spawn-a45-k85.png) | ![](2026-11-27-keysweep/chargestone-ledge-a45-k85.png) |
+
+| Night as applied | Dusk lagoon, spawn | Dusk lagoon, ledge |
+|---|---|---|
+| key 0.55, facet ±0.10 | ![](2026-11-27-keysweep/dusklagoon-spawn-applied.png) | ![](2026-11-27-keysweep/dusklagoon-ledge-applied.png) |

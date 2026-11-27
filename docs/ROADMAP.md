@@ -487,6 +487,16 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   jitter of 0.03. Mark 1 per role and shadowed-top L* in docs/looksheet; no variant passes without crushing (closest:
   the lagoon 0.55 + facet 0.10, only trunk under, 10.6; Chargestone 0.50 + facet 0.10, 9.0). Frames on the hold-out
   poses with GPU p95 on both backends. Waiting on the owner's pick. F113 parked.
+  **After the sweep (owner, 2026-11-27):** night takes key share 0.55 and facet ±0.10, applied, provisional until
+  the owner confirms it by eye (the lagoon: mark 1 10.6 on trunk, the rest ≥ 13.1). Facet ±0.10 is for dim scenes
+  only (caves and night, the profile's `paintByLight`); day keeps ±0.06, and the range and River Gorge numbers do not
+  move. The side jitter is dropped; cave colours and the cave split (0.40) are unchanged, no cave variant applied.
+  Trunk: stumps and logs are standable on 8 of 14 maps (none on the range; wall-prop trunks are not standable today;
+  the 3D range is not built), so trunk stays in mark 1, colour unchanged, **waiting on the owner**. Chargestone: a
+  key sweep with the ambient held at 0.45 (the lowest keeping shadowed tops ≥ 20), key 0.55 → 0.85 in 0.10 steps;
+  at 0.85 every role reaches 12 (cliff 12.4) with no top clipping; frames, scene lightness and GPU p95 in
+  docs/looksheet "After the cave and night sweep". **Waiting on the owner** for the night confirmation, trunk and
+  Chargestone.
 - **F112. The ink pass ignored the fog and read the wrong camera** [found by the owner in the look sheet, fixed on
   this branch, 2026-11-27]: ink and edge-light lines showed through the fog on far blocks (River Gorge, round 1). The
   pass runs after the scene's fog, and inside the pipeline's quad pass the TSL `camera*` nodes are the quad's camera,

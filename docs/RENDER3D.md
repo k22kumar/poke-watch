@@ -218,7 +218,7 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
 `shadow=0`, `perf=1` (the overlay and GPU timestamps), `lamps=0` (no lamp channel). The dev experiment layer (Q18.4a):
 `ink=<w>`, `inkshare=<every role's share>`, `edge=<l>`, `bloom=<s>`, `bloomres=<fraction>`, `facet=<t>`, `vgrad=<v>`,
 `strata=<s>`, `bands=<n>`, `soft=<band edge softness, default 0.15>`, `key=<key share at the fixed hour>`,
-`facetjitter=<random side tone>`,
+`amb=<ambient share at the fixed hour, apart from the key; absent: 1 − key>`,
 `grade=<lift>,<gamma>,<gain>,<saturation>`. Checks and benches: `signalcheck=1`, `bench3=backdrop:<n>,cards:<n>,strokes:<n>`.
 `window.pokewatchThree` has `report()`, `collect(seconds)`, `lighting()`, `setHour(h)` and `probe()`.
 
@@ -231,6 +231,7 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
 - `node tools/three-signal.mjs <build>/index.html [--query …]`: the signal check.
 - `npx tsx scripts/toplint.ts`: the top/side tone lint (Q23.3) over the look sheet's variants.
 - `npx tsx tools/looksheet.ts <build>/index.html <out>`: the look sheet's frames and marks (docs/looksheet).
+- `npx tsx scripts/trunktops.ts [seeds]`: the trunk tops a body can stand on, per map (docs/looksheet "Trunk").
 - Build privately for any of them: `node scripts/build.mjs --out <dir>`.
 
 ## Look values
@@ -276,6 +277,24 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
   Chargestone Cave and the dusk lagoon only. No variant is applied until the owner picks. The cave (0.4) and night
   (0.45) splits stay as they are until then.
 - **F113 parked:** the dithers and the vignette stay.
+
+**Owner decisions (2026-11-27, after the cave and night sweep):**
+
+- **Night: key share 0.55 and facet tone ±0.10, applied** (`KEY_SHARE.night`; the dusk lagoon's mark 1 10.6 on
+  trunk, every other role 13.1 or more, shadowed tops 21.7). Provisional until the owner confirms it by eye from the
+  frames (docs/looksheet "After the cave and night sweep").
+- **Facet tone ±0.10 for dim scenes only**, caves and night (`STYLE_PROFILES.lowpoly.paintByLight`, over `paint` by
+  the binding's light class); day maps keep ±0.06. The range and River Gorge do not move (the lint's day output is
+  byte-identical).
+- **Trunk:** before any change to its colour, count the trunk tops a body can stand on. Counted: stumps and logs
+  (low props) are standable on 8 of the 14 maps, none on the training range; wall-prop trunks (trees, fences, signs,
+  cabins) are not standable today; the 3D range is not built. Trunk stays in mark 1 and its colour is unchanged until
+  the owner answers.
+- **Chargestone: a stronger key light with the ambient held**, never taken from it: ambient at the lowest share that
+  keeps shadowed tops at L\* ≥ 20 (0.45), the key raised from 0.55 by 0.10 a step until every role reaches 12 or a top
+  clips, at facet ±0.10, framed on the two hold-out poses (the `amb` dev parameter, `LookLayer.ambientShare`). No cave
+  variant is applied: the cave split stays 0.40 / 0.60.
+- **The side jitter is dropped** (`paint.facetJitter` removed). Cave colours are not changed.
 
 **Chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the paint terms and ink were
 picked on 2026-11-27 (below). Still open: the ramp (bands return later as a feel question), the normal mode per role
