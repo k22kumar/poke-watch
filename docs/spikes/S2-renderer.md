@@ -4,7 +4,9 @@ The spike that picks the renderer class, and with it the shading language every 
 written in (docs/OVERHAUL_3D.md, task S2). Done 2026-11-23. The code is on branch `spike/s2-three` (never merged;
 commits `b44ca6b`, `de005f8`, `c033c4d`); the raw measurements, generated shaders and comparison shots are in that
 branch's `spike-data/s2/` (the branch is on origin). The spike took no decisions; the owner's answers to the six it
-listed (2026-11-23) are at the end, under "Decisions for the owner".
+listed (2026-11-23) are at the end, under "Decisions for the owner". I2a (2026-11-27) ported the billboard, the backend
+selection, `tools/s2perf.mjs` and `tools/s2matrix.mjs` to the game page; their record, and the budgets this spike
+proposed as recalibrated, are in docs/RENDER3D.md.
 
 ## What was built
 
