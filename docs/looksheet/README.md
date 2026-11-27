@@ -259,3 +259,47 @@ Written and committed before the re-shoot.
 - Mark 1 before the frames (`npx tsx scripts/toplint.ts`): all four pass, the smallest gap 12.8 (trunk on the range),
   every shadowed top L\* ≥ 23.
 - Marks 2 and 3 by `tools/looksheet.ts`, as before.
+
+## Round 3: results
+
+Build: `feat/i2a-look-sheet` at 043563b (11:00, facet tone locked to orientation, the ink fog fix), same machine and
+method as before; frames in `docs/looksheet/2026-11-27-r3/`, numbers in its `results.json`.
+
+**All four variants pass all three marks.** Mark 1 is the same for all four (12.8, trunk on the range): the
+vertical gradient, edge light, strata and ink do not change it. Signals 40 of 40; at most 1.34 ms p95.
+
+| Variant | Paint | Ink | 1. Top/side min ΔL* (≥ 12) | 2. Signals | 3. GPU p95 WebGL 2, range / gorge (≤ 4.0) | WebGPU p50 / p95, range; gorge | Result |
+|---|---|---|---|---|---|---|---|
+| p0i0 | locked facet only | off | **pass** 12.8 (range trunk) | pass | pass 0.98 / 1.11 | 0.86 / 0.98; 0.94 / 1.09 | pass |
+| p0i1 | locked facet only | thin, share 0.35 | **pass** 12.8 (range trunk) | pass | pass 1.18 / 1.3 | 1.08 / 1.2; 1.14 / 1.32 | pass |
+| p1i0 | locked facet + moderate set | off | **pass** 12.8 (range trunk) | pass | pass 1.21 / 1.32 | 1.13 / 1.22; 1.17 / 1.36 | pass |
+| p1i1 | locked facet + moderate set | thin, share 0.35 | **pass** 12.8 (range trunk) | pass | pass 1.24 / 1.34 | 1.1 / 1.22; 1.16 / 1.36 | pass |
+
+Mark 1 per role (`npx tsx scripts/toplint.ts`):
+
+```
+p0i0     pass  min ΔL* 12.8 (range trunk)   info: min mean-side ΔL* 17.0
+         range  ground 21.1  path 22.0  soil 20.2  rock 23.2  cliff 18.3  floor 22.4  cover 20.2  foliage 17.8  trunk 12.8
+         gorge  ground 19.5  path 18.6  soil 17.2  rock 23.2  cliff 15.6  floor 22.5  cover 18.4  foliage 17.9  trunk 12.8
+p0i1     pass  min ΔL* 12.8 (range trunk)   info: min mean-side ΔL* 17.0
+         range  ground 21.1  path 22.0  soil 20.2  rock 23.2  cliff 18.3  floor 22.4  cover 20.2  foliage 17.8  trunk 12.8
+         gorge  ground 19.5  path 18.6  soil 17.2  rock 23.2  cliff 15.6  floor 22.5  cover 18.4  foliage 17.9  trunk 12.8
+p1i0     pass  min ΔL* 12.8 (range trunk)   info: min mean-side ΔL* 17.9
+         range  ground 21.1  path 22.0  soil 20.2  rock 23.2  cliff 18.3  floor 22.4  cover 20.2  foliage 17.8  trunk 12.8
+         gorge  ground 19.5  path 18.6  soil 17.2  rock 23.2  cliff 15.6  floor 22.5  cover 18.4  foliage 17.9  trunk 12.8
+p1i1     pass  min ΔL* 12.8 (range trunk)   info: min mean-side ΔL* 17.9
+         range  ground 21.1  path 22.0  soil 20.2  rock 23.2  cliff 18.3  floor 22.4  cover 20.2  foliage 17.8  trunk 12.8
+         gorge  ground 19.5  path 18.6  soil 17.2  rock 23.2  cliff 15.6  floor 22.5  cover 18.4  foliage 17.9  trunk 12.8
+```
+
+The pick is the owner's: paint (locked facet only, or with the moderate set) and ink (off, or thin at share 0.35).
+Then the picks are applied and shown on the hold-outs (Chargestone Cave, the dusk lagoon), which are still closed.
+
+### Frames
+
+| Variant | Range, spawn | Range, ledge | River Gorge, spawn | River Gorge, cliff |
+|---|---|---|---|---|
+| p0i0 | ![range-spawn p0i0](2026-11-27-r3/range-spawn-p0i0.png) | ![range-ledge p0i0](2026-11-27-r3/range-ledge-p0i0.png) | ![gorge-spawn p0i0](2026-11-27-r3/gorge-spawn-p0i0.png) | ![gorge-ledge p0i0](2026-11-27-r3/gorge-ledge-p0i0.png) |
+| p0i1 | ![range-spawn p0i1](2026-11-27-r3/range-spawn-p0i1.png) | ![range-ledge p0i1](2026-11-27-r3/range-ledge-p0i1.png) | ![gorge-spawn p0i1](2026-11-27-r3/gorge-spawn-p0i1.png) | ![gorge-ledge p0i1](2026-11-27-r3/gorge-ledge-p0i1.png) |
+| p1i0 | ![range-spawn p1i0](2026-11-27-r3/range-spawn-p1i0.png) | ![range-ledge p1i0](2026-11-27-r3/range-ledge-p1i0.png) | ![gorge-spawn p1i0](2026-11-27-r3/gorge-spawn-p1i0.png) | ![gorge-ledge p1i0](2026-11-27-r3/gorge-ledge-p1i0.png) |
+| p1i1 | ![range-spawn p1i1](2026-11-27-r3/range-spawn-p1i1.png) | ![range-ledge p1i1](2026-11-27-r3/range-ledge-p1i1.png) | ![gorge-spawn p1i1](2026-11-27-r3/gorge-spawn-p1i1.png) | ![gorge-ledge p1i1](2026-11-27-r3/gorge-ledge-p1i1.png) |

@@ -476,7 +476,8 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   light ignored the fog, and the ink pass's depth read the quad's camera (S2's edge pass too). Waiting on the owner.
   **Round 3 (owner, 2026-11-27):** the fixed hour is 11:00 for day maps and caves, facet tone locked to orientation
   (+0.06 tops, −0.06 sides) in the shader and the profile, `tests/looksheet.test.ts` gates mark 1; the ink fix is on
-  `feat/i2a-three-scene` as F112. Re-shoot at 11:00, then the owner picks ink and paint.
+  `feat/i2a-three-scene` as F112. Re-shot at 11:00: all four variants pass all three marks (mark 1 min 12.8 on
+  trunk; signals 40/40; at most 1.34 ms p95). Waiting on the owner's pick of paint and ink; then the hold-outs.
 - **F112. The ink pass ignored the fog and read the wrong camera** [found by the owner in the look sheet, fixed on
   this branch, 2026-11-27]: ink and edge-light lines showed through the fog on far blocks (River Gorge, round 1). The
   pass runs after the scene's fog, and inside the pipeline's quad pass the TSL `camera*` nodes are the quad's camera,
