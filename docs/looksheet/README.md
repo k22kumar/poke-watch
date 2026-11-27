@@ -349,3 +349,46 @@ silhouette, because a stair step hides it from that camera (ROADMAP F41's family
 |---|---|---|
 | Chargestone Cave | ![chargestone spawn](2026-11-27-holdouts/chargestone-spawn-pick.png) | ![chargestone ledge](2026-11-27-holdouts/chargestone-ledge-pick.png) |
 | Cascade Lagoon, dusk | ![dusk lagoon spawn](2026-11-27-holdouts/dusklagoon-spawn-pick.png) | ![dusk lagoon ledge](2026-11-27-holdouts/dusklagoon-ledge-pick.png) |
+
+## The cave and night sweep (owner, 2026-11-27): plan and mark 1
+
+The owner's decisions after the hold-outs: night maps move from 22:00 to 23:00; caves and night are fixed by a sweep
+the owner picks from; mark 1 keeps its line (ΔL\* ≥ 12); confirmed on Chargestone Cave and the dusk lagoon only; F113
+parked. Written and committed, with the mark-1 tables below, before any frame of the sweep.
+
+- **Night at 23:00 first:** the lagoon's mark 1 goes from 5.1 (22:00) to 7.8 (the `base` row below).
+- **Key share** at the fixed hour: 0.50, 0.55, 0.65 (and `base`, the provisional split: cave 0.4, night 0.45).
+- **The best share** is the highest mark-1 minimum that does not crush (shadowed top L\* ≥ 20): Chargestone 0.50
+  (0.55 crushes at 19.7), the lagoon 0.55 (0.65 crushes at 18.3). At it: facet tone ±0.10 against the shipped ±0.06.
+- **Chargestone only:** a random tone on side faces on top of the locked facet tone, `facetjitter=0.03`: each side
+  face takes its plane's hash (−1..1) × 0.03 over its −0.06; tops are unchanged. Mark 1 takes the brightest case
+  (+0.03).
+- Frames: the hold-out poses (spawn, ledge), every variant, the rest of the profile as shipped (p1i1). GPU p95 on both
+  backends per map and variant. No variant is applied.
+
+Mark 1 per role (ΔL\*) and the smallest shadowed-top L\* (`npx tsx scripts/toplint.ts --holdout-sweep`):
+
+```
+chargestone
+  variant     ground    path    soil    rock   cliff   floor   cover foliage   trunk    min  shadowTop L* min
+  base           6.6     8.9     8.3     7.9     6.5    14.5     8.8    14.9     8.4    6.5  23.3
+  k50              8    10.7    10.1     9.5     7.9    17.6    10.6      18    10.2    7.9  21
+  k55            8.8    11.7      11    10.4     8.6    19.2    11.6    19.7    11.1    8.6  19.7 crushed
+  k65           10.4    13.8      13    12.3    10.2    22.7    13.7    23.2    13.1   10.2  16.8 crushed
+  k50-f10        9.2    12.2    11.5    10.9       9      20    12.1    20.5    11.5      9  21.4
+  k50-jit03      7.6    10.2     9.6       9     7.5    16.7    10.1    17.1     9.7    7.5  21
+dusklagoon
+  variant     ground    path    soil    rock   cliff   floor   cover foliage   trunk    min  shadowTop L* min
+  base          10.4      12    10.8    12.2     9.7    15.8    10.6    10.5     7.8    7.8  23.9
+  k50           11.5    13.2    11.9    13.4    10.6    17.4    11.6    11.5     8.6    8.6  22.6
+  k55           12.6    14.4      13    14.6    11.6      19    12.7    12.6     9.4    9.4  21.3
+  k65           14.9      17    15.4    17.2    13.7    22.5      15    14.9    11.1   11.1  18.3 crushed
+  k55-f10       14.2    16.2    14.7    16.4    13.1    21.4    14.3    14.2    10.6   10.6  21.7
+```
+
+**No variant passes mark 1 on either map without crushing.** The closest:
+
+- the lagoon at 0.55 with facet 0.10: only trunk is under 12 (10.6); every other role is 13.1 or more;
+- Chargestone at 0.50 with facet 0.10: five roles under 12 (cliff 9.0, ground 9.2, rock 10.9, soil 11.5, trunk 11.5).
+
+The side jitter lowers Chargestone's worst case (7.9 → 7.5 at 0.50), since it brightens some sides.

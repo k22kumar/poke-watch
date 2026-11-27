@@ -77,8 +77,12 @@ function painted(base: [number, number, number], P: PaintBlock): N {
   let c: N = vec3(...lin(base));
   if (P.facetTone > 0) {
     // by plane: the baked hash; locked to orientation: + on tops (normal within 60° of up), − on every other face
-    const f: N = P.facetMode === 'oriented' ? select(normalWorld.y.greaterThan(0.5), float(1), float(-1)) : attribute('aFacet', 'float');
-    c = c.mul(float(1).add(f.mul(P.facetTone)));
+    const top: N = normalWorld.y.greaterThan(0.5);
+    const f: N = P.facetMode === 'oriented' ? select(top, float(1), float(-1)) : attribute('aFacet', 'float');
+    let k: N = float(1).add(f.mul(P.facetTone));
+    // locked to orientation, sides may also take the plane's random tone on top of their −facetTone
+    if (P.facetMode === 'oriented' && P.facetJitter > 0) k = k.add(select(top, float(0), attribute('aFacet', 'float').mul(P.facetJitter)));
+    c = c.mul(k);
   }
   if (P.verticalGradient > 0) c = c.mul(float(1).sub(min(float(1), attribute('aDepth', 'float').div(4)).mul(P.verticalGradient)));
   if (P.strata > 0) {

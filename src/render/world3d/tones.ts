@@ -30,8 +30,10 @@ function cube(n: V3, six: Float32Array): V3 {
 export function faceTone(S: ResolvedStyle, L: LightUniforms, role: MaterialRole, n: V3, facet = 0, depth = 0): V3 {
   const m = S.roles[role], P = S.paint;
   // locked to orientation, the face's own normal sets the sign (worldmat.ts), whatever `facet` asks
-  const fs = P.facetMode === 'oriented' ? (n[1] > 0.5 ? 1 : -1) : facet;
-  const k = (1 + fs * P.facetTone) * (1 - Math.min(1, depth / 4) * P.verticalGradient);
+  const top = n[1] > 0.5, fs = P.facetMode === 'oriented' ? (top ? 1 : -1) : facet;
+  // locked to orientation, a side's random tone (facet jitter) takes `facet` as its worst case
+  const jitter = P.facetMode === 'oriented' && !top ? facet * (P.facetJitter ?? 0) : 0;
+  const k = (1 + fs * P.facetTone + jitter) * (1 - Math.min(1, depth / 4) * P.verticalGradient);
   const ndl = Math.max(0, n[0] * L.sunDir[0] + n[1] * L.sunDir[1] + n[2] * L.sunDir[2]);
   const r = rampOf(ndl, m.ramp.bands, m.ramp.soft), amb = cube(n, L.ambOpen);
   return [0, 1, 2].map((c) => srgbToLinear(m.base[c]) * k * (r * L.sun[c] + amb[c] * m.shadowTint[c])) as V3;

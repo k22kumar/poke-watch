@@ -5,12 +5,13 @@
 // npx tsx scripts/toplint.ts [--json]          the look sheet's variants
 // npx tsx scripts/toplint.ts --sweep [--json]  round 2's sweep: key share × fixed hour × facet mode (docs/looksheet)
 // npx tsx scripts/toplint.ts --holdouts [--json]  the shipped profile on the hold-out maps
+// npx tsx scripts/toplint.ts --holdout-sweep [--json]  the cave and night sweep, one table per hold-out map
 import type { MaterialRole } from '../src/rules/materialroles';
 import { resolve } from '../src/rules/styles/resolve';
 import { devLayer } from '../src/render/world3d/devlayer';
 import { lightAt } from '../src/render/world3d/lighting';
 import { topSideGap } from '../src/render/world3d/tones';
-import { HOLD_OUT_MAPS, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
+import { HOLD_OUT_MAPS, HOLD_OUT_SWEEP, LOOK_MAPS as TUNING_MAPS, LOOK_VARIANTS as GRID } from './lib/looksheet';
 
 // --holdouts: the shipped profile on the hold-out maps' bindings (after the owner's pick)
 const holdouts = process.argv.includes('--holdouts');
@@ -20,6 +21,26 @@ const LOOK_VARIANTS = holdouts ? [{ id: 'pick', query: '' }] : GRID;
 /** the roles the tile adapter writes (src/world/adapter.ts header) */
 const WRITTEN: MaterialRole[] = ['ground', 'path', 'soil', 'rock', 'cliff', 'floor', 'cover', 'foliage', 'trunk'];
 export const TOP_SIDE_MIN = 12;
+
+if (process.argv.includes('--holdout-sweep')) {
+  // one table per hold-out map: mark 1 per role and the shadowed-top L* for every variant of HOLD_OUT_SWEEP
+  const out: Record<string, unknown[]> = {};
+  for (const m of HOLD_OUT_MAPS) {
+    out[m.id] = HOLD_OUT_SWEEP[m.id].map((v) => {
+      const S = resolve('lowpoly', m.binding, { overlay: devLayer(new URLSearchParams(v.query)) });
+      const L = lightAt(S.time, S.time.hour);
+      const gaps = WRITTEN.map((role) => ({ role, ...topSideGap(S, L, role) }));
+      const min = Math.min(...gaps.map((g) => g.gap)), shadowMin = Math.min(...gaps.map((g) => g.shadowTop));
+      return { id: v.id, query: v.query, hour: S.time.hour, roles: Object.fromEntries(gaps.map((g) => [g.role, +g.gap.toFixed(1)])), shadow: Object.fromEntries(gaps.map((g) => [g.role, +g.shadowTop.toFixed(1)])), min: +min.toFixed(1), shadowMin: +shadowMin.toFixed(1), pass: min >= 12 && shadowMin >= 20, crushed: shadowMin < 20 };
+    });
+  }
+  if (process.argv.includes('--json')) console.log(JSON.stringify(out));
+  else for (const [map, rows] of Object.entries(out)) {
+    console.log(`${map}\n  ${'variant'.padEnd(10)} ${WRITTEN.map((r) => r.padStart(7)).join(' ')}    min  shadowTop L* min`);
+    for (const r of rows as any[]) console.log(`  ${r.id.padEnd(10)} ${WRITTEN.map((x) => String(r.roles[x]).padStart(7)).join(' ')}  ${String(r.min).padStart(5)}  ${r.shadowMin}${r.crushed ? ' crushed' : ''}${r.pass ? '  pass' : ''}`);
+  }
+  process.exit(0);
+}
 
 if (process.argv.includes('--sweep')) {
   const out = [];

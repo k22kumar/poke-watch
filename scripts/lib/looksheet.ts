@@ -34,3 +34,16 @@ export const HOLD_OUT_MAPS: { id: string; binding: string; query: string; poses:
   // the bank: 2.1 m above the shore, 4 m back from its edge (x −32.5), turned across it
   { id: 'dusklagoon', binding: 'dusk', query: 'go=1&mode=range&species=charmander&map=cascade-lagoon/dusk&mapseed=1', poses: [{ id: 'spawn' }, { id: 'ledge', at: [-28.5, 17.5], yaw: -Math.PI / 2 + 0.5, pitch: 0.35 }] },
 ];
+
+/** the owner's cave and night sweep (2026-11-27, after the hold-outs): per hold-out map, the key share at the fixed hour
+ *  (night now 23:00), then at the best share the facet tone 0.10 against 0.06, and on Chargestone a random side tone on
+ *  top of the locked facet tone. `base` is the provisional split (cave 0.4, night 0.45). The query strings are the dev
+ *  experiment layer's (`key`, `facet`, `facetjitter`). */
+export const HOLD_OUT_SWEEP: Record<string, { id: string; query: string }[]> = {
+  // the best share is the highest mark-1 minimum that does not crush (shadowed top L* ≥ 20): Chargestone 0.50 (0.55
+  // crushes, 19.7), the lagoon 0.55 (0.65 crushes, 18.3). Measured with scripts/toplint.ts --holdout-sweep before any frame
+  chargestone: [{ id: 'base', query: '' }, { id: 'k50', query: 'key=0.5' }, { id: 'k55', query: 'key=0.55' }, { id: 'k65', query: 'key=0.65' },
+    { id: 'k50-f10', query: 'key=0.5&facet=0.1' }, { id: 'k50-jit03', query: 'key=0.5&facetjitter=0.03' }],
+  dusklagoon: [{ id: 'base', query: '' }, { id: 'k50', query: 'key=0.5' }, { id: 'k55', query: 'key=0.55' }, { id: 'k65', query: 'key=0.65' },
+    { id: 'k55-f10', query: 'key=0.55&facet=0.1' }],
+};

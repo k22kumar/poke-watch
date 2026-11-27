@@ -70,7 +70,8 @@ test('time of day: every map has one fixed hour, the dev parameter overrides it'
   for (const b of Object.values(BIOME_BINDINGS)) assert.equal(mapTime(b).hour, FIXED_HOUR[b.light]);
   // 11:00 since the owner's decision of 2026-11-27 (the look sheet's sweep); 10:00 before
   assert.equal(resolve('lowpoly', 'meadow').time.hour, 11);
-  assert.equal(resolve('lowpoly', 'dusk').time.hour, 22);
+  // 23:00 since the owner's decision of 2026-11-27 (22:00 before)
+  assert.equal(resolve('lowpoly', 'dusk').time.hour, 23);
   assert.equal(hourFromParam(null, 10), 10);
   assert.equal(hourFromParam('', 10), 10);
   assert.equal(hourFromParam('17.5', 10), 17.5);
