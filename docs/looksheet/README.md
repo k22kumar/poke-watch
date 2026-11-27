@@ -130,3 +130,37 @@ Hold-outs (Chargestone Cave, the dusk lagoon): not loaded or captured.
 | r1p0i1 | ![range r1p0i1](2026-11-27/range-r1p0i1.png) | ![gorge r1p0i1](2026-11-27/gorge-r1p0i1.png) |
 | r1p1i0 | ![range r1p1i0](2026-11-27/range-r1p1i0.png) | ![gorge r1p1i0](2026-11-27/gorge-r1p1i0.png) |
 | r1p1i1 | ![range r1p1i1](2026-11-27/range-r1p1i1.png) | ![gorge r1p1i1](2026-11-27/gorge-r1p1i1.png) |
+
+## Round 2 (owner, 2026-11-27): the plan
+
+The owner's changes after round 1: no pick yet; mark 1 unchanged; the bands axis dropped (it moves mark 1 by under 0.3
+ΔL\* and does not show in frames; it returns later as a feel question); a toplint-only sweep before any capture; a
+second pose per map; the ink checked against fog. Hold-outs stay closed. Written and committed before the sweep runs.
+
+### The sweep (no frames)
+
+`npx tsx scripts/toplint.ts --sweep`: mark 1 exactly as written above (darkest top against brightest side, ΔL\* ≥ 12,
+every written role, both bindings), over:
+
+- **key share** at the fixed hour (the key light's part of an open top's light, the rest ambient): 0.65 (today),
+  0.75, 0.85;
+- **the fixed hour:** 10:00 (the sun 60° up) and 11:00 (75° up: a higher sun). The keyframes are anchored at the
+  hour swept, so an open top still shows its base colour there;
+- **facet tone**, at the moderate set's 0.06: ± by plane (today: the mark takes the darkest top, −0.06, against the
+  brightest side, +0.06), and locked to orientation (tops +0.06, sides −0.06); and 0 for reference.
+
+The other paint terms do not enter mark 1 (the vertical gradient acts below the top edge, strata between bands,
+edge light and ink draw lines). The report lists min ΔL\* per role for every cell.
+
+**Crushing the ambient**, declared now: a light split crushes the ambient when the darkest written role's open top,
+in full shadow (ambient only), falls below **L\* 20** on either binding. The report lists that L\* per cell. A split
+that gets trunk and cliff to 12 only by crushing does not count.
+
+If no cell gets trunk and cliff to 12 without crushing, mark 1 for the dark roles goes to G1b's top builders (Q23.3's
+treatments, F111), and the owner picks ink and paint on feel.
+
+### The re-capture
+
+Paint (0 or moderate) × ink (off or thin, share 0.35): four variants, at 10:00 and today's key share (the sweep
+changes nothing in the frames until the owner says so), on two poses per map: the spawn pose of round 1, and one
+looking down onto a ledge or cliff top so tops are in frame. Marks 2 and 3 per variant as before.
