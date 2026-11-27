@@ -468,6 +468,12 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   All eight variants fail mark 1 (the sun-facing side sits 3.4–5.7 ΔL\* under its top at worst, the light split
   being outside the grid); marks 2 and 3 pass for all (signals 80 of 80, at most 1.51 ms p95). Waiting on the owner's
   pick, or a change to the grid or the mark.
+  **Round 2 (2026-11-27):** bands dropped; a toplint-only sweep first (key share 0.65 / 0.75 / 0.85 × 10:00 / 11:00 ×
+  facet tone by plane or locked to orientation; the crushing line declared before the run). Exactly one split
+  passes mark 1 for every role without crushing: share 0.65 at **11:00** with facets **locked to orientation**
+  (trunk 12.8, cliff 15.6); both are owner calls (the accepted hour is 10:00; the lock is in the lint only). Re-capture
+  on 4 variants × 2 poses × 2 maps: marks 2 and 3 pass, mark 1 fails as in round 1. Found and fixed: ink and edge
+  light ignored the fog, and the ink pass's depth read the quad's camera (S2's edge pass too). Waiting on the owner.
 - **F109. `scripts/dev.mjs` had no recast plugin** [found and fixed by I2a]: since I3 the dev server's bundle imports
   `src/nav/web.ts`'s `.wasm`, which esbuild cannot load without `navWasm`; I2a added it beside the three side file.
 

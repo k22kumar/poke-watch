@@ -110,3 +110,14 @@ test('time of day: the key light runs on a plane perpendicular to the team axis,
   assert.deepEqual(mapTime(bindingFor('meadow'), [[-20, 0], [20, 0]]).teamAxis, [1, 0]);
   assert.ok(sunSine(12) === 1 && Math.abs(sunSine(6)) < 1e-12);
 });
+
+test('time of day: a look layer may anchor the keyframes at another fixed hour and key share, calibrated there', () => {
+  for (const [hour, keyShare] of [[11, 0.65], [10, 0.85], [9, 0.75]] as [number, number][]) {
+    const S = resolve('lowpoly', 'meadow', { overlay: { hour, keyShare } });
+    assert.equal(S.time.hour, hour);
+    const L = lightingAt(S.time, hour);
+    const key = lum(L.sun.colour) * L.sun.intensity * Math.max(0, L.sunDir[1]), up = key + lum(L.ambient.open[2]);
+    assert.ok(Math.abs(up - 1) < 0.03, `an open top at ${hour}:00, share ${keyShare}: ${up}`);
+    assert.ok(Math.abs(key - keyShare) < 0.03, `the key light's part ${key}`);
+  }
+});

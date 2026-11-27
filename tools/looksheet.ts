@@ -15,15 +15,17 @@ fs.mkdirSync(out, { recursive: true });
 
 // 1. frames: one pose per map (capture mode, the spawn, 1 s of ticks), the 3D canvas alone
 const b = await chromium.launch({ headless: false, args: ['--allow-file-access-from-files', '--enable-unsafe-webgpu', '--ignore-gpu-blocklist'] });
-for (const m of LOOK_MAPS) for (const v of LOOK_VARIANTS) {
+for (const m of LOOK_MAPS) for (const pose of m.poses) for (const v of LOOK_VARIANTS) {
   const p = await b.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
   await p.goto(`file://${path.resolve(file)}?capture=1&render=three&${m.query}${v.query ? '&' + v.query : ''}`);
   await p.waitForFunction(() => (window as any).pokewatch?.ready && !(window as any).pokewatch.loading, null, { timeout: 90000 });
+  // the pose: stand there, cut the camera to it, face its yaw and pitch the view down (render/renderer.ts look)
+  if (pose.at) await p.evaluate((o) => { const pw = (window as any).pokewatch, c = pw.ctx, P = c.player, r = pw.renderer; P.x = P.px = o.at[0]; P.z = P.pz = o.at[1]; P.y = P.py = c.world.height(P.x, P.z); r.snapCamera(c); r.look(o.yaw - r.rig.yaw, o.pitch); }, pose);
   await p.evaluate(() => { (window as any).pokewatch.advance(1, { frames: 60 }); for (const el of document.querySelectorAll<HTMLElement>('body *')) el.style.visibility = el.id === 'scene3d' ? 'visible' : 'hidden'; });
   await p.waitForTimeout(100);
-  await p.screenshot({ path: path.join(out, `${m.id}-${v.id}.png`) });
+  await p.screenshot({ path: path.join(out, `${m.id}-${pose.id}-${v.id}.png`) });
   const r = await p.evaluate(() => (window as any).pokewatchThree.report());
-  console.log(`frame ${m.id}-${v.id}: ${r.backend}, passes ${r.passes.join('+') || 'none'}`);
+  console.log(`frame ${m.id}-${pose.id}-${v.id}: ${r.backend}, passes ${r.passes.join('+') || 'none'}`);
   await p.close();
 }
 await b.close();

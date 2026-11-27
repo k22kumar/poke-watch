@@ -164,3 +164,85 @@ treatments, F111), and the owner picks ink and paint on feel.
 Paint (0 or moderate) × ink (off or thin, share 0.35): four variants, at 10:00 and today's key share (the sweep
 changes nothing in the frames until the owner says so), on two poses per map: the spawn pose of round 1, and one
 looking down onto a ledge or cliff top so tops are in frame. Marks 2 and 3 per variant as before.
+
+## Round 2: the sweep's result
+
+`npx tsx scripts/toplint.ts --sweep` (min ΔL\* per role over both bindings; the last column is the darkest role's open
+top in full shadow, crushed below L\* 20):
+
+```
+share hour facet            ground    path    soil    rock   cliff   floor   cover foliage   trunk   min  shadowTop L*min
+0.65  10   0                   8.7     8.2     7.6    10.2     6.9     9.8     8.1     7.9     5.6   5.6    23.1
+0.65  10   ±0.06 by plane      5.4     5.1     4.7     6.4     4.3     6.1     5.1       5     3.4   3.4    23.1
+0.65  10   oriented 0.06      11.9    11.3    10.4      14     9.4    13.5    11.2    10.9     7.7   7.7    23.1
+0.65  11   0                  16.4    15.7    14.5    19.5    13.1    18.9    15.5      15    10.8  10.8    23.1
+0.65  11   ±0.06 by plane     13.3    12.7    11.8    15.9    10.7    15.3    12.6    12.2     8.7   8.7    23.1
+0.65  11   oriented 0.06      19.5    18.6    17.2    23.2    15.6    22.4    18.4    17.8    12.8  12.8    23.1
+0.75  10   0                  10.1     9.6     8.9      12     8.1    11.6     9.6     9.3     6.6   6.6    19 crushed
+0.75  10   ±0.06 by plane      6.9     6.6     6.1     8.2     5.5     7.9     6.5     6.4     4.5   4.5    19 crushed
+0.75  10   oriented 0.06      13.3    12.7    11.8    15.8    10.6    15.3    12.6    12.2     8.7   8.7    19 crushed
+0.75  11   0                  19.7    18.9    17.5    23.5    15.8    22.8    18.6    18.1      13    13    19 crushed
+0.75  11   ±0.06 by plane     16.7      16    14.8    19.9    13.4    19.3    15.8    15.3      11    11    19 crushed
+0.75  11   oriented 0.06      22.7    21.8    20.2    27.1    18.2    26.2    21.5    20.8      15    15    19 crushed
+0.85  10   0                  11.7    11.2    10.3    13.9     9.4    13.5      11    10.7     7.7   7.7    13.5 crushed
+0.85  10   ±0.06 by plane      8.5     8.1     7.5    10.1     6.8     9.8       8     7.8     5.6   5.6    13.5 crushed
+0.85  10   oriented 0.06      14.9    14.2    13.1    17.7    11.9    17.1      14    13.6     9.8   9.8    13.5 crushed
+0.85  11   0                  23.4    22.5    20.8      28    18.8    27.1    22.2    21.5    15.5  15.5    13.5 crushed
+0.85  11   ±0.06 by plane     20.5    19.7    18.2    24.5    16.5    23.7    19.4    18.8    13.6  13.6    13.5 crushed
+0.85  11   oriented 0.06      26.4    25.3    23.4    31.4    21.2    30.5    24.9    24.2    17.5  17.5    13.5 crushed
+```
+
+- **One cell passes mark 1 for every role without crushing:** key share 0.65 (today's), fixed hour **11:00**, facet
+  tone **locked to orientation** (tops +0.06, sides −0.06): trunk 12.8, cliff 15.6, every other role 15.6 or more;
+  the shadowed top keeps L\* 23.1.
+- **At 10:00 no cell passes**, crushed or not: the best is 9.8 on trunk (0.85, oriented), which crushes (L\* 13.5).
+- **0.75 and 0.85 crush the ambient** by the line declared before the run (L\* 19.0 and 13.5 < 20). At 11:00, 0.75
+  with facet 0 or oriented would pass mark 1, but crushed.
+- **The facet tone by plane (today's shader) always hurts the worst case** (about −2 to −3 ΔL\*); locked to
+  orientation it adds about +2 to +4, acting as a top/side tone term.
+- So: mark 1 for the dark roles can be met by a light split, but only with **two changes that are the owner's**: the
+  fixed hour 11:00 instead of the accepted 10:00, and facet tone locked to orientation (the shader has only the
+  per-plane hash today; the lock is in the lint, not yet built). Otherwise it goes to G1b's top builders (F111).
+  Nothing in the frames changes until the owner says.
+
+## Round 2: the re-capture
+
+Build: `feat/i2a-look-sheet` with the ink fog fix (below), same machine and method as round 1; the grid without the
+bands axis, at 10:00 and today's key share; two poses per map. The ledge pose stands on the range's 2 m terrace,
+5 m back from its edge, turned across it toward the field. The cliff pose stands on River Gorge's 6 m bluff, 4 m back
+from its edge, looking down over the river. `results.json` holds every number.
+
+| Variant | Paint | Ink | 1. Top/side min ΔL* (≥ 12) | 2. Signals | 3. GPU p95 WebGL 2, range / gorge (≤ 4.0) | WebGPU p50 / p95, range; gorge | Result |
+|---|---|---|---|---|---|---|---|
+| p0i0 | 0 | off | **fail** 5.6 (range trunk) | pass | pass 1.24 / 1.29 | 0.89 / 1.01; 0.93 / 1.1 | **fail** (mark 1) |
+| p0i1 | 0 | thin, share 0.35 | **fail** 5.6 (range trunk) | pass | pass 1.37 / 1.42 | 1.12 / 1.22; 1.15 / 1.32 | **fail** (mark 1) |
+| p1i0 | moderate | off | **fail** 3.4 (range trunk) | pass | pass 1.38 / 1.44 | 1.14 / 1.26; 1.19 / 1.38 | **fail** (mark 1) |
+| p1i1 | moderate | thin, share 0.35 | **fail** 3.4 (range trunk) | pass | pass 1.41 / 1.44 | 1.14 / 1.27; 1.2 / 1.38 | **fail** (mark 1) |
+
+Mark 1 is the round-1 number for each variant, unchanged (the frames are at 10:00 and the key share 0.65; the sweep
+above lists what other splits would do). Marks 2 and 3 pass for all four: signals 40 of 40, at most 1.44 ms p95.
+
+### The ink and the fog
+
+The owner's report holds: in round 1 the ink and edge-light lines showed through the fog on far blocks (gorge,
+r1p1i1). Two faults:
+
+- The ink pass runs after the scene's fog, so its lines were never fogged.
+- The pass computed depth with the `camera*` nodes, which inside the pipeline's quad pass are the quad's camera: the
+  view distance came out near 0. S2's depth edge, ported unchanged, had the same fault.
+
+Fixed (`src/render/three/passes.ts`): the pass reads the scene camera's projection and near/far explicitly. The ink
+colour is fogged with the scene's own curve and colour at each pixel's view distance, and edge light fades by the
+same amount. A line now loses contrast exactly as its surface does. The first try faded only the line's opacity,
+which still left dark lines over fogged fill; it was replaced before the round-2 frames were taken.
+
+### Frames
+
+Hold-outs (Chargestone Cave, the dusk lagoon): not loaded or captured.
+
+| Variant | Range, spawn | Range, ledge | River Gorge, spawn | River Gorge, cliff |
+|---|---|---|---|---|
+| p0i0 | ![range-spawn p0i0](2026-11-27-r2/range-spawn-p0i0.png) | ![range-ledge p0i0](2026-11-27-r2/range-ledge-p0i0.png) | ![gorge-spawn p0i0](2026-11-27-r2/gorge-spawn-p0i0.png) | ![gorge-ledge p0i0](2026-11-27-r2/gorge-ledge-p0i0.png) |
+| p0i1 | ![range-spawn p0i1](2026-11-27-r2/range-spawn-p0i1.png) | ![range-ledge p0i1](2026-11-27-r2/range-ledge-p0i1.png) | ![gorge-spawn p0i1](2026-11-27-r2/gorge-spawn-p0i1.png) | ![gorge-ledge p0i1](2026-11-27-r2/gorge-ledge-p0i1.png) |
+| p1i0 | ![range-spawn p1i0](2026-11-27-r2/range-spawn-p1i0.png) | ![range-ledge p1i0](2026-11-27-r2/range-ledge-p1i0.png) | ![gorge-spawn p1i0](2026-11-27-r2/gorge-spawn-p1i0.png) | ![gorge-ledge p1i0](2026-11-27-r2/gorge-ledge-p1i0.png) |
+| p1i1 | ![range-spawn p1i1](2026-11-27-r2/range-spawn-p1i1.png) | ![range-ledge p1i1](2026-11-27-r2/range-ledge-p1i1.png) | ![gorge-spawn p1i1](2026-11-27-r2/gorge-spawn-p1i1.png) | ![gorge-ledge p1i1](2026-11-27-r2/gorge-ledge-p1i1.png) |

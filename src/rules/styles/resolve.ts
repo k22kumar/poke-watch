@@ -23,6 +23,8 @@ export interface LookLayer {
   bloom?: Partial<BloomParams>;
   /** a fixed hour other than the binding's (D12: one per map) */
   hour?: number;
+  /** the key light's share of an open top's light at the fixed hour (timeofday.ts KEY_SHARE) */
+  keyShare?: number;
   /** grading on every keyframe */
   grade?: Partial<LightKey['grade']>;
 }
@@ -71,8 +73,9 @@ export function resolve(profileId: ProfileId, artKey: string, opts: { look?: Loo
   ink.weight = guard('ink.weight', ink.weight, 0, C.maxInk);
   bloom.resolution = guard('bloom.resolution', bloom.resolution, 0.125, 1);
 
-  const time = mapTime(B, opts.stagings);
-  for (const L of layers) if (L.hour !== undefined) time.hour = L.hour;
+  // the keyframes are anchored (calibrated) at the layers' fixed hour and key share
+  const hour = layers.reduce<number | undefined>((h, L) => L.hour ?? h, undefined), share = layers.reduce<number | undefined>((k, L) => L.keyShare ?? k, undefined);
+  const time = mapTime(B, opts.stagings, { hour, share });
   const g = layers.reduce<Partial<LightKey['grade']>>((a, L) => ({ ...a, ...L.grade }), {});
   time.keys = time.keys.map((k) => {
     const gr = { ...k.grade, ...g };

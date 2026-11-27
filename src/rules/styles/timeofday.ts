@@ -68,9 +68,11 @@ export const sunSine = (hour: number) => dsin(((hour - 6) / 12) * Math.PI);
 /** The binding's keyframes. The anchor (the fixed hour) is transcribed from today's tables (bindings.ts); the other
  *  three are derived from it by one rule so the dev parameter can show other times. Provisional until TD tunes them:
  *  only the fixed hour ships (D12). */
-export function keysFor(b: BiomeBinding): LightKey[] {
+/** `o.hour` and `o.share` anchor the keyframes at another fixed hour or key share (a map's `look`, the look sheet's
+ *  sweep); the anchor is calibrated at that hour either way */
+export function keysFor(b: BiomeBinding, o: { hour?: number; share?: number } = {}): LightKey[] {
   const hor = hexRgb(b.sky.hor), zen = hexRgb(b.sky.zen), ground = hexRgb(b.roles.ground);
-  const fixed = FIXED_HOUR[b.light], share = KEY_SHARE[b.light];
+  const fixed = o.hour ?? FIXED_HOUR[b.light], share = o.share ?? KEY_SHARE[b.light];
   // the key light's elevation at the fixed hour (the moon's at night: the antipode on the same path)
   const s = Math.max(0.2, Math.abs(sunSine(fixed)));
   // ambient colours from the sky, each normalised to luminance 1, then scaled so up + key = 1 on an open top
@@ -162,13 +164,13 @@ export function lightingAt(t: MapTime, hour: number): Lighting {
 
 /** a map's time: its binding's keyframes and fixed hour, and the team axis from its staging markers (A → B; the z axis
  *  when it has none, as on the range) */
-export function mapTime(b: BiomeBinding, stagings: [number, number][] = []): MapTime {
+export function mapTime(b: BiomeBinding, stagings: [number, number][] = [], o: { hour?: number; share?: number } = {}): MapTime {
   let axis: [number, number] = [0, 1];
   if (stagings.length >= 2) {
     const dx = stagings[1][0] - stagings[0][0], dz = stagings[1][1] - stagings[0][1], l = dhypot(dx, dz);
     if (l > 1e-6) axis = [dx / l, dz / l];
   }
-  return { keys: keysFor(b), hour: FIXED_HOUR[b.light], teamAxis: axis };
+  return { keys: keysFor(b, o), hour: o.hour ?? FIXED_HOUR[b.light], teamAxis: axis };
 }
 
 /** the dev URL parameter (D12): ?tod=<hour> (0 ≤ h < 24; '9:30' also reads), else the map's fixed hour */

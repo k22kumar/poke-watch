@@ -22,7 +22,7 @@ import { lightAt, type LightUniforms } from '../world3d/lighting';
 import { buildWorld, type WorldBuild } from '../world3d/mesh';
 import { createBackend, backendPick } from './backend';
 import { CardBatch, CreatureUniforms, creatureMaterial } from './billboard';
-import { Grade, bayer4, buildPipeline, type Pipeline } from './passes';
+import { Grade, bayer4, buildPipeline, type FogCurve, type Pipeline } from './passes';
 import { WorldLight, liquidMaterial, worldMaterial } from './worldmat';
 
 type N = any; // TSL node chains are loosely typed in @types/three 0.187 (S2 F42)
@@ -60,10 +60,12 @@ export const createThreeView: CreateThreeView = async (host) => {
   const uFog: N = uniform(new Color()), uFogNear: N = uniform(30), uFogFar: N = uniform(130), uFogK: N = uniform(0.85);
   const uHor: N = uniform(new Color()), uZen: N = uniform(new Color());
   // today's fog curve (render/tilestage.ts FOG_GLSL): a squared ramp to the biome's amount at `far`, then a veil
-  const dist: N = length(positionView);
-  const f: N = clamp(dist.sub(uFogNear).div(uFogFar.sub(uFogNear)), 0, 1);
-  const veil: N = clamp(dist.sub(uFogFar).div(uFogFar.mul(FOG_VEIL)), 0, 1);
-  scene.fogNode = (fog as N)(uFog, f.mul(f).mul(uFogK).add(float(1).sub(uFogK).mul(veil)));
+  const fogAt = (dist: N): N => {
+    const f: N = clamp(dist.sub(uFogNear).div(uFogFar.sub(uFogNear)), 0, 1);
+    const veil: N = clamp(dist.sub(uFogFar).div(uFogFar.mul(FOG_VEIL)), 0, 1);
+    return f.mul(f).mul(uFogK).add(float(1).sub(uFogK).mul(veil));
+  };
+  scene.fogNode = (fog as N)(uFog, fogAt(length(positionView)));
   // today's sky (render/renderer.ts SKY_FS): horizon to zenith in six dithered bands, the fog colour below the horizon
   scene.backgroundNode = Fn(() => {
     const t = clamp(positionWorldDirection.y.div(0.75), 0, 1);
@@ -136,7 +138,7 @@ export const createThreeView: CreateThreeView = async (host) => {
     CU.light.set(...S.actor);
     hour = hourFromParam(P0.get('tod'), S.time.hour);
     apply(lightAt(S.time, hour));
-    pipeline = buildPipeline(R, scene, signals, camera, S, G);
+    pipeline = buildPipeline(R, scene, signals, camera, S, G, { at: fogAt, colour: uFog } satisfies FogCurve);
     map = ctx.world.map;
     T.world = performance.now() - t0;
     if (S.log.length) console.info('[three] style clamps:', S.log.join('; '));

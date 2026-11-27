@@ -128,7 +128,9 @@ One `RenderPipeline` (S2 decision 2; `passes.ts`):
    material's ink share, written by world materials through their own `mrtNode`);
 2. the profile's registry passes in its order: `ink` (S2's edge pass: depth and normal edges darkened by weight ×
    role share, normal creases lightened by the paint block's edge light; its weight is the larger of the ink weight
-   and the edge light, so edge light alone builds it), `bloom` (three's BloomNode, added over the scene). A pass at
+   and the edge light, so edge light alone builds it; both take the fog of the surface they outline, since the
+   pass runs after the scene's fog: the ink colour is fogged by the scene's own curve and colour at the pixel's view
+   distance, and edge light fades by the same amount), `bloom` (three's BloomNode, added over the scene). A pass at
    weight 0 is not built;
 3. `renderOutput` (no tone mapping; the sRGB transform);
 4. grading (lift, gain, gamma per channel, saturation) and the vignette, in display space;
@@ -280,3 +282,8 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
 10. **`scripts/dev.mjs` gained `navWasm`** (F109) beside the side file, since the dev server could not bundle without it.
 11. **The ink pass is built for edge light alone** (look sheet, F111): edge light is drawn by the ink pass, so the pass's
     weight is max(ink weight, edge light). Gate: `tests/styles.test.ts`.
+12. **Ink and edge light take the fog** (owner's report, look sheet round 1: lines showed through the fog on far
+    blocks): the ink colour is fogged with the scene's curve and colour, so a line loses contrast as its surface does
+    (fading only its opacity, the first try, still left dark lines over fogged fill). The pass reads the scene
+    camera's projection and near/far explicitly: inside the pipeline's quad pass the `camera*` nodes are the quad's
+    camera, which gave a view distance of about 0 and, since S2's port, depth edges from the wrong near and far. Gate: the round-2 frames.
