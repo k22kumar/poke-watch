@@ -82,11 +82,12 @@ test('time of day: every map has one fixed hour, the dev parameter overrides it'
 
 test('time of day: at the fixed hour an open-sky top facing up is lit to its base colour (the transcription)', () => {
   // key light × n·l plus the open ambient's +y colour: luminance 1 at the fixed hour, so the top shows the binding's
-  // colour (today's tables) and sides read darker (Q23.3)
+  // colour (today's tables) and sides read darker (Q23.3). One exception, the owner's decision of 2026-11-27
+  // (docs/RENDER3D.md "Time of day"): Chargestone's binding takes key 0.85 over ambient 0.45, an open top at 1.30
   for (const b of Object.values(BIOME_BINDINGS)) {
-    const L = lightingAt(mapTime(b), mapTime(b).hour);
+    const L = lightingAt(mapTime(b), mapTime(b).hour), want = b.id === 'chargestone' ? 1.3 : 1;
     const up = lum(L.sun.colour) * L.sun.intensity * Math.max(0, L.sunDir[1]) + lum(L.ambient.open[2]);
-    assert.ok(Math.abs(up - 1) < 0.03, `${b.id}: an open top gets ${up.toFixed(3)} of its base colour`);
+    assert.ok(Math.abs(up - want) < 0.03, `${b.id}: an open top gets ${up.toFixed(3)} of its base colour (want ${want})`);
     // a side facing away from the key light gets only the side ambient: darker than the top
     assert.ok(lum(L.ambient.open[0]) < up - 0.2 && lum(L.ambient.open[1]) < up - 0.2, `${b.id}: sides read apart from tops`);
     // enclosed is darker than open in every direction

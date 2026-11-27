@@ -108,10 +108,16 @@ Every map ships one fixed time. All lighting — the key light, the two sets of 
 grading and the lamp channel's strength — is read from one time-of-day value through the map's keyframes:
 
 - **Keyframes** (`timeofday.ts keysFor`): four per binding. The anchor, at the map's fixed hour, is the transcription
-  (an open-sky top facing up gets exactly its base colour: key light × n·l + the open +y ambient = luminance 1); the
+  (an open-sky top facing up gets exactly its base colour: key light × n·l + the open +y ambient = luminance 1). **One
+  exception, an owner decision of 2026-11-27:** Chargestone Cave's binding (`chargestone`) takes key 0.85 over ambient
+  0.45, so an open top there gets 1.30 of its base colour (`BINDING_SPLIT`, timeofday.ts; docs/looksheet "The
+  Chargestone key sweep"); every other cave binding keeps the cave split. The
   others (night, dawn, dusk, or day for a night map) are derived from it by one rule so `?tod=` can show other times.
   Provisional until TD.
-- **The fixed hour** by light class: day maps 10:00, the night biome (Duskwood Hollow) 22:00, caves 10:00.
+- **The fixed hour** by light class: day maps 11:00, the night biome (Duskwood Hollow) 23:00, caves 11:00 (owner,
+  2026-11-27, "Look values").
+- **The key share** by light class: day 0.65, night 0.55, caves 0.40, each with ambient 1 − key; Chargestone's binding
+  is the exception above.
 - **The key light's path** (Q18.8): a plane perpendicular to the team axis (A → B staging markers; z on the range),
   up at 6:00, overhead at noon, down at 18:00; by night the moon takes the antipode on the same path. It never stands
   exactly overhead (2° off, toward neither team).
@@ -316,6 +322,17 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
 - **Hold-outs gated:** `tests/looksheet.test.ts` gates mark 1 and the crushing line on the dusk lagoon; Chargestone
   Cave joins with the cave split.
 - **F113 stays parked.**
+
+**Owner rulings (2026-11-27, closing the look sheet):**
+
+- **The cave split is Chargestone's binding's alone** (key 0.85 over ambient 0.45, `BINDING_SPLIT`); every other cave
+  binding, `moon` included, keeps 0.40. "Time of day" states the exception; `tests/timeofday.test.ts` expects 1.30 on
+  `chargestone`, 1.0 elsewhere. Shoal Grotto's `glimmer` variant (the `chargestone` binding) takes it too.
+- **Gated:** `tests/looksheet.test.ts` gates mark 1 and the crushing line on Chargestone Cave and the dusk lagoon.
+- **Recorded, not tuned:** the `moon` binding (Mt. Moon, Shoal Grotto) at 0.40 fails mark 1 (9.3, ground; shadowed
+  tops 31.1); Cinder Crater (`volcano`) fails mark 1 (9.9, cliff) and crushes (15.6): ROADMAP F114, fixed before any
+  `volcano` map ships in 3D.
+- **Endgrain catches only stumps and logs** on every current map (docs/looksheet "Rulings and closing checks").
 
 **Chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the paint terms and ink were
 picked on 2026-11-27 (below). Still open: the ramp (bands return later as a feel question), the normal mode per role

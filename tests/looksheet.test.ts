@@ -2,9 +2,8 @@
 // (the range: meadow; River Gorge: forest) at the fixed hour, every role of mark 1 keeps its darkest top ΔL* ≥ 12 above
 // its brightest side, for the shipped lowpoly profile and every variant of the sheet's grid, without crushing the
 // ambient (the darkest role's shadowed top keeps L* ≥ 20). Since the owner's decisions of 2026-11-27 mark 1 reads
-// endgrain (against the trunk sides it sits on) in place of trunk, and the dusk lagoon (the night hold-out) is gated
-// too, on the shipped profile. Chargestone Cave joins it with the cave split (key 0.85 over ambient 0.45), which waits
-// on the owner's ruling on tests/timeofday.test.ts (an open top lit to its base colour).
+// endgrain (against the trunk sides it sits on) in place of trunk, and the hold-out maps (Chargestone Cave: a cave, on
+// its own split, key 0.85 over ambient 0.45; the dusk lagoon: night) are gated too, on the shipped profile.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { resolve } from '../src/rules/styles/resolve';
@@ -29,9 +28,10 @@ test('look sheet mark 1: tops read apart from sides on the tuning maps, for lowp
   assert.equal(resolve('lowpoly', 'meadow').time.hour, 11);
 });
 
-test('look sheet mark 1: tops read apart from sides on the night hold-out map, for lowpoly as shipped', () => {
+test('look sheet mark 1: tops read apart from sides on the hold-out maps (a cave and night), for lowpoly as shipped', () => {
   const fails: string[] = [];
-  for (const m of HOLD_OUT_MAPS.filter((x) => x.id === 'dusklagoon')) {
+  assert.deepEqual(HOLD_OUT_MAPS.map((m) => m.id), ['chargestone', 'dusklagoon']);
+  for (const m of HOLD_OUT_MAPS) {
     const S = resolve('lowpoly', m.binding);
     const L = lightAt(S.time, S.time.hour);
     for (const role of MARK1_ROLES) {
@@ -41,5 +41,5 @@ test('look sheet mark 1: tops read apart from sides on the night hold-out map, f
     }
   }
   assert.deepEqual(fails, []);
-  assert.equal(resolve('lowpoly', 'dusk').time.hour, 23);
+  assert.deepEqual(HOLD_OUT_MAPS.map((m) => resolve('lowpoly', m.binding).time.hour), [11, 23]);
 });

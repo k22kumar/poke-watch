@@ -55,10 +55,11 @@ export const FIXED_HOUR: Record<BiomeBinding['light'], number> = { day: 11, nigh
  *  ambient fill, so it shows the binding's base colour (× the world light). Night 0.55 (owner, 2026-11-27, after the
  *  cave and night sweep; provisional until the owner confirms it from the frames); day and cave provisional */
 const KEY_SHARE: Record<BiomeBinding['light'], number> = { day: 0.65, night: 0.55, cave: 0.4 };
-/** the ambient fill's share where a light class sets it apart from the key (an open top then takes key + ambient);
- *  elsewhere 1 − the key share. Empty: the owner's cave split (key 0.85 over ambient 0.45, 2026-11-27) waits on a
- *  ruling, since tests/timeofday.test.ts holds every open top at its base colour (luminance 1) */
-const AMBIENT_SHARE: Partial<Record<BiomeBinding['light'], number>> = {};
+/** Per-binding splits that set the ambient apart from the key, so an open top takes key + ambient rather than 1.
+ *  Chargestone only (owner decision, 2026-11-27, docs/looksheet "The Chargestone key sweep"): key 0.85 over ambient
+ *  0.45, an open top at 1.30; every other cave binding (`moon`) keeps the cave split 0.40. The one exception to "an
+ *  open top shows its base colour" (docs/RENDER3D.md "Time of day"; tests/timeofday.test.ts) */
+export const BINDING_SPLIT: Record<string, { share: number; ambient: number }> = { chargestone: { share: 0.85, ambient: 0.45 } };
 /** enclosed ambient as a share of open ambient (provisional) */
 const ENCLOSED = 0.45;
 
@@ -80,14 +81,15 @@ export const sunSine = (hour: number) => dsin(((hour - 6) / 12) * Math.PI);
  *  key's (else 1 − share), so an open top takes share + ambient */
 export function keysFor(b: BiomeBinding, o: { hour?: number; share?: number; ambient?: number } = {}): LightKey[] {
   const hor = hexRgb(b.sky.hor), zen = hexRgb(b.sky.zen), ground = hexRgb(b.roles.ground);
-  const fixed = o.hour ?? FIXED_HOUR[b.light], share = o.share ?? KEY_SHARE[b.light];
+  const split = BINDING_SPLIT[b.id];
+  const fixed = o.hour ?? FIXED_HOUR[b.light], share = o.share ?? split?.share ?? KEY_SHARE[b.light];
   // the key light's elevation at the fixed hour (the moon's at night: the antipode on the same path)
   const s = Math.max(0.2, Math.abs(sunSine(fixed)));
   // ambient colours from the sky, each normalised to luminance 1, then scaled so up + key = 1 on an open top (or
   // up = o.ambient when it is given)
   const up = norm(mixc(zen, hor, 0.5)), side = norm(hor), down = norm(mulc(ground, 0.5));
   // a key share asked for alone (a look layer, the dev parameter) keeps the calibrated split, 1 − share
-  const amb = o.ambient ?? (o.share !== undefined ? 1 - share : AMBIENT_SHARE[b.light] ?? 1 - share);
+  const amb = o.ambient ?? (o.share !== undefined ? 1 - share : split?.ambient ?? 1 - share);
   const open: Six = six((i) => mulc(i === 2 ? up : i === 3 ? down : side, amb * (i === 3 ? 0.5 : 1)));
   const anchor: LightKey = {
     hour: fixed,

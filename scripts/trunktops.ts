@@ -8,6 +8,8 @@
 //              physics seam stands its column to the sky for movement (sim/physseam.ts pass 1): not standable today
 // The 3D range is G1a's and not built yet, so it has no trunk to count.
 // npx tsx scripts/trunktops.ts [seeds=5] [--json]
+// npx tsx scripts/trunktops.ts [seeds] --endgrain: what the renderer's endgrain rule (src/render/world3d/mesh.ts
+//   withEndgrain) draws as endgrain, by object: each endgrain triangle's tile and every prop covering that tile
 import { RN } from '../tests/setup/nav';
 import { defaultRules } from '../src/rules/defaults';
 import { fromArenaMap } from '../src/world/adapter';
@@ -19,6 +21,7 @@ import { generateLocation } from '../src/world/locgen';
 import { PROP_RULES, type ArenaMap } from '../src/world/tiles';
 import { PROP_MATERIALS } from '../src/rules/surfaces';
 import { NavWorld } from '../src/nav/world';
+import { withEndgrain } from '../src/render/world3d/mesh';
 void RN;
 
 const SEEDS = Number(process.argv.find((a) => /^\d+$/.test(a)) ?? 5);
@@ -48,6 +51,40 @@ function count(id: string, seed: number | null, m: ArenaMap): Row {
     nav.dispose();
   }
   return { map: id, seed, lowProps, wallProps, lowTops: low.length, lowTopsOnNavmesh: onNav, wallTops: wall.length };
+}
+
+/** endgrain triangles by the prop kinds covering their tiles ('none' when no prop covers the tile) */
+function endgrainKinds(m: ArenaMap): { tris: number; byKind: Record<string, number> } {
+  const W = m.w, H = m.h, byKind: Record<string, number> = {};
+  let tris = 0;
+  for (const c of withEndgrain(fromArenaMap(m))) {
+    if (c.role !== 'endgrain') continue;
+    const P = c.positions, I = c.indices;
+    for (let t = 0; t < I.length; t += 3) {
+      tris++;
+      const x = (P[I[t] * 3] + P[I[t + 1] * 3] + P[I[t + 2] * 3]) / 3, z = (P[I[t] * 3 + 2] + P[I[t + 1] * 3 + 2] + P[I[t + 2] * 3 + 2]) / 3;
+      const i = Math.floor(x + W / 2), j = Math.floor(z + H / 2);
+      const kinds = m.props.filter((p) => i >= p.x && i < p.x + p.w && j >= p.y && j < p.y + p.h).map((p) => p.kind);
+      const key = kinds.length ? [...new Set(kinds)].sort().join('+') : 'none';
+      byKind[key] = (byKind[key] ?? 0) + 1;
+    }
+  }
+  return { tris, byKind };
+}
+
+if (process.argv.includes('--endgrain')) {
+  const maps: [string, ArenaMap][] = [];
+  for (const a of ['range', 'meadow', 'badlands', 'frost', 'dusk']) maps.push([`arena:${a}`, getArena(a)]);
+  for (const id of Object.keys(LOCATIONS)) for (let s = 1; s <= SEEDS; s++) maps.push([`location:${id} s${s}`, generateLocation({ location: id, seed: s, size: rules.worldgen.size })]);
+  for (const id of Object.keys(HABITATS)) for (let s = 1; s <= SEEDS; s++) maps.push([`habitat:${id} s${s}`, generateHabitat({ recipe: id, seed: s, size: rules.worldgen.size })]);
+  const total: Record<string, number> = {};
+  for (const [id, m] of maps) {
+    const r = endgrainKinds(m);
+    for (const [k, n] of Object.entries(r.byKind)) total[k] = (total[k] ?? 0) + n;
+    console.log(`${id.padEnd(34)} endgrain triangles ${String(r.tris).padStart(3)}  ${Object.entries(r.byKind).map(([k, n]) => `${k} ${n}`).join(', ') || '-'}`);
+  }
+  console.log(`all maps: ${Object.entries(total).map(([k, n]) => `${k} ${n}`).join(', ')}`);
+  process.exit(0);
 }
 
 const rows: Row[] = [];

@@ -626,3 +626,33 @@ tops); after: endgrain `#d8c09a`. Everything else is the same build state.
 | Dusk lagoon 2: a log | ![](2026-11-27-endgrain/dusklagoon-2-before.png) | ![](2026-11-27-endgrain/dusklagoon-2-after.png) |
 
 Waiting on the owner's check by eye of the colour, and the ruling on the cave split.
+
+## Rulings and closing checks (owner, 2026-11-27)
+
+**Rulings:** the cave split goes to Chargestone's binding only (`BINDING_SPLIT`, timeofday.ts: key 0.85 over ambient
+0.45; every other cave binding, `moon` included, keeps 0.40). `tests/timeofday.test.ts` expects an open top at 1.30
+± 0.03 on `chargestone` and 1.0 ± 0.03 elsewhere; RENDER3D "Time of day" states the exception, in the same commit.
+`tests/looksheet.test.ts` gates Chargestone Cave (mark 1 12.4, cliff; shadowed tops 20.1) and the dusk lagoon (13.1,
+cliff; 21.7). Cinder Crater is ROADMAP F114. Shoal Grotto's paint variant `glimmer` uses the `chargestone` binding, so
+it takes the split too (a binding decision, as ruled).
+
+**Check: what endgrain catches** (`npx tsx scripts/trunktops.ts 3 --endgrain`; the training range, the four arenas,
+the three locations and the six recipes, seeds 1–3): every endgrain triangle's tile is covered by a stump or a log
+and by nothing else with a material (`flowerW` and `tall` are decoration props sharing a stump's tile). Over all maps:
+stump 240 triangles (224 alone, 14 with tall grass, 2 with a flower), log 244. **No tree trunk, fence post, sign post
+or cabin part matches.** None on the range, the caves, Cinder Crater or Spear Sanctuary.
+
+**Check: Mt. Moon and Shoal Grotto at 0.40** (the `moon` binding, 11:00, facet ±0.10; recorded, not tuned):
+
+| Role | ground | path | soil | rock | cliff | floor | cover | foliage | endgrain |
+|---|---|---|---|---|---|---|---|---|---|
+| Mark 1, ΔL\* (≥ 12) | **9.3** | 13.0 | **11.5** | **10.4** | **9.4** | 16.8 | **11.5** | 15.3 | 49.4 |
+| Shadowed top L\* (≥ 20) | 31.1 | 49.8 | 42.3 | 36.7 | 31.7 | 69.3 | 42.4 | 61.4 | 66.5 |
+
+Mark 1 fails (9.3, ground); nothing crushes (31.1); no top clips (peak 0.93).
+
+**Closing gates** (2026-11-27, build of this commit's tree): `npm run check` 719 tests, 718 pass, 0 fail, 1 todo (the
+Stage 7A sight test in `tests/spatial.test.ts`); `npx tsx scripts/checksum.ts all` 14 of 14 as recorded;
+`node tools/three-signal.mjs` 10 of 10 ok (both backends, five variants each); `.venv/bin/python -I
+tests/browser/range.py <build>/index.html <out> --query render=three` PASS, no console errors. **The look sheet is
+done.** Endgrain ships at the proposed `#d8c09a`.
