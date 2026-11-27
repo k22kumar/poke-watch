@@ -296,6 +296,27 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
   variant is applied: the cave split stays 0.40 / 0.60.
 - **The side jitter is dropped** (`paint.facetJitter` removed). Cave colours are not changed.
 
+**Owner decisions (2026-11-27, after the key sweep and the trunk count):**
+
+- **Night confirmed** as applied: key share 0.55, facet tone ±0.10 (no Duskwood Hollow frame needed). No longer
+  provisional.
+- **Caves: key 0.85 over ambient 0.45** (an open top at 1.30; shadowed tops 20.1 and cliff 12.4 on Chargestone,
+  margins accepted). **Not applied yet:** `tests/timeofday.test.ts` holds every binding's open top at luminance 1 ± 0.03
+  ("lit to its base colour"), which the split breaks by design, so it waits on the owner's ruling on that test. The
+  mechanism is in (`AMBIENT_SHARE`, `LookLayer.ambientShare`). Under the split wooden floor tops clip on the `moon`
+  binding (1.19: Mt. Moon, Shoal Grotto).
+- **Endgrain:** stump and log tops take their own role, `endgrain`, a pale cut-wood colour, assigned on the render side
+  only (`withEndgrain`, src/render/world3d/mesh.ts; `RENDER_ROLES`, src/rules/styles/bindings.ts): the up-facing faces
+  on a raised trunk box. Their sides and every other trunk face stay `trunk`. Proposed colour `#d8c09a` on every
+  binding, for the owner's check by eye (docs/looksheet "Endgrain"). **G1a's 3D stumps and logs must carry this role**
+  (as a model role: adding it to `MATERIAL_ROLES` bumps `MODEL_VERSION`, Q16.9).
+- **Mark 1 reads endgrain in place of trunk** (`MARK1_ROLES`): an endgrain top against the trunk sides it sits on
+  (52.2 day, 58.3 night, 49.9 cave as shipped, 59.5 under the owner's cave split). Trunk's own tops (trees, fences,
+  signs, cabins: none standable today) are out of mark 1.
+- **Hold-outs gated:** `tests/looksheet.test.ts` gates mark 1 and the crushing line on the dusk lagoon; Chargestone
+  Cave joins with the cave split.
+- **F113 stays parked.**
+
 **Chosen from a look sheet** (ROADMAP F111; the owner picks from frames, never Claude): the paint terms and ink were
 picked on 2026-11-27 (below). Still open: the ramp (bands return later as a feel question), the normal mode per role
 (flat today) and the shadow tint per role (white today).
@@ -339,3 +360,9 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
     faces at 45–50°; River Gorge 33,432 level and 12,074 vertical; none between 50° and 60°), and a cutoff at 45°
     would sit on the range's 45° stair ramps. Revisit at G1a, whose terrain can hold 50–60° faces: there 50° is the
     better line. Gate: `tests/looksheet.test.ts`.
+14. **Endgrain as a render-side role** (owner's decision, its form mine): a `RENDER_ROLES` entry in the style data
+    rather than a new `MaterialRole`, because the model's union is contract (a `MODEL_VERSION` bump) and the owner
+    asked for the render side only; it takes trunk's shading and the normals of the trunk chunk it is split from, and
+    its mark 1 compares its top with trunk sides (its own sides, for information: 16.3–26.5). Alternatives: a model
+    role now (a contract change), or a per-face colour attribute on trunk (no role to gate). Gate: `tests/endgrain.test.ts`,
+    `tests/looksheet.test.ts`.

@@ -609,3 +609,20 @@ open cave top to 1.30 by design. Tests are the spec, so the split waits on the o
 the gate with the split. Also found: under the split the `moon` binding's floor top peaks at 1.19, so wooden floor
 tops clip on Mt. Moon (228 floor triangles) and Shoal Grotto (288; its surface variant `glimmer` uses chargestone,
 where floor peaks at 0.93).
+
+## Endgrain: frames
+
+`npx tsx tools/endgrain-frames.ts docs/looksheet/2026-11-27-endgrain before=<082b60d build> after=<838e88b build>`:
+Shrine Gorge (day, River Gorge seed 1) and the dusk lagoon (night, seed 1), the two stumps or logs nearest the spawn
+with a clear, level stand point 3.5 m away; the player stands there facing the prop, turned 0.3 rad, the camera at its
+gameplay pitch; 1280 × 720 on WebGPU, the 3D canvas alone. Poses in `poses.json`. Before: the 082b60d build (trunk
+tops); after: endgrain `#d8c09a`. Everything else is the same build state.
+
+| Pose | Before (trunk top) | After (endgrain) |
+|---|---|---|
+| Shrine Gorge 1: a stump 3.5 m off, logs beyond | ![](2026-11-27-endgrain/gorge-1-before.png) | ![](2026-11-27-endgrain/gorge-1-after.png) |
+| Shrine Gorge 2: a stump | ![](2026-11-27-endgrain/gorge-2-before.png) | ![](2026-11-27-endgrain/gorge-2-after.png) |
+| Dusk lagoon 1: a log | ![](2026-11-27-endgrain/dusklagoon-1-before.png) | ![](2026-11-27-endgrain/dusklagoon-1-after.png) |
+| Dusk lagoon 2: a log | ![](2026-11-27-endgrain/dusklagoon-2-before.png) | ![](2026-11-27-endgrain/dusklagoon-2-after.png) |
+
+Waiting on the owner's check by eye of the colour, and the ruling on the cave split.

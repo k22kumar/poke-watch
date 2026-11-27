@@ -1,0 +1,130 @@
+[
+ {
+  "map": "gorge",
+  "pose": 1,
+  "label": "before",
+  "kind": "stump",
+  "prop": [
+   -24.5,
+   14.5
+  ],
+  "at": [
+   -28,
+   14.5
+  ],
+  "yaw": 1.8707963267948966,
+  "frame": "gorge-1-before.png"
+ },
+ {
+  "map": "gorge",
+  "pose": 2,
+  "label": "before",
+  "kind": "stump",
+  "prop": [
+   -44.5,
+   12.5
+  ],
+  "at": [
+   -44.5,
+   9
+  ],
+  "yaw": 0.3,
+  "frame": "gorge-2-before.png"
+ },
+ {
+  "map": "gorge",
+  "pose": 1,
+  "label": "after",
+  "kind": "stump",
+  "prop": [
+   -24.5,
+   14.5
+  ],
+  "at": [
+   -28,
+   14.5
+  ],
+  "yaw": 1.8707963267948966,
+  "frame": "gorge-1-after.png"
+ },
+ {
+  "map": "gorge",
+  "pose": 2,
+  "label": "after",
+  "kind": "stump",
+  "prop": [
+   -44.5,
+   12.5
+  ],
+  "at": [
+   -44.5,
+   9
+  ],
+  "yaw": 0.3,
+  "frame": "gorge-2-after.png"
+ },
+ {
+  "map": "dusklagoon",
+  "pose": 1,
+  "label": "before",
+  "kind": "log",
+  "prop": [
+   -32,
+   9.5
+  ],
+  "at": [
+   -34.474873734152915,
+   11.974873734152915
+  ],
+  "yaw": 2.6561944901923447,
+  "frame": "dusklagoon-1-before.png"
+ },
+ {
+  "map": "dusklagoon",
+  "pose": 2,
+  "label": "before",
+  "kind": "log",
+  "prop": [
+   9,
+   16.5
+  ],
+  "at": [
+   6.525126265847084,
+   14.025126265847083
+  ],
+  "yaw": 1.0853981633974483,
+  "frame": "dusklagoon-2-before.png"
+ },
+ {
+  "map": "dusklagoon",
+  "pose": 1,
+  "label": "after",
+  "kind": "log",
+  "prop": [
+   -32,
+   9.5
+  ],
+  "at": [
+   -34.474873734152915,
+   11.974873734152915
+  ],
+  "yaw": 2.6561944901923447,
+  "frame": "dusklagoon-1-after.png"
+ },
+ {
+  "map": "dusklagoon",
+  "pose": 2,
+  "label": "after",
+  "kind": "log",
+  "prop": [
+   9,
+   16.5
+  ],
+  "at": [
+   6.525126265847084,
+   14.025126265847083
+  ],
+  "yaw": 1.0853981633974483,
+  "frame": "dusklagoon-2-after.png"
+ }
+]
