@@ -280,10 +280,8 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
    palettes; prop roles from the tile-art ramps' second shade; today's dithered sky bands and vignette kept. Gate:
    `tests/styles.test.ts`. (Every new look value is in "Look values", not here.)
 10. **`scripts/dev.mjs` gained `navWasm`** (F109) beside the side file, since the dev server could not bundle without it.
-11. **The ink pass is built for edge light alone** (look sheet, F111): edge light is drawn by the ink pass, so the pass's
+11. **Ink and edge light take the fog, from the scene camera** (F112): the ink colour is fogged with the scene's curve
+    and colour; the pass reads the scene camera's projection and near/far explicitly. Gate: `tools/three-signal.mjs`,
+    the look sheet's frames.
+12. **The ink pass is built for edge light alone** (look sheet, F111): edge light is drawn by the ink pass, so the pass's
     weight is max(ink weight, edge light). Gate: `tests/styles.test.ts`.
-12. **Ink and edge light take the fog** (owner's report, look sheet round 1: lines showed through the fog on far
-    blocks): the ink colour is fogged with the scene's curve and colour, so a line loses contrast as its surface does
-    (fading only its opacity, the first try, still left dark lines over fogged fill). The pass reads the scene
-    camera's projection and near/far explicitly: inside the pipeline's quad pass the `camera*` nodes are the quad's
-    camera, which gave a view distance of about 0 and, since S2's port, depth edges from the wrong near and far. Gate: the round-2 frames.
