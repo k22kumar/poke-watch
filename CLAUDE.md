@@ -14,6 +14,15 @@ Deterministic, data-driven Pokémon hero shooter: TypeScript, esbuild, `node:tes
 - Report as: commits, gates (each command and its result), deviations from the brief, "Decided without asking" (the D10 choices), found-not-fixed, then the stop or the next step.
 - When the owner must do something (merge, push, view a page or capture, run a browser check, answer a question), put the steps under a heading `## For you to do`. Write them in the instructional style below. Give exact commands in code blocks, one command per block, with no inline `#` comments (zsh). When the owner must look at a file (an image, a capture, a page, a log), give its full absolute path and a command that opens it, for example `open /Users/.../shot.png`. If a page loads `art/` or `music/` and cannot open from `file://`, give the command that serves it instead (`tools/README.md`).
 
+## Asking the owner
+The owner is not a programmer. Every question to the owner follows these rules:
+- Ask in game terms. Describe what a player sees or feels, with one concrete in-game example.
+- Use no file names, code names, flag names, F-numbers or decision codes in the question. If the record needs one, put it after the question, under "For the record".
+- Explain any unavoidable term in one short sentence.
+- Give 2–4 options. Put the recommended option first. Say why in one sentence, and say what each option costs in plain words (time, game speed, risk of redoing work).
+- Ask only what a player would notice, or what is costly to undo. Decide engineering-only questions yourself (D10) and list them under "Decided without asking", in one plain sentence each.
+- Put the technical detail for reviewers in the report, after the owner's questions.
+
 ## Instructional writing style
 
 Apply this style only when you write or edit instructional text: tutorials, procedures, prompts, requirements and specifications for humans or AI systems. Write all other responses normally.
