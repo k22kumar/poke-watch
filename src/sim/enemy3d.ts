@@ -131,7 +131,10 @@ export function moveGround3D(ctx: SimContext, i: number, ox: number, oz: number,
           // polygon and over the same box's plan (a flat polygon may span a small rise of another box), so it is exact
           if (P.supBox >= 0) { E.rayPoly[i] = q; E.rayVer[i] = geo; E.rayY[i] = s; E.rayBox[i] = P.supBox; } else E.rayPoly[i] = -1;
         }
-        if (feet - s > SNAP || Math.abs(PT[1] - s) > 1.0) return NaN;
+        // a flat polygon's floor is exact: one far from the ground found there is another level's (a lower floor seen past
+        // a lip within the layer). A sloped polygon's floor is read from its vertices and may be off by more than a metre
+        // (ROADMAP F78: terraces), so only the ground decides there
+        if (feet - s > SNAP || (N.graphs[g].isFlat(q) && Math.abs(PT[1] - s) > 1.0)) return NaN;
         return s;
       };
       let s = take(nx, nz);
