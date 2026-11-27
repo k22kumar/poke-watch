@@ -21,14 +21,19 @@
 //
 // Ownership: the bridge owns its NavWorld; reset() and dispose() free it (sim/run.ts disposeRun, map changes).
 
-import { NavWorld } from '../nav/world';
+import { NavWorld, type DropOptions } from '../nav/world';
+import { NONE } from '../nav/graph';
+import { is3D } from '../rules/defaults';
+import { DIAG_R } from '../world/navblocks';
+import type { PhysicsBridge } from './physseam';
+import type { PhysicsWorld } from '../physics/world';
 import { recast, recastReady } from '../nav/recast';
 import { AREA } from '../nav/build';
 import { fromArenaMap } from '../world/adapter';
 import { liveMap } from './physseam';
 import type { ArenaMap } from '../world/tiles';
 import type { Rules } from '../rules/defaults';
-import type { RayHit } from '../world/sight';
+import { RayHit } from '../world/sight';
 import type { NavGoal, RefY, TileExt, WorldQuery } from './worldquery';
 
 /** group index by agent (the NavWorld's ascending-height order: narrow, large, xl) */
@@ -54,9 +59,46 @@ function changedTiles(a: Snapshot, b: Snapshot): number[] {
 
 /** The bridge a run with rules.nav.engine = 'navmesh' carries (SimContext.nav). */
 export class NavBridge {
-  constructor(readonly rules: Rules) {
+  /** I1c: `physics`, the run's physics bridge. With both flags on (is3D) the bridge is the 3D stack's: the graphs carry
+   *  drop links checked on Rapier, and the seam's heights, placement and probes answer from the navmesh and Rapier */
+  constructor(readonly rules: Rules, physics: PhysicsBridge | null = null) {
     if (!recastReady()) recast(); // throws the init message: recast-navigation loads once, asynchronously, before createRun
     this.contestFilter = { enter: { [AREA.hazard]: rules.nav.hazardCost } };
+    this.phys = physics && is3D(rules) ? physics : null;
+    this.full = this.phys !== null;
+  }
+  /** I1c: the 3D stack (both flags on, and a physics bridge to ask) */
+  readonly full: boolean;
+  /** I1c: the physics bridge the 3D stack asks (null otherwise) */
+  readonly phys: PhysicsBridge | null;
+  /** I1c: the physics world of tile world w (the 3D stack only) */
+  physFor(w: WorldQuery): PhysicsWorld { return this.phys!.worldFor(w); }
+  /** I1c: drop candidates checked, and refused by the check (map entry and rebuilds) */
+  dropChecks = 0; dropRefused = 0;
+  private readonly hit = new RayHit();
+
+  /** I1c: the drop options of a build over tile world w (null off the 3D stack). A candidate is kept when its fall path is
+   *  clear for the group's agent (its radius, 2 cm under, and height): a sweep straight out from the edge at the top floor
+   *  plus rules.nav.drops.lift, then straight down onto the landing floor, met first there; and no liquid at the landing */
+  private dropOptions(w: WorldQuery): DropOptions | null {
+    if (!this.full) return null;
+    const R = this.rules.nav, D = R.drops, H = this.hit;
+    const agents = [R.adapterRadius.narrow ?? R.groups.narrow.radius, R.groups.large.radius, R.groups.xl.radius].map((r) => r * R.cs);
+    const heights = [R.groups.narrow.height, R.groups.large.height, R.groups.xl.height].map((h) => h * R.ch);
+    return {
+      rules: D,
+      check: (g, x0, y0, z0, nx, nz, d, y1) => {
+        this.dropChecks++;
+        const P = this.physFor(w); // rebuilt with the geometry (a replace() re-extracts after a change)
+        const r = agents[g] - 0.02, hh = (heights[g] - D.lift) / 2, cy = y0 + D.lift + hh;
+        const x1 = x0 + nx * d, z1 = z0 + nz * d, fall = y0 + D.lift - y1;
+        const ok = !P.bodySweep(x0, cy, z0, nx, 0, nz, d, r, hh, H)
+          && (!P.bodySweep(x1, cy, z1, 0, -1, 0, fall + 0.05, r, hh, H) || H.t >= fall - 0.05)
+          && P.liquidAt(x1, y1 + 0.01, z1) === 0;
+        if (!ok) this.dropRefused++;
+        return ok;
+      },
+    };
   }
   /** the current map's navigation (null until the first query, and after reset or dispose) */
   nav: NavWorld | null = null;
@@ -73,6 +115,8 @@ export class NavBridge {
   static clock: (() => number) | null = null;
   /** ms in navigation (with the clock), and each full build's time */
   ms = 0; buildMs: number[] = [];
+  /** I1c: ms in the 3D stack's enemy moves (sim/enemy3d.ts, with the clock; its Rapier queries are in physics' share too) */
+  actorMs = 0;
   /** what the seam answered: navDir by result, the 1s that turned more than 30° off the straight line to the goal,
    *  navReached and navDist calls (tests/navseam.test.ts reads them) */
   answers = { dir1: 0, dir0: 0, dirHold: 0, turned: 0, reached: 0, dist: 0 };
@@ -83,14 +127,14 @@ export class NavBridge {
     if (t !== this.T || !this.nav) {
       this.nav?.dispose();
       const t0 = NavBridge.clock ? NavBridge.clock() : 0;
-      const m = liveMap(t);
-      this.nav = NavWorld.build(fromArenaMap(m), this.rules);
+      const m = liveMap(t, this.full);
+      this.nav = NavWorld.build(fromArenaMap(m), this.rules, [], this.dropOptions(w));
       if (NavBridge.clock) this.buildMs.push(NavBridge.clock() - t0);
       this.snap = snapshot(m);
       this.T = t; this.gen = t.geoGen;
       this.builds++;
     } else if (t.geoGen !== this.gen) {
-      const m = liveMap(t), s = snapshot(m), half = t.half;
+      const m = liveMap(t, this.full), s = snapshot(m), half = t.half;
       const rects = changedTiles(this.snap!, s).map((k) => ({ x0: (k % t.w) - half, z0: ((k / t.w) | 0) - half, x1: (k % t.w) - half + 1, z1: ((k / t.w) | 0) - half + 1 }));
       if (rects.length) this.tilesRebuilt += this.nav.replace(fromArenaMap(m), rects).length;
       this.snap = s; this.gen = t.geoGen;
@@ -134,6 +178,49 @@ export class NavBridge {
   /** shore searches answered (perf-sim and the F2 test count them) */
   shoreSearches = 0;
 
+  // ---- I1c, the 3D stack
+  /** the exact height of the layer at tile height h: Rapier's support for a body from one step above it (MODE_MOVE:
+   *  liquids at their surface, the stair wedges), the tile height where Rapier has none within two steps */
+  exact(w: WorldQuery, x: number, h: number, z: number): number {
+    const st = this.rules.player.stepHeight, s = this.physFor(w).bodySupportBelow(x, h + st, z, 2 * st + 0.1);
+    return s === -Infinity ? h : s;
+  }
+  /** solidFor on Rapier: a body-stopping collider in the column of radius 1 cm from feet + step (+1 mm) to the head */
+  solid3(w: WorldQuery, x: number, y: number, z: number, step: number, tall?: number): boolean {
+    const y0 = y + step + 1e-3, y1 = tall !== undefined && y + tall > y0 + 0.05 ? y + tall : y0 + 0.05;
+    return this.physFor(w).bodyOverlap(x, y0, y1, z, 0.01) > 0;
+  }
+  /** blockedFor on Rapier: solid3, or nothing to stand on within rules.hazards' drop below (a chasm), or a liquid there */
+  blocked3(w: WorldQuery, x: number, y: number, z: number, step: number, tall?: number): boolean {
+    if (this.solid3(w, x, y, z, step, tall)) return true;
+    const P = this.physFor(w), s = P.bodySupportBelow(x, y + step, z);
+    if (s === -Infinity || s < w.killY) return true;
+    return P.liquidAt(x, s - 1e-3, z) !== 0;
+  }
+  /** the group of a body of footprint r (wide: navWide), the NavSeam's agent rule */
+  groupOf(r: number, wide: boolean): number { return groupOf(wide, r < DIAG_R); }
+  /** walkableAt on the navmesh: on a narrow polygon the player's field reaches */
+  walkable3(w: WorldQuery, x: number, y: RefY, z: number): boolean {
+    const F = this.fieldOf(w, 'player', 0);
+    return this.nav!.reaches(0, F, x, y, z, 0);
+  }
+  /** place / nearestWalkableAt on the navmesh: the nearest point of group(r, wide)'s navmesh within 20 m (the tile
+   *  search's 20 rings) that the player's field reaches (all of it without `reach`), its floor within the layer of the
+   *  ground there; a body with a footprint must also fit (Rapier: its cylinder clear from 2 cm above the floor to its
+   *  head). Falls back to the tile World's answer where the navmesh has none */
+  place3(w: WorldQuery, x: number, y: RefY, z: number, r: number, wide: boolean, reach: boolean, tall?: number): [number, number] {
+    const g = this.groupOf(r, wide), F = this.fieldOf(w, 'player', g), N = this.nav!, Pt = this.placePt;
+    const feet = y === undefined ? w.surfaceAt(x, y, z) : y;
+    const ok = reach && F ? N.graphs[g].nearest(x, feet, z, 20, (p) => F.cost[p] < Infinity, Pt) : N.graphs[g].nearest(x, feet, z, 20, () => true, Pt);
+    this.placements++;
+    if (ok === NONE) { this.placeFallbacks++; return r > 0 ? w.place(x, y, z, r, wide, reach, tall) : w.nearestWalkableAt(x, y, z); }
+    if (r > 0 && this.physFor(w).bodyOverlap(Pt[0], Pt[1] + 0.02, Pt[1] + (tall ?? 1), Pt[2], r - 0.02) > 0) { this.placeFallbacks++; return w.place(x, y, z, r, wide, reach, tall); }
+    return [Pt[0], Pt[2]];
+  }
+  private placePt = new Float64Array(3);
+  /** placements answered on the navmesh, and those that fell back to the tile World */
+  placements = 0; placeFallbacks = 0;
+
   /** free the navigation (a map change; the next query builds the new one) */
   reset(): void {
     this.nav?.dispose();
@@ -153,15 +240,28 @@ export class NavSeam implements WorldQuery {
   get tiles(): TileExt { return this.w.tiles; }
   /** I1b: the partner's character controller (the World's, on physics; ROADMAP F64) */
   get mover() { return this.w.mover; }
-  surfaceAt(x: number, y: RefY, z: number): number { return this.w.surfaceAt(x, y, z); }
-  supportAt(x: number, y: RefY, z: number): number { return this.w.supportAt(x, y, z); }
+  // I1c, the 3D stack (bridge.full): heights from Rapier. The tile model picks the layer (the ground with GROUND, as the
+  // tile World; a deck with a reference height at its level) and Rapier gives its exact height there: a ray from one step
+  // above the tile height down onto what stops a body (ROADMAP F30, F75: a spawn on a stair ramp rests on the ramp)
+  surfaceAt(x: number, y: RefY, z: number): number { const h = this.w.surfaceAt(x, y, z); return this.bridge.full ? this.bridge.exact(this.w, x, h, z) : h; }
+  supportAt(x: number, y: RefY, z: number): number {
+    const h = this.w.supportAt(x, y, z);
+    return this.bridge.full && h !== -Infinity ? this.bridge.exact(this.w, x, h, z) : h;
+  }
   liquidContact(x: number, y: number, z: number, contact: number): number { return this.w.liquidContact(x, y, z, contact); }
   headroomOver(x: number, y: number, z: number, r: number): number { return this.w.headroomOver(x, y, z, r); }
   moveFootprint(x: number, y: number, z: number, dx: number, dz: number, step: number, r: number, out: [number, number], stop?: (x: number, z: number) => boolean, tall?: number, over?: boolean): void {
     this.w.moveFootprint(x, y, z, dx, dz, step, r, out, stop, tall, over);
   }
-  solidFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean { return this.w.solidFor(x, y, z, step, tall, over); }
-  blockedFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean { return this.w.blockedFor(x, y, z, step, tall, over); }
+  // I1c, the 3D stack: the point probes (the bot's, the bodies', steering's) ask Rapier. solidFor: something that stops a
+  // body in the column from one step above the feet to the head (`tall`; without it a 5 cm slice over the step).
+  // blockedFor: that, or no support within rules.hazards' reach below the step (open air), or a liquid at the support
+  solidFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean {
+    return this.bridge.full ? this.bridge.solid3(this.w, x, y, z, step, tall) : this.w.solidFor(x, y, z, step, tall, over);
+  }
+  blockedFor(x: number, y: number, z: number, step: number, tall?: number, over?: boolean): boolean {
+    return this.bridge.full ? this.bridge.blocked3(this.w, x, y, z, step, tall) : this.w.blockedFor(x, y, z, step, tall, over);
+  }
   fitsAt(x: number, y: number, z: number, r: number, step?: number, tall?: number, over?: boolean): boolean { return this.w.fitsAt(x, y, z, r, step, tall, over); }
   topBelow(x: number, y: number, z: number, r: number): number { return this.w.topBelow(x, y, z, r); }
   insideRock(x: number, y: number, z: number, over?: boolean): boolean { return this.w.insideRock(x, y, z, over); }
@@ -171,9 +271,14 @@ export class NavSeam implements WorldQuery {
   segmentClear(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, mask?: number, flags?: number): boolean { return this.w.segmentClear(x0, y0, z0, x1, y1, z1, mask, flags); }
   solidAt(x: number, y: number, z: number, mask?: number, flags?: number): number { return this.w.solidAt(x, y, z, mask, flags); }
   sight(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean { return this.w.sight(x0, y0, z0, x1, y1, z1); }
-  walkableAt(x: number, y: RefY, z: number): boolean { return this.w.walkableAt(x, y, z); }
-  nearestWalkableAt(x: number, y: RefY, z: number): [number, number] { return this.w.nearestWalkableAt(x, y, z); }
-  place(x: number, y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number] { return this.w.place(x, y, z, r, wide, reach, tall); }
+  // I1c, the 3D stack (ROADMAP F83): placement on the navmesh. walkableAt: on a narrow polygon the player's field
+  // reaches (the tile World's walkable: open and on the flow); nearestWalkableAt: the nearest such point; place: the
+  // nearest point of the body's own group's navmesh (the field-reached part with `reach`), then a fit test on Rapier
+  walkableAt(x: number, y: RefY, z: number): boolean { return this.bridge.full ? this.bridge.walkable3(this.w, x, y, z) : this.w.walkableAt(x, y, z); }
+  nearestWalkableAt(x: number, y: RefY, z: number): [number, number] { return this.bridge.full ? this.bridge.place3(this.w, x, y, z, 0, false, true) : this.w.nearestWalkableAt(x, y, z); }
+  place(x: number, y: RefY, z: number, r: number, wide: boolean, reach?: boolean, tall?: number): [number, number] {
+    return this.bridge.full ? this.bridge.place3(this.w, x, y, z, r, wide, reach ?? true, tall) : this.w.place(x, y, z, r, wide, reach, tall);
+  }
   // ---- on the navmesh
   setNavGoal(x: number, y: RefY, z: number): void {
     this.w.setNavGoal(x, y, z);

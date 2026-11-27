@@ -34,6 +34,30 @@ export interface FieldFilter {
   caps?: readonly string[];
 }
 
+/**
+ * I1c drop links (docs/OVERHAUL_3D.md "Actors (I1c)"; rules.nav.drops): generated and validated at every extraction
+ * (map entry and every rebuild) when the graph is given a config. Graph-only: a drop is an extra one-way adjacency entry
+ * from a polygon's boundary edge to a lower polygon of the same group, so neither Detour's tiles nor the WorldModel
+ * change.
+ */
+export interface DropConfig {
+  /** m between samples along a boundary edge */
+  sample: number;
+  /** m: the least and greatest fall */
+  min: number; max: number;
+  /** m beyond 2 × radius at which the landing is probed, nearest first */
+  probes: readonly number[];
+  /** m: the group's agent radius */
+  radius: number;
+  /** the caller's check of a candidate (the fall path clear of walls, no liquid at the landing): from (x0, y0, z0) on the
+   *  edge, straight out along (nx, nz) by d, down to the floor y1. Absent: every geometric candidate is kept */
+  check?: (x0: number, y0: number, z0: number, nx: number, nz: number, d: number, y1: number) => boolean;
+}
+
+/** one drop link: from polygon `from` over its edge stretch (ax, az)–(bx, bz) at floor y0, straight out along (nx, nz)
+ *  by d (plan, m), onto polygon `to` at floor y1 */
+export interface Drop { from: number; to: number; ax: number; az: number; bx: number; bz: number; y0: number; nx: number; nz: number; d: number; y1: number }
+
 /** a distance field toward one goal */
 export interface Field {
   /** the goal polygon and point */
@@ -68,9 +92,17 @@ export class NavGraph {
   private bw = 1; private bh = 1;
   /** extractions (map entry and every rebuild) */
   extracts = 0;
+  /** I1c: the drop links (empty without a DropConfig), and per outgoing adjacency entry the drop it is, or NONE */
+  drops: Drop[] = [];
+  dropOf = new Int32Array(0);
+  /** ms the last extraction spent generating drops (candidates and checks) */
+  dropMs = 0;
+  /** profiling clock for dropMs (tools set it; never in the output) */
+  static clock: (() => number) | null = null;
 
-  /** `origin` and `size`: the plan rectangle locate buckets (the map's bounds); `layer`: locate's floor tolerance (m) */
-  constructor(private readonly navMesh: NavMesh, private readonly links: readonly OffMeshLink[], private readonly origin: readonly [number, number], private readonly size: readonly [number, number], private readonly layer: number) {
+  /** `origin` and `size`: the plan rectangle locate buckets (the map's bounds); `layer`: locate's floor tolerance (m);
+   *  `dropCfg`: I1c's drop links (rules.nav.drops, on the 3D stack only) */
+  constructor(private readonly navMesh: NavMesh, private readonly links: readonly OffMeshLink[], private readonly origin: readonly [number, number], private readonly size: readonly [number, number], private readonly layer: number, private readonly dropCfg: DropConfig | null = null) {
     this.extract();
   }
 
@@ -119,10 +151,21 @@ export class NavGraph {
       out.sort((a, b) => a.to - b.to);
       linkList.push(out);
     }
+    // the polygons first (locate and the drop search read them), then the adjacency with the drops appended
+    Object.assign(this, { n, vOff, vx, vy, vz, area, link });
+    this.index();
+    const drops = this.dropCfg ? this.findDrops(this.dropCfg, linkList) : [];
+    const dropAt = new Map<number, number[]>();
+    drops.forEach((D, k) => { const l = dropAt.get(D.from); if (l) l.push(k); else dropAt.set(D.from, [k]); });
     const aOff = new Int32Array(n + 1);
-    for (let i = 0; i < n; i++) aOff[i + 1] = aOff[i] + linkList[i].length;
-    const E = aOff[n], aTo = new Int32Array(E), pl = new Float64Array(3 * E), pr = new Float64Array(3 * E);
+    for (let i = 0; i < n; i++) aOff[i + 1] = aOff[i] + linkList[i].length + (dropAt.get(i)?.length ?? 0);
+    const E = aOff[n], aTo = new Int32Array(E), pl = new Float64Array(3 * E), pr = new Float64Array(3 * E), dropOf = new Int32Array(E).fill(NONE);
     const vert = (i: number, k: number, o: Float64Array, at: number) => { const q = vOff[i] + k; o[at] = vx[q]; o[at + 1] = vy[q]; o[at + 2] = vz[q]; };
+    for (const [i, ks] of dropAt) ks.forEach((d, k) => {
+      const q = aOff[i] + linkList[i].length + k, D = drops[d];
+      aTo[q] = D.to; dropOf[q] = d;
+      pl[3 * q] = D.ax; pl[3 * q + 1] = D.y0; pl[3 * q + 2] = D.az; pr[3 * q] = D.bx; pr[3 * q + 1] = D.y0; pr[3 * q + 2] = D.bz;
+    });
     for (let i = 0; i < n; i++) linkList[i].forEach((lk, k) => {
       const q = aOff[i] + k, to = lk.to, nv = vOff[i + 1] - vOff[i];
       aTo[q] = to;
@@ -141,9 +184,72 @@ export class NavGraph {
     for (let i = 0; i < n; i++) cnt[i + 1] += cnt[i];
     const fill = cnt.slice(), iEdge = new Int32Array(E), aFrom = new Int32Array(E);
     for (let i = 0; i < n; i++) for (let q = aOff[i]; q < aOff[i + 1]; q++) { iEdge[fill[aTo[q]]++] = q; aFrom[q] = i; }
-    Object.assign(this, { n, vOff, vx, vy, vz, area, link, aOff, aTo, pl, pr, iOff: cnt, iEdge, aFrom });
-    this.index();
+    Object.assign(this, { aOff, aTo, pl, pr, iOff: cnt, iEdge, aFrom, drops, dropOf });
     this.extracts++;
+  }
+
+  /**
+   * I1c: the drop links of this group's navmesh. Every boundary edge of a land polygon (an edge with no adjacency) is
+   * sampled every `sample` m; from each sample the landing is probed straight out (plan normal away from the polygon) at
+   * 2 × radius + each probe distance, nearest first: the highest floor of another polygon there that lies `min` to `max`
+   * below the edge, with no polygon there near the edge's own height (that is level ground, not a drop). The first
+   * candidate the caller's check keeps is the sample's landing. Neighbouring samples with the same landing polygon and
+   * distance merge into one link over their stretch of the edge. Deterministic: polygon, edge and sample order.
+   */
+  private findDrops(C: DropConfig, linkList: { e: number }[][]): Drop[] {
+    const t0 = NavGraph.clock ? NavGraph.clock() : 0;
+    const out: Drop[] = [], n = this.n, base = 2 * C.radius;
+    for (let p = 0; p < n; p++) {
+      if (this.link[p] !== NONE) continue;
+      const o = this.vOff[p], nv = this.vOff[p + 1] - o;
+      let cx = 0, cz = 0;
+      for (let k = 0; k < nv; k++) { cx += this.vx[o + k]; cz += this.vz[o + k]; }
+      cx /= nv; cz /= nv;
+      const L = linkList[p];
+      for (let e = 0; e < nv; e++) {
+        let linked = false;
+        for (let k = 0; k < L.length; k++) if (L[k].e === e) { linked = true; break; }
+        if (linked) continue;
+        const a = o + e, b = o + ((e + 1) % nv);
+        const ex = this.vx[b] - this.vx[a], ez = this.vz[b] - this.vz[a], len = Math.sqrt(ex * ex + ez * ez);
+        if (!(len > 1e-6)) continue;
+        let nx = ez / len, nz = -ex / len;
+        const mx = (this.vx[a] + this.vx[b]) / 2, mz = (this.vz[a] + this.vz[b]) / 2;
+        if ((mx - cx) * nx + (mz - cz) * nz < 0) { nx = -nx; nz = -nz; }
+        const S = Math.max(1, Math.ceil(len / C.sample));
+        // per sample: landing polygon, probe index (NONE: no drop), and landing floor
+        let runTo = NONE, runK = -1, runS = 0, runY0 = 0, runY1 = 0;
+        const flush = (sEnd: number) => {
+          if (runTo === NONE) return;
+          const t0s = runS / S, t1s = sEnd / S;
+          out.push({ from: p, to: runTo, ax: this.vx[a] + ex * t0s, az: this.vz[a] + ez * t0s, bx: this.vx[a] + ex * t1s, bz: this.vz[a] + ez * t1s, y0: runY0, nx, nz, d: base + C.probes[runK], y1: runY1 });
+          runTo = NONE;
+        };
+        for (let s = 0; s < S; s++) {
+          const t = (s + 0.5) / S, px = this.vx[a] + ex * t, pz = this.vz[a] + ez * t, py = this.vy[a] + (this.vy[b] - this.vy[a]) * t;
+          let to = NONE, kk = -1, y1 = 0;
+          for (let k = 0; k < C.probes.length && to === NONE; k++) {
+            const d = base + C.probes[k], qx = px + nx * d, qz = pz + nz * d;
+            const B = this.bucket[this.bj(qz) * this.bw + this.bi(qx)];
+            let best = NONE, bh = -Infinity, level = false;
+            for (let q = 0; q < B.length; q++) {
+              const r = B[q];
+              if (r === p || !this.contains(r, qx, qz)) continue;
+              const h = this.heightAt(r, qx, qz), fall = py - h;
+              if (fall < C.min) { level = true; break; }
+              if (fall <= C.max && (h > bh || (h === bh && r < best))) { best = r; bh = h; }
+            }
+            if (level || best === NONE) continue;
+            if (C.check && !C.check(px, py, pz, nx, nz, d, bh)) continue;
+            to = best; kk = k; y1 = bh;
+          }
+          if (to !== runTo || kk !== runK) { flush(s); if (to !== NONE) { runTo = to; runK = kk; runS = s; runY0 = py; runY1 = y1; } }
+        }
+        flush(S);
+      }
+    }
+    if (NavGraph.clock) this.dropMs = NavGraph.clock() - t0;
+    return out;
   }
 
   /** plan buckets of the land polygons, with each polygon's plan bounds and winding */
@@ -206,6 +312,8 @@ export class NavGraph {
   private wind = new Int8Array(0);
   /** per polygon: every vertex at one height */
   private flat = new Uint8Array(0);
+  /** I1c: is polygon p flat (every vertex at one height)? */
+  isFlat(p: number): boolean { return this.flat[p] === 1; }
 
   /**
    * The polygon under (x, z) for feet at y, the point on it in out[0..2]: of the polygons whose plan contains the point,

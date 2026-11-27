@@ -59,6 +59,17 @@ import { resolve } from './capabilities';
 import { Contacts, MASK, SK, SK_WORLD, spatialQuery, sweep } from './spatial';
 import { combatFlags } from './aim';
 import { GROUND, worldOf } from './worldquery';
+import { RayHit } from '../world/sight';
+
+/** I1c (ROADMAP F65): the 3D stack's world stop for an enemy shot and a planar player shot. The segment it flew this
+ *  tick against Rapier, in shots mode with every wall's column (no QF.tops) and foliage solid: the tile model's
+ *  `wallAt` (walls, trees, rock masses stop it at any height; a deck at its level carries it) */
+const SHOT_HIT = new RayHit();
+function shotStopped(ctx: SimContext, x0: number, y0: number, z0: number, x1: number, y1: number, z1: number): boolean {
+  const dx = x1 - x0, dy = y1 - y0, dz = z1 - z0, L = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (!(L > 1e-9)) return false;
+  return ctx.physics!.castWorld(worldOf(ctx), x0, y0, z0, dx / L, dy / L, dz / L, L, 0, 0, SK_WORLD & ~SK.liquid, 0, SHOT_HIT);
+}
 
 const ds: DamageSpec = { element: 'plain', cls: 'special', ailment: 'knock', chance: 0, knock: 0, kx: 0, kz: 0, drain: 0, source: '' };
 
@@ -166,6 +177,7 @@ export const projectileSystem = {
     const lightBodies = capsOn(ctx, 'interception');
     // the active partner's hurt cylinder (rules/sizing.ts: its size class, or the old shared 0.55 m × 1.2 m)
     const pr = partnerRadius(P.species, ctx.rules), ph = partnerHeight(P.species, ctx.rules);
+    const N3 = ctx.nav !== null && ctx.nav.full; // I1c: shots stop on Rapier (F65)
     for (let i = 0; i < Pr.hi; i++) {
       if (!Pr.alive[i]) continue;
       // a caught shot waits at the hold point (Phase 8a); it neither ages nor hits until it is released
@@ -180,9 +192,14 @@ export const projectileSystem = {
       if (Pr.traj[i] === 1) { if (kind === PK.straight) { flyLinear(ctx, i, dt); continue; } Pr.traj[i] = 0; }
 
       if (kind === PK.hostile) {
+        const hx = Pr.x[i], hy = Pr.y[i], hz = Pr.z[i];
         Pr.x[i] += Pr.vx[i] * dt;
         Pr.z[i] += Pr.vz[i] * dt;
-        if (T.los) {
+        if (T.los && N3) {
+          // I1c: the same cover on Rapier (F65): the segment flown against the walls, and the ground band
+          Pr.y[i] += Pr.vy[i] * dt;
+          if (shotStopped(ctx, hx, hy, hz, Pr.x[i], Pr.y[i], Pr.z[i]) || W.surfaceAt(Pr.x[i], Pr.y[i], Pr.z[i]) > Pr.y[i] - 0.15) { Pr.kill(i); continue; }
+        } else if (T.los) {
           // location maps: terrain and walls are cover (a cliff lip, trees, rock, a boulder or a bush top stops it)
           Pr.y[i] += Pr.vy[i] * dt;
           if (T.wallAt(Pr.x[i], Pr.z[i]) && !(T.over && T.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= T.w * T.h) || W.surfaceAt(Pr.x[i], Pr.y[i], Pr.z[i]) > Pr.y[i] - 0.15) { Pr.kill(i); continue; }
@@ -238,6 +255,7 @@ export const projectileSystem = {
         Pr.z[i] = P.z + dcos(a) * R;
       }
 
+      const sx0 = Pr.x[i], sy0 = Pr.y[i], sz0 = Pr.z[i]; // I1c: where it flew from this tick (F65)
       if (kind !== PK.orbit) {
         Pr.x[i] += Pr.vx[i] * dt;
         Pr.z[i] += Pr.vz[i] * dt;
@@ -298,7 +316,9 @@ export const projectileSystem = {
       // out of bounds / hit wall
       if (Pr.alive[i] && kind === PK.straight && ground > Pr.y[i] + 1.5) endShot(ctx, i);
       // location maps: trees, rock masses and buildings stop your shots too (cover works both ways)
-      else if (Pr.alive[i] && T.los && (kind === PK.straight || kind === PK.homing || kind === PK.boomerang) && T.wallAt(Pr.x[i], Pr.z[i]) && !(T.over && T.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= T.w * T.h)) endShot(ctx, i);
+      else if (Pr.alive[i] && T.los && (kind === PK.straight || kind === PK.homing || kind === PK.boomerang) && (N3
+        ? shotStopped(ctx, sx0, sy0, sz0, Pr.x[i], Pr.y[i], Pr.z[i]) // I1c: on Rapier (F65)
+        : T.wallAt(Pr.x[i], Pr.z[i]) && !(T.over && T.node(Pr.x[i], Pr.z[i], Pr.y[i]) >= T.w * T.h))) endShot(ctx, i);
     }
     // Phase 8a: shots of opposite teams that overlap after moving: deflect, catch or cancel by Weight
     interceptPass(ctx);

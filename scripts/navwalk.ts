@@ -16,7 +16,12 @@
 //   now arrives is FIXED. The list is for one flag setting and refuses another
 //   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'): only the trainer
 //   walks, one per size class, to every mandatory target; its capsule must stay clear of the physics world (the
-//   enemies stay on the tile World until I1c, so their walks are the flag-off run's)
+//   enemies stay on the tile World with the physics flag alone, so their walks are the flag-off run's). With both flags
+//   (--physics rapier --nav navmesh, I1c, ROADMAP F74) the enemy walkers walk too, on their navmesh and Rapier
+//   (sim/enemy3d.ts). An enemy walker passes on arrival alone there (owner, 2026-11-27, ROADMAP F118 option 3: an enemy is a
+//   footprint at its axis' height, not a body, S1 O2); how far its footprint clips into walls or ground is reported, per
+//   walk in its note and over the run as a histogram (F120: at most 6 cm on the new 3D maps). NAVWALK_DEBUG3D=1 prints a
+//   walker at each clipping tick before it is first flagged
 import { createRun, step } from '../src/sim/run';
 import { spawnEnemy } from '../src/sim/enemies';
 import { NO_INPUT, type SimContext } from '../src/sim/types';
@@ -111,6 +116,21 @@ const clearAt = (ctx: SimContext, x: number, z: number, y: number, r: number, ta
 const clearOn = (ctx: SimContext, x: number, z: number, y: number, r: number, tall: number) => ctx.physics ? ctx.physics.bodyClear(ctx.world, x, y, z, r, tall, 2e-3) : clearAt(ctx, x, z, y, r, tall);
 
 const DEBUG = !!process.env.NAVWALK_DEBUG;
+/** I1c (F118): the enemy walkers' clipping on the 3D stack, over the whole run: grounded ticks, those clipping, a histogram
+ *  by depth (m), the deepest, and per map the ticks deeper than 6 cm (F120's target) */
+const CLIP_CAP = 0.5;
+const clip = { ticks: 0, clipping: 0, deepest: 0, hist: {} as Record<string, number>, over6: {} as Record<string, number> };
+/** the map the current walk is on (for clip.over6) */
+let MAP_NOW = '';
+/** how far (m, 5 mm steps, up to CLIP_CAP) the footprint must shrink to clear what stops a body from a step (+1 cm) over the
+ *  feet to the head on Rapier: 0 when clear */
+function clipDepth(ctx: SimContext, x: number, z: number, y: number, r: number, tall: number): number {
+  const P = ctx.nav!.physFor(worldOf(ctx)), st = ctx.rules.player.stepHeight, y0 = y + st + 0.01, y1 = y + Math.max(tall, st + 0.06);
+  let d = 0;
+  // never a radius under 5 mm (Rapier's wasm aborts on a degenerate cylinder): deeper than that reads as the cap
+  while (d < CLIP_CAP && P.bodyOverlap(x, y0, y1, z, r - 2e-3 - d) > 0) { d += 0.005; if (r - 2e-3 - d < 0.005) { d = CLIP_CAP; break; } }
+  return d;
+}
 
 /** one enemy pursues the player standing at (px, pz) from (sx, sz) */
 function pursue(ctx: SimContext, walker: [string, string, number], sx: number, sz: number, px: number, pz: number, budget: number, deck = false): { arrived: boolean; t: number; pen: boolean; note: string } {
@@ -118,6 +138,7 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
   place(ctx, px, pz, deck);
   const e = spawnEnemy(ctx, species, sx, sz, roles);
   if (e < 0) return { arrived: false, t: 0, pen: false, note: 'no spawn' };
+  let walkDeep = 0, walkAt = '';
   E.spawnT[e] = 1;
   const t0 = ctx.time;
   let pen = false, note = '';
@@ -131,13 +152,37 @@ function pursue(ctx: SimContext, walker: [string, string, number], sx: number, s
     if (!E.alive[e]) return { arrived: false, t: ctx.time - t0, pen, note: 'died' };
     // grounded walkers only: a body falling past a cliff (knocked off, or dropping further than it planned) is pushed off
     // the face as it falls, and must be clear again by the time it stands
-    if (E.fallV[e] === 0 && !clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e])) {
+    const on3d = !!ctx.nav?.full, grounded = on3d ? E.mesh[e] !== 1 && E.vy[e] === 0 : E.fallV[e] === 0;
+    if (on3d) {
+      // I1c (F74, owner 2026-11-27, F118 option 3), both flags: an enemy is a footprint at its axis' height, not a body
+      // (S1 O2), and walks its navmesh with no sweep, so an enemy walker passes on arrival alone. How far its footprint
+      // clips into walls or ground is measured on every grounded tick (World.fits' rule on Rapier: from a step over the
+      // feet to the head) and reported as a diagnostic (ROADMAP F118; the 6 cm target on the new 3D maps: F120)
+      if (grounded) {
+        const d = clipDepth(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e]);
+        clip.ticks++;
+        if (d > 0) {
+          clip.clipping++; clip.deepest = Math.max(clip.deepest, d);
+          const bk = d <= 0.02 ? '≤ 0.02' : d <= 0.06 ? '≤ 0.06' : d <= 0.15 ? '≤ 0.15' : d < CLIP_CAP ? '> 0.15' : `≥ ${CLIP_CAP}`;
+          clip.hist[bk] = (clip.hist[bk] ?? 0) + 1;
+          if (d > 0.06) { const k = `${MAP_NOW}`; clip.over6[k] = (clip.over6[k] ?? 0) + 1; }
+          if (d > walkDeep) { walkDeep = d; walkAt = `${E.x[e].toFixed(2)},${E.y[e].toFixed(2)},${E.z[e].toFixed(2)}`; }
+          if (!pen && process.env.NAVWALK_DEBUG3D) console.log(`clip3d ${species} mesh ${E.mesh[e]} at ${E.x[e].toFixed(3)},${E.y[e].toFixed(3)},${E.z[e].toFixed(3)} depth ${d.toFixed(3)} foot ${E.foot[e]} tall ${E.tall[e].toFixed(2)} tileH ${ctx.world.height(E.x[e], E.z[e]).toFixed(2)}`);
+        }
+      }
+    } else if (grounded && !clearAt(ctx, E.x[e], E.z[e], E.y[e], E.foot[e], E.tall[e])) {
       if (!pen && DEBUG) console.log([...ring, `overlap ${species} at ${E.x[e]},${E.z[e]} y ${E.y[e]} h ${ctx.world.height(E.x[e], E.z[e], E.y[e])} foot ${E.foot[e]} collides ${ctx.world.collides(E.x[e], E.z[e], E.y[e], 0.6)} from ${E.px[e]},${E.pz[e]} hz ${E.hzKind[e]}`].join('\n'));
       pen = true; note = `overlap at ${E.x[e].toFixed(2)},${E.z[e].toFixed(2)}`;
     }
-    if (Math.hypot(E.x[e] - px, E.z[e] - pz) < 2.5) { E.kill(e); return { arrived: true, t: ctx.time - t0, pen, note }; }
+    if (Math.hypot(E.x[e] - px, E.z[e] - pz) < 2.5) { E.kill(e); return { arrived: true, t: ctx.time - t0, pen, note: walkDeep > 0 ? `clipped ${walkDeep.toFixed(3)} m at ${walkAt}` : note }; }
   }
   note = note || `ended ${E.x[e].toFixed(1)},${E.z[e].toFixed(1)} (${Math.hypot(E.x[e] - px, E.z[e] - pz).toFixed(1)} m off)`;
+  if (ctx.nav?.full) {
+    // I1c: where the 3D stack left it (its mesh state, its polygon, the navmesh's answer from there)
+    const W = worldOf(ctx), r = E.foot[e], g = ctx.nav.groupOf(r, navWide(r, ctx.rules)), out: [number, number] = [0, 0], pt = new Float64Array(3);
+    const poly = ctx.nav.nav!.locate(g, E.x[e], E.y[e], E.z[e], 0, pt), dir = W.navDir('player', E.x[e], E.y[e], E.z[e], out, navWide(r, ctx.rules), r < DIAG_R, E.tall[e]);
+    note += ` [3d: mesh ${E.mesh[e]}, y ${E.y[e].toFixed(2)}, polygon ${poly}, navDir ${dir} (${out[0].toFixed(2)},${out[1].toFixed(2)}), v ${E.vx[e].toFixed(2)},${E.vz[e].toFixed(2)}]`;
+  }
   E.kill(e);
   return { arrived: false, t: budget, pen, note };
 }
@@ -218,6 +263,7 @@ function driveTrainer(ctx: SimContext, path: [number, number][], budget: number)
 const budgetFor = (tiles: number, speed = 2.5) => tiles / speed * 2 + 5;
 
 export function walkLocation(id: string, seed: number): WalkResult[] {
+  MAP_NOW = `${id} seed ${seed}`;
   const out: WalkResult[] = [];
   const base = freshRun('location', id, seed), W = base.world, m = W.map, L = m.gen!.loc!, n = m.w * m.h;
   const hub = L.zones.find((z) => z.kind === 'hub')!, hubK = Math.floor(hub.y) * m.w + Math.floor(hub.x);
@@ -233,7 +279,7 @@ export function walkLocation(id: string, seed: number): WalkResult[] {
   }
   for (const [x, y] of L.anchors) targets.push({ name: `anchor${x},${y}`, k: y * m.w + x, mandatory: false, anchor: true });
   for (const T of targets) {
-    for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
+    for (const w of PHYSICS === 'rapier' && NAV_ENGINE !== 'navmesh' ? [] : WALKERS) {
       const ctx = freshRun('location', id, seed);
       const diag = w[0] === 'large', narrow = w[0] === 'narrow';
       const reach = narrow ? true : nearIn(diag ? wideDiag : wideStrict, T.k % m.w, (T.k / m.w) | 0, T.anchor ? 0 : 3);
@@ -282,11 +328,12 @@ function rockAt(ctx: SimContext, x: number, z: number, foot: number): boolean {
 function navOpenAt(ctx: SimContext, k: number) { const [x, z] = at(ctx, k); return ctx.world.walkable(x, z); }
 
 export function walkHabitat(id: string, seed: number): WalkResult[] {
+  MAP_NOW = `${id} seed ${seed}`;
   const out: WalkResult[] = [];
   const base = freshRun('habitat', id, seed), W = base.world, H = W.hab!, m = W.map;
   const ck = Math.floor(H.contest.y) * m.w + Math.floor(H.contest.x), sk = m.spawn[1] * m.w + m.spawn[0];
   const bk = Math.floor(H.stage.B[1]) * m.w + Math.floor(H.stage.B[0]);
-  for (const w of PHYSICS === 'rapier' ? [] : WALKERS) {
+  for (const w of PHYSICS === 'rapier' && NAV_ENGINE !== 'navmesh' ? [] : WALKERS) {
     const ctx = freshRun('habitat', id, seed);
     const [bx, bz] = at(ctx, bk), [cx, cz] = at(ctx, ck);
     const r = pursue(ctx, w, bx, bz, cx, cz, budgetFor(60));
@@ -328,6 +375,12 @@ if (process.argv[1]?.endsWith('navwalk.ts')) {
   }
   for (const [k, v] of Object.entries(tally).sort()) console.log(`${k.padEnd(22)} ${v.ok}/${v.n}`);
   console.log(`\n${fails} failures${PHYSICS === 'rapier' ? ' (physics: the trainer on the character controller)' : ''}`);
+  if (clip.ticks) {
+    // I1c (F118, F120): a diagnostic, never a failure
+    const over = Object.entries(clip.over6).sort((x, y) => y[1] - x[1]);
+    console.log(`\nenemy walkers' clipping on the 3D stack (diagnostic; F120 target on the new 3D maps: none deeper than 0.06 m): ${clip.clipping} of ${clip.ticks} grounded ticks clip, deepest ${clip.deepest >= CLIP_CAP ? '≥ ' : ''}${clip.deepest.toFixed(3)} m; by depth ${['≤ 0.02', '≤ 0.06', '≤ 0.15', '> 0.15', `≥ ${CLIP_CAP}`].map((k) => `${k}: ${clip.hist[k] ?? 0}`).join(', ')}`);
+    console.log(`  ticks deeper than 0.06 m by map: ${over.length ? over.map(([k, v]) => `${k} ${v}`).join(', ') : 'none'}`);
+  }
   if (fails) process.exitCode = 1;
   if (knownPath) {
     type Known = { map: string; seed: number; target: string; walker: string; failure: string; why?: string };

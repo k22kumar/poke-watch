@@ -142,6 +142,35 @@ export const defaultRules = {
     shoreReach: 16,
     /** [C] m: the contest field's price for entering a vent-field polygon (more than any route on a map) */
     hazardCost: 4096,
+    // I1c (docs/OVERHAUL_3D.md "Actors (I1c)"; owner's Q1, 2026-11-27): with both flags on (is3D) every width group's
+    // graph gets one-way 'drop' links, generated and validated when its navmesh is built (src/nav/graph.ts drops): from a
+    // boundary edge of a polygon to a lower polygon of the same group straight out from it, so a walker keeps today's
+    // ledge rule (it walks off onto a lower floor and falls under the sim's gravity) by route, never by straying off the
+    // mesh. The links live in the graph only (no Detour off-mesh connection, no tile rebuild, no WorldModel change).
+    drops: {
+      /** [C] m: boundary edges are sampled this often; neighbouring samples that land on the same polygon at the same
+       *  distance merge into one link whose portal is their stretch of the edge */
+      sample: 0.5,
+      /** [C] m: a drop is a fall of at least this (the step; a lower rise is a navmesh edge already) */
+      min: 0.6,
+      /** [C] m: and at most this (no fall damage exists; the bound keeps the search and a link's fall finite) */
+      max: 12,
+      /** [C] m: the landing is probed this far out beyond twice the agent radius (the eroded lip plus the eroded foot of
+       *  the face below), nearest first */
+      probes: [0.1, 0.35, 0.6, 1.0],
+      /** [C] m: the fall path's sweep starts this far above the top floor (clear of the floor it slides off) */
+      lift: 0.05,
+      /** [C] s: a walker on a link that has not landed by then leaves it (off the mesh: rescued as a knocked body) */
+      timeout: 3,
+    },
+    // I1c: an enemy off its group's navmesh (knocked past rules.hazards.forcedKnock, swimming in a liquid it is safe in,
+    // or landed where no polygon is) moves by a Rapier sweep and rejoins the mesh where it stands on a polygon again
+    offMesh: {
+      /** [C] m: a grounded body this close to its group's navmesh in plan walks back to it */
+      rescue: 4,
+      /** [C] s: grounded off the mesh this long with no polygon within `rescue`, it is put back with place() */
+      putBack: 3,
+    },
   },
   // Spatial queries (src/sim/spatial.ts; docs/THIRD_PERSON_IMPLEMENTATION.md §12): rays, ordered sweeps and overlaps.
   // No system reads them yet (Phase 2A has no consumers), so no replay hash depends on these numbers.
@@ -638,3 +667,9 @@ export const defaultRules = {
 };
 
 export type Rules = typeof defaultRules;
+
+/** I1c (docs/OVERHAUL_3D.md "Actors (I1c)", owner's Q3 of 2026-11-27): both flags on, the 3D stack. Every I1c behaviour
+ *  (enemies on the navmesh with drop links, heights from Rapier, placement on the navmesh, shots and bodies on Rapier,
+ *  the bot's probes) switches on only here; with one flag alone everything stays as I1a, I1b and I3 left it */
+export const is3D = (r: { readonly physics: { readonly engine: string }; readonly nav: { readonly engine: string } }): boolean =>
+  r.physics.engine === 'rapier' && r.nav.engine === 'navmesh';

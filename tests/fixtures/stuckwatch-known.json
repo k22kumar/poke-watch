@@ -1,0 +1,7 @@
+{
+ "note": "Known TRAPPED sites for scripts/stuckwatch.ts with both flags on (--physics rapier --nav navmesh --known this file). Owner, 2026-11-27 (I1c): River Gorge seed 3's one-tile pit (floor 0.70 m, walled on three sides, 5.3 m below the 6 m plateau) is a trap in a frozen tile map (D8), the F1 site; the same TRAPPED appear flag-off and with physics alone. The map goes at X1b. A TRAPPED episode on a listed map, seed and tile (any partner, any time) is KNOWN; any other is NEW and fails the gate.",
+ "setting": { "physics": "rapier", "nav": "navmesh" },
+ "known": [
+  { "map": "river-gorge", "seed": 3, "tile": [-29, 16], "why": "F1: the one-tile pit below the plateau's lip; the bot walks off the lip while kiting the crowd" }
+ ]
+}

@@ -12,7 +12,7 @@
 // move), it is not skipped by hit i-frames (a dash still is).
 // Damage ticks fall on the onset step and every `tick` s after it, so an actor still in the field when the eruption
 // begins takes the first tick, and the last tick lands `tick` s before the field goes quiet.
-import { navWide, partnerRadius } from '../rules/sizing';
+import { navWide, partnerFootprint, partnerRadius } from '../rules/sizing';
 import { applyAgent, hurtPlayer, steamAt } from './cells';
 import { killEnemy } from './combat';
 import type { Member, SimContext, System } from './types';
@@ -346,7 +346,7 @@ function exposeEnemies(ctx: SimContext, dt: number) {
     if (!E.hzKind[e]) continue;
     // safe in it (compatibility), or out on dry ground with support: the exposure ends
     const g = W.supportAt(E.x[e], E.y[e], E.z[e]);
-    if (kind || (g !== -Infinity && E.fallV[e] === 0)) {
+    if (kind || (g !== -Infinity && (ctx.nav && ctx.nav.full ? E.vy[e] === 0 : E.fallV[e] === 0))) { // I1c: the 3D stack falls by vy
       ctx.events.push({ t: 'hazard', kind: KIND_NAME[E.hzKind[e]] as 'water' | 'lava', phase: 'exit', who: 'enemy', id: e, lethal: 0, x: E.x[e], z: E.z[e] });
       E.hzKind[e] = 0; E.hzT[e] = 0; E.hzAcc[e] = 0; E.hzCue[e] = 0;
     }
@@ -384,7 +384,10 @@ export function shoreFor(ctx: SimContext): [number, number] | null {
   if (!c) SHORES.set(WT, (c = { tile: -1, x: 0, z: 0, ok: false }));
   const k = WT.tile(P.x, P.z);
   if (k !== c.tile) {
-    const s = WT.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
+    // I1c, the 3D stack: the nearest point of the partner's group's navmesh the player's field reaches (F2's search, as
+    // for enemies), in place of the tile shore
+    const pf = partnerFootprint(ctx.player.species, ctx.rules), N = ctx.nav;
+    const s = N && N.full ? N.shoreFor(W, P.x, P.y, P.z, navWide(pf, ctx.rules), pf < DIAG_R) : WT.shore(P.x, P.z, partnerRadius(ctx.player.species, ctx.rules), P.y);
     c.tile = k; c.ok = !!s;
     if (s) { c.x = s[0]; c.z = s[1]; }
   }

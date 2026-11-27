@@ -140,6 +140,26 @@
     "df07c701"
    ],
    "end": "16616a59"
+  },
+  "range-charmander-3d": {
+   "checkpoints": [
+    "f5367a88",
+    "844ef0e0",
+    "c59a169d",
+    "ebc9195d",
+    "eec3a3ed"
+   ],
+   "end": "69d074a8"
+  },
+  "gorge-hold-3d": {
+   "checkpoints": [
+    "4d3f821d",
+    "7dedad44",
+    "4b95ef51",
+    "06f36897",
+    "b54807f2"
+   ],
+   "end": "b9a45c28"
   }
  }
 }

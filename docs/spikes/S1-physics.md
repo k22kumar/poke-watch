@@ -420,6 +420,13 @@ These were not in docs/OVERHAUL_3D.md. Each is the spike's recommendation, then 
   - *Owner, 2026-11-23:* yes. No controller per enemy, and enemies are not Rapier bodies for now: hits on actors stay
     in `sim/spatial.ts`'s actor broad phase. Ground height comes from the navmesh polygon (Detour), with a ground ray
     only where the polygon can't be trusted.
+  - *Owner's amendment, 2026-11-27 (I1c, Q2):* ground height comes from one Rapier ground ray per moving enemy per tick
+    (`PhysicsWorld.bodySupportBelow` from a step above the feet), not from the navmesh polygon, and no detail mesh is
+    built: the polygon floor is off by up to 1.59 m without one (ROADMAP F78) and still 0.75 m with one, which costs
+    10–25 % more build per map. Only a ground enemy that is walking snaps to it, by today's 0.65 m snap-down rule; a
+    falling, knocked or dropping one falls under the sim's gravity onto it. A hovering enemy keeps its height above the
+    same ground. The enemy pool has a vertical velocity (`vy`) for a later task's free vertical flight; I1c builds no
+    flight. Still no controller and no Rapier body per enemy. Built: docs/OVERHAUL_3D.md "Actors (I1c)".
 - **O3 Collider representation.**
   - Adapter maps (until X1b): the adapter's boxes, one cuboid each, the cheapest in a crowd.
   - The mesh world (G1): trimesh chunks with FIX_INTERNAL_EDGES, made from the collision output. Re-measure controller

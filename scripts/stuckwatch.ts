@@ -15,8 +15,10 @@
 //           apart as `holding`
 // Read-only over the sim: it only observes. Prints every episode (seed, where, what is around) and a summary.
 //   --physics rapier (I1b): the partner on the character controller (rules.physics.engine 'rapier'); the escape probe's
-//   headings move its capsule through the controller too (the room flood stays the tile lattice's). Enemies stay on
+//   headings move its capsule through the controller too, and since I1c (F73) the room flood's steps as well. Enemies stay on
 //   the tile World until I1c
+//   --known <file> (I1c, owner 2026-11-27): the both-flags gate, no TRAPPED but at a listed site (map, seed, tile; any
+//   partner, any time; tests/fixtures/stuckwatch-known.json); a TRAPPED anywhere else fails (exit 1)
 //   --save <file> writes this run's TRAPPED episodes (JSON); --compare <file> matches them against a saved run by
 //   identity and fails (exit 1) on any TRAPPED the saved run does not have. I1b's gate (owner, 2026-11-25): no flag-on
 //   TRAPPED the flag-off run with the same nav setting does not also have. An episode's identity: map, seed, partner
@@ -81,16 +83,20 @@ export function escapeOf(ctx: SimContext): { free: number; room: number; trapped
     return g;
   };
   // a move of (dx, dz) from (x, z) at `feet` that arrives within `tol` of its target: walking first, then jumping
+  // on physics (I1b) the headings, and since I1c (ROADMAP F73) the flood's steps too, move the partner's own capsule
+  // through the character controller
+  const M = W.mover;
   const arrives = (x: number, z: number, feet: number, dx: number, dz: number, tol: number) => {
     for (const up of [st, climb]) {
-      W.moveBody(x, z, dx, dz, feet, up, r, OUT, undefined, tall);
+      if (M) {
+        BM.x = x; BM.y = feet; BM.z = z; BM.dx = dx; BM.dy = 0; BM.dz = dz; BM.r = r; BM.h = tall; BM.stepUp = up; BM.supported = true;
+        M.move(BM); OUT[0] = BM.x; OUT[1] = BM.z;
+      } else W.moveBody(x, z, dx, dz, feet, up, r, OUT, undefined, tall);
       if (Math.hypot(OUT[0] - (x + dx), OUT[1] - (z + dz)) <= tol) return true;
     }
     return false;
   };
   let free = 0;
-  // on physics (I1b) the headings move the partner's own capsule through the character controller
-  const M = W.mover;
   for (let h = 0; h < 16; h++) {
     const a = (h * Math.PI) / 8, dx = Math.sin(a) * 0.3, dz = Math.cos(a) * 0.3;
     // as before, a heading is free when a 0.3 m move goes at least 0.2 m (sliding along a face counts), walking or jumping
@@ -202,7 +208,7 @@ if (process.argv[1]?.endsWith('stuckwatch.ts')) {
   if (physics) await (await import('../src/physics/node')).initPhysicsNode();
   // --save / --compare (the identity gate)
   const opt = (name: string) => { const i = argv.indexOf(name); if (i < 0) return null; const v = argv[i + 1]; argv.splice(i, 2); return v; };
-  const savePath = opt('--save'), comparePath = opt('--compare');
+  const savePath = opt('--save'), comparePath = opt('--compare'), knownPath = opt('--known');
   const which = argv[2] ?? 'all', N = Number(argv[3] ?? 3), secs = Number(argv[4] ?? 120), first = Number(argv[5] ?? 1);
   const extra = { ...(process.env.STUCK_RULES ? JSON.parse(process.env.STUCK_RULES) : {}), ...(physics ? { physics: { engine: 'rapier' } } : {}) };
   const maps = which === 'all' ? [...Object.keys(HABITATS), ...Object.keys(LOCATIONS)] : which === 'habitat' ? Object.keys(HABITATS) : which === 'location' ? Object.keys(LOCATIONS) : [which];
@@ -233,6 +239,23 @@ if (process.argv[1]?.endsWith('stuckwatch.ts')) {
     }
     for (const t of base.trapped) if (!here.has(id(t))) console.log(`  GONE  ${id(t)}: there ${t.x.toFixed(3)},${t.z.toFixed(3)} y ${t.y.toFixed(2)}`);
     console.log(`identity gate: ${traps.length - fresh} matched, ${fresh} new, ${base.trapped.filter((t) => !here.has(id(t))).length} gone: ${fresh === 0 ? 'PASS' : 'FAIL'}`);
+    if (fresh) process.exitCode = 1;
+  }
+  if (knownPath) {
+    // I1c (owner, 2026-11-27): the both-flags gate "no TRAPPED" with a known-site list (tests/fixtures/stuckwatch-known.json):
+    // a TRAPPED episode on a listed map, seed and tile is KNOWN (any partner, any time: the crowd moves when it happens);
+    // any other is NEW and fails
+    const K = JSON.parse((await import('node:fs')).readFileSync(knownPath, 'utf8')) as { setting: { physics: string; nav: string }; known: { map: string; seed: number; tile: [number, number]; why: string }[] };
+    if (K.setting.physics !== setting.physics || K.setting.nav !== setting.nav) throw new Error(`--known: ${knownPath} is for physics ${K.setting.physics}, nav ${K.setting.nav}; this run is physics ${setting.physics}, nav ${setting.nav}`);
+    const site = (t: TrapRec) => K.known.find((k) => k.map === t.map && k.seed === t.seed && k.tile[0] === t.tile[0] && k.tile[1] === t.tile[1]);
+    let fresh = 0;
+    console.log(`\nTRAPPED against the known sites of ${knownPath}:`);
+    for (const t of traps) {
+      const k = site(t);
+      if (k) console.log(`  KNOWN ${t.map} seed ${t.seed} ${t.species} tick ${t.tick} tile ${t.tile[0]},${t.tile[1]} (${k.why})`);
+      else { fresh++; console.log(`  NEW   ${t.map} seed ${t.seed} ${t.species} tick ${t.tick} tile ${t.tile[0]},${t.tile[1]} at ${t.x.toFixed(2)},${t.z.toFixed(2)} y ${t.y.toFixed(2)}`); }
+    }
+    console.log(`known-site gate: ${traps.length - fresh} known, ${fresh} new: ${fresh === 0 ? 'PASS' : 'FAIL'}`);
     if (fresh) process.exitCode = 1;
   }
 }

@@ -23,6 +23,8 @@ import type { SimContext } from './types';
 import { shotWeight } from '../rules/capabilities';
 import { tickHeldEnemy } from './capabilities';
 import { avoidsStep } from './hazards';
+import { moveGround3D, offMesh3D } from './enemy3d';
+import { NavBridge } from './navseam';
 
 import { targetGoal } from './targets';
 import { GROUND, worldOf } from './worldquery';
@@ -145,6 +147,8 @@ export const enemySystem = {
     const pf = partnerFootprint(ctx.player.species, ctx.rules);
     const RR = ctx.rules.roles, O = ctx.objective;
     W.setNavGoal(P.x, P.y, P.z);
+    // I1c: the 3D stack (both flags on): ground enemies move on their navmesh and Rapier (sim/enemy3d.ts)
+    const N3 = ctx.nav !== null && ctx.nav.full;
     const burning = T.burnCost > 1 && T.cells.burning > 0;
     for (let i = 0; i < E.hi; i++) {
       if (!E.alive[i]) continue;
@@ -197,6 +201,8 @@ export const enemySystem = {
         if (!far && !W.navReached('player', nx, GROUND, nz, E.foot[i] < DIAG_R, E.tall[i])) { nx = E.x[i]; nz = E.z[i]; }
         E.x[i] = nx; E.z[i] = nz;
         E.px[i] = E.x[i]; E.pz[i] = E.z[i];
+        // I1c: on the 3D stack it stands on the mesh where it was put (the tile path's fall test lands it next tick)
+        if (N3) { E.y[i] = E.py[i] = W.surfaceAt(nx, GROUND, nz) + E.hover[i]; E.mesh[i] = 0; E.vy[i] = 0; }
         continue;
       }
 
@@ -206,6 +212,9 @@ export const enemySystem = {
       const frozen = E.sleep[i] > 0 || E.stun[i] > 0 || E.root[i] > 0 || E.spawnT[i] < 0.25;
       let ux = dx / dist, uz = dz / dist;
       const ground = E.hover[i] === 0;
+      // the steering probes: on the 3D stack a point off the walker's own navmesh (the edge its moves stop at), else the
+      // tile World's blockedFor
+      const blk = N3 ? (x: number, y: number, z: number) => offMesh3D(ctx, i, x, y, z) : (x: number, y: number, z: number) => W.blockedFor(x, y, z, 0.6);
       // layered maps: the player on a deck above (or on the ground below) is not reached by walking straight at them
       const layerGap = T.over !== null && ground && Math.abs(P.y - E.y[i]) > 2.4 && (T.over[T.tile(P.x, P.z)] > 0 || T.over[T.tile(E.x[i], E.z[i])] > 0);
       if (ground && (dist > 1.5 || layerGap)) {
@@ -218,7 +227,7 @@ export const enemySystem = {
         // route it holds where it is: it never follows the ordinary field into a gap it does not fit
         const f = E.foot[i], wide = navWide(f, ctx.rules);
         const p1 = Math.max(1.1, f + 0.75), p2 = Math.max(2.4, f + 2.05);
-        let ahead = wide || layerGap || W.blockedFor(E.x[i] + ux * p1, feet, E.z[i] + uz * p1, 0.6) || W.blockedFor(E.x[i] + ux * p2, feet, E.z[i] + uz * p2, 0.6);
+        let ahead = wide || layerGap || blk(E.x[i] + ux * p1, feet, E.z[i] + uz * p1) || blk(E.x[i] + ux * p2, feet, E.z[i] + uz * p2);
         // once the way ahead is blocked the walker keeps to the field for rules.enemy.navHold seconds. The
         // two probes are points, so with one sitting on a tile edge the test flips every tick, and the walker alternated
         // between straight at the player (into the wall) and the field (away from it) and stood still for good (viridian
@@ -247,6 +256,7 @@ export const enemySystem = {
 
       // a target's goal (src/sim/targets.ts), or the Hold a Raider is after (blueprint section 9)
       let goal: [number, number] | null = roles & ROLE.target ? targetGoal(ctx, i) : null;
+      let field: 'player' | 'contest' = 'player'; // I1c: the field a drop link must bring it nearer
       if (!goal && O && O.phase === 'active' && roles & ROLE.raider) goal = [O.x, O.z];
 
       if (goal) {
@@ -260,17 +270,18 @@ export const enemySystem = {
           // a wide Raider walks the wide block field to the point; with no wide route it holds (docs/SIZING.md)
           const r = W.navDir('contest', E.x[i], E.y[i], E.z[i], NAV, true, gf < DIAG_R, E.tall[i]);
           if (r === 1) { ux = NAV[0]; uz = NAV[1]; flowed = true; } else if (r < 0) { speed = 0; flowed = true; }
+          field = 'contest';
         } else if (ground && gl > 3 && O && O.kind === 'hold' && T.hab && W.navDir('contest', E.x[i], E.y[i], E.z[i], NAV) === 1) {
-          ux = NAV[0]; uz = NAV[1]; flowed = true;
+          ux = NAV[0]; uz = NAV[1]; flowed = true; field = 'contest';
           // a diagonal step clipping an inner corner (a hairpin, a cave mouth): take one axis, the larger if it is free
-          if (ux && uz && W.blockedFor(E.x[i] + ux * 0.8, E.y[i], E.z[i] + uz * 0.8, 0.6)) {
-            const sx = Math.sign(ux), sz = Math.sign(uz), xFree = !W.blockedFor(E.x[i] + sx * 0.8, E.y[i], E.z[i], 0.6), zFree = !W.blockedFor(E.x[i], E.y[i], E.z[i] + sz * 0.8, 0.6);
+          if (ux && uz && blk(E.x[i] + ux * 0.8, E.y[i], E.z[i] + uz * 0.8)) {
+            const sx = Math.sign(ux), sz = Math.sign(uz), xFree = !blk(E.x[i] + sx * 0.8, E.y[i], E.z[i]), zFree = !blk(E.x[i], E.y[i], E.z[i] + sz * 0.8);
             const xFirst = Math.abs(ux) >= Math.abs(uz);
             if (xFirst ? xFree || !zFree : xFree && !zFree) { ux = sx; uz = 0; } else { ux = 0; uz = sz; }
           }
         }
         // around walls: slide along the blocked axis
-        if (!flowed && ground && W.blockedFor(E.x[i] + ux * 1.1, E.y[i], E.z[i] + uz * 1.1, 0.6)) { const t = ux; ux = -uz; uz = t; }
+        if (!flowed && ground && blk(E.x[i] + ux * 1.1, E.y[i], E.z[i] + uz * 1.1)) { const t = ux; ux = -uz; uz = t; }
       } else if (roles & ROLE.healer) {
         // the healer behaviour heals everything near it and keeps away from you
         if (E.attackCd[i] <= 0) {
@@ -304,6 +315,8 @@ export const enemySystem = {
         ux = tx; uz = tz;
       }
 
+      // I1c: grounded off its navmesh beside it (sim/enemy3d.ts): walk back to it
+      if (N3 && ground && E.mesh[i] === 2 && E.lrem[i] > 0) { ux = E.ldx[i]; uz = E.ldz[i]; }
       // in a liquid it is not safe in (sim/hazards.ts): head for the shore picked on entry, wading slowly; over open air
       // (falling) it has nothing to push against
       if (E.hzKind[i] && ground) {
@@ -311,7 +324,7 @@ export const enemySystem = {
         ux = gx / gl; uz = gz / gl;
         speed *= E.hzKind[i] === 2 ? ctx.rules.hazards.lava.speed : ctx.rules.hazards.water.speed;
       }
-      if (E.fallV[i] > 0) speed = 0;
+      if (E.fallV[i] > 0 || (N3 && E.vy[i] < 0)) speed = 0;
       // any enemy started on a throw (src/sim/actions.ts) stands and winds up
       if (E.state[i] === THROWING) { E.stateT[i] -= dt; speed = 0; throwTick(ctx, i, 0); }
       if (frozen) speed = 0;
@@ -343,7 +356,14 @@ export const enemySystem = {
       let nx = Math.fround(clamp(ox + (E.vx[i] + E.kx[i] + sx * sepK) * dt, -W.bound, W.bound));
       let nz = Math.fround(clamp(oz + (E.vz[i] + E.kz[i] + sz * sepK) * dt, -W.bound, W.bound));
       E.kx[i] *= kdecay; E.kz[i] *= kdecay;
-      if (ground) {
+      if (N3 && ground) {
+        // I1c: on its navmesh, over a drop link, or off the mesh through Rapier (sim/enemy3d.ts); a walk refused at the
+        // mesh's edge follows the field for rules.enemy.navHold seconds, as a blocked look-ahead does
+        const forced = T.hazards && dhypot(E.kx[i], E.kz[i]) > ctx.rules.hazards.forcedKnock;
+        const clk = NavBridge.clock, c0 = clk ? clk() : 0;
+        moveGround3D(ctx, i, ox, oz, nx, nz, forced, dt, field, () => { E.navT[i] = R.navHold; });
+        if (clk) ctx.nav!.actorMs += clk() - c0;
+      } else if (ground) {
         const feet = E.py[i];
         // solid geometry stops anything; a lethal liquid or open air only stops a creature walking there on its own
         // (knockback past rules.hazards.forcedKnock carries it over the lip)
@@ -366,8 +386,8 @@ export const enemySystem = {
           else { nx = ox; nz = oz; }
         }
       }
-      E.x[i] = nx; E.z[i] = nz;
-      if (T.hazards && ground) {
+      if (!(N3 && ground)) { E.x[i] = nx; E.z[i] = nz; }
+      if (N3 && ground) { /* moveGround3D set the height */ } else if (T.hazards && ground) {
         // support ends over open air: it falls (sim/hazards.ts knocks it out below the map's floor)
         const sg = W.supportAt(E.x[i], E.y[i], E.z[i]);
         if (sg === -Infinity || E.y[i] - sg > 0.65 + E.fallV[i] * dt) {
