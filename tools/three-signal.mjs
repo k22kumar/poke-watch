@@ -3,11 +3,14 @@
 // (signal scene) and world cards of the same colour (world scene), 3 m and 100 m ahead of the lens; this reads the
 // pixels at their centres in every variant on both backends. The signal cards must read the reference colour (sRGB
 // 255, 102, 31) within ±2 in every variant; the world cards are printed to show the variants do bite.
-// usage: node tools/three-signal.mjs <build dir>/index.html     (headed Chromium on the real GPU; exits 1 on a failure)
+// usage: node tools/three-signal.mjs <build dir>/index.html [--query 'k=v&…']   (headed Chromium on the real GPU; exits 1
+// on a failure). --query adds parameters to every run (a look-sheet variant, docs/looksheet).
 import { chromium } from 'playwright';
 import { decodePng } from '../scripts/lib/png.mjs';
 
-const [file] = process.argv.slice(2);
+const argv = process.argv.slice(2);
+const extra = argv.includes('--query') ? '&' + argv[argv.indexOf('--query') + 1] : '';
+const [file] = argv;
 const REF = [255, 102, 31], TOL = 2;
 const VARIANTS = [
   ['plain', ''],
@@ -20,7 +23,7 @@ const b = await chromium.launch({ headless: false, args: ['--allow-file-access-f
 let fails = 0;
 for (const backend of ['webgpu', 'webgl']) for (const [name, q] of VARIANTS) {
   const p = await b.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
-  await p.goto(`file://${file}?capture=1&render=three&signalcheck=1&go=1&mode=range&species=charmander&backend=${backend}${q}`);
+  await p.goto(`file://${file}?capture=1&render=three&signalcheck=1&go=1&mode=range&species=charmander&backend=${backend}${extra}${q}`);
   await p.waitForFunction(() => window.pokewatch?.ready && !window.pokewatch.loading, null, { timeout: 90000 });
   // hide everything but the 3D canvas (the HUD, the 2D overlay), so the shot holds only the scene
   await p.evaluate(() => { window.pokewatch.advance(0.5, { frames: 30 }); for (const el of document.querySelectorAll('body *')) el.style.visibility = el.id === 'scene3d' ? 'visible' : 'hidden'; });

@@ -48,8 +48,9 @@ export interface ResolvedStyle {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
-/** a pass's weight: a pass at zero weight is not built */
-export const passWeight = (id: PostPassId, s: { ink: InkParams; bloom: BloomParams }) => (id === 'ink' ? s.ink.weight : s.bloom.strength);
+/** a pass's weight: a pass at zero weight is not built. The ink pass also draws the paint block's edge light, so it is
+ *  built when either is above zero */
+export const passWeight = (id: PostPassId, s: { ink: InkParams; bloom: BloomParams; paint: PaintBlock }) => (id === 'ink' ? Math.max(s.ink.weight, s.paint.edgeLight) : s.bloom.strength);
 
 export function resolve(profileId: ProfileId, artKey: string, opts: { look?: LookLayer; overlay?: LookLayer; stagings?: [number, number][] } = {}): ResolvedStyle {
   const P = STYLE_PROFILES[profileId], B = bindingFor(artKey), layers = [opts.look, opts.overlay].filter((l): l is LookLayer => !!l);
@@ -85,6 +86,6 @@ export function resolve(profileId: ProfileId, artKey: string, opts: { look?: Loo
       },
     };
   });
-  const passes = P.passes.filter((id) => POST_PASS_IDS.includes(id) && passWeight(id, { ink, bloom }) > 0);
+  const passes = P.passes.filter((id) => POST_PASS_IDS.includes(id) && passWeight(id, { ink, bloom, paint }) > 0);
   return { profile: profileId, binding: B.id, roles, liquids: B.liquids, liquid: P.liquid, paint, creaseAngle: P.shape.creaseAngle, passes, ink, bloom, time, vignette: B.vignette, actor: B.actor, log };
 }

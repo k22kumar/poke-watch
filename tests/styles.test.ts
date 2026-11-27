@@ -57,6 +57,8 @@ test('styles: resolve is pure, drops passes at zero weight, applies the layers i
   assert.deepEqual(a, b);
   assert.deepEqual(a.passes, [], 'lowpoly lists ink and bloom at weight 0: neither is built');
   assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { ink: { weight: 0.5 } } }).passes, ['ink']);
+  // the ink pass draws the paint block's edge light too: built for edge light alone, with no ink
+  assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { paint: { edgeLight: 0.1 } } }).passes, ['ink']);
   assert.deepEqual(resolve('lowpoly', 'meadow', { overlay: { ink: { weight: 0.5 }, bloom: { strength: 0.3 } } }).passes, ['ink', 'bloom'], 'in the profile\'s order');
   // look before overlay: the overlay wins
   const r = resolve('lowpoly', 'meadow', { look: { roles: { ground: { base: '#102030' } } }, overlay: { roles: { ground: { base: '#405060' } } } });

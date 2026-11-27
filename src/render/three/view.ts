@@ -3,7 +3,7 @@
 // RenderPipeline. It draws from the page renderer's lens and reads sim state, never writes it.
 //
 // Dev URL parameters (docs/RENDER3D.md "Dev parameters"): backend, profile, tod (D12), shadow, perf, the dev
-// experiment layer of Q18.4a (ink, bloom, bloomres, edge, facet, vgrad, strata, bands, grade), lamps=0, signalcheck
+// experiment layer of Q18.4a (ink, inkshare, bloom, bloomres, edge, facet, vgrad, strata, bands, soft, grade), lamps=0, signalcheck
 // and bench3.
 import {
   BoxGeometry, BufferAttribute, BufferGeometry, CanvasTexture, Color, DirectionalLight, IcosahedronGeometry, InstancedBufferAttribute, InstancedBufferGeometry,
@@ -12,12 +12,12 @@ import {
 import { Fn, attribute, clamp, floor, fog, length, mix, mod, positionGeometry, positionView, positionWorldDirection, pow, screenCoordinate, uniform, vec3, vec4, float, uv } from 'three/tsl';
 import { dirIndex, frameAt, type AnimState, type CreatureArt } from '../../assets/art';
 import type { SimContext } from '../../sim/types';
-import { MATERIAL_ROLES } from '../../rules/materialroles';
 import { isProfileId, type ProfileId } from '../../rules/styles/profiles';
 import { PASS_NEEDS } from '../../rules/styles/passes';
-import { resolve, type LookLayer, type ResolvedStyle } from '../../rules/styles/resolve';
+import { resolve, type ResolvedStyle } from '../../rules/styles/resolve';
 import { hourFromParam } from '../../rules/styles/timeofday';
 import type { CreateThreeView, ThreeCamera, ThreeReport, ThreeSheet, ThreeView } from '../threehost';
+import { devLayer } from '../world3d/devlayer';
 import { lightAt, type LightUniforms } from '../world3d/lighting';
 import { buildWorld, type WorldBuild } from '../world3d/mesh';
 import { createBackend, backendPick } from './backend';
@@ -31,26 +31,6 @@ type N = any; // TSL node chains are loosely typed in @types/three 0.187 (S2 F42
 const FOG_VEIL = 0.5;
 /** the sun's shadow box follows the player (S2: ±40 m, 2048²) */
 const SHADOW_EXTENT = 40, SHADOW_SIZE = 2048;
-
-/** the dev experiment layer (WORLDGEN3D Q18.4a): URL overrides on the resolved style, dev only */
-function devLayer(q: URLSearchParams): LookLayer | undefined {
-  const num = (k: string) => (q.has(k) ? Number(q.get(k)) : undefined);
-  const L: LookLayer = {};
-  if (q.has('ink')) L.ink = { weight: num('ink')! };
-  if (q.has('bloom') || q.has('bloomres')) L.bloom = { ...(q.has('bloom') ? { strength: num('bloom')! } : {}), ...(q.has('bloomres') ? { resolution: num('bloomres')! } : {}) };
-  const paint: LookLayer['paint'] = {};
-  if (q.has('edge')) paint.edgeLight = num('edge');
-  if (q.has('facet')) paint.facetTone = num('facet');
-  if (q.has('vgrad')) paint.verticalGradient = num('vgrad');
-  if (q.has('strata')) paint.strata = num('strata');
-  if (Object.keys(paint).length) L.paint = paint;
-  if (q.has('bands')) { const b = num('bands')!; L.roles = Object.fromEntries(MATERIAL_ROLES.map((r) => [r, { ramp: { bands: b, soft: 0.15 } }])); }
-  if (q.has('grade')) {
-    const [lift, gamma, gain, sat] = q.get('grade')!.split(',').map(Number);
-    L.grade = { lift: [lift, lift, lift], gamma: [gamma, gamma, gamma], gain: [gain, gain, gain], saturation: sat };
-  }
-  return Object.keys(L).length ? L : undefined;
-}
 
 const q = (a: number[], p: number) => { if (!a.length) return NaN; const s = [...a].sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p * (s.length - 1)))]; };
 const r2 = (x: number) => Math.round(x * 100) / 100;

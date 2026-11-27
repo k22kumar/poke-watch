@@ -464,6 +464,10 @@ From the owner's direction WORLDGEN3D Q15c and the CL grilling answers recorded 
   all 0 or a moderate set × ink off or thin and dark with a low world share, 8 frames per map, in one capture folder
   with a table of variants, marks and pass/fail. Chargestone Cave and the dusk lagoon are hold-outs, not looked at
   until the variants are picked; the picks are then applied and shown on them.
+  **Sheet built (2026-11-27, `feat/i2a-look-sheet`): docs/looksheet/README.md**, frames in `docs/looksheet/2026-11-27/`.
+  All eight variants fail mark 1 (the sun-facing side sits 3.4–5.7 ΔL\* under its top at worst, the light split
+  being outside the grid); marks 2 and 3 pass for all (signals 80 of 80, at most 1.51 ms p95). Waiting on the owner's
+  pick, or a change to the grid or the mark.
 - **F109. `scripts/dev.mjs` had no recast plugin** [found and fixed by I2a]: since I3 the dev server's bundle imports
   `src/nav/web.ts`'s `.wasm`, which esbuild cannot load without `navWasm`; I2a added it beside the three side file.
 

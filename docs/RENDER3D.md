@@ -127,8 +127,9 @@ One `RenderPipeline` (S2 decision 2; `passes.ts`):
 1. the scene pass (world, actors, sky); an MRT normal target only when a built pass needs it (its alpha is the
    material's ink share, written by world materials through their own `mrtNode`);
 2. the profile's registry passes in its order: `ink` (S2's edge pass: depth and normal edges darkened by weight ×
-   role share, normal creases lightened by the paint block's edge light), `bloom` (three's BloomNode, added over the
-   scene). A pass at weight 0 is not built;
+   role share, normal creases lightened by the paint block's edge light; its weight is the larger of the ink weight
+   and the edge light, so edge light alone builds it), `bloom` (three's BloomNode, added over the scene). A pass at
+   weight 0 is not built;
 3. `renderOutput` (no tone mapping; the sRGB transform);
 4. grading (lift, gain, gamma per channel, saturation) and the vignette, in display space;
 5. **the signal composite:** the signal scene's own pass, sRGB-encoded, over the graded frame.
@@ -212,7 +213,8 @@ These numbers bind the shipped profile; dev-only experiment layers are exempt (Q
 
 With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 backend), `profile=lowpoly`, `tod=<hour>`,
 `shadow=0`, `perf=1` (the overlay and GPU timestamps), `lamps=0` (no lamp channel). The dev experiment layer (Q18.4a):
-`ink=<w>`, `edge=<l>`, `bloom=<s>`, `bloomres=<fraction>`, `facet=<t>`, `vgrad=<v>`, `strata=<s>`, `bands=<n>`,
+`ink=<w>`, `inkshare=<every role's share>`, `edge=<l>`, `bloom=<s>`, `bloomres=<fraction>`, `facet=<t>`, `vgrad=<v>`,
+`strata=<s>`, `bands=<n>`, `soft=<band edge softness, default 0.15>`,
 `grade=<lift>,<gamma>,<gain>,<saturation>`. Checks and benches: `signalcheck=1`, `bench3=backdrop:<n>,cards:<n>,strokes:<n>`.
 `window.pokewatchThree` has `report()`, `collect(seconds)`, `lighting()`, `setHour(h)` and `probe()`.
 
@@ -222,7 +224,9 @@ With `?render=three`: `backend=webgpu|webgl|auto` (WebGL forces the WebGL 2 back
   the game page with S2's 240-actor crowd frozen on its ring and the camera orbiting (`live=1` lets it walk), printing
   the scene's report.
 - `node tools/s2matrix.mjs <build>/index.html <out.jsonl> [groups]`: the matrix (both backends per line).
-- `node tools/three-signal.mjs <build>/index.html`: the signal check.
+- `node tools/three-signal.mjs <build>/index.html [--query …]`: the signal check.
+- `npx tsx scripts/toplint.ts`: the top/side tone lint (Q23.3) over the look sheet's variants.
+- `npx tsx tools/looksheet.ts <build>/index.html <out>`: the look sheet's frames and marks (docs/looksheet).
 - Build privately for any of them: `node scripts/build.mjs --out <dir>`.
 
 ## Look values
@@ -274,3 +278,5 @@ Each is undoable without moving a recorded decision or a shipped baseline, cover
    palettes; prop roles from the tile-art ramps' second shade; today's dithered sky bands and vignette kept. Gate:
    `tests/styles.test.ts`. (Every new look value is in "Look values", not here.)
 10. **`scripts/dev.mjs` gained `navWasm`** (F109) beside the side file, since the dev server could not bundle without it.
+11. **The ink pass is built for edge light alone** (look sheet, F111): edge light is drawn by the ink pass, so the pass's
+    weight is max(ink weight, edge light). Gate: `tests/styles.test.ts`.

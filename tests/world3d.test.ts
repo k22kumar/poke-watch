@@ -15,6 +15,8 @@ import { worldgenFromQuery } from '../src/world/replay';
 import type { LampEmitter } from '../src/render/world3d/bake';
 import { buildWorld, type BuiltChunk } from '../src/render/world3d/mesh';
 import { TopField } from '../src/render/world3d/topfield';
+import { lightAt, srgbToLinear } from '../src/render/world3d/lighting';
+import { faceTone, lstar, rampOf, topSideGap } from '../src/render/world3d/tones';
 
 /** a model holding only render chunks (the bakes read nothing else) */
 function model(surfaces: SurfaceChunk[]): WorldModel {
@@ -124,4 +126,19 @@ test('world meshes: the range builds whole and the same twice', () => {
   // the top field sees the range's highest surface
   const f = TopField.of(M);
   assert.ok(Math.max(...f.top.filter(Number.isFinite)) <= M.bounds.max[1]);
+});
+
+test('tones: the CPU face tone is the shader\'s maths (the top/side lint of docs/looksheet)', () => {
+  // an open top facing up at the fixed hour shows its base colour (the calibration tests/timeofday.test.ts pins)
+  const S = resolve('lowpoly', 'meadow'), L = lightAt(S.time, S.time.hour);
+  const top = faceTone(S, L, 'ground', [0, 1, 0]);
+  const base = S.roles.ground.base.map(srgbToLinear);
+  assert.ok(Math.abs(lstar(top) - lstar(base as [number, number, number])) < 1.5, `${lstar(top)} against ${lstar(base as [number, number, number])}`);
+  // the ramp: continuous passes n·l through; 3 bands quantise it, hard edges at soft 0
+  assert.equal(rampOf(0.4, 0, 0), 0.4);
+  assert.ok(Math.abs(rampOf(0.4, 3, 0) - 1 / 3) < 1e-9 && Math.abs(rampOf(0.7, 3, 0) - 2 / 3) < 1e-9 && rampOf(1, 3, 0.3) === 1);
+  // sides are darker than tops, and the sunward side is the brightest of the four
+  const g = topSideGap(S, L, 'ground');
+  assert.ok(g.gap > 0 && g.meanGap > g.gap);
+  assert.equal(lstar([1, 1, 1]), 100);
 });
