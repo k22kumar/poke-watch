@@ -1,6 +1,6 @@
 // Build: bundles src/main.ts and inlines it into dist/index.html, which holds only code (and the UI font and icons).
 // The Pokémon art is written beside it as dist/art/ (scripts/lib/artfiles.mjs), the music as dist/music/, the Rapier
-// wasm as dist/physics/ (scripts/lib/rapierwasm.mjs) and the recast-navigation wasm as dist/nav/ (scripts/lib/navwasm.mjs); the page fetches them (docs/ROADMAP.md "Item 3: A1 plan"). The build fails when dist/index.html is over PAGE_BUDGET.
+// wasm as dist/physics/ (scripts/lib/rapierwasm.mjs) the recast-navigation wasm as dist/nav/ (scripts/lib/navwasm.mjs) and three.js with the 3D scene as dist/three/ (scripts/lib/threebundle.mjs, loaded only with ?render=three); the page fetches them (docs/ROADMAP.md "Item 3: A1 plan"). The build fails when dist/index.html is over PAGE_BUDGET.
 // `--out <dir>` writes there instead of dist/ (a private build for captures while other sessions use dist/: CLAUDE.md
 // "Parallel sessions").
 import * as esbuild from 'esbuild';
@@ -9,6 +9,7 @@ import path from 'node:path';
 import { writeArt } from './lib/artfiles.mjs';
 import { rapierWasm } from './lib/rapierwasm.mjs';
 import { navWasm } from './lib/navwasm.mjs';
+import { assertNoThree, buildThree } from './lib/threebundle.mjs';
 
 /** dist/index.html's size budget (bytes): the page is code; art and music are side files */
 const PAGE_BUDGET = 3_000_000;
@@ -18,15 +19,20 @@ fs.mkdirSync(OUT, { recursive: true });
 // the game's art files first: the bundle is built with their names
 const art = await writeArt(path.join(OUT, 'art'));
 console.log(`${path.join(OUT, 'art')}/ ${art.files} files, ${(art.bytes / 1024).toFixed(0)} KB`);
+// the three.js side file first: the page is built with its name
+const three = await buildThree(OUT, { minify: !process.argv.includes('--dev') });
+console.log(`${path.join(OUT, three.url)} ${(three.bytes / 1024).toFixed(0)} KB (three.js ${(three.three / 1024).toFixed(0)} KB)`);
 const out = await esbuild.build({
   entryPoints: ['src/main.ts'], bundle: true, format: 'iife', target: 'es2022', minify: !process.argv.includes('--dev'), write: false, sourcemap: false, legalComments: 'none',
   // the music is fetched from dist/music/ (content-hashed names)
   loader: { '.mp3': 'file' }, outdir: OUT, assetNames: 'music/[name].[hash]', publicPath: '.',
-  define: { __ART__: JSON.stringify({ manifest: art.manifest, heroes: art.heroes }) },
+  define: { __ART__: JSON.stringify({ manifest: art.manifest, heroes: art.heroes }), __THREE_URL__: JSON.stringify(three.url) },
+  metafile: true,
   // the Rapier wasm is fetched from dist/physics/ (content-hashed name; src/physics/web.ts)
   // the recast-navigation wasm is fetched from dist/nav/ (content-hashed name; src/nav/web.ts)
   plugins: [rapierWasm(OUT), navWasm(OUT)],
 });
+assertNoThree(out.metafile);
 const js = out.outputFiles.find((f) => f.path.endsWith('.js')).text;
 fs.rmSync(path.join(OUT, 'music'), { recursive: true, force: true });
 for (const f of out.outputFiles) if (!f.path.endsWith('.js')) { fs.mkdirSync(path.dirname(f.path), { recursive: true }); fs.writeFileSync(f.path, f.contents); }
