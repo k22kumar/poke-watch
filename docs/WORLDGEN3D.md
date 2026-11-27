@@ -1637,9 +1637,9 @@ has never been measured.
    | Off-mesh links | ≤ 256 | a guess |
    | Render triangles, structure and gameplay tiers | ≤ 150,000 | drawn up to three times a frame (main, shadow, normals); the normals target only where a pass needs it (Q23) |
    | Dressing | ≤ 6,000 instances, ≤ 48 archetypes, ≤ 250,000 triangles | S2's stress scene ran 5,000 instanced props |
-   | Backdrop (Q23) | set by profiling at I2a and F39 | its own budget, outside the dressing caps (Q17.8) |
-   | Particle cards (Q23) | set by profiling at I2a and F39 | overdraw: glow sprites and atmosphere emitters, all code-made (Q23.6) |
-   | Strokes (Q23) | set by profiling at I2a and F39 | the stroke geometry of painted accents (Q23.6) |
+   | Backdrop (Q23) | ≤ 150,000 triangles (I2a) | its own budget, outside the dressing caps (Q17.8); profiled at I2a (F39 waived, D14): docs/RENDER3D.md "Budgets" |
+   | Particle cards (Q23) | ≤ 1,000 cards about 1.2 m across within 12 m of the lens (I2a) | overdraw: glow sprites and atmosphere emitters, all code-made (Q23.6); profiled at I2a |
+   | Strokes (Q23) | ≤ 120,000 triangles (I2a) | the stroke geometry of painted accents (Q23.6); profiled at I2a |
    | Stateful features | ≤ 4 per map | see (d) |
    | Environment states | ≤ 3 per map | with the feature cap: at most 18 validation states per attempt (Q10) |
    | WorldModel bytes | ≤ 16 MB | about 6 MB at the caps above |
@@ -1671,6 +1671,9 @@ has never been measured.
    G2.
 5. **The render numbers are provisional** until F39 names the lower-end machine; the table is recalibrated once, at
    I2a. Dev-only experiment profiles (Q18a) are exempt; the shipped profile is not.
+   - *(I2a, 2026-11-27; F39 waived by D14.)* Recalibrated on the reference machine: the frame's GPU time ≤ 4.0 ms p95 on
+     the WebGL 2 backend at 1080p, S2's category shares scaled to it, and the backdrop, particle-card and stroke rows
+     above; bloom's default is off (quality 0.25 when on). Numbers and the rule: docs/RENDER3D.md "Budgets".
    - *(c)* **Local light emitters get budgets:** a count per map, and an overlap count per screen region. Both are
      checked at the night samples of the day/night cycle, on the WebGL 2 backend as the baseline. Starting numbers
      (owner confirmed, 2026-11-24): ≤ 64 emitters per map and ≤ 4 overlapping in any screen region. They are
@@ -1678,6 +1681,10 @@ has never been measured.
      - *(Q23)* The technique is now decided: a baked lamp channel (Q18.9). The count still bounds the bake. I2a
        restates what the overlap number bounds under baking (owner, 2026-11-24). "Night samples" reads as the
        darkest sampled times inside the map's range (Q23.2).
+     - *(Restated by I2a, 2026-11-27.)* Under baking, frame cost does not depend on emitters (measured: Chargestone
+       Cave with 54 or 0 lamps, the same GPU time). The 64 bounds the bake (load time). The 4 bounds the lamp channel
+       at one vertex: at most 4 emitters reach any vertex, for readability and the fairness lint's range, not for
+       time. docs/RENDER3D.md "Local light".
    - *(Q23.5)* **Bloom's budget and default quality come from the same profiling** on low-end hardware (F39).
    - *(c)* **An event overlay shares the dressing caps.** Its instances, archetypes, triangles and emitters count
      inside the same numbers; it gets no allowance of its own.

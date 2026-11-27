@@ -1,0 +1,461 @@
+{
+ "browser": "158.0.8127.18",
+ "machine": "Apple M3 Max",
+ "results": {
+  "chargestone": [
+   {
+    "id": "base",
+    "query": "",
+    "hour": 11,
+    "roles": {
+     "ground": 6.6,
+     "path": 8.9,
+     "soil": 8.3,
+     "rock": 7.9,
+     "cliff": 6.5,
+     "floor": 14.5,
+     "cover": 8.8,
+     "foliage": 14.9,
+     "trunk": 8.4
+    },
+    "shadow": {
+     "ground": 23.8,
+     "path": 37,
+     "soil": 33.7,
+     "rock": 31.2,
+     "cliff": 23.3,
+     "floor": 66.6,
+     "cover": 36.8,
+     "foliage": 72.5,
+     "trunk": 30.6
+    },
+    "min": 6.5,
+    "shadowMin": 23.3,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.18,
+      "p95": 1.39
+     },
+     "webgpu": {
+      "p50": 1.48,
+      "p95": 1.77
+     }
+    }
+   },
+   {
+    "id": "k50",
+    "query": "key=0.5",
+    "hour": 11,
+    "roles": {
+     "ground": 8,
+     "path": 10.7,
+     "soil": 10.1,
+     "rock": 9.5,
+     "cliff": 7.9,
+     "floor": 17.6,
+     "cover": 10.6,
+     "foliage": 18,
+     "trunk": 10.2
+    },
+    "shadow": {
+     "ground": 21.5,
+     "path": 33.9,
+     "soil": 30.8,
+     "rock": 28.4,
+     "cliff": 21,
+     "floor": 61.7,
+     "cover": 33.6,
+     "foliage": 67.3,
+     "trunk": 27.9
+    },
+    "min": 7.9,
+    "shadowMin": 21,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.18,
+      "p95": 1.41
+     },
+     "webgpu": {
+      "p50": 1.53,
+      "p95": 1.85
+     }
+    }
+   },
+   {
+    "id": "k55",
+    "query": "key=0.55",
+    "hour": 11,
+    "roles": {
+     "ground": 8.8,
+     "path": 11.7,
+     "soil": 11,
+     "rock": 10.4,
+     "cliff": 8.6,
+     "floor": 19.2,
+     "cover": 11.6,
+     "foliage": 19.7,
+     "trunk": 11.1
+    },
+    "shadow": {
+     "ground": 20.2,
+     "path": 32.1,
+     "soil": 29.2,
+     "rock": 26.8,
+     "cliff": 19.7,
+     "floor": 59.1,
+     "cover": 31.9,
+     "foliage": 64.4,
+     "trunk": 26.3
+    },
+    "min": 8.6,
+    "shadowMin": 19.7,
+    "pass": false,
+    "crushed": true,
+    "perf": {
+     "webgl": {
+      "p50": 1.18,
+      "p95": 1.48
+     },
+     "webgpu": {
+      "p50": 1.51,
+      "p95": 1.81
+     }
+    }
+   },
+   {
+    "id": "k65",
+    "query": "key=0.65",
+    "hour": 11,
+    "roles": {
+     "ground": 10.4,
+     "path": 13.8,
+     "soil": 13,
+     "rock": 12.3,
+     "cliff": 10.2,
+     "floor": 22.7,
+     "cover": 13.7,
+     "foliage": 23.2,
+     "trunk": 13.1
+    },
+    "shadow": {
+     "ground": 17.3,
+     "path": 28.3,
+     "soil": 25.5,
+     "rock": 23.4,
+     "cliff": 16.8,
+     "floor": 53,
+     "cover": 28.1,
+     "foliage": 58,
+     "trunk": 22.9
+    },
+    "min": 10.2,
+    "shadowMin": 16.8,
+    "pass": false,
+    "crushed": true,
+    "perf": {
+     "webgl": {
+      "p50": 1.23,
+      "p95": 1.4
+     },
+     "webgpu": {
+      "p50": 1.52,
+      "p95": 1.8
+     }
+    }
+   },
+   {
+    "id": "k50-f10",
+    "query": "key=0.5&facet=0.1",
+    "hour": 11,
+    "roles": {
+     "ground": 9.2,
+     "path": 12.2,
+     "soil": 11.5,
+     "rock": 10.9,
+     "cliff": 9,
+     "floor": 20,
+     "cover": 12.1,
+     "foliage": 20.5,
+     "trunk": 11.5
+    },
+    "shadow": {
+     "ground": 21.9,
+     "path": 34.5,
+     "soil": 31.4,
+     "rock": 28.9,
+     "cliff": 21.4,
+     "floor": 62.7,
+     "cover": 34.3,
+     "foliage": 68.3,
+     "trunk": 28.4
+    },
+    "min": 9,
+    "shadowMin": 21.4,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.21,
+      "p95": 1.48
+     },
+     "webgpu": {
+      "p50": 1.53,
+      "p95": 1.82
+     }
+    }
+   },
+   {
+    "id": "k50-jit03",
+    "query": "key=0.5&facetjitter=0.03",
+    "hour": 11,
+    "roles": {
+     "ground": 7.6,
+     "path": 10.2,
+     "soil": 9.6,
+     "rock": 9,
+     "cliff": 7.5,
+     "floor": 16.7,
+     "cover": 10.1,
+     "foliage": 17.1,
+     "trunk": 9.7
+    },
+    "shadow": {
+     "ground": 21.5,
+     "path": 33.9,
+     "soil": 30.8,
+     "rock": 28.4,
+     "cliff": 21,
+     "floor": 61.7,
+     "cover": 33.6,
+     "foliage": 67.3,
+     "trunk": 27.9
+    },
+    "min": 7.5,
+    "shadowMin": 21,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.23,
+      "p95": 1.43
+     },
+     "webgpu": {
+      "p50": 1.53,
+      "p95": 1.81
+     }
+    }
+   }
+  ],
+  "dusklagoon": [
+   {
+    "id": "base",
+    "query": "",
+    "hour": 23,
+    "roles": {
+     "ground": 10.4,
+     "path": 12,
+     "soil": 10.8,
+     "rock": 12.2,
+     "cliff": 9.7,
+     "floor": 15.8,
+     "cover": 10.6,
+     "foliage": 10.5,
+     "trunk": 7.8
+    },
+    "shadow": {
+     "ground": 38.2,
+     "path": 45.4,
+     "soil": 39.5,
+     "rock": 46.8,
+     "cliff": 34,
+     "floor": 64.9,
+     "cover": 38.7,
+     "foliage": 38.6,
+     "trunk": 23.9
+    },
+    "min": 7.8,
+    "shadowMin": 23.9,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.34,
+      "p95": 1.74
+     },
+     "webgpu": {
+      "p50": 1.64,
+      "p95": 2.65
+     }
+    }
+   },
+   {
+    "id": "k50",
+    "query": "key=0.5",
+    "hour": 23,
+    "roles": {
+     "ground": 11.5,
+     "path": 13.2,
+     "soil": 11.9,
+     "rock": 13.4,
+     "cliff": 10.6,
+     "floor": 17.4,
+     "cover": 11.6,
+     "foliage": 11.5,
+     "trunk": 8.6
+    },
+    "shadow": {
+     "ground": 36.5,
+     "path": 43.5,
+     "soil": 37.7,
+     "rock": 44.8,
+     "cliff": 32.4,
+     "floor": 62.3,
+     "cover": 37,
+     "foliage": 36.9,
+     "trunk": 22.6
+    },
+    "min": 8.6,
+    "shadowMin": 22.6,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.37,
+      "p95": 1.72
+     },
+     "webgpu": {
+      "p50": 1.7,
+      "p95": 2.71
+     }
+    }
+   },
+   {
+    "id": "k55",
+    "query": "key=0.55",
+    "hour": 23,
+    "roles": {
+     "ground": 12.6,
+     "path": 14.4,
+     "soil": 13,
+     "rock": 14.6,
+     "cliff": 11.6,
+     "floor": 19,
+     "cover": 12.7,
+     "foliage": 12.6,
+     "trunk": 9.4
+    },
+    "shadow": {
+     "ground": 34.7,
+     "path": 41.4,
+     "soil": 35.9,
+     "rock": 42.7,
+     "cliff": 30.8,
+     "floor": 59.6,
+     "cover": 35.2,
+     "foliage": 35.1,
+     "trunk": 21.3
+    },
+    "min": 9.4,
+    "shadowMin": 21.3,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.36,
+      "p95": 1.69
+     },
+     "webgpu": {
+      "p50": 1.62,
+      "p95": 2.65
+     }
+    }
+   },
+   {
+    "id": "k65",
+    "query": "key=0.65",
+    "hour": 23,
+    "roles": {
+     "ground": 14.9,
+     "path": 17,
+     "soil": 15.4,
+     "rock": 17.2,
+     "cliff": 13.7,
+     "floor": 22.5,
+     "cover": 15,
+     "foliage": 14.9,
+     "trunk": 11.1
+    },
+    "shadow": {
+     "ground": 30.6,
+     "path": 36.8,
+     "soil": 31.7,
+     "rock": 38,
+     "cliff": 27,
+     "floor": 53.6,
+     "cover": 31.1,
+     "foliage": 31,
+     "trunk": 18.3
+    },
+    "min": 11.1,
+    "shadowMin": 18.3,
+    "pass": false,
+    "crushed": true,
+    "perf": {
+     "webgl": {
+      "p50": 1.3,
+      "p95": 1.67
+     },
+     "webgpu": {
+      "p50": 1.7,
+      "p95": 2.67
+     }
+    }
+   },
+   {
+    "id": "k55-f10",
+    "query": "key=0.55&facet=0.1",
+    "hour": 23,
+    "roles": {
+     "ground": 14.2,
+     "path": 16.2,
+     "soil": 14.7,
+     "rock": 16.4,
+     "cliff": 13.1,
+     "floor": 21.4,
+     "cover": 14.3,
+     "foliage": 14.2,
+     "trunk": 10.6
+    },
+    "shadow": {
+     "ground": 35.3,
+     "path": 42.1,
+     "soil": 36.5,
+     "rock": 43.5,
+     "cliff": 31.4,
+     "floor": 60.6,
+     "cover": 35.8,
+     "foliage": 35.7,
+     "trunk": 21.7
+    },
+    "min": 10.6,
+    "shadowMin": 21.7,
+    "pass": false,
+    "crushed": false,
+    "perf": {
+     "webgl": {
+      "p50": 1.36,
+      "p95": 1.75
+     },
+     "webgpu": {
+      "p50": 1.62,
+      "p95": 2.48
+     }
+    }
+   }
+  ]
+ }
+}

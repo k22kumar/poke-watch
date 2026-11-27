@@ -29,6 +29,7 @@ import { skyFor } from './sky';
 /** palette key for a world: a location map's own art (src/world/locations), else the stage biome */
 const artKey = (ctx: SimContext) => ctx.world.map.gen?.loc?.art ?? ctx.world.biome.id;
 import { bearingOf, cameraPreset, CHASE_CONFIG, ChaseRig, chaseAim, lookPitchRange, offFrameCue, RING, ringAdd, type CameraPreset, type OffFrameCue, type ViewSample } from './camera';
+import type { ThreeCamera, ThreeSheet } from './threehost';
 import { chaseFrameFor } from './chaseinput';
 import { cardOf, fadeFor, outlineOf, subjectBox, type CardBounds, type Outline, type SubjectBox } from './framing';
 import { SPRITE_SAMPLE_GLSL } from './spritesample';
@@ -214,6 +215,12 @@ export class Renderer {
   private lastHp = -1;
   /** evaluation only (pokewatch.metrics): hide layers to measure figure-ground contrast and overlay coverage */
   debugHide = { actors: false, player: false, overlays: false, vignette: false };
+  /** ?render=three (task I2a, docs/RENDER3D.md): false while the three.js scene draws the frame. The camera rig, the
+   *  projections and the HUD hooks still run here every frame; nothing is drawn on this canvas and no tile stage is
+   *  built. True (the default) leaves this renderer exactly as it was */
+  present = true;
+  /** the lens this frame's render() set, for the three.js scene (render/threehost.ts ThreeCamera) */
+  readonly cam3: ThreeCamera = { eye: [0, 0, 0], yaw: Math.PI, pitch: 0, fov: 1, near: 0.3, far: 240, spriteStep: 0, leanFrom: 0 };
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
@@ -313,8 +320,7 @@ export class Renderer {
 
   setStage(ctx: SimContext) {
     this.useSizeRules(ctx.rules.size);
-    const st = this.stageFor(ctx);
-    this.stage = st;
+    this.stage = this.present ? this.stageFor(ctx) : null;
     this.px.parts = [];
     this.parts.n = 0; this.dying = []; this.rib = []; this.rings = []; this.nums = [];
     this.camX = ctx.player.x; this.camY = ctx.player.y; this.camZ = ctx.player.z;
@@ -330,7 +336,13 @@ export class Renderer {
   }
 
   /** Pre-build a biome's stage (painting the ground takes a moment) so stage changes don't hitch. */
-  prepareStage(ctx: SimContext) { this.stageFor(ctx); }
+  prepareStage(ctx: SimContext) { if (this.present) this.stageFor(ctx); }
+
+  /** a loaded creature sheet's draw facts (visible-size scale, walk cadence, outline) for the three.js scene */
+  sheetInfo(id: string): ThreeSheet | undefined {
+    const s = this.sheetOf(id);
+    return s && !s.placeholder ? { scale: s.size.scale, walkRate: s.walkRate, outline: s.outline } : undefined;
+  }
 
   /** Stages are keyed by map id (the biome id for authored arenas, biome@seed for generated regions). At most three
    *  generated stages are kept; older ones release their GPU resources. */
@@ -662,6 +674,11 @@ export class Renderer {
     this.fwd = [fx, 0, fz];
     // the off-frame cue looks at the Pokémon as drawn: feet, middle and head of its sprite
     this.selfCue = chase ? offFrameCue(this.rig.sample(this.width, this.height), [[px, py, pz], [px, py + this.subjectH / 2, pz], [px, py + this.subjectH, pz]]) : null;
+    const c3 = this.cam3;
+    c3.eye[0] = this.eye[0]; c3.eye[1] = this.eye[1]; c3.eye[2] = this.eye[2];
+    c3.yaw = this.yaw; c3.pitch = this.pitch; c3.fov = fov; c3.near = near; c3.far = far;
+    c3.spriteStep = chase ? this.rig.spriteStep : 0; c3.leanFrom = this.lean().from;
+    if (!this.present) { this.ageNums(dt); return; }
 
     const S = this.stage;
     const clear = S ? S.art.clear : [120, 220, 172];
@@ -775,7 +792,11 @@ export class Renderer {
     }
     gl.disable(gl.BLEND);
 
-    // damage numbers age
+    this.ageNums(dt);
+  }
+
+  /** damage numbers age */
+  private ageNums(dt: number) {
     for (let i = this.nums.length - 1; i >= 0; i--) {
       const n = this.nums[i];
       n.life -= dt; n.y += dt * 1.6;

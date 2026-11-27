@@ -1,0 +1,49 @@
+[
+ {
+  "id": "pick",
+  "query": "",
+  "topSide": {
+   "pass": false,
+   "min": 5.1,
+   "at": "dusklagoon trunk",
+   "meanMin": 8.9
+  },
+  "signal": {
+   "pass": true,
+   "out": [
+    "ok   WebGPU                             plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGPU                             grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGPU                             night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGPU                             bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGPU                             all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0",
+    "ok   WebGL 2 (WebGPURenderer fallback)  plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGL 2 (WebGPURenderer fallback)  night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGL 2 (WebGPURenderer fallback)  bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0"
+   ]
+  },
+  "perf": {
+   "chargestone/webgl": {
+    "p50": 1.2,
+    "p95": 1.43
+   },
+   "chargestone/webgpu": {
+    "p50": 1.51,
+    "p95": 1.83
+   },
+   "dusklagoon/webgl": {
+    "p50": 1.35,
+    "p95": 1.7
+   },
+   "dusklagoon/webgpu": {
+    "p50": 1.63,
+    "p95": 2.63
+   }
+  },
+  "budget": {
+   "pass": true,
+   "webglP95": 1.7
+  }
+ }
+]

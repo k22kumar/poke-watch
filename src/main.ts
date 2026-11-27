@@ -23,6 +23,8 @@ import { startObjective } from './sim/objectives';
 import { createRun, disposeRun, startStage, step } from './sim/run';
 import { bootRapier } from './physics/web';
 import { bootRecast } from './nav/web';
+import { bootThree } from './render/threeload';
+import type { ThreeView } from './render/threehost';
 import { artMetrics } from './render/metrics';
 import { LOCATIONS } from './world/locations';
 import { HABITATS } from './world/habitat/recipes';
@@ -45,6 +47,10 @@ const physicsEngine = params.get('physics') === 'rapier' ? 'rapier' : 'tiles';
 /** ?nav=navmesh: enemies steer by recast-navigation navmeshes (rules.nav.engine, task I3; default the tile flow fields).
  *  Independent of ?physics. recast-navigation is fetched and initialised once at boot, and only then */
 const navEngine = params.get('nav') === 'navmesh' ? 'navmesh' : 'flow';
+/** ?render=three: the three.js scene draws the frame (task I2a, docs/RENDER3D.md; the flag stays off until X1a). Its
+ *  side file is fetched once at boot, and only then; the page's renderer keeps the camera, projections and HUD hooks */
+const renderEngine = params.get('render') === 'three' ? 'three' : 'tiles';
+let three: ThreeView | null = null;
 /** a run being replaced or dropped frees what it owns outside the JS heap (its physics world: S1 §6) */
 const dropRun = (c: SimContext | null) => { if (c) disposeRun(c); };
 /** ?evolve=<seconds>: the dev Breakthrough trigger (sim/evolution.ts), once per run; -1 = none */
@@ -185,6 +191,13 @@ function setPaused(p: boolean) {
 function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   renderer.resize(window.innerWidth, window.innerHeight, dpr);
+  three?.resize(window.innerWidth, window.innerHeight);
+}
+
+/** one drawn frame: the page's renderer (its camera and, on the tile renderer, the frame) and the three.js scene */
+function draw(c: SimContext, alpha: number, dt: number, simDt: number) {
+  renderer.render(c, alpha, dt, simDt);
+  three?.render(c, alpha, renderer.cam3, dt);
 }
 
 /** World setting and ?loc= → worldgen rules. ?loc=chargestone-cave builds every region from that location;
@@ -416,7 +429,7 @@ function frame(now: number) {
       const a = attract.player, t = performance.now() / 1000;
       a.px = a.x; a.pz = a.z;
       a.x = attract.world.spawn[0] + Math.sin(t * 0.07) * 14; a.z = attract.world.spawn[1] - 6 + Math.cos(t * 0.05) * 9;
-      renderer.render(attract, 1, real, real);
+      draw(attract, 1, real, real);
     }
     return;
   }
@@ -458,7 +471,7 @@ function frame(now: number) {
   const tSim1 = performance.now();
   const alpha = Math.max(0, Math.min(1, acc / c.dt));
   audio.intensity = Math.min(1, c.enemies.count / 500);
-  renderer.render(c, alpha, real, paused ? 0 : simDt);
+  draw(c, alpha, real, paused ? 0 : simDt);
   const tR = performance.now();
   perf.sim = perf.sim * 0.9 + (tSim1 - tSim0) * 0.1; perf.render = perf.render * 0.9 + (tR - tSim1) * 0.1;
   ui.update(c, real, fps);
@@ -519,7 +532,7 @@ function advance(seconds: number, opts: { bot?: boolean; input?: Partial<InputFr
       }
     }
     audioTick(per);
-    renderer.render(c, 1, per, ctx ? per : 0);
+    draw(c, 1, per, ctx ? per : 0);
     if (ctx) { ui.update(c, per, 60); ui.drawNumbers(renderer.nums, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); drawAwareness(c); if (debugCaps) ui.capsDebug(c, (x, y, z) => renderer.project(x, y, z), renderer.canvas.width, renderer.canvas.height, renderer.pixelScale); }
   }
 }
@@ -544,6 +557,13 @@ async function boot() {
   renderer.shakeScale = settings.shake;
   renderer.fovOffset = settings.fov;
   input.chase = renderer.chase;
+  if (renderEngine === 'three') {
+    const { view, ms, url } = await bootThree(canvas, params, (id) => renderer.sheetInfo(id));
+    three = view;
+    renderer.present = false;
+    console.info(`[boot] three.js ${url} ready in ${ms.toFixed(1)} ms (${view.backend})`);
+    (window as any).pokewatchThree = view;
+  }
   input.onLockLost = () => { if (ctx && !paused && (ctx.state === 'play' || ctx.state === 'dead') && !ui.menuOpen()) setPaused(true); };
   input.onLockGained = () => { if (resumePending && paused) setPaused(false); };
   input.onLockError = () => {
@@ -588,7 +608,7 @@ async function boot() {
     },
     metrics: () => (ctx ? artMetrics(renderer, ctx) : null) };
   // the art manifest and the hero sheet (docs/ROADMAP.md "Item 3: A1 plan"); species' art arrives as matches need it
-  artLoader.onArt = (id, art) => renderer.addArt(id, art);
+  artLoader.onArt = (id, art) => { renderer.addArt(id, art); three?.addArt(id, art); };
   Object.defineProperty((window as any).pokewatch, 'loading', { get: () => !!artWait || artLoader.loading, enumerable: true });
   (window as any).pokewatch.art = artLoader;
   ui.loading(0.2);

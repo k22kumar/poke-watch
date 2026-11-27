@@ -211,6 +211,9 @@ Replay: with the flag off every scenario is as recorded. `gorge-hold-navmesh` ru
 
 Cost: perf-sim 500 on the flag, min of 3, p95 0.725 / p99 0.862 ms against 0.673 / 0.927 off (2 cm cells; 0.716 / 0.859 at I3); navigation 0.118 ms a tick (the goal fields cached per goal point; a polygon's plan bounds reject before the convex test and the snap search).
 
+## Renderer (I2a)
+Task I2a (2026-11-27): the three.js scene behind `?render=three` (default off until X1a). WebGPURenderer + TSL with the WebGL 2 fallback by its backend (S2 decision 1, D14), shipped as the side file `dist/three/scene.<hash>.js` loaded only with the flag (S2 decision 5); the page bundle never imports three (the build fails if it does). The scene draws the WorldModel's chunks in one world material family driven by material roles (WORLDGEN3D Q18.2 as superseded by Q23), from the closed profile registry with `lowpoly` alone (D11) and the closed pass registry (ink, bloom: optional, not built at weight 0); normals, sky visibility and the lamp channel are computed by the renderer at load. All lighting is read from one time-of-day value through each map's keyframes (D12). The page renderer keeps the camera rig, the projections and the HUD hooks until I2b. Record, numbers and open look values: docs/RENDER3D.md.
+
 ## Division of responsibilities
 - Gameplay locomotion (sim/locomotion.ts, rules/traversal.ts): intent to desired velocity per mode (walk, jump, coyote time, air jumps, glide, hover, swim, fly, climb), gravity, speeds.
 - Rapier character controller: resolves that translation against colliders (slide, autostep, snap to ground, slope limits, platforms). It applies no gravity and no jumping.

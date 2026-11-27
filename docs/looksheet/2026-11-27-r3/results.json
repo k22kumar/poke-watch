@@ -1,0 +1,190 @@
+[
+ {
+  "id": "p0i0",
+  "query": "",
+  "topSide": {
+   "pass": true,
+   "min": 12.8,
+   "at": "range trunk",
+   "meanMin": 17
+  },
+  "signal": {
+   "pass": true,
+   "out": [
+    "ok   WebGPU                             plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGPU                             grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGPU                             night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGPU                             bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGPU                             all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0",
+    "ok   WebGL 2 (WebGPURenderer fallback)  plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGL 2 (WebGPURenderer fallback)  night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGL 2 (WebGPURenderer fallback)  bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0"
+   ]
+  },
+  "perf": {
+   "range/webgl": {
+    "p50": 0.86,
+    "p95": 0.98
+   },
+   "range/webgpu": {
+    "p50": 0.86,
+    "p95": 0.98
+   },
+   "gorge/webgl": {
+    "p50": 0.91,
+    "p95": 1.11
+   },
+   "gorge/webgpu": {
+    "p50": 0.94,
+    "p95": 1.09
+   }
+  },
+  "budget": {
+   "pass": true,
+   "webglP95": 1.11
+  }
+ },
+ {
+  "id": "p0i1",
+  "query": "ink=1&inkshare=0.35",
+  "topSide": {
+   "pass": true,
+   "min": 12.8,
+   "at": "range trunk",
+   "meanMin": 17
+  },
+  "signal": {
+   "pass": true,
+   "out": [
+    "ok   WebGPU                             plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGPU                             grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGPU                             night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGPU                             bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGPU                             all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0",
+    "ok   WebGL 2 (WebGPURenderer fallback)  plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGL 2 (WebGPURenderer fallback)  night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGL 2 (WebGPURenderer fallback)  bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0"
+   ]
+  },
+  "perf": {
+   "range/webgl": {
+    "p50": 1.05,
+    "p95": 1.18
+   },
+   "range/webgpu": {
+    "p50": 1.08,
+    "p95": 1.2
+   },
+   "gorge/webgl": {
+    "p50": 1.12,
+    "p95": 1.3
+   },
+   "gorge/webgpu": {
+    "p50": 1.14,
+    "p95": 1.32
+   }
+  },
+  "budget": {
+   "pass": true,
+   "webglP95": 1.3
+  }
+ },
+ {
+  "id": "p1i0",
+  "query": "vgrad=0.25&edge=0.12&strata=0.08",
+  "topSide": {
+   "pass": true,
+   "min": 12.8,
+   "at": "range trunk",
+   "meanMin": 17.9
+  },
+  "signal": {
+   "pass": true,
+   "out": [
+    "ok   WebGPU                             plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGPU                             grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGPU                             night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGPU                             bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGPU                             all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0",
+    "ok   WebGL 2 (WebGPURenderer fallback)  plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGL 2 (WebGPURenderer fallback)  night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGL 2 (WebGPURenderer fallback)  bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0"
+   ]
+  },
+  "perf": {
+   "range/webgl": {
+    "p50": 1.05,
+    "p95": 1.21
+   },
+   "range/webgpu": {
+    "p50": 1.13,
+    "p95": 1.22
+   },
+   "gorge/webgl": {
+    "p50": 1.09,
+    "p95": 1.32
+   },
+   "gorge/webgpu": {
+    "p50": 1.17,
+    "p95": 1.36
+   }
+  },
+  "budget": {
+   "pass": true,
+   "webglP95": 1.32
+  }
+ },
+ {
+  "id": "p1i1",
+  "query": "vgrad=0.25&edge=0.12&strata=0.08&ink=1&inkshare=0.35",
+  "topSide": {
+   "pass": true,
+   "min": 12.8,
+   "at": "range trunk",
+   "meanMin": 17.9
+  },
+  "signal": {
+   "pass": true,
+   "out": [
+    "ok   WebGPU                             plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGPU                             grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGPU                             night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGPU                             bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGPU                             all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0",
+    "ok   WebGL 2 (WebGPURenderer fallback)  plain      signal near 255,102,32 far 255,102,32   world near 255,102,32 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  grade      signal near 255,102,32 far 255,102,32   world near 160,137,123 far 179,171,167",
+    "ok   WebGL 2 (WebGPURenderer fallback)  night fog  signal near 255,102,32 far 255,102,32   world near 238,106,48 far 188,98,71",
+    "ok   WebGL 2 (WebGPURenderer fallback)  bloom      signal near 255,102,32 far 255,102,32   world near 255,102,33 far 234,177,150",
+    "ok   WebGL 2 (WebGPURenderer fallback)  all        signal near 255,102,32 far 255,102,32   world near 255,15,0 far 255,29,0"
+   ]
+  },
+  "perf": {
+   "range/webgl": {
+    "p50": 1.08,
+    "p95": 1.24
+   },
+   "range/webgpu": {
+    "p50": 1.1,
+    "p95": 1.22
+   },
+   "gorge/webgl": {
+    "p50": 1.1,
+    "p95": 1.34
+   },
+   "gorge/webgpu": {
+    "p50": 1.16,
+    "p95": 1.36
+   }
+  },
+  "budget": {
+   "pass": true,
+   "webglP95": 1.34
+  }
+ }
+]
